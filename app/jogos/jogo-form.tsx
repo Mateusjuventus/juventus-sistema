@@ -10,11 +10,13 @@ const initialState: JogoFormState = {};
 
 export function JogoForm({
   action,
+  entityId,
   defaultValues,
   logoUrl,
   submitLabel,
 }: {
   action: (prevState: JogoFormState, formData: FormData) => Promise<JogoFormState>;
+  entityId?: string;
   defaultValues?: Record<string, string>;
   logoUrl?: string | null;
   submitLabel: string;
@@ -25,6 +27,7 @@ export function JogoForm({
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
+      {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Competição e adversário">
         <FieldGroup>
           <TextField

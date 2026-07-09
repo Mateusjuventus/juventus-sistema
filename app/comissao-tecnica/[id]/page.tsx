@@ -31,7 +31,8 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
       <h1 className="text-2xl font-bold text-grena-escuro">Editar — Comissão Técnica/Diretoria</h1>
       <div className="mt-4">
         <ComissaoForm
-          action={updateComissao.bind(null, pessoa.id)}
+          action={updateComissao}
+          entityId={pessoa.id}
           defaultValues={defaultValues}
           fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"

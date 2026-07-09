@@ -11,11 +11,13 @@ const initialState: ComissaoFormState = {};
 
 export function ComissaoForm({
   action,
+  entityId,
   defaultValues,
   fotoUrl,
   submitLabel,
 }: {
   action: (prevState: ComissaoFormState, formData: FormData) => Promise<ComissaoFormState>;
+  entityId?: string;
   defaultValues?: Record<string, string>;
   fotoUrl?: string | null;
   submitLabel: string;
@@ -26,6 +28,7 @@ export function ComissaoForm({
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
+      {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados pessoais">
         <FieldGroup>
           <TextField

@@ -72,10 +72,10 @@ export async function createStaff(
 }
 
 export async function updateStaff(
-  id: string,
   _prevState: StaffFormState,
   formData: FormData,
 ): Promise<StaffFormState> {
+  const id = String(formData.get("id") ?? "");
   const { raw, result } = parseForm(formData);
 
   if (!result.success) {
@@ -107,7 +107,8 @@ export async function updateStaff(
   redirect("/staff-operacional");
 }
 
-export async function deleteStaff(id: string): Promise<void> {
+export async function deleteStaff(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
   const supabase = createClient();
   await supabase.from("staff_operacional").delete().eq("id", id);
   revalidatePath("/staff-operacional");

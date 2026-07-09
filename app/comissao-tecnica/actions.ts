@@ -94,10 +94,10 @@ export async function createComissao(
 }
 
 export async function updateComissao(
-  id: string,
   _prevState: ComissaoFormState,
   formData: FormData,
 ): Promise<ComissaoFormState> {
+  const id = String(formData.get("id") ?? "");
   const { raw, result } = parseForm(formData);
 
   if (!result.success) {
@@ -131,7 +131,8 @@ export async function updateComissao(
   redirect("/comissao-tecnica");
 }
 
-export async function deleteComissao(id: string): Promise<void> {
+export async function deleteComissao(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
   const supabase = createClient();
   await supabase.from("comissao_tecnica").delete().eq("id", id);
   revalidatePath("/comissao-tecnica");

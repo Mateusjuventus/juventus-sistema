@@ -110,10 +110,10 @@ export async function createAtleta(
 }
 
 export async function updateAtleta(
-  id: string,
   _prevState: AtletaFormState,
   formData: FormData,
 ): Promise<AtletaFormState> {
+  const id = String(formData.get("id") ?? "");
   const { raw, result } = parseForm(formData);
 
   if (!result.success) {
@@ -157,7 +157,8 @@ export async function updateAtleta(
   redirect("/atletas");
 }
 
-export async function deleteAtleta(id: string): Promise<void> {
+export async function deleteAtleta(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
   const supabase = createClient();
   await supabase.from("atletas").delete().eq("id", id);
   revalidatePath("/atletas");

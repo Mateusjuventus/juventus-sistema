@@ -76,7 +76,7 @@ export default async function ComissaoTecnicaPage({
                     <Link href={`/comissao-tecnica/${p.id}`} className="btn-secondary">
                       Editar
                     </Link>
-                    <DeleteButton action={deleteComissao.bind(null, p.id)} entityLabel="registro" />
+                    <DeleteButton action={deleteComissao} id={p.id} entityLabel="registro" />
                   </div>
                 </td>
               </tr>

@@ -104,7 +104,7 @@ export default async function JogosPage({
                     <Link href={`/jogos/${j.id}`} className="btn-secondary">
                       Editar
                     </Link>
-                    <DeleteButton action={deleteJogo.bind(null, j.id)} entityLabel="jogo" />
+                    <DeleteButton action={deleteJogo} id={j.id} entityLabel="jogo" />
                   </div>
                 </td>
               </tr>

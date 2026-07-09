@@ -89,10 +89,10 @@ export async function createJogo(
 }
 
 export async function updateJogo(
-  id: string,
   _prevState: JogoFormState,
   formData: FormData,
 ): Promise<JogoFormState> {
+  const id = String(formData.get("id") ?? "");
   const { raw, result } = parseForm(formData);
 
   if (!result.success) {
@@ -127,7 +127,8 @@ export async function updateJogo(
   redirect("/jogos");
 }
 
-export async function deleteJogo(id: string): Promise<void> {
+export async function deleteJogo(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
   const supabase = createClient();
   await supabase.from("jogos").delete().eq("id", id);
   revalidatePath("/jogos");

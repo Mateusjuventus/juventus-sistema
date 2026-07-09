@@ -18,9 +18,11 @@ function ConfirmSubmit({ label }: { label: string }) {
  */
 export function DeleteButton({
   action,
+  id,
   entityLabel = "registro",
 }: {
-  action: () => Promise<void>;
+  action: (formData: FormData) => Promise<void>;
+  id: string;
   entityLabel?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -37,6 +39,7 @@ export function DeleteButton({
     <div className="flex items-center gap-2 rounded-md bg-red-50 p-2">
       <span className="text-sm text-red-800">Confirma excluir este {entityLabel}?</span>
       <form action={action}>
+        <input type="hidden" name="id" value={id} />
         <ConfirmSubmit label="Sim, excluir" />
       </form>
       <button type="button" className="btn-secondary" onClick={() => setConfirming(false)}>

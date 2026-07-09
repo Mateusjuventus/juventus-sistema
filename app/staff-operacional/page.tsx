@@ -87,7 +87,7 @@ export default async function StaffOperacionalPage({
                     <Link href={`/staff-operacional/${s.id}`} className="btn-secondary">
                       Editar
                     </Link>
-                    <DeleteButton action={deleteStaff.bind(null, s.id)} entityLabel="registro" />
+                    <DeleteButton action={deleteStaff} id={s.id} entityLabel="registro" />
                   </div>
                 </td>
               </tr>

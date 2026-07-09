@@ -30,7 +30,8 @@ export default async function EditarStaffPage({ params }: { params: { id: string
       <h1 className="text-2xl font-bold text-grena-escuro">Editar staff operacional</h1>
       <div className="mt-4">
         <StaffForm
-          action={updateStaff.bind(null, s.id)}
+          action={updateStaff}
+          entityId={s.id}
           defaultValues={defaultValues}
           submitLabel="Salvar alterações"
         />

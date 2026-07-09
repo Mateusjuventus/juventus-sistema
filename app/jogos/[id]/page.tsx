@@ -31,7 +31,8 @@ export default async function EditarJogoPage({ params }: { params: { id: string 
       <h1 className="text-2xl font-bold text-grena-escuro">Editar jogo</h1>
       <div className="mt-4">
         <JogoForm
-          action={updateJogo.bind(null, jogo.id)}
+          action={updateJogo}
+          entityId={jogo.id}
           defaultValues={defaultValues}
           logoUrl={logoUrl}
           submitLabel="Salvar alterações"

@@ -10,11 +10,13 @@ const initialState: AtletaFormState = {};
 
 export function AtletaForm({
   action,
+  entityId,
   defaultValues,
   fotoUrl,
   submitLabel,
 }: {
   action: (prevState: AtletaFormState, formData: FormData) => Promise<AtletaFormState>;
+  entityId?: string;
   defaultValues?: Record<string, string>;
   fotoUrl?: string | null;
   submitLabel: string;
@@ -25,6 +27,7 @@ export function AtletaForm({
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
+      {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados pessoais">
         <FieldGroup>
           <TextField

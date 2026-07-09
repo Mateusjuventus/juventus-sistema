@@ -10,10 +10,12 @@ const initialState: StaffFormState = {};
 
 export function StaffForm({
   action,
+  entityId,
   defaultValues,
   submitLabel,
 }: {
   action: (prevState: StaffFormState, formData: FormData) => Promise<StaffFormState>;
+  entityId?: string;
   defaultValues?: Record<string, string>;
   submitLabel: string;
 }) {
@@ -23,6 +25,7 @@ export function StaffForm({
 
   return (
     <form action={formAction} className="space-y-6">
+      {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados pessoais">
         <FieldGroup>
           <TextField

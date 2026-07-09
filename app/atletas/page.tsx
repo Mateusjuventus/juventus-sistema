@@ -89,10 +89,7 @@ export default async function AtletasPage({
                     <Link href={`/atletas/${atleta.id}`} className="btn-secondary">
                       Editar
                     </Link>
-                    <DeleteButton
-                      action={deleteAtleta.bind(null, atleta.id)}
-                      entityLabel="atleta"
-                    />
+                    <DeleteButton action={deleteAtleta} id={atleta.id} entityLabel="atleta" />
                   </div>
                 </td>
               </tr>

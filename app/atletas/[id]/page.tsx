@@ -32,14 +32,13 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
     empresarioNome: atleta.empresario_nome ?? "",
   };
 
-  const boundUpdate = updateAtleta.bind(null, atleta.id);
-
   return (
     <AppShell>
       <h1 className="text-2xl font-bold text-grena-escuro">Editar atleta</h1>
       <div className="mt-4">
         <AtletaForm
-          action={boundUpdate}
+          action={updateAtleta}
+          entityId={atleta.id}
           defaultValues={defaultValues}
           fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"
