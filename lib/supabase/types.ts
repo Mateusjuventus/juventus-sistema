@@ -116,6 +116,70 @@ export interface ConvocacaoStaffRow {
   staff_id: string;
 }
 
+export interface RoomingListRow {
+  id: string;
+  jogo_id: string;
+  hotel_nome: string | null;
+  hotel_endereco: string | null;
+  checkin: string | null;
+  checkout: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PessoaTipoRooming = "comissao" | "staff";
+
+export interface RoomingListQuartoRow {
+  id: string;
+  rooming_list_id: string;
+  tipo: TipoQuarto;
+  ordem: number;
+}
+
+export interface RoomingListOcupanteRow {
+  quarto_id: string;
+  pessoa_tipo: PessoaTipoRooming;
+  pessoa_id: string;
+}
+
+export interface OnibusListaRow {
+  id: string;
+  jogo_id: string;
+  onibus_numero: number;
+  horario_saida: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type PessoaTipoOnibus = "atleta" | "comissao" | "staff";
+
+export interface OnibusPassageiroRow {
+  onibus_lista_id: string;
+  pessoa_tipo: PessoaTipoOnibus;
+  pessoa_id: string;
+}
+
+export interface CredenciamentoCatalogoRow {
+  id: string;
+  zona: string;
+  zona_cor: string | null;
+  funcao: string;
+  vagas_totais: number;
+}
+
+export type PessoaTipoCredenciamento = "comissao" | "staff";
+
+export interface CredenciamentoJogoRow {
+  id: string;
+  jogo_id: string;
+  credenciamento_catalogo_id: string;
+  pessoa_tipo: PessoaTipoCredenciamento;
+  pessoa_id: string;
+  vaga_extra: boolean;
+  created_at: string;
+}
+
 export type TarefaCategoria = "logistica" | "registro" | "financeiro" | "solicitacoes" | "gerais";
 export type TarefaStatus = "pendente" | "em_andamento" | "solicitado" | "concluido";
 

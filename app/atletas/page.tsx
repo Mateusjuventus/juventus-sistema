@@ -172,75 +172,65 @@ export default async function AtletasPage({
         </p>
       ) : null}
 
-      <div className="card mt-4 overflow-x-auto">
-        <table className="w-full min-w-[900px] text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3">Foto</th>
-              <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3">Posição</th>
-              <th className="px-4 py-3">Nº</th>
-              <th className="px-4 py-3">CPF</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Contrato até</th>
-              <th className="px-4 py-3 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {atletas.map((atleta, i) => {
-              const venceLogo =
-                atleta.data_fim_contrato && diasAte(atleta.data_fim_contrato, hoje) <= CONTRATO_A_VENCER_DIAS;
-              return (
-                <tr key={atleta.id}>
-                  <td className="px-4 py-3">
-                    {fotoUrls[i] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={fotoUrls[i]!}
-                        alt={atleta.nome_completo}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-neutral-100" />
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-neutral-800">{atleta.nome_completo}</td>
-                  <td className="px-4 py-3">{atleta.posicao}</td>
-                  <td className="px-4 py-3">{atleta.numero_camisa ?? "—"}</td>
-                  <td className="px-4 py-3">{formatCPF(atleta.cpf)}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={atleta.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={venceLogo ? "font-medium text-amber-700" : ""}>
-                      {formatData(atleta.data_fim_contrato)}
-                    </span>
-                    {venceLogo ? (
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                        A vencer
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/atletas/${atleta.id}`} className="btn-secondary">
-                        Editar
-                      </Link>
-                      <DeleteButton action={deleteAtleta} id={atleta.id} entityLabel="atleta" />
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {atletas.length === 0 && !error ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-neutral-400">
-                  Nenhum atleta encontrado.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+      {atletas.length === 0 && !error ? (
+        <div className="card mt-4 p-8 text-center text-neutral-400">Nenhum atleta encontrado.</div>
+      ) : null}
+
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {atletas.map((atleta, i) => {
+          const venceLogo =
+            atleta.data_fim_contrato && diasAte(atleta.data_fim_contrato, hoje) <= CONTRATO_A_VENCER_DIAS;
+          return (
+            <div key={atleta.id} className="card flex flex-col gap-4 p-5">
+              <div className="flex items-center gap-4">
+                {fotoUrls[i] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={fotoUrls[i]!}
+                    alt={atleta.nome_completo}
+                    className="h-16 w-16 flex-shrink-0 rounded-full object-cover ring-2 ring-neutral-100"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-lg font-bold text-neutral-400">
+                    {atleta.nome_completo.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-neutral-800">{atleta.nome_completo}</p>
+                  <p className="text-sm text-neutral-500">
+                    {atleta.posicao}
+                    {atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={atleta.status} />
+                {venceLogo ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    Contrato a vencer
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-neutral-100 pt-3 text-sm">
+                <span className="text-neutral-400">CPF</span>
+                <span className="text-neutral-700">{formatCPF(atleta.cpf)}</span>
+                <span className="text-neutral-400">Contrato até</span>
+                <span className={venceLogo ? "font-medium text-amber-700" : "text-neutral-700"}>
+                  {formatData(atleta.data_fim_contrato)}
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-neutral-100 pt-3">
+                <Link href={`/atletas/${atleta.id}`} className="btn-secondary">
+                  Editar
+                </Link>
+                <DeleteButton action={deleteAtleta} id={atleta.id} entityLabel="atleta" />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </AppShell>
   );

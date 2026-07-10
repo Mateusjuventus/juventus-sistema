@@ -5,11 +5,12 @@ export function JogoTabs({
   active,
 }: {
   jogoId: string;
-  active: "dados" | "convocacao";
+  active: "dados" | "convocacao" | "logistica";
 }) {
   const tabs = [
     { key: "dados", label: "Dados do jogo", href: `/jogos/${jogoId}` },
     { key: "convocacao", label: "Convocação", href: `/jogos/${jogoId}/convocacao` },
+    { key: "logistica", label: "Logística", href: `/jogos/${jogoId}/logistica` },
   ] as const;
 
   return (

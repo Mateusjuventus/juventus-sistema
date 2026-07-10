@@ -1,17 +1,49 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { JuventusCrestMark } from "@/components/juventus-crest";
+import { createClient } from "@/lib/supabase/server";
 
-const CADASTROS = [
-  { href: "/atletas", titulo: "Atletas" },
-  { href: "/comissao-tecnica", titulo: "Comissão Técnica / Diretoria" },
-  { href: "/staff-operacional", titulo: "Staff Operacional" },
-  { href: "/jogos", titulo: "Jogos / Competições" },
-];
+const EM_BREVE = ["Operação de Jogo", "Prestação de Contas"];
 
-const EM_BREVE = ["Logística de Jogo", "Operação de Jogo", "Prestação de Contas"];
+/** Conta linhas de uma tabela sem trazer os dados (head: true), pra montar a descrição de cada cartão. */
+async function contarLinhas(
+  supabase: ReturnType<typeof createClient>,
+  tabela: string,
+): Promise<number> {
+  const { count } = await supabase.from(tabela).select("*", { count: "exact", head: true });
+  return count ?? 0;
+}
 
-export default function ProfissionalPage() {
+export default async function ProfissionalPage() {
+  const supabase = createClient();
+
+  const [totalAtletas, totalComissao, totalStaff, totalJogos] = await Promise.all([
+    contarLinhas(supabase, "atletas"),
+    contarLinhas(supabase, "comissao_tecnica"),
+    contarLinhas(supabase, "staff_operacional"),
+    contarLinhas(supabase, "jogos"),
+  ]);
+
+  const CADASTROS = [
+    { href: "/atletas", titulo: "Atletas", descricao: `${totalAtletas} ativo${totalAtletas === 1 ? "" : "s"}` },
+    {
+      href: "/comissao-tecnica",
+      titulo: "Comissão Técnica / Diretoria",
+      descricao: `${totalComissao} ativo${totalComissao === 1 ? "" : "s"}`,
+    },
+    {
+      href: "/staff-operacional",
+      titulo: "Staff Operacional",
+      descricao: `${totalStaff} ativo${totalStaff === 1 ? "" : "s"}`,
+    },
+    {
+      href: "/jogos",
+      titulo: "Jogos / Competições",
+      descricao: `${totalJogos} cadastrado${totalJogos === 1 ? "" : "s"}`,
+    },
+    { href: "/jogos/logistica", titulo: "Logística de Jogo", descricao: "Rooming list, ônibus e credenciamento" },
+  ];
+
   return (
     <AppShell>
       <Link href="/" className="text-sm font-medium text-grena hover:underline">
@@ -22,15 +54,16 @@ export default function ProfissionalPage() {
         <h1 className="text-3xl font-bold text-grena-escuro">Futebol Profissional</h1>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CADASTROS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="card group flex flex-col items-center gap-3 p-8 text-center transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-dourado"
+            className="card group flex flex-col items-center gap-2 p-8 text-center transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-dourado"
           >
             <span className="inline-block h-1 w-10 rounded bg-dourado" />
             <h2 className="text-xl font-bold text-grena-escuro">{item.titulo}</h2>
+            <p className="text-sm font-medium text-neutral-500">{item.descricao}</p>
           </Link>
         ))}
       </div>
