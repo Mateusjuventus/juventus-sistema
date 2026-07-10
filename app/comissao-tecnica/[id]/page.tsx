@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -24,11 +25,15 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
     funcao: pessoa.funcao,
     telefone: pessoa.telefone ?? "",
     email: pessoa.email ?? "",
+    tipoQuartoPreferido: pessoa.tipo_quarto_preferido ?? "",
   };
 
   return (
     <AppShell>
-      <h1 className="text-2xl font-bold text-grena-escuro">Editar — Comissão Técnica/Diretoria</h1>
+      <Link href="/comissao-tecnica" className="text-sm font-medium text-grena hover:underline">
+        ← Voltar
+      </Link>
+      <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Editar — Comissão Técnica/Diretoria</h1>
       <div className="mt-4">
         <ComissaoForm
           action={updateComissao}

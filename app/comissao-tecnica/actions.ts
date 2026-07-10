@@ -23,6 +23,7 @@ function parseForm(formData: FormData) {
     funcao: String(formData.get("funcao") ?? ""),
     telefone: String(formData.get("telefone") ?? ""),
     email: String(formData.get("email") ?? ""),
+    tipoQuartoPreferido: String(formData.get("tipoQuartoPreferido") ?? ""),
   };
 
   const result = comissaoTecnicaSchema.safeParse(raw);
@@ -85,6 +86,7 @@ export async function createComissao(
     telefone: data.telefone || null,
     email: data.email || null,
     foto_path: fotoPath ?? null,
+    tipo_quarto_preferido: data.tipoQuartoPreferido || null,
   });
 
   if (error) return { error: friendlyDbError(error), values: raw };
@@ -120,6 +122,7 @@ export async function updateComissao(
     funcao: data.funcao,
     telefone: data.telefone || null,
     email: data.email || null,
+    tipo_quarto_preferido: data.tipoQuartoPreferido || null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 

@@ -5,6 +5,8 @@
  */
 
 export type PeDominante = "destro" | "canhoto" | "ambidestro";
+export type AtletaStatus = "liberado" | "suspenso" | "departamento_medico";
+export type TipoQuarto = "single" | "duplo";
 
 export interface AtletaRow {
   id: string;
@@ -22,6 +24,8 @@ export interface AtletaRow {
   data_inicio_clube: string | null;
   empresario_nome: string | null;
   foto_path: string | null;
+  status: AtletaStatus;
+  data_fim_contrato: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -37,9 +41,16 @@ export interface ComissaoTecnicaRow {
   telefone: string | null;
   email: string | null;
   foto_path: string | null;
+  tipo_quarto_preferido: TipoQuarto | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface StaffFuncaoCatalogoRow {
+  id: string;
+  nome: string;
+  created_at: string;
 }
 
 export interface StaffOperacionalRow {
@@ -48,13 +59,18 @@ export interface StaffOperacionalRow {
   rg: string;
   cpf: string;
   data_nascimento: string;
-  funcao_setor: string;
+  funcao_id: string;
   telefone: string | null;
   chave_pix: string | null;
   valor_padrao_pagamento: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Linha de staff_operacional já com a função embutida via join (`funcao:staff_funcoes_catalogo(nome)`). */
+export interface StaffOperacionalComFuncaoRow extends StaffOperacionalRow {
+  funcao: { nome: string } | null;
 }
 
 export interface JogoRow {
@@ -68,6 +84,48 @@ export interface JogoRow {
   local_estadio: string | null;
   endereco: string | null;
   mandante: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ConvocacaoAtletaStatus = "titular" | "reserva";
+
+export interface ConvocacaoRow {
+  id: string;
+  jogo_id: string;
+  capitao_atleta_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConvocacaoAtletaRow {
+  convocacao_id: string;
+  atleta_id: string;
+  status: ConvocacaoAtletaStatus;
+}
+
+export interface ConvocacaoComissaoRow {
+  convocacao_id: string;
+  comissao_id: string;
+}
+
+export interface ConvocacaoStaffRow {
+  convocacao_id: string;
+  staff_id: string;
+}
+
+export type TarefaCategoria = "logistica" | "registro" | "financeiro" | "solicitacoes" | "gerais";
+export type TarefaStatus = "pendente" | "em_andamento" | "solicitado" | "concluido";
+
+export interface TarefaRow {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  categoria: TarefaCategoria;
+  status: TarefaStatus;
+  prazo: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

@@ -26,6 +26,8 @@ export const atletaSchema = z.object({
   enderecoAtual: z.string().optional().or(z.literal("")),
   dataInicioClube: z.string().optional().or(z.literal("")),
   empresarioNome: z.string().optional().or(z.literal("")),
+  status: z.enum(["liberado", "suspenso", "departamento_medico"]).default("liberado"),
+  dataFimContrato: z.string().optional().or(z.literal("")),
 });
 export type AtletaInput = z.infer<typeof atletaSchema>;
 
@@ -37,20 +39,30 @@ export const comissaoTecnicaSchema = z.object({
   funcao: z.string().min(1, { message: "Função/cargo é obrigatório" }),
   telefone: telefoneField,
   email: z.string().email({ message: "E-mail inválido" }).optional().or(z.literal("")),
+  tipoQuartoPreferido: z.enum(["single", "duplo"]).optional().nullable(),
 });
 export type ComissaoTecnicaInput = z.infer<typeof comissaoTecnicaSchema>;
 
-export const staffOperacionalSchema = z.object({
-  nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
-  rg: rgField,
-  cpf: cpfField,
-  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-  funcaoSetor: z.string().min(1, { message: "Função/setor é obrigatório" }),
-  telefone: telefoneField,
-  chavePix: z.string().optional().or(z.literal("")),
-  valorPadraoPagamento: z.coerce.number().nonnegative().optional().nullable(),
-});
+const NOVA_FUNCAO_VALUE = "__nova__";
+
+export const staffOperacionalSchema = z
+  .object({
+    nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
+    rg: rgField,
+    cpf: cpfField,
+    dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+    funcaoId: z.string().min(1, { message: "Função/setor é obrigatório" }),
+    novaFuncaoNome: z.string().optional().or(z.literal("")),
+    telefone: telefoneField,
+    chavePix: z.string().optional().or(z.literal("")),
+    valorPadraoPagamento: z.coerce.number().nonnegative().optional().nullable(),
+  })
+  .refine((data) => data.funcaoId !== NOVA_FUNCAO_VALUE || Boolean(data.novaFuncaoNome?.trim()), {
+    message: "Informe o nome da nova função",
+    path: ["novaFuncaoNome"],
+  });
 export type StaffOperacionalInput = z.infer<typeof staffOperacionalSchema>;
+export { NOVA_FUNCAO_VALUE };
 
 export const jogoSchema = z.object({
   competicao: z.string().min(1, { message: "Competição é obrigatória" }),
@@ -83,13 +95,37 @@ export const SUGESTOES_FUNCAO_COMISSAO = [
   "Supervisor",
 ] as const;
 
-/** Sugestões de função/setor para o Staff Operacional (campo aceita texto livre além destas). */
-export const SUGESTOES_FUNCAO_STAFF = [
-  "Segurança",
-  "Controlador de Acesso",
-  "Gandula",
-  "Maqueiro",
-  "Orientador",
-  "Bombeiro Civil",
-  "Limpeza",
+/**
+ * Funções de Staff Operacional agora vêm da tabela staff_funcoes_catalogo (editável pelo próprio
+ * usuário no sistema) em vez de uma lista fixa aqui. Ver supabase/migrations/0003_convocacao.sql.
+ */
+
+export const TAREFA_CATEGORIAS = [
+  { value: "logistica", label: "Logística" },
+  { value: "registro", label: "Registro" },
+  { value: "financeiro", label: "Financeiro" },
+  { value: "solicitacoes", label: "Solicitações" },
+  { value: "gerais", label: "Gerais" },
 ] as const;
+
+export const TAREFA_STATUS = [
+  { value: "pendente", label: "Pendente" },
+  { value: "em_andamento", label: "Em andamento" },
+  { value: "solicitado", label: "Solicitado" },
+  { value: "concluido", label: "Concluído" },
+] as const;
+
+export const tarefaSchema = z.object({
+  titulo: z.string().min(1, { message: "Título é obrigatório" }),
+  descricao: z.string().optional().or(z.literal("")),
+  categoria: z.enum(["logistica", "registro", "financeiro", "solicitacoes", "gerais"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+  status: z.enum(["pendente", "em_andamento", "solicitado", "concluido"]).default("pendente"),
+  prazo: z.string().optional().or(z.literal("")),
+});
+export type TarefaInput = z.infer<typeof tarefaSchema>;
+
+export const tarefaStatusSchema = z.object({
+  status: z.enum(["pendente", "em_andamento", "solicitado", "concluido"]),
+});

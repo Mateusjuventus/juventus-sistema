@@ -29,6 +29,8 @@ function parseForm(formData: FormData) {
     enderecoAtual: String(formData.get("enderecoAtual") ?? ""),
     dataInicioClube: String(formData.get("dataInicioClube") ?? ""),
     empresarioNome: String(formData.get("empresarioNome") ?? ""),
+    status: String(formData.get("status") ?? "liberado"),
+    dataFimContrato: String(formData.get("dataFimContrato") ?? ""),
   };
 
   const result = atletaSchema.safeParse(raw);
@@ -99,6 +101,8 @@ export async function createAtleta(
     data_inicio_clube: data.dataInicioClube || null,
     empresario_nome: data.empresarioNome || null,
     foto_path: fotoPath ?? null,
+    status: data.status,
+    data_fim_contrato: data.dataFimContrato || null,
   });
 
   if (error) {
@@ -144,6 +148,8 @@ export async function updateAtleta(
     endereco_atual: data.enderecoAtual || null,
     data_inicio_clube: data.dataInicioClube || null,
     empresario_nome: data.empresarioNome || null,
+    status: data.status,
+    data_fim_contrato: data.dataFimContrato || null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 

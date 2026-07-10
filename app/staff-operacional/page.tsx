@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { formatCPF } from "@/lib/validation/cpf";
-import type { StaffOperacionalRow } from "@/lib/supabase/types";
+import type { StaffFuncaoCatalogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 import { deleteStaff } from "./actions";
 
 function formatMoeda(valor: number | null): string {
@@ -15,23 +16,33 @@ function formatMoeda(valor: number | null): string {
 export default async function StaffOperacionalPage({
   searchParams,
 }: {
-  searchParams: { q?: string; funcao?: string };
+  searchParams: { q?: string; funcaoId?: string };
 }) {
   const q = searchParams.q?.trim() ?? "";
-  const funcao = searchParams.funcao?.trim() ?? "";
+  const funcaoId = searchParams.funcaoId?.trim() ?? "";
   const supabase = createClient();
 
-  let query = supabase.from("staff_operacional").select("*").order("nome_completo", { ascending: true });
+  let query = supabase
+    .from("staff_operacional")
+    .select("*, funcao:staff_funcoes_catalogo(nome)")
+    .order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
-  if (funcao) query = query.ilike("funcao_setor", `%${funcao}%`);
+  if (funcaoId) query = query.eq("funcao_id", funcaoId);
 
-  const { data, error } = await query;
-  const staff = (data ?? []) as StaffOperacionalRow[];
+  const [{ data, error }, { data: funcoesData }] = await Promise.all([
+    query,
+    supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
+  ]);
+  const staff = (data ?? []) as StaffOperacionalComFuncaoRow[];
+  const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
 
   return (
     <AppShell>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-grena-escuro">Staff Operacional</h1>
+      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
+        ← Voltar
+      </Link>
+      <PageHeader title="Staff Operacional" />
+      <div className="mt-3 flex justify-end">
         <Link href="/staff-operacional/novo" className="btn-primary">
           + Novo staff
         </Link>
@@ -40,16 +51,17 @@ export default async function StaffOperacionalPage({
       <div className="card mt-4 p-4">
         <SearchBar action="/staff-operacional" defaultValue={q} placeholder="Buscar por nome...">
           <div className="min-w-[180px]">
-            <label htmlFor="funcao" className="field-label">
+            <label htmlFor="funcaoId" className="field-label">
               Função/setor
             </label>
-            <input
-              id="funcao"
-              name="funcao"
-              defaultValue={funcao}
-              className="field-input"
-              placeholder="Ex: Segurança"
-            />
+            <select id="funcaoId" name="funcaoId" defaultValue={funcaoId} className="field-input">
+              <option value="">Todas</option>
+              {funcoes.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
           </div>
         </SearchBar>
       </div>
@@ -77,7 +89,7 @@ export default async function StaffOperacionalPage({
             {staff.map((s) => (
               <tr key={s.id}>
                 <td className="px-4 py-3 font-medium text-neutral-800">{s.nome_completo}</td>
-                <td className="px-4 py-3">{s.funcao_setor}</td>
+                <td className="px-4 py-3">{s.funcao?.nome ?? "—"}</td>
                 <td className="px-4 py-3">{formatCPF(s.cpf)}</td>
                 <td className="px-4 py-3">{s.telefone ?? "—"}</td>
                 <td className="px-4 py-3">{s.chave_pix ?? "—"}</td>

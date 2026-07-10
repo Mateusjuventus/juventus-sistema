@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { FieldGroup, FormSection, TextField, SuggestionField } from "@/components/fields";
+import { FieldGroup, FormSection, TextField, SuggestionField, SelectField } from "@/components/fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { SUGESTOES_FUNCAO_COMISSAO } from "@/lib/validation/schemas";
@@ -75,14 +75,26 @@ export function ComissaoForm({
       </FormSection>
 
       <FormSection title="Função">
-        <SuggestionField
-          label="Função/cargo"
-          name="funcao"
-          required
-          defaultValue={values.funcao}
-          error={errors.funcao}
-          suggestions={SUGESTOES_FUNCAO_COMISSAO}
-        />
+        <FieldGroup>
+          <SuggestionField
+            label="Função/cargo"
+            name="funcao"
+            required
+            defaultValue={values.funcao}
+            error={errors.funcao}
+            suggestions={SUGESTOES_FUNCAO_COMISSAO}
+          />
+          <SelectField
+            label="Tipo de quarto preferido (jogos fora)"
+            name="tipoQuartoPreferido"
+            defaultValue={values.tipoQuartoPreferido}
+            error={errors.tipoQuartoPreferido}
+          >
+            <option value="">Não definido</option>
+            <option value="single">Single</option>
+            <option value="duplo">Duplo</option>
+          </SelectField>
+        </FieldGroup>
       </FormSection>
 
       {state.error ? (

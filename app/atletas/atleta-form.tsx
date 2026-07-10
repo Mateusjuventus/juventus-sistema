@@ -95,12 +95,29 @@ export function AtletaForm({
             <option value="canhoto">Canhoto</option>
             <option value="ambidestro">Ambidestro</option>
           </SelectField>
+          <SelectField
+            label="Status"
+            name="status"
+            defaultValue={values.status ?? "liberado"}
+            error={errors.status}
+          >
+            <option value="liberado">Liberado</option>
+            <option value="suspenso">Suspenso</option>
+            <option value="departamento_medico">Departamento Médico</option>
+          </SelectField>
           <TextField
             label="Data de início no clube"
             name="dataInicioClube"
             type="date"
             defaultValue={values.dataInicioClube}
             error={errors.dataInicioClube}
+          />
+          <TextField
+            label="Data de término do contrato"
+            name="dataFimContrato"
+            type="date"
+            defaultValue={values.dataFimContrato}
+            error={errors.dataFimContrato}
           />
           <TextField
             label="Empresário/representante"

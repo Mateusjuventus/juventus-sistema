@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
@@ -25,8 +26,11 @@ export default async function ComissaoTecnicaPage({
 
   return (
     <AppShell>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-grena-escuro">Comissão Técnica / Diretoria</h1>
+      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
+        ← Voltar
+      </Link>
+      <PageHeader title="Comissão Técnica / Diretoria" />
+      <div className="mt-3 flex justify-end">
         <Link href="/comissao-tecnica/novo" className="btn-primary">
           + Nova pessoa
         </Link>

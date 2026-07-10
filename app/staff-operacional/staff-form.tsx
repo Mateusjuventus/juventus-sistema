@@ -1,9 +1,10 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { FieldGroup, FormSection, TextField, SuggestionField } from "@/components/fields";
+import { FieldGroup, FormSection, TextField } from "@/components/fields";
+import { StaffFuncaoField } from "@/components/staff-funcao-field";
 import { SubmitButton } from "@/components/submit-button";
-import { SUGESTOES_FUNCAO_STAFF } from "@/lib/validation/schemas";
+import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
 import type { StaffFormState } from "./actions";
 
 const initialState: StaffFormState = {};
@@ -13,11 +14,13 @@ export function StaffForm({
   entityId,
   defaultValues,
   submitLabel,
+  funcoes,
 }: {
   action: (prevState: StaffFormState, formData: FormData) => Promise<StaffFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
   submitLabel: string;
+  funcoes: StaffFuncaoCatalogoRow[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
@@ -63,13 +66,11 @@ export function StaffForm({
 
       <FormSection title="Função e pagamento">
         <FieldGroup>
-          <SuggestionField
-            label="Função/setor"
-            name="funcaoSetor"
-            required
-            defaultValue={values.funcaoSetor}
-            error={errors.funcaoSetor}
-            suggestions={SUGESTOES_FUNCAO_STAFF}
+          <StaffFuncaoField
+            funcoes={funcoes}
+            defaultValue={values.funcaoId}
+            error={errors.funcaoId}
+            novaFuncaoError={errors.novaFuncaoNome}
           />
           <TextField
             label="Chave PIX"

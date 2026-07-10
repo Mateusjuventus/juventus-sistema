@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sistema Juventus",
+  title: "Juventus - SAF",
   description: "Central de cadastros e operação do futebol profissional do Juventus",
 };
 

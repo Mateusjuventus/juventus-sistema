@@ -1,72 +1,43 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-
-const CADASTROS = [
-  {
-    href: "/atletas",
-    titulo: "Atletas",
-    descricao: "Elenco profissional: dados pessoais, posição, número, contrato.",
-  },
-  {
-    href: "/comissao-tecnica",
-    titulo: "Comissão Técnica / Diretoria",
-    descricao: "Técnico, preparadores, departamento médico e diretoria do clube.",
-  },
-  {
-    href: "/staff-operacional",
-    titulo: "Staff Operacional",
-    descricao: "Segurança, gandulas, maqueiros e demais equipes de jogo.",
-  },
-  {
-    href: "/jogos",
-    titulo: "Jogos / Competições",
-    descricao: "Calendário de jogos, adversários, local e mandante/visitante.",
-  },
-];
-
-const EM_BREVE = [
-  { titulo: "Convocação + Presskit", descricao: "Geração de imagem/PDF profissional para divulgação." },
-  { titulo: "Logística de Jogo", descricao: "Cotações de hotel/ônibus/refeição e PDFs para fornecedores." },
-  { titulo: "Operação de Jogo", descricao: "Checklist, staff por jogo e geração de recibos." },
-  { titulo: "Prestação de Contas", descricao: "Dashboard e gráficos comparativos entre jogos." },
-];
+import { SproutIcon } from "@/components/department-icon";
+import { JuventusCrest } from "@/components/juventus-crest";
 
 export default function HomePage() {
   return (
-    <AppShell>
-      <h1 className="text-2xl font-bold text-grena-escuro">Bem-vindo</h1>
-      <p className="mt-1 text-neutral-600">Escolha um cadastro para consultar, incluir ou editar.</p>
+    <AppShell nav="none">
+      <div className="flex min-h-[70vh] flex-col items-center justify-center">
+        <div className="mx-auto max-w-3xl text-center">
+          <JuventusCrest className="mx-auto h-20 w-auto" />
+          <h1 className="mt-4 text-3xl font-bold text-grena-escuro sm:text-4xl">Juventus - SAF</h1>
+          <p className="mt-3 text-neutral-600">Escolha um departamento para começar.</p>
+        </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {CADASTROS.map((item) => (
+        <div className="mx-auto mt-10 grid w-full max-w-3xl grid-cols-1 gap-6 sm:grid-cols-2">
           <Link
-            key={item.href}
-            href={item.href}
-            className="card flex flex-col gap-2 p-5 transition-shadow hover:shadow-md"
+            href="/profissional"
+            className="card group flex flex-col items-center gap-4 p-10 text-center transition-all hover:-translate-y-1 hover:shadow-lg hover:ring-2 hover:ring-dourado"
           >
-            <span className="inline-block h-1 w-10 rounded bg-dourado" />
-            <h2 className="font-semibold text-grena-escuro">{item.titulo}</h2>
-            <p className="text-sm text-neutral-600">{item.descricao}</p>
+            <JuventusCrest className="h-16 w-auto" />
+            <h2 className="text-2xl font-bold text-grena-escuro">Futebol Profissional</h2>
+            <span className="text-sm font-medium text-grena group-hover:underline">
+              Entrar →
+            </span>
           </Link>
-        ))}
-      </div>
 
-      <h2 className="mt-10 text-lg font-semibold text-neutral-500">Em breve</h2>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {EM_BREVE.map((item) => (
           <div
-            key={item.titulo}
-            className="card flex flex-col gap-2 p-5 opacity-60"
+            className="card flex flex-col items-center gap-4 p-10 text-center opacity-60"
             aria-disabled
           >
-            <span className="inline-block h-1 w-10 rounded bg-prata" />
-            <h3 className="font-semibold text-neutral-600">{item.titulo}</h3>
-            <p className="text-sm text-neutral-500">{item.descricao}</p>
-            <span className="mt-1 w-fit rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-600">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-300 text-white">
+              <SproutIcon className="h-8 w-8" />
+            </span>
+            <h2 className="text-2xl font-bold text-neutral-600">Futebol de Base</h2>
+            <span className="w-fit rounded-full bg-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-600">
               Em breve
             </span>
           </div>
-        ))}
+        </div>
       </div>
     </AppShell>
   );

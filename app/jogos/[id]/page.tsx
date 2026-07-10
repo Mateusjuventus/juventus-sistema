@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { JogoTabs } from "@/components/jogo-tabs";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { JogoRow } from "@/lib/supabase/types";
@@ -30,6 +31,7 @@ export default async function EditarJogoPage({ params }: { params: { id: string 
     <AppShell>
       <h1 className="text-2xl font-bold text-grena-escuro">Editar jogo</h1>
       <div className="mt-4">
+        <JogoTabs jogoId={jogo.id} active="dados" />
         <JogoForm
           action={updateJogo}
           entityId={jogo.id}

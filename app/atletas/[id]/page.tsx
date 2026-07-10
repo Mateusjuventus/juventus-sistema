@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -30,11 +31,16 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
     enderecoAtual: atleta.endereco_atual ?? "",
     dataInicioClube: atleta.data_inicio_clube ?? "",
     empresarioNome: atleta.empresario_nome ?? "",
+    status: atleta.status,
+    dataFimContrato: atleta.data_fim_contrato ?? "",
   };
 
   return (
     <AppShell>
-      <h1 className="text-2xl font-bold text-grena-escuro">Editar atleta</h1>
+      <Link href="/atletas" className="text-sm font-medium text-grena hover:underline">
+        ← Voltar
+      </Link>
+      <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Editar atleta</h1>
       <div className="mt-4">
         <AtletaForm
           action={updateAtleta}

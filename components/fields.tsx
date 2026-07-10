@@ -46,6 +46,40 @@ export function TextField({
   );
 }
 
+export function TextAreaField({
+  label,
+  name,
+  defaultValue,
+  required,
+  error,
+  rows = 3,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | null;
+  required?: boolean;
+  error?: string;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className="field-label">
+        {label}
+        {required ? <span className="text-red-700"> *</span> : null}
+      </label>
+      <textarea
+        id={name}
+        name={name}
+        defaultValue={defaultValue ?? ""}
+        required={required}
+        rows={rows}
+        className="field-input"
+      />
+      {error ? <p className="field-error">{error}</p> : null}
+    </div>
+  );
+}
+
 export function SelectField({
   label,
   name,
