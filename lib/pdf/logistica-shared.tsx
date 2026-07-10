@@ -1,4 +1,4 @@
-import { Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { Text, View, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import type { JogoRow } from "@/lib/supabase/types";
 
 /**
@@ -8,10 +8,20 @@ import type { JogoRow } from "@/lib/supabase/types";
  * do Juventus primeiro (esquerda); jogo fora, depois do escudo do mandante (direita).
  */
 
+// O react-pdf hifeniza texto justificado por padrão usando regras em inglês, o que quebra palavras
+// em português em lugares errados (ex: "real-izado"). Desativamos globalmente — a palavra inteira
+// pula de linha em vez de ser cortada.
+Font.registerHyphenationCallback((word) => [word]);
+
 export const CORES = { grena: "#5C0A35", grenaEscuro: "#3F0724", dourado: "#C9A227" };
 
+/** Identidade oficial do clube, usada no rodapé de todo documento e no texto do recibo. */
+export const JUVENTUS_RAZAO_SOCIAL = "Juventus Sociedade Anônima do Futebol";
+export const JUVENTUS_CNPJ = "63.634.319/0001-99";
+export const JUVENTUS_ENDERECO = "Rua Javari, 117 – Mooca, São Paulo – SP, 03112-100";
+
 export const sharedStyles = StyleSheet.create({
-  page: { padding: 32, fontFamily: "Helvetica", fontSize: 10, color: "#262626" },
+  page: { padding: 32, paddingBottom: 60, fontFamily: "Helvetica", fontSize: 10, color: "#262626" },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 4 },
   matchupCol: { alignItems: "center", width: 110 },
   escudo: { width: 40, height: 40, objectFit: "contain" },
@@ -57,6 +67,16 @@ export const sharedStyles = StyleSheet.create({
   },
   headerCell: { fontSize: 7.5, fontWeight: 700, color: "#525252", textTransform: "uppercase" },
   emptyState: { fontSize: 9, color: "#a3a3a3", paddingVertical: 10, textAlign: "center" },
+  footer: {
+    position: "absolute",
+    bottom: 22,
+    left: 32,
+    right: 32,
+    borderTopWidth: 0.5,
+    borderTopColor: "#d4d4d4",
+    paddingTop: 6,
+  },
+  footerTexto: { fontSize: 7, color: "#a3a3a3", textAlign: "center" },
 });
 
 export function formatDataBr(iso: string | null): string {
@@ -114,5 +134,21 @@ export function DocumentoHeader({
         {jogo.local_estadio ? ` · ${jogo.local_estadio}` : ""}
       </Text>
     </>
+  );
+}
+
+/**
+ * Rodapé com a identidade oficial do clube (razão social, CNPJ e endereço), repetido em toda
+ * página — usado em todos os documentos oficiais gerados pelo sistema (presskit, rooming list,
+ * ônibus, credenciamento e recibo de pagamento).
+ */
+export function DocumentoFooter() {
+  return (
+    <View style={sharedStyles.footer} fixed>
+      <Text style={sharedStyles.footerTexto}>
+        {JUVENTUS_RAZAO_SOCIAL} · CNPJ {JUVENTUS_CNPJ}
+      </Text>
+      <Text style={sharedStyles.footerTexto}>{JUVENTUS_ENDERECO}</Text>
+    </View>
   );
 }

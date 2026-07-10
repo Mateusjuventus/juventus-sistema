@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { JogoRow } from "@/lib/supabase/types";
-import { CORES, DocumentoHeader, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { CORES, DocumentoFooter, DocumentoHeader, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
 
 const styles = StyleSheet.create({
   hotelBox: {
@@ -94,6 +94,8 @@ export function RoomingListDocument({
             </View>
           ))
         )}
+
+        <DocumentoFooter />
       </Page>
     </Document>
   );

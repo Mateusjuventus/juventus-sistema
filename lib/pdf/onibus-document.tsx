@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { JogoRow } from "@/lib/supabase/types";
-import { CORES, DocumentoHeader, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { CORES, DocumentoFooter, DocumentoHeader, sharedStyles, type LogoSrc } from "./logistica-shared";
 
 const styles = StyleSheet.create({
   onibusBox: {
@@ -62,6 +62,8 @@ export function OnibusDocument({
             </View>
           ))
         )}
+
+        <DocumentoFooter />
       </Page>
     </Document>
   );

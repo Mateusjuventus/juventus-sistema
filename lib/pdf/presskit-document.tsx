@@ -1,10 +1,11 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import type { AtletaRow, JogoRow } from "@/lib/supabase/types";
+import { DocumentoFooter } from "./logistica-shared";
 
 const CORES = { grena: "#5C0A35", grenaEscuro: "#3F0724", dourado: "#C9A227" };
 
 const styles = StyleSheet.create({
-  page: { padding: 32, fontFamily: "Helvetica", fontSize: 10, color: "#262626" },
+  page: { padding: 32, paddingBottom: 60, fontFamily: "Helvetica", fontSize: 10, color: "#262626" },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 4 },
   matchupCol: { alignItems: "center", width: 130 },
   escudo: { width: 56, height: 56, objectFit: "contain" },
@@ -193,6 +194,8 @@ export function PresskitDocument({
             {comissaoNomes.length > 0 ? comissaoNomes.join("  ·  ") : "—"}
           </Text>
         </View>
+
+        <DocumentoFooter />
       </Page>
     </Document>
   );

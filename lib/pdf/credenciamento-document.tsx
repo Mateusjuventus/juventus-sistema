@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { JogoRow } from "@/lib/supabase/types";
-import { DocumentoHeader, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { DocumentoFooter, DocumentoHeader, sharedStyles, type LogoSrc } from "./logistica-shared";
 
 const styles = StyleSheet.create({
   table: { marginTop: 4 },
@@ -64,6 +64,8 @@ export function CredenciamentoDocument({
             ))
           )}
         </View>
+
+        <DocumentoFooter />
       </Page>
     </Document>
   );
