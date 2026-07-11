@@ -25,6 +25,8 @@ export default async function EditarJogoPage({ params }: { params: { id: string 
     localEstadio: jogo.local_estadio ?? "",
     endereco: jogo.endereco ?? "",
     mandante: jogo.mandante ? "on" : "",
+    golsPro: jogo.gols_pro?.toString() ?? "",
+    golsContra: jogo.gols_contra?.toString() ?? "",
   };
 
   return (

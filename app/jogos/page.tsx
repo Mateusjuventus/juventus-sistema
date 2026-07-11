@@ -59,7 +59,10 @@ export default async function JogosPage({
         ← Voltar
       </Link>
       <PageHeader title="Jogos / Competições" pendencia={pendenciaJogos} />
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <Link href="/jogos/dashboard" className="btn-secondary">
+          Ver dashboard
+        </Link>
         <Link href="/jogos/novo" className="btn-primary">
           + Novo jogo
         </Link>
@@ -120,17 +123,35 @@ export default async function JogosPage({
                 { logo: juventusLogo, nome: "Juventus" },
               ];
 
+          const temResultado = j.gols_pro !== null && j.gols_contra !== null;
+          const resultado = temResultado
+            ? j.gols_pro! > j.gols_contra!
+              ? { label: "Vitória", classe: "bg-green-100 text-green-800" }
+              : j.gols_pro! < j.gols_contra!
+                ? { label: "Derrota", classe: "bg-red-100 text-red-800" }
+                : { label: "Empate", classe: "bg-neutral-200 text-neutral-700" }
+            : null;
+          const placarEsquerda = j.mandante ? j.gols_pro : j.gols_contra;
+          const placarDireita = j.mandante ? j.gols_contra : j.gols_pro;
+
           return (
             <div key={j.id} className="card flex flex-col gap-4 p-5">
               <div className="flex items-center justify-between text-xs font-medium text-neutral-500">
                 <span>{j.competicao}{j.rodada_fase ? ` · ${j.rodada_fase}` : ""}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    j.mandante ? "bg-dourado/20 text-grena-escuro" : "bg-neutral-200 text-neutral-600"
-                  }`}
-                >
-                  {j.mandante ? "Em casa" : "Fora"}
-                </span>
+                <div className="flex gap-1.5">
+                  {resultado ? (
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${resultado.classe}`}>
+                      {resultado.label}
+                    </span>
+                  ) : null}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      j.mandante ? "bg-dourado/20 text-grena-escuro" : "bg-neutral-200 text-neutral-600"
+                    }`}
+                  >
+                    {j.mandante ? "Em casa" : "Fora"}
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
@@ -140,7 +161,13 @@ export default async function JogosPage({
                     {ladoEsquerdo.nome}
                   </span>
                 </div>
-                <span className="text-lg font-bold text-neutral-300">×</span>
+                {temResultado ? (
+                  <span className="text-lg font-bold text-grena-escuro">
+                    {placarEsquerda} × {placarDireita}
+                  </span>
+                ) : (
+                  <span className="text-lg font-bold text-neutral-300">×</span>
+                )}
                 <div className="flex flex-col items-center gap-1.5">
                   {ladoDireito.logo}
                   <span className="text-center text-sm font-semibold text-grena-escuro">

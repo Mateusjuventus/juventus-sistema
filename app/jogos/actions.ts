@@ -23,11 +23,18 @@ function parseForm(formData: FormData) {
     localEstadio: String(formData.get("localEstadio") ?? ""),
     endereco: String(formData.get("endereco") ?? ""),
     mandante: formData.get("mandante") === "on",
+    golsPro: String(formData.get("golsPro") ?? "") || undefined,
+    golsContra: String(formData.get("golsContra") ?? "") || undefined,
   };
 
   const result = jogoSchema.safeParse(raw);
   return {
-    raw: { ...raw, mandante: raw.mandante ? "on" : "" },
+    raw: {
+      ...raw,
+      mandante: raw.mandante ? "on" : "",
+      golsPro: raw.golsPro ?? "",
+      golsContra: raw.golsContra ?? "",
+    },
     result,
   };
 }
@@ -80,6 +87,8 @@ export async function createJogo(
     local_estadio: data.localEstadio || null,
     endereco: data.endereco || null,
     mandante: data.mandante,
+    gols_pro: data.golsPro ?? null,
+    gols_contra: data.golsContra ?? null,
   });
 
   if (error) return { error: "Não foi possível salvar o jogo. Tente novamente.", values: raw };
@@ -116,6 +125,8 @@ export async function updateJogo(
     local_estadio: data.localEstadio || null,
     endereco: data.endereco || null,
     mandante: data.mandante,
+    gols_pro: data.golsPro ?? null,
+    gols_contra: data.golsContra ?? null,
   };
   if (logoPath) updatePayload.adversario_logo_path = logoPath;
 

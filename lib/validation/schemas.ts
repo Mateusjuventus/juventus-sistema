@@ -73,6 +73,8 @@ export const jogoSchema = z.object({
   localEstadio: z.string().optional().or(z.literal("")),
   endereco: z.string().optional().or(z.literal("")),
   mandante: z.boolean(),
+  golsPro: z.coerce.number().int().nonnegative().optional().nullable(),
+  golsContra: z.coerce.number().int().nonnegative().optional().nullable(),
 });
 export type JogoInput = z.infer<typeof jogoSchema>;
 

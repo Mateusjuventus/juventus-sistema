@@ -84,6 +84,8 @@ export interface JogoRow {
   local_estadio: string | null;
   endereco: string | null;
   mandante: boolean;
+  gols_pro: number | null;
+  gols_contra: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -178,6 +180,24 @@ export interface CredenciamentoJogoRow {
   pessoa_id: string;
   vaga_extra: boolean;
   created_at: string;
+}
+
+export type PessoaTipoRecibo = "comissao" | "staff";
+export type ChavePixTipo = "celular" | "email" | "cpf" | "aleatoria";
+
+export interface ReciboJogoRow {
+  id: string;
+  jogo_id: string;
+  pessoa_tipo: PessoaTipoRecibo;
+  pessoa_id: string;
+  funcao_jogo: string | null;
+  valor: number | null;
+  chave_pix: string | null;
+  chave_pix_tipo: ChavePixTipo | null;
+  pago: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type TarefaCategoria = "logistica" | "registro" | "financeiro" | "solicitacoes" | "gerais";

@@ -2,8 +2,9 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
+import type { JogoRow } from "@/lib/supabase/types";
 
-const EM_BREVE = ["Operação de Jogo", "Prestação de Contas"];
+const EM_BREVE = ["Prestação de Contas"];
 
 /** Conta linhas de uma tabela sem trazer os dados (head: true), pra montar a descrição de cada cartão. */
 async function contarLinhas(
@@ -14,15 +15,32 @@ async function contarLinhas(
   return count ?? 0;
 }
 
+function formatDataCurta(iso: string): string {
+  const [, mes, dia] = iso.split("-");
+  return `${dia}/${mes}`;
+}
+
 export default async function ProfissionalPage() {
   const supabase = createClient();
+  const hojeStr = new Date().toISOString().slice(0, 10);
 
-  const [totalAtletas, totalComissao, totalStaff, totalJogos] = await Promise.all([
+  const [totalAtletas, totalComissao, totalStaff, { data: proximoJogoData }] = await Promise.all([
     contarLinhas(supabase, "atletas"),
     contarLinhas(supabase, "comissao_tecnica"),
     contarLinhas(supabase, "staff_operacional"),
-    contarLinhas(supabase, "jogos"),
+    supabase
+      .from("jogos")
+      .select("*")
+      .gte("data_jogo", hojeStr)
+      .order("data_jogo", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  const proximoJogo = proximoJogoData as JogoRow | null;
+  const descricaoJogos = proximoJogo
+    ? `Próximo: x ${proximoJogo.adversario_nome} — ${formatDataCurta(proximoJogo.data_jogo)}`
+    : "Nenhum jogo agendado";
 
   const CADASTROS = [
     { href: "/atletas", titulo: "Atletas", descricao: `${totalAtletas} ativo${totalAtletas === 1 ? "" : "s"}` },
@@ -36,12 +54,7 @@ export default async function ProfissionalPage() {
       titulo: "Staff Operacional",
       descricao: `${totalStaff} ativo${totalStaff === 1 ? "" : "s"}`,
     },
-    {
-      href: "/jogos",
-      titulo: "Jogos / Competições",
-      descricao: `${totalJogos} cadastrado${totalJogos === 1 ? "" : "s"}`,
-    },
-    { href: "/jogos/logistica", titulo: "Logística de Jogo", descricao: "Rooming list, ônibus e credenciamento" },
+    { href: "/jogos", titulo: "Jogos / Competições", descricao: descricaoJogos },
   ];
 
   return (
@@ -54,7 +67,7 @@ export default async function ProfissionalPage() {
         <h1 className="text-3xl font-bold text-grena-escuro">Futebol Profissional</h1>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {CADASTROS.map((item) => (
           <Link
             key={item.href}

@@ -105,6 +105,30 @@ export function JogoForm({
         </FieldGroup>
       </FormSection>
 
+      <FormSection title="Resultado (preencha depois do jogo)">
+        <FieldGroup>
+          <TextField
+            label="Gols Juventus"
+            name="golsPro"
+            type="number"
+            min={0}
+            defaultValue={values.golsPro}
+            error={errors.golsPro}
+          />
+          <TextField
+            label="Gols adversário"
+            name="golsContra"
+            type="number"
+            min={0}
+            defaultValue={values.golsContra}
+            error={errors.golsContra}
+          />
+        </FieldGroup>
+        <p className="text-xs text-neutral-500">
+          Deixe em branco até o jogo acontecer. Esses números alimentam o dashboard de resultados.
+        </p>
+      </FormSection>
+
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}
