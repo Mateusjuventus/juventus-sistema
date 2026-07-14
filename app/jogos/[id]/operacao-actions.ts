@@ -43,19 +43,22 @@ export async function saveRoomingList(
     if (tipo === "single" || tipo === "duplo") quartos.push({ tipo });
   }
 
-  const ocupacaoPorQuarto = new Map<number, { pessoaTipo: "comissao" | "staff"; pessoaId: string }[]>();
+  const ocupacaoPorQuarto = new Map<number, { pessoaTipo: "atleta" | "comissao" | "staff"; pessoaId: string }[]>();
   for (const [key, value] of formData.entries()) {
     const valueStr = String(value);
     if (!valueStr) continue;
-    if (key.startsWith("pessoa_comissao_") || key.startsWith("pessoa_staff_")) {
-      const pessoaTipo = key.startsWith("pessoa_comissao_") ? "comissao" : "staff";
-      const pessoaId = key.slice(`pessoa_${pessoaTipo}_`.length);
-      const quartoIndex = Number(valueStr);
-      if (Number.isNaN(quartoIndex) || quartoIndex < 0 || quartoIndex >= quartos.length) continue;
-      const lista = ocupacaoPorQuarto.get(quartoIndex) ?? [];
-      lista.push({ pessoaTipo, pessoaId });
-      ocupacaoPorQuarto.set(quartoIndex, lista);
-    }
+    let pessoaTipo: "atleta" | "comissao" | "staff" | null = null;
+    if (key.startsWith("pessoa_atleta_")) pessoaTipo = "atleta";
+    else if (key.startsWith("pessoa_comissao_")) pessoaTipo = "comissao";
+    else if (key.startsWith("pessoa_staff_")) pessoaTipo = "staff";
+    if (!pessoaTipo) continue;
+
+    const pessoaId = key.slice(`pessoa_${pessoaTipo}_`.length);
+    const quartoIndex = Number(valueStr);
+    if (Number.isNaN(quartoIndex) || quartoIndex < 0 || quartoIndex >= quartos.length) continue;
+    const lista = ocupacaoPorQuarto.get(quartoIndex) ?? [];
+    lista.push({ pessoaTipo, pessoaId });
+    ocupacaoPorQuarto.set(quartoIndex, lista);
   }
 
   for (let i = 0; i < quartos.length; i++) {

@@ -6,8 +6,9 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { RoomingListDocument, type RoomingListPdfQuarto } from "@/lib/pdf/rooming-list-document";
+import { RoomingListDocument, type RoomingListPdfOcupante, type RoomingListPdfQuarto } from "@/lib/pdf/rooming-list-document";
 import type {
+  AtletaRow,
   ComissaoTecnicaRow,
   JogoRow,
   RoomingListOcupanteRow,
@@ -50,10 +51,12 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     ocupantes = (ocupantesData ?? []) as RoomingListOcupanteRow[];
   }
 
+  const atletaIds = ocupantes.filter((o) => o.pessoa_tipo === "atleta").map((o) => o.pessoa_id);
   const comissaoIds = ocupantes.filter((o) => o.pessoa_tipo === "comissao").map((o) => o.pessoa_id);
   const staffIds = ocupantes.filter((o) => o.pessoa_tipo === "staff").map((o) => o.pessoa_id);
 
-  const [{ data: comissaoData }, { data: staffData }, adversarioLogoUrl] = await Promise.all([
+  const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, adversarioLogoUrl] = await Promise.all([
+    atletaIds.length > 0 ? supabase.from("atletas").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
     comissaoIds.length > 0
       ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
       : Promise.resolve({ data: [] }),
@@ -63,16 +66,30 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c.nome_completo]));
-  const staffMap = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s.nome_completo]));
+  const atletaMap = new Map(((atletasData ?? []) as AtletaRow[]).map((a) => [a.id, a]));
+  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c]));
+  const staffMap = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s]));
 
-  const nomeDe = (o: RoomingListOcupanteRow): string =>
-    (o.pessoa_tipo === "comissao" ? comissaoMap.get(o.pessoa_id) : staffMap.get(o.pessoa_id)) ?? "—";
+  const pessoaDe = (o: RoomingListOcupanteRow): RoomingListPdfOcupante => {
+    const registro =
+      o.pessoa_tipo === "atleta"
+        ? atletaMap.get(o.pessoa_id)
+        : o.pessoa_tipo === "comissao"
+          ? comissaoMap.get(o.pessoa_id)
+          : staffMap.get(o.pessoa_id);
+    return {
+      nome: registro?.nome_completo ?? "—",
+      tipo: o.pessoa_tipo,
+      dataNascimento: registro?.data_nascimento ?? null,
+      cpf: registro?.cpf ?? null,
+      rg: registro?.rg ?? null,
+    };
+  };
 
   const quartosPdf: RoomingListPdfQuarto[] = quartos.map((q, i) => ({
     numero: i + 1,
     tipo: q.tipo,
-    ocupantes: ocupantes.filter((o) => o.quarto_id === q.id).map(nomeDe),
+    ocupantes: ocupantes.filter((o) => o.quarto_id === q.id).map(pessoaDe),
   }));
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");

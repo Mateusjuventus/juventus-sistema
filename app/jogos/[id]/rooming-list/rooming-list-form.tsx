@@ -4,14 +4,27 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
 import { TextField } from "@/components/fields";
-import type { ComissaoTecnicaRow, StaffOperacionalComFuncaoRow, TipoQuarto } from "@/lib/supabase/types";
+import type {
+  AtletaRow,
+  ComissaoTecnicaRow,
+  PessoaTipoRooming,
+  StaffOperacionalComFuncaoRow,
+  TipoQuarto,
+} from "@/lib/supabase/types";
 import type { RoomingListFormState } from "../operacao-actions";
 
 const initialState: RoomingListFormState = {};
 
 export interface QuartoInicial {
   tipo: TipoQuarto;
-  ocupantes: { pessoaTipo: "comissao" | "staff"; pessoaId: string }[];
+  ocupantes: { pessoaTipo: PessoaTipoRooming; pessoaId: string }[];
+}
+
+interface PessoaOpcao {
+  tipo: PessoaTipoRooming;
+  id: string;
+  nome: string;
+  extra: string;
 }
 
 /**
@@ -23,6 +36,7 @@ export function RoomingListForm({
   action,
   jogoId,
   mandante,
+  atletas,
   comissao,
   staff,
   hotelNomeInicial,
@@ -34,6 +48,7 @@ export function RoomingListForm({
   action: (prevState: RoomingListFormState, formData: FormData) => Promise<RoomingListFormState>;
   jogoId: string;
   mandante: boolean;
+  atletas: AtletaRow[];
   comissao: ComissaoTecnicaRow[];
   staff: StaffOperacionalComFuncaoRow[];
   hotelNomeInicial: string;
@@ -47,22 +62,38 @@ export function RoomingListForm({
     quartosIniciais.map((q) => ({ tipo: q.tipo })),
   );
 
-  const defaultQuartoIndex = (pessoaTipo: "comissao" | "staff", pessoaId: string): string => {
+  const defaultQuartoIndex = (pessoaTipo: PessoaTipoRooming, pessoaId: string): string => {
     const index = quartosIniciais.findIndex((q) =>
       q.ocupantes.some((o) => o.pessoaTipo === pessoaTipo && o.pessoaId === pessoaId),
     );
     return index >= 0 ? String(index) : "";
   };
 
-  const pessoas = [
-    ...comissao.map((c) => ({ tipo: "comissao" as const, id: c.id, nome: c.nome_completo, extra: c.funcao })),
-    ...staff.map((s) => ({
-      tipo: "staff" as const,
-      id: s.id,
-      nome: s.nome_completo,
-      extra: s.funcao?.nome ?? "—",
-    })),
+  const gruposPessoas: { titulo: string; pessoas: PessoaOpcao[] }[] = [
+    {
+      titulo: "Atletas",
+      pessoas: atletas.map((a) => ({ tipo: "atleta" as const, id: a.id, nome: a.nome_completo, extra: a.posicao })),
+    },
+    {
+      titulo: "Comissão Técnica",
+      pessoas: comissao.map((c) => ({
+        tipo: "comissao" as const,
+        id: c.id,
+        nome: c.nome_completo,
+        extra: c.funcao,
+      })),
+    },
+    {
+      titulo: "Staff Operacional",
+      pessoas: staff.map((s) => ({
+        tipo: "staff" as const,
+        id: s.id,
+        nome: s.nome_completo,
+        extra: s.funcao?.nome ?? "—",
+      })),
+    },
   ];
+  const totalPessoas = gruposPessoas.reduce((soma, g) => soma + g.pessoas.length, 0);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -131,43 +162,54 @@ export function RoomingListForm({
           <p className="text-sm text-neutral-400">Nenhum quarto adicionado ainda.</p>
         ) : null}
 
-        {pessoas.length === 0 ? (
+        {totalPessoas === 0 ? (
           <p className="text-sm text-neutral-400">
             Ninguém foi convocado ainda para este jogo. Monte a convocação primeiro.
           </p>
         ) : quartos.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px] text-left text-sm">
-              <thead className="text-neutral-500">
-                <tr>
-                  <th className="py-2 pr-3">Nome</th>
-                  <th className="py-2">Quarto</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {pessoas.map((p) => (
-                  <tr key={`${p.tipo}-${p.id}`}>
-                    <td className="py-2 pr-3 font-medium text-neutral-800">
-                      {p.nome} <span className="text-neutral-400">— {p.extra}</span>
-                    </td>
-                    <td className="py-2">
-                      <select
-                        name={`pessoa_${p.tipo}_${p.id}`}
-                        defaultValue={defaultQuartoIndex(p.tipo, p.id)}
-                        className="field-input"
-                      >
-                        <option value="">Sem quarto</option>
-                        {quartos.map((q, i) => (
-                          <option key={i} value={i}>
-                            Quarto {i + 1} — {q.tipo === "single" ? "Single" : "Duplo"}
-                          </option>
+          <div className="space-y-5">
+            {gruposPessoas
+              .filter((g) => g.pessoas.length > 0)
+              .map((g) => (
+                <div key={g.titulo}>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    {g.titulo}
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[420px] text-left text-sm">
+                      <thead className="text-neutral-500">
+                        <tr>
+                          <th className="py-2 pr-3">Nome</th>
+                          <th className="py-2">Quarto</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100">
+                        {g.pessoas.map((p) => (
+                          <tr key={`${p.tipo}-${p.id}`}>
+                            <td className="py-2 pr-3 font-medium text-neutral-800">
+                              {p.nome} <span className="text-neutral-400">— {p.extra}</span>
+                            </td>
+                            <td className="py-2">
+                              <select
+                                name={`pessoa_${p.tipo}_${p.id}`}
+                                defaultValue={defaultQuartoIndex(p.tipo, p.id)}
+                                className="field-input"
+                              >
+                                <option value="">Sem quarto</option>
+                                {quartos.map((q, i) => (
+                                  <option key={i} value={i}>
+                                    Quarto {i + 1} — {q.tipo === "single" ? "Single" : "Duplo"}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
                         ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
           </div>
         ) : (
           <p className="text-sm text-neutral-400">Adicione ao menos um quarto para poder distribuir as pessoas.</p>

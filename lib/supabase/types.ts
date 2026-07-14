@@ -130,7 +130,7 @@ export interface RoomingListRow {
   updated_at: string;
 }
 
-export type PessoaTipoRooming = "comissao" | "staff";
+export type PessoaTipoRooming = "atleta" | "comissao" | "staff";
 
 export interface RoomingListQuartoRow {
   id: string;

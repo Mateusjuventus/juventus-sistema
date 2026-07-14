@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { OnibusDocument, type OnibusPdfItem } from "@/lib/pdf/onibus-document";
+import { OnibusDocument, type OnibusPdfItem, type OnibusPdfPassageiro } from "@/lib/pdf/onibus-document";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
@@ -56,20 +56,29 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
     ]);
 
-  const atletaMap = new Map(((atletasData ?? []) as AtletaRow[]).map((a) => [a.id, a.nome_completo]));
-  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c.nome_completo]));
-  const staffMap = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s.nome_completo]));
+  const atletaMap = new Map(((atletasData ?? []) as AtletaRow[]).map((a) => [a.id, a]));
+  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c]));
+  const staffMap = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s]));
 
-  const nomeDe = (p: OnibusPassageiroRow): string => {
-    if (p.pessoa_tipo === "atleta") return atletaMap.get(p.pessoa_id) ?? "—";
-    if (p.pessoa_tipo === "comissao") return comissaoMap.get(p.pessoa_id) ?? "—";
-    return staffMap.get(p.pessoa_id) ?? "—";
+  const passageiroDe = (p: OnibusPassageiroRow): OnibusPdfPassageiro => {
+    const registro =
+      p.pessoa_tipo === "atleta"
+        ? atletaMap.get(p.pessoa_id)
+        : p.pessoa_tipo === "comissao"
+          ? comissaoMap.get(p.pessoa_id)
+          : staffMap.get(p.pessoa_id);
+    return {
+      nome: registro?.nome_completo ?? "—",
+      dataNascimento: registro?.data_nascimento ?? null,
+      cpf: registro?.cpf ?? null,
+      rg: registro?.rg ?? null,
+    };
   };
 
   const onibusPdf: OnibusPdfItem[] = onibusRows.map((o) => ({
     numero: o.onibus_numero,
     horario: o.horario_saida ? o.horario_saida.slice(0, 5) : null,
-    passageiros: passageiros.filter((p) => p.onibus_lista_id === o.id).map(nomeDe),
+    passageiros: passageiros.filter((p) => p.onibus_lista_id === o.id).map(passageiroDe),
   }));
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");

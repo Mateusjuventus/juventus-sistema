@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { PresskitDocument } from "@/lib/pdf/presskit-document";
+import { PresskitDocument, type AtletaPresskitItem } from "@/lib/pdf/presskit-document";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
@@ -55,14 +55,25 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaRow & { atleta: AtletaRow })[];
   const porNumero = (a: AtletaRow, b: AtletaRow) => (a.numero_camisa ?? 999) - (b.numero_camisa ?? 999);
-  const titulares = convocacaoAtletas
+  const atletasTitulares = convocacaoAtletas
     .filter((c) => c.status === "titular")
     .map((c) => c.atleta)
     .sort(porNumero);
-  const reservas = convocacaoAtletas
+  const atletasReservas = convocacaoAtletas
     .filter((c) => c.status === "reserva")
     .map((c) => c.atleta)
     .sort(porNumero);
+
+  // Foto de cada atleta (signed URL temporária) pro cartão do presskit — mesma lógica usada na
+  // listagem de Atletas (ver app/atletas/page.tsx).
+  const comFoto = async (atletas: AtletaRow[]): Promise<AtletaPresskitItem[]> =>
+    Promise.all(
+      atletas.map(async (atleta) => ({
+        atleta,
+        fotoSrc: await getSignedPhotoUrl(supabase, atleta.foto_path),
+      })),
+    );
+  const [titulares, reservas] = await Promise.all([comFoto(atletasTitulares), comFoto(atletasReservas)]);
 
   const comissaoNomes = ((ccData ?? []) as (ConvocacaoComissaoRow & {
     pessoa: Pick<ComissaoTecnicaRow, "nome_completo"> | null;

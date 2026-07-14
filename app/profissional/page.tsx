@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
+import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { JogoRow } from "@/lib/supabase/types";
 
 const EM_BREVE = ["Prestação de Contas"];
@@ -15,9 +16,14 @@ async function contarLinhas(
   return count ?? 0;
 }
 
-function formatDataCurta(iso: string): string {
-  const [, mes, dia] = iso.split("-");
-  return `${dia}/${mes}`;
+function formatData(iso: string): string {
+  const [ano, mes, dia] = iso.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function formatHorario(horario: string | null): string | null {
+  if (!horario) return null;
+  return horario.slice(0, 5);
 }
 
 export default async function ProfissionalPage() {
@@ -38,9 +44,34 @@ export default async function ProfissionalPage() {
   ]);
 
   const proximoJogo = proximoJogoData as JogoRow | null;
-  const descricaoJogos = proximoJogo
-    ? `Próximo: x ${proximoJogo.adversario_nome} — ${formatDataCurta(proximoJogo.data_jogo)}`
-    : "Nenhum jogo agendado";
+  const adversarioLogoUrl = proximoJogo
+    ? await getSignedPhotoUrl(supabase, proximoJogo.adversario_logo_path)
+    : null;
+
+  // Mesma regra usada no PDF/lista de jogos: em casa, escudo do Juventus primeiro (esquerda);
+  // fora, depois do escudo do adversário (direita).
+  const juventusLogoCard = (
+    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white p-1">
+      <JuventusCrestMark className="h-full w-full" />
+    </div>
+  );
+  const adversarioLogoCard = proximoJogo ? (
+    adversarioLogoUrl ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={adversarioLogoUrl}
+        alt={proximoJogo.adversario_nome}
+        className="h-10 w-10 rounded-full border border-neutral-200 bg-white object-contain p-1"
+      />
+    ) : (
+      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 text-[10px] text-neutral-400">
+        {proximoJogo.adversario_nome.slice(0, 3).toUpperCase()}
+      </div>
+    )
+  ) : null;
+  const [logoEsquerda, logoDireita] = proximoJogo?.mandante
+    ? [juventusLogoCard, adversarioLogoCard]
+    : [adversarioLogoCard, juventusLogoCard];
 
   const CADASTROS = [
     { href: "/atletas", titulo: "Atletas", descricao: `${totalAtletas} ativo${totalAtletas === 1 ? "" : "s"}` },
@@ -54,7 +85,6 @@ export default async function ProfissionalPage() {
       titulo: "Staff Operacional",
       descricao: `${totalStaff} ativo${totalStaff === 1 ? "" : "s"}`,
     },
-    { href: "/jogos", titulo: "Jogos / Competições", descricao: descricaoJogos },
   ];
 
   return (
@@ -72,13 +102,44 @@ export default async function ProfissionalPage() {
           <Link
             key={item.href}
             href={item.href}
-            className="card group flex flex-col items-center gap-2 p-8 text-center transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-dourado"
+            className="card group flex flex-col items-center justify-center gap-2 p-8 text-center transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-dourado"
           >
             <span className="inline-block h-1 w-10 rounded bg-dourado" />
             <h2 className="text-xl font-bold text-grena-escuro">{item.titulo}</h2>
             <p className="text-sm font-medium text-neutral-500">{item.descricao}</p>
           </Link>
         ))}
+
+        {/* Cartão de Jogos / Competições — mais completo que os outros: mostra os escudos do
+            próximo jogo (respeitando a regra de mandante), competição, data/horário e local. */}
+        <Link
+          href="/jogos"
+          className="card group flex flex-col items-center justify-center gap-2 p-8 text-center transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-dourado"
+        >
+          <span className="inline-block h-1 w-10 rounded bg-dourado" />
+          <h2 className="text-xl font-bold text-grena-escuro">Jogos / Competições</h2>
+          {proximoJogo ? (
+            <>
+              <div className="mt-1 flex items-center gap-3">
+                {logoEsquerda}
+                <span className="text-sm font-bold text-neutral-300">×</span>
+                {logoDireita}
+              </div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                {proximoJogo.competicao}
+              </p>
+              <p className="text-sm font-medium text-neutral-500">
+                {formatData(proximoJogo.data_jogo)}
+                {formatHorario(proximoJogo.horario) ? ` · ${formatHorario(proximoJogo.horario)}` : ""}
+              </p>
+              {proximoJogo.local_estadio ? (
+                <p className="text-xs text-neutral-400">{proximoJogo.local_estadio}</p>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-sm font-medium text-neutral-500">Nenhum jogo agendado</p>
+          )}
+        </Link>
       </div>
 
       <h2 className="mt-10 text-center text-lg font-semibold text-neutral-500">Em breve</h2>

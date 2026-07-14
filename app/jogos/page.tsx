@@ -184,7 +184,7 @@ export default async function JogosPage({
 
               <div className="flex flex-wrap justify-center gap-2 border-t border-neutral-100 pt-3">
                 <Link href={`/jogos/${j.id}/convocacao`} className="btn-secondary">
-                  Convocação
+                  Entrar
                 </Link>
                 <Link href={`/jogos/${j.id}`} className="btn-secondary">
                   Editar
