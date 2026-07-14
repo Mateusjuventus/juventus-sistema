@@ -12,6 +12,19 @@ const rgField = z.string().min(1, { message: "RG é obrigatório" });
 
 const telefoneField = z.string().optional().or(z.literal(""));
 
+const emailField = z.string().email({ message: "E-mail inválido" }).optional().or(z.literal(""));
+
+/** Campos de endereço compartilhados entre o cadastro interno e o formulário público de Staff. */
+const enderecoFields = {
+  cep: z.string().optional().or(z.literal("")),
+  logradouro: z.string().optional().or(z.literal("")),
+  numero: z.string().optional().or(z.literal("")),
+  complemento: z.string().optional().or(z.literal("")),
+  bairro: z.string().optional().or(z.literal("")),
+  cidade: z.string().optional().or(z.literal("")),
+  uf: z.string().optional().or(z.literal("")),
+};
+
 export const atletaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
   rg: rgField,
@@ -54,6 +67,8 @@ export const staffOperacionalSchema = z
     funcaoId: z.string().min(1, { message: "Função/setor é obrigatório" }),
     novaFuncaoNome: z.string().optional().or(z.literal("")),
     telefone: telefoneField,
+    email: emailField,
+    ...enderecoFields,
     chavePix: z.string().optional().or(z.literal("")),
     valorPadraoPagamento: z.coerce.number().nonnegative().optional().nullable(),
   })
@@ -63,6 +78,24 @@ export const staffOperacionalSchema = z
   });
 export type StaffOperacionalInput = z.infer<typeof staffOperacionalSchema>;
 export { NOVA_FUNCAO_VALUE };
+
+/**
+ * Cadastro público de Staff Operacional (link enviado pra pessoa preencher sozinha, sem login):
+ * mesmo formulário, mas sem valor de pagamento (decisão interna) e sem opção de criar função nova
+ * (só escolhe entre as já cadastradas) — ver docs/superpowers/specs para o design completo.
+ */
+export const cadastroPublicoStaffSchema = z.object({
+  nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
+  rg: rgField,
+  cpf: cpfField,
+  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+  funcaoId: z.string().min(1, { message: "Função/setor é obrigatório" }),
+  telefone: telefoneField,
+  email: emailField,
+  ...enderecoFields,
+  chavePix: z.string().optional().or(z.literal("")),
+});
+export type CadastroPublicoStaffInput = z.infer<typeof cadastroPublicoStaffSchema>;
 
 export const jogoSchema = z.object({
   competicao: z.string().min(1, { message: "Competição é obrigatória" }),

@@ -34,11 +34,11 @@ export default async function ProfissionalPage() {
   const supabase = createClient();
   const hojeStr = new Date().toISOString().slice(0, 10);
 
-  const [totalAtletas, totalComissao, totalStaff, { data: proximoJogoData }, { data: gastosData }] =
+  const [totalAtletas, totalComissao, { count: totalStaffCount }, { data: proximoJogoData }, { data: gastosData }] =
     await Promise.all([
       contarLinhas(supabase, "atletas"),
       contarLinhas(supabase, "comissao_tecnica"),
-      contarLinhas(supabase, "staff_operacional"),
+      supabase.from("staff_operacional").select("*", { count: "exact", head: true }).eq("ativo", true),
       supabase
         .from("jogos")
         .select("*")
@@ -48,6 +48,7 @@ export default async function ProfissionalPage() {
         .maybeSingle(),
       supabase.from("gastos_jogo").select("valor_previsto"),
     ]);
+  const totalStaff = totalStaffCount ?? 0;
 
   const totalPrevisto = ((gastosData ?? []) as { valor_previsto: number }[]).reduce(
     (soma, g) => soma + g.valor_previsto,

@@ -63,6 +63,15 @@ export interface StaffOperacionalRow {
   telefone: string | null;
   chave_pix: string | null;
   valor_padrao_pagamento: number | null;
+  email: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  ativo: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -248,5 +257,15 @@ export interface ConfiguracaoFinanceiroRow {
   assinatura1_cargo: string;
   assinatura2_nome: string;
   assinatura2_cargo: string;
+  updated_at: string;
+}
+
+/**
+ * Liga/desliga o link público de autocadastro de Staff Operacional (/cadastro-staff) — tabela
+ * singleton (sempre uma linha só).
+ */
+export interface ConfiguracaoCadastroStaffRow {
+  id: string;
+  cadastro_publico_ativo: boolean;
   updated_at: string;
 }

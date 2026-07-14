@@ -22,12 +22,35 @@ function parseForm(formData: FormData) {
     funcaoId: String(formData.get("funcaoId") ?? ""),
     novaFuncaoNome: String(formData.get("novaFuncaoNome") ?? ""),
     telefone: String(formData.get("telefone") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    cep: String(formData.get("cep") ?? ""),
+    logradouro: String(formData.get("logradouro") ?? ""),
+    numero: String(formData.get("numero") ?? ""),
+    complemento: String(formData.get("complemento") ?? ""),
+    bairro: String(formData.get("bairro") ?? ""),
+    cidade: String(formData.get("cidade") ?? ""),
+    uf: String(formData.get("uf") ?? ""),
     chavePix: String(formData.get("chavePix") ?? ""),
     valorPadraoPagamento: String(formData.get("valorPadraoPagamento") ?? "") || undefined,
   };
 
   const result = staffOperacionalSchema.safeParse(raw);
   return { raw, result };
+}
+
+/**
+ * Bloqueia dois cadastros com o mesmo nome completo (comparação sem diferenciar maiúsculas/
+ * minúsculas). Na edição, ignora o próprio registro (senão nenhuma edição seria salva).
+ */
+async function existeNomeDuplicado(
+  supabase: ReturnType<typeof createClient>,
+  nomeCompleto: string,
+  ignorarId?: string,
+): Promise<boolean> {
+  let query = supabase.from("staff_operacional").select("id").ilike("nome_completo", nomeCompleto.trim());
+  if (ignorarId) query = query.neq("id", ignorarId);
+  const { data } = await query.limit(1);
+  return (data?.length ?? 0) > 0;
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -84,6 +107,13 @@ export async function createStaff(
   const supabase = createClient();
   const data = result.data;
 
+  if (await existeNomeDuplicado(supabase, data.nomeCompleto)) {
+    return {
+      fieldErrors: { nomeCompleto: "Já existe uma pessoa cadastrada com esse nome completo." },
+      values: raw,
+    };
+  }
+
   const funcao = await resolveFuncaoId(supabase, data.funcaoId, data.novaFuncaoNome ?? "");
   if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
 
@@ -95,6 +125,14 @@ export async function createStaff(
     data_nascimento: data.dataNascimento,
     funcao_id: funcao.id,
     telefone: data.telefone || null,
+    email: data.email || null,
+    cep: data.cep || null,
+    logradouro: data.logradouro || null,
+    numero: data.numero || null,
+    complemento: data.complemento || null,
+    bairro: data.bairro || null,
+    cidade: data.cidade || null,
+    uf: data.uf || null,
     chave_pix: data.chavePix || null,
     valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
   });
@@ -121,6 +159,13 @@ export async function updateStaff(
   const supabase = createClient();
   const data = result.data;
 
+  if (await existeNomeDuplicado(supabase, data.nomeCompleto, id)) {
+    return {
+      fieldErrors: { nomeCompleto: "Já existe uma pessoa cadastrada com esse nome completo." },
+      values: raw,
+    };
+  }
+
   const funcao = await resolveFuncaoId(supabase, data.funcaoId, data.novaFuncaoNome ?? "");
   if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
 
@@ -133,6 +178,14 @@ export async function updateStaff(
       data_nascimento: data.dataNascimento,
       funcao_id: funcao.id,
       telefone: data.telefone || null,
+      email: data.email || null,
+      cep: data.cep || null,
+      logradouro: data.logradouro || null,
+      numero: data.numero || null,
+      complemento: data.complemento || null,
+      bairro: data.bairro || null,
+      cidade: data.cidade || null,
+      uf: data.uf || null,
       chave_pix: data.chavePix || null,
       valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
     })
@@ -148,5 +201,19 @@ export async function deleteStaff(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
   await supabase.from("staff_operacional").delete().eq("id", id);
+  revalidatePath("/staff-operacional");
+}
+
+/**
+ * Marca um cadastro como ativo/inativo (em vez de excluir, quando a pessoa não trabalha mais com
+ * o clube) — histórico e vínculos anteriores continuam intactos.
+ */
+export async function alternarStaffAtivo(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const novoValor = String(formData.get("novoValor") ?? "") === "true";
+  if (!id) return;
+
+  const supabase = createClient();
+  await supabase.from("staff_operacional").update({ ativo: novoValor }).eq("id", id);
   revalidatePath("/staff-operacional");
 }

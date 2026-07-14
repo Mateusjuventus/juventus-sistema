@@ -1,6 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// "/cadastro-staff" é o link público de autocadastro de Staff Operacional (a pessoa preenche sem
+// fazer login) — ver app/cadastro-staff. Não exige sessão, mas também não dá acesso a mais nada do
+// sistema: a gravação em si roda com a service_role key (lib/supabase/admin.ts), não com a sessão
+// anônima do Supabase.
 const PUBLIC_PATHS = ["/login", "/cadastro-staff"];
 
 /**
