@@ -1,43 +1,35 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
+import { FieldGroup, FormSection, TextField } from "@/components/fields";
+import { StaffFuncaoField } from "@/components/staff-funcao-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
-import type { CadastroPublicoFormState } from "./actions";
+import type { StaffFormState } from "./actions";
 
-const initialState: CadastroPublicoFormState = {};
+const initialState: StaffFormState = {};
 
-export function StaffPublicoForm({
+export function StaffForm({
   action,
+  entityId,
+  defaultValues,
+  submitLabel,
   funcoes,
 }: {
-  action: (
-    prevState: CadastroPublicoFormState,
-    formData: FormData,
-  ) => Promise<CadastroPublicoFormState>;
+  action: (prevState: StaffFormState, formData: FormData) => Promise<StaffFormState>;
+  entityId?: string;
+  defaultValues?: Record<string, string>;
+  submitLabel: string;
   funcoes: StaffFuncaoCatalogoRow[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
-
-  if (state.success) {
-    return (
-      <div className="py-8 text-center">
-        <p className="text-lg font-semibold text-grena-escuro">Cadastro enviado com sucesso!</p>
-        <p className="mt-2 text-sm text-neutral-500">
-          Obrigado por preencher seus dados. O responsável do Departamento de Futebol Profissional
-          já tem acesso ao seu cadastro.
-        </p>
-      </div>
-    );
-  }
-
-  const values = state.values ?? {};
+  const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
 
   return (
     <form action={formAction} className="space-y-6">
+      {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados pessoais">
         <FieldGroup>
           <TextField
@@ -103,29 +95,28 @@ export function StaffPublicoForm({
         />
       </FormSection>
 
-      <FormSection title="Função">
+      <FormSection title="Função e pagamento">
         <FieldGroup>
-          <SelectField
-            label="Função/setor"
-            name="funcaoId"
-            required
+          <StaffFuncaoField
+            funcoes={funcoes}
             defaultValue={values.funcaoId}
             error={errors.funcaoId}
-          >
-            <option value="" disabled>
-              Selecione uma função
-            </option>
-            {funcoes.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nome}
-              </option>
-            ))}
-          </SelectField>
+            novaFuncaoError={errors.novaFuncaoNome}
+          />
           <TextField
             label="Chave PIX"
             name="chavePix"
             defaultValue={values.chavePix}
             error={errors.chavePix}
+          />
+          <TextField
+            label="Valor padrão de pagamento (R$)"
+            name="valorPadraoPagamento"
+            type="number"
+            step="0.01"
+            min={0}
+            defaultValue={values.valorPadraoPagamento}
+            error={errors.valorPadraoPagamento}
           />
         </FieldGroup>
       </FormSection>
@@ -135,7 +126,7 @@ export function StaffPublicoForm({
       ) : null}
 
       <div className="flex gap-3">
-        <SubmitButton label="Enviar cadastro" />
+        <SubmitButton label={submitLabel} />
       </div>
     </form>
   );
