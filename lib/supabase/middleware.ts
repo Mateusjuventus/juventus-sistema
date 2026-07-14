@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/cadastro-staff"];
 
 /**
  * Mantém a sessão do Supabase atualizada a cada request e bloqueia acesso
