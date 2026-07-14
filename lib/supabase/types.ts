@@ -237,3 +237,16 @@ export interface GastoJogoRow {
 export interface GastoJogoComCategoriaRow extends GastoJogoRow {
   categoria: { nome: string } | null;
 }
+
+/**
+ * Configurações do módulo Financeiro — tabela singleton (sempre uma linha só) com as duas
+ * assinaturas usadas nos PDFs (Orçamento Previsto e Relatório Geral).
+ */
+export interface ConfiguracaoFinanceiroRow {
+  id: string;
+  assinatura1_nome: string;
+  assinatura1_cargo: string;
+  assinatura2_nome: string;
+  assinatura2_cargo: string;
+  updated_at: string;
+}

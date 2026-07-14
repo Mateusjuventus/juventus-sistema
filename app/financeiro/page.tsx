@@ -76,6 +76,22 @@ export default async function FinanceiroPage() {
       </Link>
       <PageHeader title="Prestação de Contas" />
 
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        {gastos.length > 0 ? (
+          <a
+            href="/financeiro/pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+          >
+            Gerar Relatório PDF
+          </a>
+        ) : null}
+        <Link href="/financeiro/configuracoes" className="btn-secondary">
+          Editar assinaturas
+        </Link>
+      </div>
+
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard label="Total previsto" valor={formatMoeda(totalPrevisto)} />
         <StatCard label="Total efetuado" valor={formatMoeda(totalEfetuado)} />

@@ -1,6 +1,16 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { JogoRow } from "@/lib/supabase/types";
-import { CORES, DocumentoFooter, DocumentoHeader, sharedStyles, type LogoSrc } from "./logistica-shared";
+import {
+  AssinaturasBlock,
+  type AssinaturaInfo,
+  CarimboGeracao,
+  CORES,
+  DepartamentoEyebrow,
+  DocumentoFooter,
+  DocumentoHeader,
+  sharedStyles,
+  type LogoSrc,
+} from "./logistica-shared";
 
 const styles = StyleSheet.create({
   categoriaBox: {
@@ -75,16 +85,24 @@ export function OrcamentoDocument({
   adversarioLogoSrc,
   categorias,
   totalGeral,
+  geradoEm,
+  assinatura1,
+  assinatura2,
 }: {
   jogo: JogoRow;
   juventusLogoSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   categorias: OrcamentoPdfCategoria[];
   totalGeral: number;
+  geradoEm: Date;
+  assinatura1: AssinaturaInfo;
+  assinatura2: AssinaturaInfo;
 }) {
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
+        <CarimboGeracao geradoEm={geradoEm} />
+        <DepartamentoEyebrow />
         <DocumentoHeader
           jogo={jogo}
           juventusLogoSrc={juventusLogoSrc}
@@ -126,6 +144,8 @@ export function OrcamentoDocument({
             <Text style={styles.totalGeralValor}>{formatMoeda(totalGeral)}</Text>
           </View>
         ) : null}
+
+        <AssinaturasBlock assinatura1={assinatura1} assinatura2={assinatura2} />
 
         <DocumentoFooter />
       </Page>

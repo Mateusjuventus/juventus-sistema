@@ -7,6 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { OrcamentoDocument, type OrcamentoPdfCategoria } from "@/lib/pdf/orcamento-document";
+import { getAssinaturasFinanceiro } from "@/lib/pdf/assinaturas";
 import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
@@ -16,13 +17,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!jogoData) return new NextResponse("Jogo não encontrado.", { status: 404 });
   const jogo = jogoData as JogoRow;
 
-  const [{ data: gastosData }, adversarioLogoUrl] = await Promise.all([
+  const [{ data: gastosData }, adversarioLogoUrl, { assinatura1, assinatura2 }] = await Promise.all([
     supabase
       .from("gastos_jogo")
       .select("*, categoria:categorias_gasto(nome)")
       .eq("jogo_id", params.id)
       .order("created_at", { ascending: true }),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
+    getAssinaturasFinanceiro(supabase),
   ]);
   const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
 
@@ -52,6 +54,9 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       adversarioLogoSrc={adversarioLogoUrl}
       categorias={categorias}
       totalGeral={totalGeral}
+      geradoEm={new Date()}
+      assinatura1={assinatura1}
+      assinatura2={assinatura2}
     />,
   );
 

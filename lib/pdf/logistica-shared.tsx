@@ -152,3 +152,100 @@ export function DocumentoFooter() {
     </View>
   );
 }
+
+/**
+ * Peças usadas só nos documentos do módulo Financeiro (Orçamento Previsto e Relatório Geral da
+ * Prestação de Contas) — rótulo do departamento, carimbo de geração e bloco de assinaturas. Não
+ * fazem parte do DocumentoHeader/DocumentoFooter compartilhado por não se aplicarem aos outros
+ * documentos oficiais (rooming list, ônibus, credenciamento, recibo, presskit).
+ */
+export const financeiroStyles = StyleSheet.create({
+  departamentoEyebrow: {
+    textAlign: "center",
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: CORES.grena,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  carimbo: {
+    position: "absolute",
+    top: 32,
+    right: 32,
+    borderWidth: 0.75,
+    borderColor: "#a3a3a3",
+    borderRadius: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  carimboLabel: {
+    fontSize: 6,
+    fontWeight: 700,
+    color: "#737373",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    textAlign: "center",
+  },
+  carimboValor: { fontSize: 7.5, fontWeight: 700, color: "#525252", textAlign: "center", marginTop: 1 },
+  assinaturasRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 36 },
+  assinaturaCol: { width: "42%", alignItems: "center" },
+  assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
+  assinaturaNome: { fontSize: 9.5, fontWeight: 700, color: "#1f1f1f", textAlign: "center" },
+  assinaturaCargo: { fontSize: 8, color: "#525252", textAlign: "center", marginTop: 1 },
+});
+
+export const DEPARTAMENTO_LABEL = "Departamento de Futebol Profissional";
+
+export function formatCarimbo(geradoEm: Date): string {
+  const dia = String(geradoEm.getDate()).padStart(2, "0");
+  const mes = String(geradoEm.getMonth() + 1).padStart(2, "0");
+  const ano = geradoEm.getFullYear();
+  const hora = String(geradoEm.getHours()).padStart(2, "0");
+  const minuto = String(geradoEm.getMinutes()).padStart(2, "0");
+  return `${dia}/${mes}/${ano} às ${hora}:${minuto}`;
+}
+
+/** Rótulo do departamento — aparece no topo dos documentos do Financeiro, acima dos escudos/título. */
+export function DepartamentoEyebrow() {
+  return <Text style={financeiroStyles.departamentoEyebrow}>{DEPARTAMENTO_LABEL}</Text>;
+}
+
+/** Carimbo com data/hora de geração do documento, no canto superior direito da página. */
+export function CarimboGeracao({ geradoEm }: { geradoEm: Date }) {
+  return (
+    <View style={financeiroStyles.carimbo} fixed>
+      <Text style={financeiroStyles.carimboLabel}>Gerado em</Text>
+      <Text style={financeiroStyles.carimboValor}>{formatCarimbo(geradoEm)}</Text>
+    </View>
+  );
+}
+
+export interface AssinaturaInfo {
+  nome: string;
+  cargo: string;
+}
+
+/** Bloco com as duas assinaturas (nome + cargo) vindas de configuracoes_financeiro. */
+export function AssinaturasBlock({
+  assinatura1,
+  assinatura2,
+}: {
+  assinatura1: AssinaturaInfo;
+  assinatura2: AssinaturaInfo;
+}) {
+  return (
+    <View style={financeiroStyles.assinaturasRow} wrap={false}>
+      <View style={financeiroStyles.assinaturaCol}>
+        <View style={financeiroStyles.assinaturaLinha} />
+        <Text style={financeiroStyles.assinaturaNome}>{assinatura1.nome}</Text>
+        <Text style={financeiroStyles.assinaturaCargo}>{assinatura1.cargo}</Text>
+      </View>
+      <View style={financeiroStyles.assinaturaCol}>
+        <View style={financeiroStyles.assinaturaLinha} />
+        <Text style={financeiroStyles.assinaturaNome}>{assinatura2.nome}</Text>
+        <Text style={financeiroStyles.assinaturaCargo}>{assinatura2.cargo}</Text>
+      </View>
+    </View>
+  );
+}

@@ -148,3 +148,11 @@ export const gastoJogoSchema = z
   });
 export type GastoJogoInput = z.infer<typeof gastoJogoSchema>;
 export { NOVA_CATEGORIA_GASTO_VALUE };
+
+export const configuracaoFinanceiroSchema = z.object({
+  assinatura1Nome: z.string().min(1, { message: "Nome é obrigatório" }),
+  assinatura1Cargo: z.string().min(1, { message: "Cargo é obrigatório" }),
+  assinatura2Nome: z.string().min(1, { message: "Nome é obrigatório" }),
+  assinatura2Cargo: z.string().min(1, { message: "Cargo é obrigatório" }),
+});
+export type ConfiguracaoFinanceiroInput = z.infer<typeof configuracaoFinanceiroSchema>;
