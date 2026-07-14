@@ -13,7 +13,14 @@ export function JogoTabs({
   active,
 }: {
   jogoId: string;
-  active: "dados" | "convocacao" | "rooming-list" | "onibus" | "credenciamento" | "recibo";
+  active:
+    | "dados"
+    | "convocacao"
+    | "rooming-list"
+    | "onibus"
+    | "credenciamento"
+    | "recibo"
+    | "financeiro";
 }) {
   const logisticaSubTabs = [
     { key: "rooming-list", label: "Rooming List", href: `/jogos/${jogoId}/rooming-list` },
@@ -33,6 +40,12 @@ export function JogoTabs({
       active: active === "credenciamento",
     },
     { key: "recibo", label: "Recibo de Pagamento", href: `/jogos/${jogoId}/recibo`, active: active === "recibo" },
+    {
+      key: "financeiro",
+      label: "Financeiro",
+      href: `/jogos/${jogoId}/financeiro`,
+      active: active === "financeiro",
+    },
   ] as const;
 
   return (

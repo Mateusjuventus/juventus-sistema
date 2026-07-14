@@ -214,3 +214,26 @@ export interface TarefaRow {
   created_at: string;
   updated_at: string;
 }
+
+export interface CategoriaGastoRow {
+  id: string;
+  nome: string;
+  created_at: string;
+}
+
+export interface GastoJogoRow {
+  id: string;
+  jogo_id: string;
+  categoria_id: string;
+  descricao: string | null;
+  valor_previsto: number;
+  valor_efetuado: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Linha de gastos_jogo já com a categoria embutida via join (`categoria:categorias_gasto(nome)`). */
+export interface GastoJogoComCategoriaRow extends GastoJogoRow {
+  categoria: { nome: string } | null;
+}

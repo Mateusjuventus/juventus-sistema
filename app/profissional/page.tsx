@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { JogoRow } from "@/lib/supabase/types";
 
-const EM_BREVE = ["Prestação de Contas"];
+const EM_BREVE: string[] = [];
 
 /** Conta linhas de uma tabela sem trazer os dados (head: true), pra montar a descrição de cada cartão. */
 async function contarLinhas(
@@ -14,6 +14,10 @@ async function contarLinhas(
 ): Promise<number> {
   const { count } = await supabase.from(tabela).select("*", { count: "exact", head: true });
   return count ?? 0;
+}
+
+function formatMoeda(valor: number): string {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function formatData(iso: string): string {
@@ -30,18 +34,25 @@ export default async function ProfissionalPage() {
   const supabase = createClient();
   const hojeStr = new Date().toISOString().slice(0, 10);
 
-  const [totalAtletas, totalComissao, totalStaff, { data: proximoJogoData }] = await Promise.all([
-    contarLinhas(supabase, "atletas"),
-    contarLinhas(supabase, "comissao_tecnica"),
-    contarLinhas(supabase, "staff_operacional"),
-    supabase
-      .from("jogos")
-      .select("*")
-      .gte("data_jogo", hojeStr)
-      .order("data_jogo", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const [totalAtletas, totalComissao, totalStaff, { data: proximoJogoData }, { data: gastosData }] =
+    await Promise.all([
+      contarLinhas(supabase, "atletas"),
+      contarLinhas(supabase, "comissao_tecnica"),
+      contarLinhas(supabase, "staff_operacional"),
+      supabase
+        .from("jogos")
+        .select("*")
+        .gte("data_jogo", hojeStr)
+        .order("data_jogo", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from("gastos_jogo").select("valor_previsto"),
+    ]);
+
+  const totalPrevisto = ((gastosData ?? []) as { valor_previsto: number }[]).reduce(
+    (soma, g) => soma + g.valor_previsto,
+    0,
+  );
 
   const proximoJogo = proximoJogoData as JogoRow | null;
   const adversarioLogoUrl = proximoJogo
@@ -84,6 +95,11 @@ export default async function ProfissionalPage() {
       href: "/staff-operacional",
       titulo: "Staff Operacional",
       descricao: `${totalStaff} ativo${totalStaff === 1 ? "" : "s"}`,
+    },
+    {
+      href: "/financeiro",
+      titulo: "Prestação de Contas",
+      descricao: totalPrevisto > 0 ? `${formatMoeda(totalPrevisto)} previsto` : "Nenhum gasto lançado ainda",
     },
   ];
 
@@ -142,22 +158,26 @@ export default async function ProfissionalPage() {
         </Link>
       </div>
 
-      <h2 className="mt-10 text-center text-lg font-semibold text-neutral-500">Em breve</h2>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {EM_BREVE.map((titulo) => (
-          <div
-            key={titulo}
-            className="card flex flex-col items-center gap-3 p-8 text-center opacity-60"
-            aria-disabled
-          >
-            <span className="inline-block h-1 w-10 rounded bg-prata" />
-            <h3 className="text-xl font-bold text-neutral-600">{titulo}</h3>
-            <span className="w-fit rounded-full bg-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-600">
-              Em breve
-            </span>
+      {EM_BREVE.length > 0 ? (
+        <>
+          <h2 className="mt-10 text-center text-lg font-semibold text-neutral-500">Em breve</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {EM_BREVE.map((titulo) => (
+              <div
+                key={titulo}
+                className="card flex flex-col items-center gap-3 p-8 text-center opacity-60"
+                aria-disabled
+              >
+                <span className="inline-block h-1 w-10 rounded bg-prata" />
+                <h3 className="text-xl font-bold text-neutral-600">{titulo}</h3>
+                <span className="w-fit rounded-full bg-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-600">
+                  Em breve
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      ) : null}
     </AppShell>
   );
 }

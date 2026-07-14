@@ -131,3 +131,20 @@ export type TarefaInput = z.infer<typeof tarefaSchema>;
 export const tarefaStatusSchema = z.object({
   status: z.enum(["pendente", "em_andamento", "solicitado", "concluido"]),
 });
+
+const NOVA_CATEGORIA_GASTO_VALUE = "__nova__";
+
+export const gastoJogoSchema = z
+  .object({
+    categoriaId: z.string().min(1, { message: "Categoria é obrigatória" }),
+    novaCategoriaNome: z.string().optional().or(z.literal("")),
+    descricao: z.string().optional().or(z.literal("")),
+    valorPrevisto: z.coerce.number().nonnegative({ message: "Valor previsto não pode ser negativo" }),
+    valorEfetuado: z.coerce.number().nonnegative().optional().nullable(),
+  })
+  .refine((data) => data.categoriaId !== NOVA_CATEGORIA_GASTO_VALUE || Boolean(data.novaCategoriaNome?.trim()), {
+    message: "Informe o nome da nova categoria",
+    path: ["novaCategoriaNome"],
+  });
+export type GastoJogoInput = z.infer<typeof gastoJogoSchema>;
+export { NOVA_CATEGORIA_GASTO_VALUE };
