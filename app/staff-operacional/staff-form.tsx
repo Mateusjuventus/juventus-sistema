@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, TextField } from "@/components/fields";
 import { StaffFuncaoField } from "@/components/staff-funcao-field";
+import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
 import type { StaffFormState } from "./actions";
@@ -61,7 +62,37 @@ export function StaffForm({
             defaultValue={values.telefone}
             error={errors.telefone}
           />
+          <TextField
+            label="E-mail"
+            name="email"
+            type="email"
+            defaultValue={values.email}
+            error={errors.email}
+          />
         </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Endereço">
+        <EnderecoFields
+          defaultValues={{
+            cep: values.cep,
+            logradouro: values.logradouro,
+            numero: values.numero,
+            complemento: values.complemento,
+            bairro: values.bairro,
+            cidade: values.cidade,
+            uf: values.uf,
+          }}
+          errors={{
+            cep: errors.cep,
+            logradouro: errors.logradouro,
+            numero: errors.numero,
+            complemento: errors.complemento,
+            bairro: errors.bairro,
+            cidade: errors.cidade,
+            uf: errors.uf,
+          }}
+        />
       </FormSection>
 
       <FormSection title="Função e pagamento">
