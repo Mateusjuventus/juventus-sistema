@@ -1,10 +1,11 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { FieldGroup, FormSection, TextField } from "@/components/fields";
+import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { StaffFuncaoField } from "@/components/staff-funcao-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
+import { STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
 import type { StaffFormState } from "./actions";
 
@@ -109,6 +110,19 @@ export function StaffForm({
             defaultValue={values.chavePix}
             error={errors.chavePix}
           />
+          <SelectField
+            label="Tipo de chave PIX"
+            name="chavePixTipo"
+            defaultValue={values.chavePixTipo}
+            error={errors.chavePixTipo}
+          >
+            <option value="">Selecione</option>
+            {STAFF_CHAVE_PIX_TIPOS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </SelectField>
           <TextField
             label="Valor padrão de pagamento (R$)"
             name="valorPadraoPagamento"

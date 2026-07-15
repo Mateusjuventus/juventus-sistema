@@ -6,15 +6,19 @@ import { formatCPF } from "@/lib/validation/cpf";
 import type { StaffFuncaoCatalogoRow, StaffOperacionalRow } from "@/lib/supabase/types";
 import { StaffForm } from "../staff-form";
 import { updateStaff } from "../actions";
+
 export default async function EditarStaffPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const [{ data }, { data: funcoesData }] = await Promise.all([
     supabase.from("staff_operacional").select("*").eq("id", params.id).single(),
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
   ]);
+
   if (!data) notFound();
+
   const s = data as StaffOperacionalRow;
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
+
   const defaultValues: Record<string, string> = {
     nomeCompleto: s.nome_completo,
     rg: s.rg,
@@ -31,8 +35,10 @@ export default async function EditarStaffPage({ params }: { params: { id: string
     cidade: s.cidade ?? "",
     uf: s.uf ?? "",
     chavePix: s.chave_pix ?? "",
+    chavePixTipo: s.chave_pix_tipo ?? "",
     valorPadraoPagamento: s.valor_padrao_pagamento?.toString() ?? "",
   };
+
   return (
     <AppShell>
       <Link href="/staff-operacional" className="text-sm font-medium text-grena hover:underline">

@@ -14,6 +14,16 @@ const telefoneField = z.string().optional().or(z.literal(""));
 
 const emailField = z.string().email({ message: "E-mail inválido" }).optional().or(z.literal(""));
 
+/** Tipos de chave PIX oferecidos no cadastro de Staff Operacional (interno e público). */
+export const STAFF_CHAVE_PIX_TIPOS = [
+  { value: "cpf", label: "CPF" },
+  { value: "cnpj", label: "CNPJ" },
+  { value: "email", label: "E-mail" },
+  { value: "telefone", label: "Telefone" },
+] as const;
+
+const chavePixTipoField = z.enum(["cpf", "cnpj", "email", "telefone"]).optional().or(z.literal(""));
+
 /** Campos de endereço compartilhados entre o cadastro interno e o formulário público de Staff. */
 const enderecoFields = {
   cep: z.string().optional().or(z.literal("")),
@@ -70,6 +80,7 @@ export const staffOperacionalSchema = z
     email: emailField,
     ...enderecoFields,
     chavePix: z.string().optional().or(z.literal("")),
+    chavePixTipo: chavePixTipoField,
     valorPadraoPagamento: z.coerce.number().nonnegative().optional().nullable(),
   })
   .refine((data) => data.funcaoId !== NOVA_FUNCAO_VALUE || Boolean(data.novaFuncaoNome?.trim()), {
@@ -94,6 +105,7 @@ export const cadastroPublicoStaffSchema = z.object({
   email: emailField,
   ...enderecoFields,
   chavePix: z.string().optional().or(z.literal("")),
+  chavePixTipo: chavePixTipoField,
 });
 export type CadastroPublicoStaffInput = z.infer<typeof cadastroPublicoStaffSchema>;
 

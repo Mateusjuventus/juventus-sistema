@@ -30,6 +30,7 @@ function parseForm(formData: FormData) {
     cidade: String(formData.get("cidade") ?? ""),
     uf: String(formData.get("uf") ?? ""),
     chavePix: String(formData.get("chavePix") ?? ""),
+    chavePixTipo: String(formData.get("chavePixTipo") ?? ""),
   };
 
   const result = cadastroPublicoStaffSchema.safeParse(raw);
@@ -116,6 +117,7 @@ export async function cadastrarStaffPublico(
     cidade: data.cidade || null,
     uf: data.uf || null,
     chave_pix: data.chavePix || null,
+    chave_pix_tipo: data.chavePixTipo || null,
   });
 
   if (error) return { error: friendlyDbError(error), values: raw };

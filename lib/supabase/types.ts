@@ -53,6 +53,8 @@ export interface StaffFuncaoCatalogoRow {
   created_at: string;
 }
 
+export type StaffChavePixTipo = "cpf" | "cnpj" | "email" | "telefone";
+
 export interface StaffOperacionalRow {
   id: string;
   nome_completo: string;
@@ -62,6 +64,7 @@ export interface StaffOperacionalRow {
   funcao_id: string;
   telefone: string | null;
   chave_pix: string | null;
+  chave_pix_tipo: StaffChavePixTipo | null;
   valor_padrao_pagamento: number | null;
   email: string | null;
   cep: string | null;
