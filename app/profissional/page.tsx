@@ -30,6 +30,79 @@ function formatHorario(horario: string | null): string | null {
   return horario.slice(0, 5);
 }
 
+/** Ícones simples (stroke, 24x24) usados nos cartões de módulo — um por área, pra dar identidade
+ * visual rápida sem depender de uma biblioteca de ícones externa. */
+function IconAtletas({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.5-6 8-6s8 2 8 6" />
+    </svg>
+  );
+}
+
+function IconComissao({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <rect x="6" y="4" width="12" height="16" rx="2" />
+      <path d="M9 9h6M9 13h6" />
+    </svg>
+  );
+}
+
+function IconStaff({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <rect x="3" y="8" width="18" height="12" rx="2" />
+      <path d="M8 8V6a2 2 0 012-2h4a2 2 0 012 2v2" />
+    </svg>
+  );
+}
+
+function IconFinanceiro({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+    </svg>
+  );
+}
+
+function IconJogos({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M16 3v4M8 3v4M3 10h18" />
+    </svg>
+  );
+}
+
+/** Badge do ícone no topo do cartão — cor própria por módulo, pra facilitar identificar cada área
+ * rapidamente na tela inicial. */
+function IconBadge({
+  icone: Icone,
+  corBg,
+  corIcone,
+}: {
+  icone: (props: { className?: string }) => JSX.Element;
+  corBg: string;
+  corIcone: string;
+}) {
+  return (
+    <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${corBg} ${corIcone}`}>
+      <Icone className="h-6 w-6" />
+    </div>
+  );
+}
+
+/** Seta que desliza levemente pra direita ao passar o mouse — indica que o cartão é clicável. */
+function SetaCartao() {
+  return (
+    <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+      →
+    </span>
+  );
+}
+
 export default async function ProfissionalPage() {
   const supabase = createClient();
   const hojeStr = new Date().toISOString().slice(0, 10);
@@ -86,21 +159,41 @@ export default async function ProfissionalPage() {
     : [adversarioLogoCard, juventusLogoCard];
 
   const CADASTROS = [
-    { href: "/atletas", titulo: "Atletas", descricao: `${totalAtletas} ativo${totalAtletas === 1 ? "" : "s"}` },
+    {
+      href: "/atletas",
+      titulo: "Atletas",
+      descricao: `${totalAtletas} ativo${totalAtletas === 1 ? "" : "s"}`,
+      icone: IconAtletas,
+      corBarra: "bg-grena",
+      corBg: "bg-grena/10",
+      corIcone: "text-grena",
+    },
     {
       href: "/comissao-tecnica",
       titulo: "Comissão Técnica / Diretoria",
       descricao: `${totalComissao} ativo${totalComissao === 1 ? "" : "s"}`,
+      icone: IconComissao,
+      corBarra: "bg-emerald-600",
+      corBg: "bg-emerald-50",
+      corIcone: "text-emerald-600",
     },
     {
       href: "/staff-operacional",
       titulo: "Staff Operacional",
       descricao: `${totalStaff} ativo${totalStaff === 1 ? "" : "s"}`,
+      icone: IconStaff,
+      corBarra: "bg-amber-600",
+      corBg: "bg-amber-50",
+      corIcone: "text-amber-700",
     },
     {
       href: "/financeiro",
       titulo: "Prestação de Contas",
       descricao: totalPrevisto > 0 ? `${formatMoeda(totalPrevisto)} previsto` : "Nenhum gasto lançado ainda",
+      icone: IconFinanceiro,
+      corBarra: "bg-blue-700",
+      corBg: "bg-blue-50",
+      corIcone: "text-blue-700",
     },
   ];
 
@@ -114,15 +207,40 @@ export default async function ProfissionalPage() {
         <h1 className="text-3xl font-bold text-grena-escuro">Futebol Profissional</h1>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Faixa de resumo — números gerais das áreas, pra dar uma visão rápida antes de entrar em
+          cada módulo. */}
+      <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-gradient-to-br from-grena to-grena-escuro p-5 text-white sm:grid-cols-4">
+        <div>
+          <p className="text-xl font-extrabold sm:text-2xl">{totalAtletas}</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">Atletas ativos</p>
+        </div>
+        <div>
+          <p className="text-xl font-extrabold sm:text-2xl">{totalStaff}</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">Staff ativo</p>
+        </div>
+        <div>
+          <p className="text-xl font-extrabold sm:text-2xl">{formatMoeda(totalPrevisto)}</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">Previsto</p>
+        </div>
+        <div>
+          <p className="text-xl font-extrabold sm:text-2xl">
+            {proximoJogo ? formatData(proximoJogo.data_jogo) : "—"}
+          </p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">Próximo jogo</p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {CADASTROS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="card group flex flex-col items-center justify-center gap-2 p-8 text-center transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-dourado"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
           >
-            <span className="inline-block h-1 w-10 rounded bg-dourado" />
-            <h2 className="text-xl font-bold text-grena-escuro">{item.titulo}</h2>
+            <span className={`absolute inset-x-0 top-0 h-1 ${item.corBarra}`} />
+            <SetaCartao />
+            <IconBadge icone={item.icone} corBg={item.corBg} corIcone={item.corIcone} />
+            <h2 className="text-lg font-bold text-grena-escuro">{item.titulo}</h2>
             <p className="text-sm font-medium text-neutral-500">{item.descricao}</p>
           </Link>
         ))}
@@ -131,26 +249,28 @@ export default async function ProfissionalPage() {
             próximo jogo (respeitando a regra de mandante), competição, data/horário e local. */}
         <Link
           href="/jogos"
-          className="card group flex flex-col items-center justify-center gap-2 p-8 text-center transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-dourado"
+          className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
         >
-          <span className="inline-block h-1 w-10 rounded bg-dourado" />
-          <h2 className="text-xl font-bold text-grena-escuro">Jogos / Competições</h2>
+          <span className="absolute inset-x-0 top-0 h-1 bg-red-700" />
+          <SetaCartao />
+          <IconBadge icone={IconJogos} corBg="bg-red-50" corIcone="text-red-700" />
+          <h2 className="text-lg font-bold text-grena-escuro">Jogos / Competições</h2>
           {proximoJogo ? (
             <>
-              <div className="mt-1 flex items-center gap-3">
+              <div className="flex items-center gap-3">
                 {logoEsquerda}
                 <span className="text-sm font-bold text-neutral-300">×</span>
                 {logoDireita}
               </div>
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+              <p className="-mt-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
                 {proximoJogo.competicao}
               </p>
-              <p className="text-sm font-medium text-neutral-500">
+              <p className="-mt-1 text-sm font-medium text-neutral-500">
                 {formatData(proximoJogo.data_jogo)}
                 {formatHorario(proximoJogo.horario) ? ` · ${formatHorario(proximoJogo.horario)}` : ""}
               </p>
               {proximoJogo.local_estadio ? (
-                <p className="text-xs text-neutral-400">{proximoJogo.local_estadio}</p>
+                <p className="-mt-1 text-xs text-neutral-400">{proximoJogo.local_estadio}</p>
               ) : null}
             </>
           ) : (
