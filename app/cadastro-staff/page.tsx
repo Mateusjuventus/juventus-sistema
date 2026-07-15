@@ -15,10 +15,14 @@ export const dynamic = "force-dynamic";
 export default async function CadastroStaffPublicoPage() {
   const admin = createAdminClient();
 
-  const [{ data: configData }, { data: funcoesData }] = await Promise.all([
-    admin.from("configuracoes_cadastro_staff").select("*").limit(1).maybeSingle(),
-    admin.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
-  ]);
+  const [{ data: configData, error: configError }, { data: funcoesData, error: funcoesError }] =
+    await Promise.all([
+      admin.from("configuracoes_cadastro_staff").select("*").limit(1).maybeSingle(),
+      admin.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
+    ]);
+
+  if (configError) console.error("[cadastro-staff] erro ao buscar configuracao:", configError);
+  if (funcoesError) console.error("[cadastro-staff] erro ao buscar funcoes:", funcoesError);
 
   const config = configData as ConfiguracaoCadastroStaffRow | null;
   const ativo = config?.cadastro_publico_ativo ?? false;
