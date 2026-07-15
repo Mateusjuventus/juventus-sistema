@@ -30,7 +30,10 @@ export default async function ComissaoTecnicaPage({
         ← Voltar
       </Link>
       <PageHeader title="Comissão Técnica / Diretoria" />
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <a href={`/comissao-tecnica/export?q=${encodeURIComponent(q)}`} className="btn-secondary">
+          Exportar para Excel
+        </a>
         <Link href="/comissao-tecnica/novo" className="btn-primary">
           + Nova pessoa
         </Link>

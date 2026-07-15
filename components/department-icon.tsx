@@ -25,6 +25,23 @@ export function SproutIcon({ className }: { className?: string }) {
   );
 }
 
+/** Ícone do botão "Início" no cabeçalho — leva de volta à tela principal do departamento. */
+export function HomeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 11.5 12 4l8 7.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M10 20v-5.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** Ícone do botão "Tarefas" no cabeçalho — uma prancheta com itens marcados. */
 export function ChecklistIcon({ className }: { className?: string }) {
   return (

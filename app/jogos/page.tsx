@@ -60,6 +60,12 @@ export default async function JogosPage({
       </Link>
       <PageHeader title="Jogos / Competições" pendencia={pendenciaJogos} />
       <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <a
+          href={`/jogos/export?q=${encodeURIComponent(q)}&mandante=${encodeURIComponent(mandanteFiltro)}`}
+          className="btn-secondary"
+        >
+          Exportar para Excel
+        </a>
         <Link href="/jogos/dashboard" className="btn-secondary">
           Ver dashboard
         </Link>
@@ -185,6 +191,9 @@ export default async function JogosPage({
               <div className="flex flex-wrap justify-center gap-2 border-t border-neutral-100 pt-3">
                 <Link href={`/jogos/${j.id}/convocacao`} className="btn-secondary">
                   Entrar
+                </Link>
+                <Link href={`/jogos/${j.id}/checklist`} className="btn-secondary">
+                  Checklist
                 </Link>
                 <Link href={`/jogos/${j.id}`} className="btn-secondary">
                   Editar

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { JuventusCrestMark } from "@/components/juventus-crest";
-import { ChecklistIcon } from "@/components/department-icon";
+import { ChecklistIcon, HomeIcon } from "@/components/department-icon";
 
 const NAV_LINKS = [
   { href: "/atletas", label: "Atletas" },
@@ -32,6 +32,16 @@ export function AppShell({
             Juventus - SAF
           </Link>
           <nav className="flex flex-wrap items-center gap-1 text-sm">
+            {nav === "full" ? (
+              <Link
+                href="/profissional"
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+                title="Início do Futebol Profissional"
+              >
+                <HomeIcon className="h-4 w-4" />
+                Início
+              </Link>
+            ) : null}
             {nav === "full"
               ? NAV_LINKS.map((link) => (
                   <Link

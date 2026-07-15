@@ -75,7 +75,13 @@ export default async function StaffOperacionalPage({
         ← Voltar
       </Link>
       <PageHeader title="Staff Operacional" />
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <a
+          href={`/staff-operacional/export?q=${encodeURIComponent(q)}&funcaoId=${encodeURIComponent(funcaoId)}`}
+          className="btn-secondary"
+        >
+          Exportar para Excel
+        </a>
         <Link href="/staff-operacional/novo" className="btn-primary">
           + Novo staff
         </Link>

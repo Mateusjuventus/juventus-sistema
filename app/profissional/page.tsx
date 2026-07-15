@@ -178,15 +178,6 @@ export default async function ProfissionalPage() {
       corIcone: "text-emerald-600",
     },
     {
-      href: "/staff-operacional",
-      titulo: "Staff Operacional",
-      descricao: `${totalStaff} ativo${totalStaff === 1 ? "" : "s"}`,
-      icone: IconStaff,
-      corBarra: "bg-amber-600",
-      corBg: "bg-amber-50",
-      corIcone: "text-amber-700",
-    },
-    {
       href: "/financeiro",
       titulo: "Prestação de Contas",
       descricao: totalPrevisto > 0 ? `${formatMoeda(totalPrevisto)} previsto` : "Nenhum gasto lançado ainda",
@@ -245,8 +236,9 @@ export default async function ProfissionalPage() {
           </Link>
         ))}
 
-        {/* Cartão de Jogos / Competições — mais completo que os outros: mostra os escudos do
-            próximo jogo (respeitando a regra de mandante), competição, data/horário e local. */}
+        {/* Cartão de Jogos / Competições — sobe pra primeira linha, junto dos outros, porque é o
+            mais completo (mostra os escudos do próximo jogo respeitando a regra de mandante,
+            competição, data/horário e local) e ficava estranho sozinho numa linha à parte. */}
         <Link
           href="/jogos"
           className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
@@ -276,6 +268,22 @@ export default async function ProfissionalPage() {
           ) : (
             <p className="text-sm font-medium text-neutral-500">Nenhum jogo agendado</p>
           )}
+        </Link>
+
+        {/* Staff Operacional fica sozinho na segunda linha — é o cartão mais simples (só o
+            número de ativos), então sobra menos espaço vazio nessa linha do que sobraria com
+            Jogos (que tem bem mais conteúdo). */}
+        <Link
+          href="/staff-operacional"
+          className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+        >
+          <span className="absolute inset-x-0 top-0 h-1 bg-amber-600" />
+          <SetaCartao />
+          <IconBadge icone={IconStaff} corBg="bg-amber-50" corIcone="text-amber-700" />
+          <h2 className="text-lg font-bold text-grena-escuro">Staff Operacional</h2>
+          <p className="text-sm font-medium text-neutral-500">
+            {totalStaff} ativo{totalStaff === 1 ? "" : "s"}
+          </p>
         </Link>
       </div>
 

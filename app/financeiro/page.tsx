@@ -78,14 +78,19 @@ export default async function FinanceiroPage() {
 
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {gastos.length > 0 ? (
-          <a
-            href="/financeiro/pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-          >
-            Gerar Relatório PDF
-          </a>
+          <>
+            <a href="/financeiro/export" className="btn-secondary">
+              Exportar para Excel
+            </a>
+            <a
+              href="/financeiro/pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              Gerar Relatório PDF
+            </a>
+          </>
         ) : null}
         <Link href="/financeiro/configuracoes" className="btn-secondary">
           Editar assinaturas

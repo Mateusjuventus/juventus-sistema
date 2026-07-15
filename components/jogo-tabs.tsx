@@ -19,6 +19,7 @@ export function JogoTabs({
     | "rooming-list"
     | "onibus"
     | "credenciamento"
+    | "checklist"
     | "recibo"
     | "financeiro";
 }) {
@@ -38,6 +39,12 @@ export function JogoTabs({
       label: "Credenciamento",
       href: `/jogos/${jogoId}/credenciamento`,
       active: active === "credenciamento",
+    },
+    {
+      key: "checklist",
+      label: "Checklist",
+      href: `/jogos/${jogoId}/checklist`,
+      active: active === "checklist",
     },
     { key: "recibo", label: "Recibo de Pagamento", href: `/jogos/${jogoId}/recibo`, active: active === "recibo" },
     {

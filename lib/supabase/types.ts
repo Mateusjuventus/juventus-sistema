@@ -272,3 +272,19 @@ export interface ConfiguracaoCadastroStaffRow {
   cadastro_publico_ativo: boolean;
   updated_at: string;
 }
+
+/**
+ * Item do checklist de preparação de um jogo. Os itens são criados automaticamente a partir de um
+ * modelo fixo (ver lib/checklist-templates.ts) na primeira vez que a aba "Checklist" do jogo é
+ * aberta — a lista de itens muda conforme o jogo é em casa ou fora.
+ */
+export interface ChecklistJogoItemRow {
+  id: string;
+  jogo_id: string;
+  item: string;
+  concluido: boolean;
+  prazo: string | null;
+  ordem: number;
+  created_at: string;
+  updated_at: string;
+}

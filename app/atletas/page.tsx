@@ -113,7 +113,13 @@ export default async function AtletasPage({
         ← Voltar
       </Link>
       <PageHeader title="Atletas" pendencia={pendenciaAtletas} />
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <a
+          href={`/atletas/export?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`}
+          className="btn-secondary"
+        >
+          Exportar para Excel
+        </a>
         <Link href="/atletas/novo" className="btn-primary">
           + Novo atleta
         </Link>
