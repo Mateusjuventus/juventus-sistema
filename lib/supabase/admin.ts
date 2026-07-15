@@ -8,6 +8,9 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *
  * NÃO usar este cliente em nenhum outro lugar do sistema, e NUNCA importar este arquivo em um
  * componente "use client" — a service_role key só pode existir no servidor.
+ *
+ * Passa cache: "no-store" em toda requisição para nunca usar o cache de fetch do Next.js/Vercel —
+ * essa página precisa sempre refletir o estado mais recente do banco (ex.: o botão ativo/inativo).
  */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -22,5 +25,9 @@ export function createAdminClient() {
 
   return createSupabaseClient(url, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: "no-store" }),
+    },
   });
 }
