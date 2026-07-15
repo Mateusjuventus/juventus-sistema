@@ -20,4 +20,5 @@ export async function alternarCadastroPublico(formData: FormData): Promise<void>
     .eq("id", id);
 
   revalidatePath("/staff-operacional");
+  revalidatePath("/cadastro-staff");
 }
