@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
 import { staffOperacionalSchema, NOVA_FUNCAO_VALUE } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 
@@ -93,6 +94,24 @@ async function resolveFuncaoId(
   return { id: criada.id as string };
 }
 
+async function uploadFotoIfPresent(
+  supabase: ReturnType<typeof createClient>,
+  formData: FormData,
+  staffId: string,
+): Promise<{ path?: string | null; error?: string }> {
+  const file = formData.get("foto");
+  if (!(file instanceof File) || file.size === 0) return {};
+
+  const path = buildPhotoPath("staff-operacional", staffId, file.name);
+  const { error } = await supabase.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type || undefined,
+  });
+
+  if (error) return { error: "Não foi possível enviar a foto. O restante dos dados não foi salvo." };
+  return { path };
+}
+
 export async function createStaff(
   _prevState: StaffFormState,
   formData: FormData,
@@ -118,8 +137,12 @@ export async function createStaff(
   const funcao = await resolveFuncaoId(supabase, data.funcaoId, data.novaFuncaoNome ?? "");
   if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
 
+  const id = randomUUID();
+  const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
+  if (uploadError) return { error: uploadError, values: raw };
+
   const { error } = await supabase.from("staff_operacional").insert({
-    id: randomUUID(),
+    id,
     nome_completo: data.nomeCompleto,
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
@@ -137,6 +160,7 @@ export async function createStaff(
     chave_pix: data.chavePix || null,
     chave_pix_tipo: data.chavePixTipo || null,
     valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
+    foto_path: fotoPath ?? null,
   });
 
   if (error) return { error: friendlyDbError(error), values: raw };
@@ -171,28 +195,31 @@ export async function updateStaff(
   const funcao = await resolveFuncaoId(supabase, data.funcaoId, data.novaFuncaoNome ?? "");
   if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
 
-  const { error } = await supabase
-    .from("staff_operacional")
-    .update({
-      nome_completo: data.nomeCompleto,
-      rg: data.rg,
-      cpf: normalizeCPF(data.cpf),
-      data_nascimento: data.dataNascimento,
-      funcao_id: funcao.id,
-      telefone: data.telefone || null,
-      email: data.email || null,
-      cep: data.cep || null,
-      logradouro: data.logradouro || null,
-      numero: data.numero || null,
-      complemento: data.complemento || null,
-      bairro: data.bairro || null,
-      cidade: data.cidade || null,
-      uf: data.uf || null,
-      chave_pix: data.chavePix || null,
-      chave_pix_tipo: data.chavePixTipo || null,
-      valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
-    })
-    .eq("id", id);
+  const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
+  if (uploadError) return { error: uploadError, values: raw };
+
+  const updatePayload: Record<string, unknown> = {
+    nome_completo: data.nomeCompleto,
+    rg: data.rg,
+    cpf: normalizeCPF(data.cpf),
+    data_nascimento: data.dataNascimento,
+    funcao_id: funcao.id,
+    telefone: data.telefone || null,
+    email: data.email || null,
+    cep: data.cep || null,
+    logradouro: data.logradouro || null,
+    numero: data.numero || null,
+    complemento: data.complemento || null,
+    bairro: data.bairro || null,
+    cidade: data.cidade || null,
+    uf: data.uf || null,
+    chave_pix: data.chavePix || null,
+    chave_pix_tipo: data.chavePixTipo || null,
+    valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
+  };
+  if (fotoPath) updatePayload.foto_path = fotoPath;
+
+  const { error } = await supabase.from("staff_operacional").update(updatePayload).eq("id", id);
 
   if (error) return { error: friendlyDbError(error), values: raw };
 

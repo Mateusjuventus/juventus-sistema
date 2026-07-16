@@ -6,6 +6,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { StaffAtivoButton } from "@/components/staff-ativo-button";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
+import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import type {
   ConfiguracaoCadastroStaffRow,
@@ -19,9 +20,25 @@ function formatMoeda(valor: number | null): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function StaffRow({ s, opaco }: { s: StaffOperacionalComFuncaoRow; opaco?: boolean }) {
+function StaffRow({
+  s,
+  fotoUrl,
+  opaco,
+}: {
+  s: StaffOperacionalComFuncaoRow;
+  fotoUrl: string | null;
+  opaco?: boolean;
+}) {
   return (
     <tr className={opaco ? "opacity-75" : undefined}>
+      <td className="px-4 py-3">
+        {fotoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={fotoUrl} alt={s.nome_completo} className="h-10 w-10 rounded-full object-cover" />
+        ) : (
+          <div className="h-10 w-10 rounded-full bg-neutral-100" />
+        )}
+      </td>
       <td className="px-4 py-3 font-medium text-neutral-800">{s.nome_completo}</td>
       <td className="px-4 py-3">{s.funcao?.nome ?? "—"}</td>
       <td className="px-4 py-3">{formatCPF(s.cpf)}</td>
@@ -65,6 +82,9 @@ export default async function StaffOperacionalPage({
   const staff = (data ?? []) as StaffOperacionalComFuncaoRow[];
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
   const config = configData as ConfiguracaoCadastroStaffRow | null;
+
+  const fotoUrls = await Promise.all(staff.map((s) => getSignedPhotoUrl(supabase, s.foto_path)));
+  const fotoPorId = new Map(staff.map((s, i) => [s.id, fotoUrls[i]]));
 
   const ativos = staff.filter((s) => s.ativo);
   const inativos = staff.filter((s) => !s.ativo);
@@ -121,6 +141,7 @@ export default async function StaffOperacionalPage({
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
+              <th className="px-4 py-3">Foto</th>
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Função/Setor</th>
               <th className="px-4 py-3">CPF</th>
@@ -132,11 +153,11 @@ export default async function StaffOperacionalPage({
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {ativos.map((s) => (
-              <StaffRow key={s.id} s={s} />
+              <StaffRow key={s.id} s={s} fotoUrl={fotoPorId.get(s.id) ?? null} />
             ))}
             {ativos.length === 0 && !error ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-neutral-400">
                   Nenhum registro ativo encontrado.
                 </td>
               </tr>
@@ -165,7 +186,7 @@ export default async function StaffOperacionalPage({
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {inativos.map((s) => (
-                  <StaffRow key={s.id} s={s} opaco />
+                  <StaffRow key={s.id} s={s} fotoUrl={fotoPorId.get(s.id) ?? null} opaco />
                 ))}
               </tbody>
             </table>

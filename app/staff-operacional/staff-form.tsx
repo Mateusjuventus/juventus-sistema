@@ -4,6 +4,7 @@ import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { StaffFuncaoField } from "@/components/staff-funcao-field";
 import { EnderecoFields } from "@/components/endereco-fields";
+import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
@@ -15,12 +16,14 @@ export function StaffForm({
   action,
   entityId,
   defaultValues,
+  fotoUrl,
   submitLabel,
   funcoes,
 }: {
   action: (prevState: StaffFormState, formData: FormData) => Promise<StaffFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
+  fotoUrl?: string | null;
   submitLabel: string;
   funcoes: StaffFuncaoCatalogoRow[];
 }) {
@@ -29,7 +32,7 @@ export function StaffForm({
   const errors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} className="space-y-6" encType="multipart/form-data">
       {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados pessoais">
         <FieldGroup>
@@ -70,6 +73,9 @@ export function StaffForm({
             defaultValue={values.email}
             error={errors.email}
           />
+          <div className="sm:col-span-2">
+            <PhotoField label="Foto (opcional)" name="foto" currentUrl={fotoUrl} />
+          </div>
         </FieldGroup>
       </FormSection>
 

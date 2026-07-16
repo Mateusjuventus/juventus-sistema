@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cadastroPublicoStaffSchema } from "@/lib/validation/schemas";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
 import { normalizeCPF } from "@/lib/validation/cpf";
 
 export interface CadastroPublicoFormState {
@@ -44,6 +45,28 @@ function friendlyDbError(error: { code?: string; message: string }): string {
     return "Já existe um cadastro com esses dados.";
   }
   return "Não foi possível enviar o cadastro. Tente novamente.";
+}
+
+/**
+ * Envia a foto pro bucket usando o cliente admin (service_role) — quem preenche este formulário
+ * não tem sessão autenticada, então usa o mesmo cliente já usado para gravar o cadastro.
+ */
+async function uploadFotoIfPresent(
+  admin: ReturnType<typeof createAdminClient>,
+  formData: FormData,
+  staffId: string,
+): Promise<{ path?: string | null; error?: string }> {
+  const file = formData.get("foto");
+  if (!(file instanceof File) || file.size === 0) return {};
+
+  const path = buildPhotoPath("staff-operacional", staffId, file.name);
+  const { error } = await admin.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type || undefined,
+  });
+
+  if (error) return { error: "Não foi possível enviar a foto. O restante do cadastro não foi salvo." };
+  return { path };
 }
 
 /**
@@ -100,8 +123,12 @@ export async function cadastrarStaffPublico(
     return { fieldErrors: { funcaoId: "Selecione uma função válida da lista." }, values: raw };
   }
 
+  const id = randomUUID();
+  const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(admin, formData, id);
+  if (uploadError) return { error: uploadError, values: raw };
+
   const { error } = await admin.from("staff_operacional").insert({
-    id: randomUUID(),
+    id,
     nome_completo: data.nomeCompleto,
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
@@ -118,6 +145,7 @@ export async function cadastrarStaffPublico(
     uf: data.uf || null,
     chave_pix: data.chavePix || null,
     chave_pix_tipo: data.chavePixTipo || null,
+    foto_path: fotoPath ?? null,
   });
 
   if (error) return { error: friendlyDbError(error), values: raw };

@@ -42,6 +42,21 @@ export function HomeIcon({ className }: { className?: string }) {
   );
 }
 
+/** Ícone do botão "Avisos" no cabeçalho — um sino de notificação. */
+export function BellIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M6 10.5a6 6 0 0 1 12 0c0 3.2 1 4.8 1.6 5.6.3.4 0 1-.5 1H4.9c-.5 0-.8-.6-.5-1 .6-.8 1.6-2.4 1.6-5.6Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M10 19.5a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Ícone do botão "Tarefas" no cabeçalho — uma prancheta com itens marcados. */
 export function ChecklistIcon({ className }: { className?: string }) {
   return (

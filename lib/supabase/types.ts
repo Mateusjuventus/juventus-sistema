@@ -75,6 +75,7 @@ export interface StaffOperacionalRow {
   cidade: string | null;
   uf: string | null;
   ativo: boolean;
+  foto_path: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -287,4 +288,9 @@ export interface ChecklistJogoItemRow {
   ordem: number;
   created_at: string;
   updated_at: string;
+}
+
+/** Linha de checklist_jogo_itens já com os dados do jogo embutidos via join (`jogo:jogos(...)`). */
+export interface ChecklistJogoItemComJogoRow extends ChecklistJogoItemRow {
+  jogo: { id: string; adversario_nome: string; data_jogo: string; mandante: boolean } | null;
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
+import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import type { StaffFuncaoCatalogoRow, StaffOperacionalRow } from "@/lib/supabase/types";
 import { StaffForm } from "../staff-form";
@@ -18,6 +19,7 @@ export default async function EditarStaffPage({ params }: { params: { id: string
 
   const s = data as StaffOperacionalRow;
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
+  const fotoUrl = await getSignedPhotoUrl(supabase, s.foto_path);
 
   const defaultValues: Record<string, string> = {
     nomeCompleto: s.nome_completo,
@@ -50,6 +52,7 @@ export default async function EditarStaffPage({ params }: { params: { id: string
           action={updateStaff}
           entityId={s.id}
           defaultValues={defaultValues}
+          fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"
           funcoes={funcoes}
         />

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { JuventusCrestMark } from "@/components/juventus-crest";
-import { ChecklistIcon, HomeIcon } from "@/components/department-icon";
+import { BellIcon, ChecklistIcon, HomeIcon } from "@/components/department-icon";
 
 const NAV_LINKS = [
   { href: "/atletas", label: "Atletas" },
@@ -54,8 +54,15 @@ export function AppShell({
                 ))
               : null}
             <Link
-              href="/tarefas"
+              href="/avisos"
               className="ml-1 flex items-center gap-1.5 rounded-md border border-dourado/60 px-3 py-1.5 font-medium text-dourado transition-colors hover:bg-dourado/10"
+            >
+              <BellIcon className="h-4 w-4" />
+              Avisos
+            </Link>
+            <Link
+              href="/tarefas"
+              className="flex items-center gap-1.5 rounded-md border border-dourado/60 px-3 py-1.5 font-medium text-dourado transition-colors hover:bg-dourado/10"
             >
               <ChecklistIcon className="h-4 w-4" />
               Tarefas

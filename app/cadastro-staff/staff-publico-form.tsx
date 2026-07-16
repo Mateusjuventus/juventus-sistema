@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { EnderecoFields } from "@/components/endereco-fields";
+import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
@@ -38,7 +39,7 @@ export function StaffPublicoForm({
   const errors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} className="space-y-6" encType="multipart/form-data">
       <FormSection title="Dados pessoais">
         <FieldGroup>
           <TextField
@@ -78,6 +79,9 @@ export function StaffPublicoForm({
             defaultValue={values.email}
             error={errors.email}
           />
+          <div className="sm:col-span-2">
+            <PhotoField label="Sua foto (opcional)" name="foto" />
+          </div>
         </FieldGroup>
       </FormSection>
 
