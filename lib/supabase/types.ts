@@ -294,3 +294,38 @@ export interface ChecklistJogoItemRow {
 export interface ChecklistJogoItemComJogoRow extends ChecklistJogoItemRow {
   jogo: { id: string; adversario_nome: string; data_jogo: string; mandante: boolean } | null;
 }
+
+export type SolicitacaoTipo = "compra" | "pagamento" | "exame_medico" | "reembolso";
+export type SolicitacaoStatus = "pendente" | "aprovada" | "recusada" | "concluida";
+
+/**
+ * Solicitação formal (Compra, Pagamento, Exame Médico ou Reembolso), gerada no modelo de PDF do
+ * clube. `valor` só é usado em Pagamento/Reembolso; `chave_pix`/`chave_pix_tipo` só em Reembolso;
+ * os itens (quantidade + item + foto) só existem em Compra (ver SolicitacaoItemRow).
+ */
+export interface SolicitacaoRow {
+  id: string;
+  tipo: SolicitacaoTipo;
+  data_solicitacao: string;
+  solicitante: string;
+  setor: string;
+  descricao_necessidade: string;
+  prazo_sugerido: string | null;
+  valor: number | null;
+  chave_pix: string | null;
+  chave_pix_tipo: StaffChavePixTipo | null;
+  status: SolicitacaoStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SolicitacaoItemRow {
+  id: string;
+  solicitacao_id: string;
+  quantidade: string;
+  item: string;
+  foto_path: string | null;
+  ordem: number;
+  created_at: string;
+}

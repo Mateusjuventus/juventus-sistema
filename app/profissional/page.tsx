@@ -76,6 +76,16 @@ function IconJogos({ className }: { className?: string }) {
   );
 }
 
+function IconSolicitacoes({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M8 3h6l4 4v13a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1Z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+
 /** Badge do ícone no topo do cartão — cor própria por módulo, pra facilitar identificar cada área
  * rapidamente na tela inicial. */
 function IconBadge({
@@ -107,21 +117,29 @@ export default async function ProfissionalPage() {
   const supabase = createClient();
   const hojeStr = new Date().toISOString().slice(0, 10);
 
-  const [totalAtletas, totalComissao, { count: totalStaffCount }, { data: proximoJogoData }, { data: gastosData }] =
-    await Promise.all([
-      contarLinhas(supabase, "atletas"),
-      contarLinhas(supabase, "comissao_tecnica"),
-      supabase.from("staff_operacional").select("*", { count: "exact", head: true }).eq("ativo", true),
-      supabase
-        .from("jogos")
-        .select("*")
-        .gte("data_jogo", hojeStr)
-        .order("data_jogo", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
-      supabase.from("gastos_jogo").select("valor_previsto"),
-    ]);
+  const [
+    totalAtletas,
+    totalComissao,
+    { count: totalStaffCount },
+    { data: proximoJogoData },
+    { data: gastosData },
+    { count: totalSolicitacoesPendentesCount },
+  ] = await Promise.all([
+    contarLinhas(supabase, "atletas"),
+    contarLinhas(supabase, "comissao_tecnica"),
+    supabase.from("staff_operacional").select("*", { count: "exact", head: true }).eq("ativo", true),
+    supabase
+      .from("jogos")
+      .select("*")
+      .gte("data_jogo", hojeStr)
+      .order("data_jogo", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("gastos_jogo").select("valor_previsto"),
+    supabase.from("solicitacoes").select("*", { count: "exact", head: true }).eq("status", "pendente"),
+  ]);
   const totalStaff = totalStaffCount ?? 0;
+  const totalSolicitacoesPendentes = totalSolicitacoesPendentesCount ?? 0;
 
   const totalPrevisto = ((gastosData ?? []) as { valor_previsto: number }[]).reduce(
     (soma, g) => soma + g.valor_previsto,
@@ -185,6 +203,18 @@ export default async function ProfissionalPage() {
       corBarra: "bg-blue-700",
       corBg: "bg-blue-50",
       corIcone: "text-blue-700",
+    },
+    {
+      href: "/solicitacoes",
+      titulo: "Solicitações",
+      descricao:
+        totalSolicitacoesPendentes > 0
+          ? `${totalSolicitacoesPendentes} pendente${totalSolicitacoesPendentes === 1 ? "" : "s"}`
+          : "Nenhuma pendente",
+      icone: IconSolicitacoes,
+      corBarra: "bg-purple-600",
+      corBg: "bg-purple-50",
+      corIcone: "text-purple-600",
     },
   ];
 

@@ -194,6 +194,50 @@ export const gastoJogoSchema = z
 export type GastoJogoInput = z.infer<typeof gastoJogoSchema>;
 export { NOVA_CATEGORIA_GASTO_VALUE };
 
+export const SOLICITACAO_TIPOS = [
+  { value: "compra", label: "Compra" },
+  { value: "pagamento", label: "Pagamento" },
+  { value: "exame_medico", label: "Exame Médico" },
+  { value: "reembolso", label: "Reembolso" },
+] as const;
+
+export const SOLICITACAO_STATUS = [
+  { value: "pendente", label: "Pendente" },
+  { value: "aprovada", label: "Aprovada" },
+  { value: "recusada", label: "Recusada" },
+  { value: "concluida", label: "Concluída" },
+] as const;
+
+export const solicitacaoSchema = z
+  .object({
+    tipo: z.enum(["compra", "pagamento", "exame_medico", "reembolso"], {
+      errorMap: () => ({ message: "Tipo é obrigatório" }),
+    }),
+    dataSolicitacao: z.string().min(1, { message: "Data é obrigatória" }),
+    solicitante: z.string().min(1, { message: "Solicitante é obrigatório" }),
+    setor: z.string().min(1, { message: "Setor é obrigatório" }),
+    descricaoNecessidade: z.string().min(1, { message: "Descrição da necessidade é obrigatória" }),
+    prazoSugerido: z.string().optional().or(z.literal("")),
+    valor: z.coerce.number().nonnegative().optional().nullable(),
+    chavePix: z.string().optional().or(z.literal("")),
+    chavePixTipo: z.enum(["cpf", "cnpj", "email", "telefone"]).optional().or(z.literal("")),
+  })
+  .refine((data) => data.tipo !== "reembolso" || Boolean(data.chavePix?.trim()), {
+    message: "Chave PIX é obrigatória em Reembolso",
+    path: ["chavePix"],
+  });
+export type SolicitacaoInput = z.infer<typeof solicitacaoSchema>;
+
+export const solicitacaoStatusSchema = z.object({
+  status: z.enum(["pendente", "aprovada", "recusada", "concluida"]),
+});
+
+export const solicitacaoItemSchema = z.object({
+  quantidade: z.string().min(1, { message: "Quantidade é obrigatória" }),
+  item: z.string().min(1, { message: "Item é obrigatório" }),
+});
+export type SolicitacaoItemInput = z.infer<typeof solicitacaoItemSchema>;
+
 export const configuracaoFinanceiroSchema = z.object({
   assinatura1Nome: z.string().min(1, { message: "Nome é obrigatório" }),
   assinatura1Cargo: z.string().min(1, { message: "Cargo é obrigatório" }),

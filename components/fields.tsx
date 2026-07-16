@@ -86,6 +86,7 @@ export function SelectField({
   defaultValue,
   required,
   error,
+  onChange,
   children,
 }: {
   label: string;
@@ -93,6 +94,10 @@ export function SelectField({
   defaultValue?: string;
   required?: boolean;
   error?: string;
+  /** Opcional — só é preciso quando algum outro campo do formulário depende do valor escolhido
+   * (ex.: mostrar/esconder campos conforme o tipo selecionado). Precisa vir de um componente
+   * "use client", já que é um handler de evento. */
+  onChange?: (value: string) => void;
   children: ReactNode;
 }) {
   return (
@@ -101,7 +106,14 @@ export function SelectField({
         {label}
         {required ? <span className="text-red-700"> *</span> : null}
       </label>
-      <select id={name} name={name} defaultValue={defaultValue ?? ""} required={required} className="field-input">
+      <select
+        id={name}
+        name={name}
+        defaultValue={defaultValue ?? ""}
+        required={required}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        className="field-input"
+      >
         {children}
       </select>
       {error ? <p className="field-error">{error}</p> : null}
