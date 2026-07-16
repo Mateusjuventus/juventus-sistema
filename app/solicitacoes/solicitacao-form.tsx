@@ -83,10 +83,28 @@ function ItensCompraFields() {
               ) : null}
             </div>
             <FieldGroup>
-              <TextField label="Item" name="itemItem" placeholder="Ex: Chaveiro Organizador Identificador" />
-              <TextField label="Quantidade" name="itemQuantidade" placeholder="Ex: 60 Unidades" />
+              <TextField
+                label="Item"
+                name="itemItem"
+                id={`itemItem-${rowId}`}
+                autoComplete="off"
+                placeholder="Ex: Chaveiro Organizador Identificador"
+              />
+              <TextField
+                label="Quantidade"
+                name="itemQuantidade"
+                id={`itemQuantidade-${rowId}`}
+                autoComplete="off"
+                placeholder="Ex: 60 Unidades"
+              />
               <div className="sm:col-span-2">
-                <TextField label="Observação (opcional)" name="itemObservacao" placeholder="Ex: Cor preta" />
+                <TextField
+                  label="Observação (opcional)"
+                  name="itemObservacao"
+                  id={`itemObservacao-${rowId}`}
+                  autoComplete="off"
+                  placeholder="Ex: Cor preta"
+                />
               </div>
               <div className="sm:col-span-2">
                 <PhotoField label="Foto do item (opcional)" name="itemFoto" shape="square" />
@@ -136,10 +154,30 @@ function ItensPagamentoReembolsoFields({ tipo }: { tipo: string }) {
               ) : null}
             </div>
             <FieldGroup>
-              <TextField label="Descrição" name="itemDescricao" placeholder="Ex: Mensalidade do plano de saúde" />
-              <TextField label="Valor (R$)" name="itemValor" type="number" step="0.01" min={0} />
+              <TextField
+                label="Descrição"
+                name="itemDescricao"
+                id={`itemDescricao-${rowId}`}
+                autoComplete="off"
+                placeholder="Ex: Mensalidade do plano de saúde"
+              />
+              <TextField
+                label="Valor (R$)"
+                name="itemValor"
+                id={`itemValor-${rowId}`}
+                autoComplete="off"
+                type="number"
+                step="0.01"
+                min={0}
+              />
               <div className="sm:col-span-2">
-                <TextField label="Observação (opcional)" name="itemObservacao" placeholder="Ex: Referente a julho/2026" />
+                <TextField
+                  label="Observação (opcional)"
+                  name="itemObservacao"
+                  id={`itemObservacao-${rowId}`}
+                  autoComplete="off"
+                  placeholder="Ex: Referente a julho/2026"
+                />
               </div>
             </FieldGroup>
           </div>
@@ -184,12 +222,34 @@ function ItensPassagemFields() {
               ) : null}
             </div>
             <FieldGroup>
-              <TextField label="Passageiro" name="itemPassageiro" />
-              <TextField label="Origem" name="itemOrigem" />
-              <TextField label="Destino" name="itemDestino" />
-              <TextField label="Data do voo" name="itemDataVoo" type="date" />
-              <TextField label="Horário do voo" name="itemHorarioVoo" type="time" />
-              <TextField label="Observações (opcional)" name="itemObservacao" />
+              <TextField
+                label="Passageiro"
+                name="itemPassageiro"
+                id={`itemPassageiro-${rowId}`}
+                autoComplete="off"
+              />
+              <TextField label="Origem" name="itemOrigem" id={`itemOrigem-${rowId}`} autoComplete="off" />
+              <TextField label="Destino" name="itemDestino" id={`itemDestino-${rowId}`} autoComplete="off" />
+              <TextField
+                label="Data do voo"
+                name="itemDataVoo"
+                id={`itemDataVoo-${rowId}`}
+                autoComplete="off"
+                type="date"
+              />
+              <TextField
+                label="Horário do voo"
+                name="itemHorarioVoo"
+                id={`itemHorarioVoo-${rowId}`}
+                autoComplete="off"
+                type="time"
+              />
+              <TextField
+                label="Observações (opcional)"
+                name="itemObservacao"
+                id={`itemObservacao-${rowId}`}
+                autoComplete="off"
+              />
             </FieldGroup>
           </div>
         ))}
@@ -222,7 +282,7 @@ export function SolicitacaoForm({
   const [tipo, setTipo] = useState(values.tipo || "compra");
 
   return (
-    <form action={formAction} className="space-y-6" encType="multipart/form-data">
+    <form action={formAction} className="space-y-6" encType="multipart/form-data" autoComplete="off">
       {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados da solicitação">
         <FieldGroup>
@@ -239,6 +299,7 @@ export function SolicitacaoForm({
             label="Solicitante"
             name="solicitante"
             required
+            autoComplete="off"
             defaultValue={values.solicitante}
             error={errors.solicitante}
           />
@@ -270,7 +331,7 @@ export function SolicitacaoForm({
       </FormSection>
 
       {tipo === "pagamento" || tipo === "reembolso" ? (
-        <FormSection title="Chave PIX / Dados bancários">
+        <FormSection key={`pix-${tipo}`} title="Chave PIX / Dados bancários">
           <p className="-mt-1 text-sm text-neutral-500">
             {tipo === "reembolso"
               ? "Preencha a Chave PIX (obrigatória) e, se preferir, também os dados bancários."
@@ -281,6 +342,7 @@ export function SolicitacaoForm({
               label="Chave PIX"
               name="chavePix"
               required={tipo === "reembolso"}
+              autoComplete="off"
               defaultValue={values.chavePix}
               error={errors.chavePix}
             />
@@ -297,9 +359,15 @@ export function SolicitacaoForm({
                 </option>
               ))}
             </SelectField>
-            <TextField label="Banco" name="banco" defaultValue={values.banco} error={errors.banco} />
-            <TextField label="Agência" name="agencia" defaultValue={values.agencia} error={errors.agencia} />
-            <TextField label="Conta" name="conta" defaultValue={values.conta} error={errors.conta} />
+            <TextField label="Banco" name="banco" autoComplete="off" defaultValue={values.banco} error={errors.banco} />
+            <TextField
+              label="Agência"
+              name="agencia"
+              autoComplete="off"
+              defaultValue={values.agencia}
+              error={errors.agencia}
+            />
+            <TextField label="Conta" name="conta" autoComplete="off" defaultValue={values.conta} error={errors.conta} />
             <SelectField
               label="Tipo de conta"
               name="tipoConta"
@@ -317,6 +385,7 @@ export function SolicitacaoForm({
               <TextField
                 label="Titular da conta (se diferente do solicitante)"
                 name="titularConta"
+                autoComplete="off"
                 defaultValue={values.titularConta}
                 error={errors.titularConta}
               />
@@ -325,9 +394,11 @@ export function SolicitacaoForm({
         </FormSection>
       ) : null}
 
-      {tipo === "compra" ? <ItensCompraFields /> : null}
-      {tipo === "pagamento" || tipo === "reembolso" ? <ItensPagamentoReembolsoFields tipo={tipo} /> : null}
-      {tipo === "passagem_aerea" ? <ItensPassagemFields /> : null}
+      {tipo === "compra" ? <ItensCompraFields key="compra" /> : null}
+      {tipo === "pagamento" || tipo === "reembolso" ? (
+        <ItensPagamentoReembolsoFields key={`itens-${tipo}`} tipo={tipo} />
+      ) : null}
+      {tipo === "passagem_aerea" ? <ItensPassagemFields key="passagem_aerea" /> : null}
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>

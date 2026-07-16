@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 export function TextField({
   label,
   name,
+  id,
   defaultValue,
   type = "text",
   required,
@@ -11,9 +12,14 @@ export function TextField({
   min,
   maxLength,
   step,
+  autoComplete,
 }: {
   label: string;
   name: string;
+  /** Opcional — usar quando o mesmo `name` se repete em várias linhas de um formulário dinâmico
+   * (ex.: itens de uma lista), pra cada linha ter um `id`/`htmlFor` único (HTML não permite `id`
+   * duplicado na mesma página). Se não vier, usa `name` como antes. */
+  id?: string;
   defaultValue?: string | number | null;
   type?: string;
   required?: boolean;
@@ -22,15 +28,17 @@ export function TextField({
   min?: number;
   maxLength?: number;
   step?: string | number;
+  autoComplete?: string;
 }) {
+  const fieldId = id ?? name;
   return (
     <div>
-      <label htmlFor={name} className="field-label">
+      <label htmlFor={fieldId} className="field-label">
         {label}
         {required ? <span className="text-red-700"> *</span> : null}
       </label>
       <input
-        id={name}
+        id={fieldId}
         name={name}
         type={type}
         defaultValue={defaultValue ?? ""}
@@ -39,6 +47,7 @@ export function TextField({
         min={min}
         maxLength={maxLength}
         step={step}
+        autoComplete={autoComplete}
         className="field-input"
       />
       {error ? <p className="field-error">{error}</p> : null}

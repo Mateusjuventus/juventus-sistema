@@ -82,47 +82,54 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     borderBottomWidth: 0.5,
     borderBottomColor: "#a3a3a3",
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   itensRowBase: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     borderBottomWidth: 0.5,
     borderBottomColor: "#e5e5e5",
-    paddingHorizontal: 8,
   },
   // Linha com foto precisa de altura extra pra caber a miniatura; sem foto, a linha fica do
-  // tamanho natural do texto (senão parecia "inchada" à toa quando nenhum item tinha foto).
-  itensRowComFoto: { paddingVertical: 6, minHeight: 44 },
-  itensRowSemFoto: { paddingVertical: 6 },
+  // tamanho natural do texto (senão parecia "inchada" à toa quando nenhum item tinha foto) — mas
+  // ambas ficam bem mais compactas que antes, pra caber mais itens por página.
+  itensRowComFoto: { paddingVertical: 3, minHeight: 34 },
+  itensRowSemFoto: { paddingVertical: 3 },
   celulaCentro: { textAlign: "center" },
+  // Toda coluna (exceto a última de cada tabela, que é sempre flex) tem uma borda à direita —
+  // separa visualmente as colunas em "quadros" bem demarcados, e padding pra não colar o texto na
+  // linha divisória. Fonte um pouco menor (8) pra cada linha ficar mais compacta.
+  colDivisor: { borderRightWidth: 0.5, borderRightColor: "#d4d4d4" },
   // Colunas da tabela de itens de Compra — Observação é sempre a última coluna (flex), as demais
   // têm largura fixa, pra texto longo quebrar linha dentro da própria coluna em vez de invadir a
   // coluna seguinte.
-  colFoto: { width: 50, alignItems: "center" },
-  colItem: { width: 150, textAlign: "center" },
-  colQuantidade: { width: 80, textAlign: "center" },
-  colObservacaoCompra: { flex: 1, textAlign: "center" },
-  fotoItem: { width: 36, height: 36, objectFit: "cover", borderRadius: 2 },
+  colFoto: { width: 46, alignItems: "center", justifyContent: "center", paddingVertical: 2 },
+  colItem: { width: 140, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colQuantidade: { width: 70, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colObservacaoCompra: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  fotoItem: { width: 28, height: 28, objectFit: "cover", borderRadius: 2 },
   // Colunas da tabela de itens de Pagamento/Reembolso — Observação por último (flex), pelo mesmo
   // motivo acima.
-  colDescricao: { width: 190, textAlign: "center" },
-  colValor: { width: 80, textAlign: "center" },
-  colObservacaoValor: { flex: 1, textAlign: "center" },
+  colDescricao: { width: 180, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colValor: { width: 75, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colObservacaoValor: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   // Colunas da tabela de passageiros (Passagem Aérea) — Origem/Destino em colunas separadas (em vez
   // de "Origem → Destino" numa só) porque a fonte padrão do PDF não tem o caractere "→".
-  colPassageiro: { width: 95, textAlign: "center" },
-  colOrigem: { width: 90, textAlign: "center" },
-  colDestino: { width: 90, textAlign: "center" },
-  colDataVoo: { width: 95, textAlign: "center" },
-  colObservacaoVoo: { flex: 1, textAlign: "center" },
-  fecho: { height: 8, backgroundColor: CORES.grena, marginTop: 10 },
-  assinaturasGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 56 },
-  assinaturaCol: { width: "46%", alignItems: "center", marginBottom: 48 },
+  colPassageiro: { width: 90, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colOrigem: { width: 85, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colDestino: { width: 85, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colDataVoo: { width: 90, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colObservacaoVoo: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  fecho: { height: 8, backgroundColor: CORES.grena, marginTop: 8 },
+  // marginTop/marginBottom reduzidos (eram 56/48) pra sobrar espaço suficiente pro bloco de
+  // assinaturas continuar cabendo na mesma página mesmo quando a lista de itens é longa — sem
+  // isso, qualquer solicitação com muitos itens empurrava as assinaturas sozinhas pra uma segunda
+  // folha em branco.
+  assinaturasGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 26 },
+  assinaturaCol: { width: "46%", alignItems: "center", marginBottom: 26 },
   assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
   assinaturaLabel: { fontSize: 8.5, color: "#525252", textAlign: "center" },
-  notaRodape: { fontSize: 7.5, color: "#737373", marginTop: 4, lineHeight: 1.4 },
+  notaRodape: { fontSize: 7.5, color: "#737373", marginTop: 3, lineHeight: 1.3 },
 });
 
 /**
@@ -260,9 +267,13 @@ export function SolicitacaoDocument({
               {solicitacao.tipo === "compra" ? (
                 <>
                   <View style={styles.itensHeaderRow}>
-                    <Text style={[styles.colFoto, sharedStyles.headerCell, styles.celulaCentro]}>Foto</Text>
-                    <Text style={[styles.colItem, sharedStyles.headerCell]}>Item</Text>
-                    <Text style={[styles.colQuantidade, sharedStyles.headerCell]}>Quantidade</Text>
+                    <Text style={[styles.colFoto, styles.colDivisor, sharedStyles.headerCell, styles.celulaCentro]}>
+                      Foto
+                    </Text>
+                    <Text style={[styles.colItem, styles.colDivisor, sharedStyles.headerCell]}>Item</Text>
+                    <Text style={[styles.colQuantidade, styles.colDivisor, sharedStyles.headerCell]}>
+                      Quantidade
+                    </Text>
                     <Text style={[styles.colObservacaoCompra, sharedStyles.headerCell]}>Observação</Text>
                   </View>
                   {itens.length === 0 ? (
@@ -274,14 +285,14 @@ export function SolicitacaoDocument({
                         key={i}
                         wrap={false}
                       >
-                        <View style={styles.colFoto}>
+                        <View style={[styles.colFoto, styles.colDivisor]}>
                           {item.fotoSrc ? (
                             // eslint-disable-next-line jsx-a11y/alt-text
                             <Image style={styles.fotoItem} src={item.fotoSrc as string} />
                           ) : null}
                         </View>
-                        <Text style={styles.colItem}>{item.item}</Text>
-                        <Text style={styles.colQuantidade}>{item.quantidade}</Text>
+                        <Text style={[styles.colItem, styles.colDivisor]}>{item.item}</Text>
+                        <Text style={[styles.colQuantidade, styles.colDivisor]}>{item.quantidade}</Text>
                         <Text style={styles.colObservacaoCompra}>{item.observacao || "—"}</Text>
                       </View>
                     ))
@@ -290,10 +301,14 @@ export function SolicitacaoDocument({
               ) : solicitacao.tipo === "passagem_aerea" ? (
                 <>
                   <View style={styles.itensHeaderRow}>
-                    <Text style={[styles.colPassageiro, sharedStyles.headerCell]}>Passageiro</Text>
-                    <Text style={[styles.colOrigem, sharedStyles.headerCell]}>Origem</Text>
-                    <Text style={[styles.colDestino, sharedStyles.headerCell]}>Destino</Text>
-                    <Text style={[styles.colDataVoo, sharedStyles.headerCell]}>Data / Horário</Text>
+                    <Text style={[styles.colPassageiro, styles.colDivisor, sharedStyles.headerCell]}>
+                      Passageiro
+                    </Text>
+                    <Text style={[styles.colOrigem, styles.colDivisor, sharedStyles.headerCell]}>Origem</Text>
+                    <Text style={[styles.colDestino, styles.colDivisor, sharedStyles.headerCell]}>Destino</Text>
+                    <Text style={[styles.colDataVoo, styles.colDivisor, sharedStyles.headerCell]}>
+                      Data / Horário
+                    </Text>
                     <Text style={[styles.colObservacaoVoo, sharedStyles.headerCell]}>Observações</Text>
                   </View>
                   {itens.length === 0 ? (
@@ -301,10 +316,10 @@ export function SolicitacaoDocument({
                   ) : (
                     itens.map((item, i) => (
                       <View style={[styles.itensRowBase, styles.itensRowSemFoto]} key={i} wrap={false}>
-                        <Text style={styles.colPassageiro}>{item.passageiro}</Text>
-                        <Text style={styles.colOrigem}>{item.origem}</Text>
-                        <Text style={styles.colDestino}>{item.destino}</Text>
-                        <Text style={styles.colDataVoo}>
+                        <Text style={[styles.colPassageiro, styles.colDivisor]}>{item.passageiro}</Text>
+                        <Text style={[styles.colOrigem, styles.colDivisor]}>{item.origem}</Text>
+                        <Text style={[styles.colDestino, styles.colDivisor]}>{item.destino}</Text>
+                        <Text style={[styles.colDataVoo, styles.colDivisor]}>
                           {formatDataBr(item.dataVoo)}
                           {item.horarioVoo ? ` às ${item.horarioVoo.slice(0, 5)}` : ""}
                         </Text>
@@ -316,8 +331,8 @@ export function SolicitacaoDocument({
               ) : (
                 <>
                   <View style={styles.itensHeaderRow}>
-                    <Text style={[styles.colDescricao, sharedStyles.headerCell]}>Descrição</Text>
-                    <Text style={[styles.colValor, sharedStyles.headerCell]}>Valor</Text>
+                    <Text style={[styles.colDescricao, styles.colDivisor, sharedStyles.headerCell]}>Descrição</Text>
+                    <Text style={[styles.colValor, styles.colDivisor, sharedStyles.headerCell]}>Valor</Text>
                     <Text style={[styles.colObservacaoValor, sharedStyles.headerCell]}>Observação</Text>
                   </View>
                   {itens.length === 0 ? (
@@ -325,8 +340,10 @@ export function SolicitacaoDocument({
                   ) : (
                     itens.map((item, i) => (
                       <View style={[styles.itensRowBase, styles.itensRowSemFoto]} key={i} wrap={false}>
-                        <Text style={styles.colDescricao}>{item.descricao}</Text>
-                        <Text style={styles.colValor}>{item.valor !== null ? formatMoeda(item.valor) : "—"}</Text>
+                        <Text style={[styles.colDescricao, styles.colDivisor]}>{item.descricao}</Text>
+                        <Text style={[styles.colValor, styles.colDivisor]}>
+                          {item.valor !== null ? formatMoeda(item.valor) : "—"}
+                        </Text>
                         <Text style={styles.colObservacaoValor}>{item.observacao || "—"}</Text>
                       </View>
                     ))
