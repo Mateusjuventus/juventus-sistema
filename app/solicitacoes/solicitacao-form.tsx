@@ -13,8 +13,8 @@ const initialState: SolicitacaoFormState = {};
 /**
  * Linhas de item da Compra, dentro do próprio formulário — dá pra adicionar/remover linhas antes
  * de salvar, sem precisar cadastrar a solicitação primeiro pra depois entrar de novo e incluir os
- * itens. Cada linha usa os MESMOS nomes de campo (itemQuantidade/itemItem/itemFoto); no servidor,
- * lemos todas as ocorrências na mesma ordem (ver salvarItensInline em ./actions.ts).
+ * itens. Cada linha usa os MESMOS nomes de campo (itemQuantidade/itemItem/itemObservacao/itemFoto);
+ * no servidor, lemos todas as ocorrências na mesma ordem (ver salvarItensInline em ./actions.ts).
  */
 function ItensCompraFields() {
   const [rows, setRows] = useState<string[]>(() => [crypto.randomUUID()]);
@@ -40,8 +40,11 @@ function ItensCompraFields() {
               ) : null}
             </div>
             <FieldGroup>
-              <TextField label="Quantidade" name="itemQuantidade" placeholder="Ex: 60 Unidades" />
               <TextField label="Item" name="itemItem" placeholder="Ex: Chaveiro Organizador Identificador" />
+              <TextField label="Quantidade" name="itemQuantidade" placeholder="Ex: 60 Unidades" />
+              <div className="sm:col-span-2">
+                <TextField label="Observação (opcional)" name="itemObservacao" placeholder="Ex: Cor preta" />
+              </div>
               <div className="sm:col-span-2">
                 <PhotoField label="Foto do item (opcional)" name="itemFoto" shape="square" />
               </div>
@@ -55,6 +58,105 @@ function ItensCompraFields() {
         onClick={() => setRows((r) => [...r, crypto.randomUUID()])}
       >
         + Adicionar item
+      </button>
+    </FormSection>
+  );
+}
+
+/**
+ * Linhas de item do Pagamento/Reembolso (Descrição, Observação, Valor) — o valor total da
+ * solicitação é calculado automaticamente como a soma dos itens (ver salvarItensInline em
+ * ./actions.ts), então não existe mais um campo único de "Valor" no topo do formulário.
+ */
+function ItensPagamentoReembolsoFields({ tipo }: { tipo: string }) {
+  const [rows, setRows] = useState<string[]>(() => [crypto.randomUUID()]);
+
+  return (
+    <FormSection title={tipo === "reembolso" ? "Itens do reembolso" : "Itens do pagamento"}>
+      <p className="-mt-1 text-sm text-neutral-500">
+        Adicione um ou mais itens com o valor de cada um — o valor total é somado automaticamente.
+        Se precisar, dá pra incluir mais itens depois também.
+      </p>
+      <div className="space-y-4">
+        {rows.map((rowId, i) => (
+          <div key={rowId} className="rounded-md border border-neutral-200 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-neutral-600">Item {i + 1}</p>
+              {rows.length > 1 ? (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-red-700 hover:underline"
+                  onClick={() => setRows((r) => r.filter((id) => id !== rowId))}
+                >
+                  Remover
+                </button>
+              ) : null}
+            </div>
+            <FieldGroup>
+              <TextField label="Descrição" name="itemDescricao" placeholder="Ex: Mensalidade do plano de saúde" />
+              <TextField label="Valor (R$)" name="itemValor" type="number" step="0.01" min={0} />
+              <div className="sm:col-span-2">
+                <TextField label="Observação (opcional)" name="itemObservacao" placeholder="Ex: Referente a julho/2026" />
+              </div>
+            </FieldGroup>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="btn-secondary mt-4"
+        onClick={() => setRows((r) => [...r, crypto.randomUUID()])}
+      >
+        + Adicionar item
+      </button>
+    </FormSection>
+  );
+}
+
+/**
+ * Linhas de item da Passagem Aérea (Passageiro, Origem, Destino, Data e Horário, Observações) —
+ * vira uma lista pra dar pra pedir passagem de mais de uma pessoa na mesma solicitação.
+ */
+function ItensPassagemFields() {
+  const [rows, setRows] = useState<string[]>(() => [crypto.randomUUID()]);
+
+  return (
+    <FormSection title="Passageiros">
+      <p className="-mt-1 text-sm text-neutral-500">
+        Adicione um ou mais passageiros/trechos. Se precisar, dá pra incluir mais depois também.
+      </p>
+      <div className="space-y-4">
+        {rows.map((rowId, i) => (
+          <div key={rowId} className="rounded-md border border-neutral-200 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-neutral-600">Passageiro {i + 1}</p>
+              {rows.length > 1 ? (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-red-700 hover:underline"
+                  onClick={() => setRows((r) => r.filter((id) => id !== rowId))}
+                >
+                  Remover
+                </button>
+              ) : null}
+            </div>
+            <FieldGroup>
+              <TextField label="Passageiro" name="itemPassageiro" />
+              <TextField label="Origem" name="itemOrigem" />
+              <TextField label="Destino" name="itemDestino" />
+              <TextField label="Data do voo" name="itemDataVoo" type="date" />
+              <TextField label="Horário do voo" name="itemHorarioVoo" type="time" />
+              <TextField label="Observações (opcional)" name="itemObservacao" />
+            </FieldGroup>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="btn-secondary mt-4"
+        onClick={() => setRows((r) => [...r, crypto.randomUUID()])}
+      >
+        + Adicionar passageiro
       </button>
     </FormSection>
   );
@@ -124,17 +226,6 @@ export function SolicitacaoForm({
             defaultValue={values.prazoSugerido}
             error={errors.prazoSugerido}
           />
-          {tipo === "pagamento" || tipo === "reembolso" ? (
-            <TextField
-              label={tipo === "reembolso" ? "Valor a reembolsar (R$)" : "Valor a pagar (R$)"}
-              name="valor"
-              type="number"
-              step="0.01"
-              min={0}
-              defaultValue={values.valor}
-              error={errors.valor}
-            />
-          ) : null}
           {tipo === "reembolso" ? (
             <>
               <TextField
@@ -159,46 +250,6 @@ export function SolicitacaoForm({
               </SelectField>
             </>
           ) : null}
-          {tipo === "passagem_aerea" ? (
-            <>
-              <TextField
-                label="Passageiro"
-                name="passageiro"
-                required
-                defaultValue={values.passageiro}
-                error={errors.passageiro}
-              />
-              <TextField
-                label="Origem"
-                name="origem"
-                required
-                defaultValue={values.origem}
-                error={errors.origem}
-              />
-              <TextField
-                label="Destino"
-                name="destino"
-                required
-                defaultValue={values.destino}
-                error={errors.destino}
-              />
-              <TextField
-                label="Data do voo"
-                name="dataVoo"
-                type="date"
-                required
-                defaultValue={values.dataVoo}
-                error={errors.dataVoo}
-              />
-              <TextField
-                label="Horário do voo"
-                name="horarioVoo"
-                type="time"
-                defaultValue={values.horarioVoo}
-                error={errors.horarioVoo}
-              />
-            </>
-          ) : null}
           <div className="sm:col-span-2">
             <TextAreaField
               label={tipo === "passagem_aerea" ? "Observações" : "Descrição da necessidade"}
@@ -213,6 +264,8 @@ export function SolicitacaoForm({
       </FormSection>
 
       {tipo === "compra" ? <ItensCompraFields /> : null}
+      {tipo === "pagamento" || tipo === "reembolso" ? <ItensPagamentoReembolsoFields tipo={tipo} /> : null}
+      {tipo === "passagem_aerea" ? <ItensPassagemFields /> : null}
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>

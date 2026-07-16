@@ -113,6 +113,33 @@ function SetaCartao() {
   );
 }
 
+type CartaoModulo = {
+  href: string;
+  titulo: string;
+  descricao: string;
+  icone: (props: { className?: string }) => JSX.Element;
+  corBarra: string;
+  corBg: string;
+  corIcone: string;
+};
+
+/** Cartão padrão de módulo (ícone + título + descrição) — usado tanto pelos itens de CADASTROS
+ * quanto pelo cartão de Prestação de Contas, que agora fica isolado no fim da grade. */
+function CartaoCadastro({ item }: { item: CartaoModulo }) {
+  return (
+    <Link
+      href={item.href}
+      className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+    >
+      <span className={`absolute inset-x-0 top-0 h-1 ${item.corBarra}`} />
+      <SetaCartao />
+      <IconBadge icone={item.icone} corBg={item.corBg} corIcone={item.corIcone} />
+      <h2 className="text-lg font-bold text-grena-escuro">{item.titulo}</h2>
+      <p className="text-sm font-medium text-neutral-500">{item.descricao}</p>
+    </Link>
+  );
+}
+
 export default async function ProfissionalPage() {
   const supabase = createClient();
   const hojeStr = new Date().toISOString().slice(0, 10);
@@ -176,7 +203,7 @@ export default async function ProfissionalPage() {
     ? [juventusLogoCard, adversarioLogoCard]
     : [adversarioLogoCard, juventusLogoCard];
 
-  const CADASTROS = [
+  const CADASTROS: CartaoModulo[] = [
     {
       href: "/atletas",
       titulo: "Atletas",
@@ -196,15 +223,6 @@ export default async function ProfissionalPage() {
       corIcone: "text-emerald-600",
     },
     {
-      href: "/financeiro",
-      titulo: "Prestação de Contas",
-      descricao: totalPrevisto > 0 ? `${formatMoeda(totalPrevisto)} previsto` : "Nenhum gasto lançado ainda",
-      icone: IconFinanceiro,
-      corBarra: "bg-blue-700",
-      corBg: "bg-blue-50",
-      corIcone: "text-blue-700",
-    },
-    {
       href: "/solicitacoes",
       titulo: "Solicitações",
       descricao:
@@ -217,6 +235,18 @@ export default async function ProfissionalPage() {
       corIcone: "text-purple-600",
     },
   ];
+
+  // Fica isolado no fim da grade agora — o usuário pediu pra Prestação de Contas ficar embaixo,
+  // deixando os Jogos em destaque no topo (ver cartão logo no início da grade, abaixo).
+  const financeiroCard: CartaoModulo = {
+    href: "/financeiro",
+    titulo: "Prestação de Contas",
+    descricao: totalPrevisto > 0 ? `${formatMoeda(totalPrevisto)} previsto` : "Nenhum gasto lançado ainda",
+    icone: IconFinanceiro,
+    corBarra: "bg-blue-700",
+    corBg: "bg-blue-50",
+    corIcone: "text-blue-700",
+  };
 
   return (
     <AppShell>
@@ -252,23 +282,7 @@ export default async function ProfissionalPage() {
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {CADASTROS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            <span className={`absolute inset-x-0 top-0 h-1 ${item.corBarra}`} />
-            <SetaCartao />
-            <IconBadge icone={item.icone} corBg={item.corBg} corIcone={item.corIcone} />
-            <h2 className="text-lg font-bold text-grena-escuro">{item.titulo}</h2>
-            <p className="text-sm font-medium text-neutral-500">{item.descricao}</p>
-          </Link>
-        ))}
-
-        {/* Cartão de Jogos / Competições — sobe pra primeira linha, junto dos outros, porque é o
-            mais completo (mostra os escudos do próximo jogo respeitando a regra de mandante,
-            competição, data/horário e local) e ficava estranho sozinho numa linha à parte. */}
+        {/* Jogos / Competições vem primeiro agora, a pedido do usuário. */}
         <Link
           href="/jogos"
           className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
@@ -300,6 +314,10 @@ export default async function ProfissionalPage() {
           )}
         </Link>
 
+        {CADASTROS.map((item) => (
+          <CartaoCadastro key={item.href} item={item} />
+        ))}
+
         {/* Staff Operacional fica sozinho na segunda linha — é o cartão mais simples (só o
             número de ativos), então sobra menos espaço vazio nessa linha do que sobraria com
             Jogos (que tem bem mais conteúdo). */}
@@ -315,6 +333,9 @@ export default async function ProfissionalPage() {
             {totalStaff} ativo{totalStaff === 1 ? "" : "s"}
           </p>
         </Link>
+
+        {/* Prestação de Contas agora fica por último, a pedido do usuário. */}
+        <CartaoCadastro item={financeiroCard} />
       </div>
 
       {EM_BREVE.length > 0 ? (

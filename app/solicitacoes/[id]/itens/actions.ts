@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
+import { recalcularValorTotal } from "@/lib/solicitacao-valor-total";
 import { solicitacaoItemSchema } from "@/lib/validation/schemas";
 
 export interface SolicitacaoItemFormState {
@@ -21,6 +22,7 @@ export async function createSolicitacaoItem(
   const raw = {
     quantidade: String(formData.get("quantidade") ?? ""),
     item: String(formData.get("item") ?? ""),
+    observacao: String(formData.get("observacao") ?? ""),
   };
 
   const result = solicitacaoItemSchema.safeParse(raw);
@@ -52,6 +54,7 @@ export async function createSolicitacaoItem(
     solicitacao_id: solicitacaoId,
     quantidade: result.data.quantidade,
     item: result.data.item,
+    observacao: result.data.observacao || null,
     foto_path: fotoPath ?? null,
     ordem: proximaOrdem,
   });
@@ -72,5 +75,15 @@ export async function deleteSolicitacaoItem(formData: FormData): Promise<void> {
     .select("solicitacao_id")
     .single();
 
-  if (data?.solicitacao_id) revalidatePath(`/solicitacoes/${data.solicitacao_id}`);
+  if (data?.solicitacao_id) {
+    const { data: solicitacao } = await supabase
+      .from("solicitacoes")
+      .select("tipo")
+      .eq("id", data.solicitacao_id)
+      .single();
+    if (solicitacao?.tipo === "pagamento" || solicitacao?.tipo === "reembolso") {
+      await recalcularValorTotal(supabase, data.solicitacao_id);
+    }
+    revalidatePath(`/solicitacoes/${data.solicitacao_id}`);
+  }
 }

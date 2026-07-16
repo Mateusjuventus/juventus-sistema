@@ -18,7 +18,8 @@ const DEPARTAMENTOS: Record<SolicitacaoTipo, string> = {
   passagem_aerea: "Departamento de Viagens",
 };
 
-const AZUL_VALOR = "#1d4ed8";
+/** Tipos de solicitação que têm uma tabela de itens no PDF (Exame Médico não tem). */
+const TIPOS_COM_ITENS: SolicitacaoTipo[] = ["compra", "pagamento", "reembolso", "passagem_aerea"];
 
 const styles = StyleSheet.create({
   logoBox: {
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
   infoRowUltima: { flexDirection: "row" },
   infoLabelCell: {
     width: 150,
-    backgroundColor: "#f7eef2",
+    backgroundColor: "#ffffff",
     paddingVertical: 6,
     paddingHorizontal: 8,
     justifyContent: "center",
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
   },
   infoLabelTexto: { fontSize: 8.5, fontWeight: 700, color: CORES.grena },
   infoValorCell: { flex: 1, paddingVertical: 6, paddingHorizontal: 8, justifyContent: "center" },
-  infoValorTexto: { fontSize: 9, color: AZUL_VALOR },
+  infoValorTexto: { fontSize: 9, color: "#171717" },
   itensBar: {
     borderWidth: 1,
     borderTopWidth: 0,
@@ -68,7 +69,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     marginTop: 10,
   },
-  itensBarTexto: { fontSize: 9.5, fontWeight: 700, color: "#ffffff", textTransform: "uppercase" },
+  itensBarTexto: {
+    fontSize: 9.5,
+    fontWeight: 700,
+    color: "#ffffff",
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
   itensTable: { borderWidth: 1, borderTopWidth: 0, borderColor: "#262626" },
   itensHeaderRow: {
     flexDirection: "row",
@@ -89,10 +96,27 @@ const styles = StyleSheet.create({
   // tamanho natural do texto (senão parecia "inchada" à toa quando nenhum item tinha foto).
   itensRowComFoto: { paddingVertical: 6, minHeight: 44 },
   itensRowSemFoto: { paddingVertical: 6 },
-  colFoto: { width: 50 },
-  colQuantidade: { width: 110 },
-  colItem: { flex: 1 },
+  celulaCentro: { textAlign: "center" },
+  // Colunas da tabela de itens de Compra — Observação é sempre a última coluna (flex), as demais
+  // têm largura fixa, pra texto longo quebrar linha dentro da própria coluna em vez de invadir a
+  // coluna seguinte.
+  colFoto: { width: 50, alignItems: "center" },
+  colItem: { width: 150, textAlign: "center" },
+  colQuantidade: { width: 80, textAlign: "center" },
+  colObservacaoCompra: { flex: 1, textAlign: "center" },
   fotoItem: { width: 36, height: 36, objectFit: "cover", borderRadius: 2 },
+  // Colunas da tabela de itens de Pagamento/Reembolso — Observação por último (flex), pelo mesmo
+  // motivo acima.
+  colDescricao: { width: 190, textAlign: "center" },
+  colValor: { width: 80, textAlign: "center" },
+  colObservacaoValor: { flex: 1, textAlign: "center" },
+  // Colunas da tabela de passageiros (Passagem Aérea) — Origem/Destino em colunas separadas (em vez
+  // de "Origem → Destino" numa só) porque a fonte padrão do PDF não tem o caractere "→".
+  colPassageiro: { width: 95, textAlign: "center" },
+  colOrigem: { width: 90, textAlign: "center" },
+  colDestino: { width: 90, textAlign: "center" },
+  colDataVoo: { width: 95, textAlign: "center" },
+  colObservacaoVoo: { flex: 1, textAlign: "center" },
   fecho: { height: 8, backgroundColor: CORES.grena, marginTop: 10 },
   assinaturasGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 56 },
   assinaturaCol: { width: "46%", alignItems: "center", marginBottom: 48 },
@@ -101,10 +125,23 @@ const styles = StyleSheet.create({
   notaRodape: { fontSize: 7.5, color: "#737373", marginTop: 4, lineHeight: 1.4 },
 });
 
+/**
+ * Item de uma solicitação, no formato usado pra montar o PDF. Os campos usados dependem do tipo da
+ * solicitação (ver comentário em SolicitacaoItemRow, em lib/supabase/types.ts) — o componente
+ * escolhe quais colunas mostrar conforme `solicitacao.tipo`.
+ */
 export interface SolicitacaoPdfItem {
-  quantidade: string;
-  item: string;
+  quantidade: string | null;
+  item: string | null;
   fotoSrc: LogoSrc;
+  descricao: string | null;
+  observacao: string | null;
+  valor: number | null;
+  passageiro: string | null;
+  origem: string | null;
+  destino: string | null;
+  dataVoo: string | null;
+  horarioVoo: string | null;
 }
 
 export interface SolicitacaoPdfData {
@@ -117,11 +154,6 @@ export interface SolicitacaoPdfData {
   valor: number | null;
   chavePix: string | null;
   chavePixTipoLabel: string | null;
-  passageiro: string | null;
-  origem: string | null;
-  destino: string | null;
-  dataVoo: string | null;
-  horarioVoo: string | null;
 }
 
 function formatMoeda(valor: number): string {
@@ -129,10 +161,10 @@ function formatMoeda(valor: number): string {
 }
 
 /**
- * Documento de Solicitação (Compra, Pagamento, Exame Médico ou Reembolso) — segue o modelo de
- * formulário impresso já usado pelo clube: logo centralizado no topo, faixa com o título, tabela
- * de dados (rótulo em vinho, valor em azul), lista de itens só em Compra, e bloco de 4 assinaturas
- * em branco pra imprimir e assinar.
+ * Documento de Solicitação (Compra, Pagamento, Exame Médico, Reembolso ou Passagem Aérea) — segue
+ * o modelo de formulário impresso já usado pelo clube: logo centralizado no topo, faixa com o
+ * título, tabela de dados (rótulo em vinho, valor em preto), tabela de itens centralizada (Exame
+ * Médico não tem), e bloco de 4 assinaturas em branco pra imprimir e assinar.
  */
 export function SolicitacaoDocument({
   juventusLogoSrc,
@@ -144,6 +176,7 @@ export function SolicitacaoDocument({
   itens: SolicitacaoPdfItem[];
 }) {
   const departamento = DEPARTAMENTOS[solicitacao.tipo];
+  const mostrarItens = TIPOS_COM_ITENS.includes(solicitacao.tipo);
 
   // Monta as linhas da tabela de dados dinamicamente, conforme o tipo — assim a última linha (que
   // não deve ter borda inferior, já que a tabela toda já tem uma borda ao redor) é sempre a linha
@@ -156,18 +189,9 @@ export function SolicitacaoDocument({
   if (solicitacao.prazoSugerido) {
     linhas.push({ label: "Prazo Sugerido", value: formatDataBr(solicitacao.prazoSugerido) });
   }
-  if (solicitacao.tipo === "passagem_aerea") {
-    linhas.push({ label: "Passageiro", value: solicitacao.passageiro ?? "" });
-    linhas.push({ label: "Origem", value: solicitacao.origem ?? "" });
-    linhas.push({ label: "Destino", value: solicitacao.destino ?? "" });
-    linhas.push({
-      label: "Data e Horário do Voo",
-      value: `${formatDataBr(solicitacao.dataVoo)}${solicitacao.horarioVoo ? ` às ${solicitacao.horarioVoo.slice(0, 5)}` : ""}`,
-    });
-  }
   if (solicitacao.valor !== null) {
     linhas.push({
-      label: solicitacao.tipo === "reembolso" ? "Valor a Reembolsar" : "Valor a Pagar",
+      label: solicitacao.tipo === "reembolso" ? "Valor Total a Reembolsar" : "Valor Total a Pagar",
       value: formatMoeda(solicitacao.valor),
     });
   }
@@ -210,39 +234,89 @@ export function SolicitacaoDocument({
           ))}
         </View>
 
-        {solicitacao.tipo === "compra" ? (
+        {mostrarItens ? (
           <>
             <View style={styles.itensBar}>
-              <Text style={styles.itensBarTexto}>Itens Solicitados:</Text>
+              <Text style={styles.itensBarTexto}>
+                {solicitacao.tipo === "passagem_aerea" ? "Passageiros:" : "Itens Solicitados:"}
+              </Text>
             </View>
             <View style={styles.itensTable}>
-              <View style={styles.itensHeaderRow}>
-                <Text style={[styles.colFoto, sharedStyles.headerCell]}>Foto</Text>
-                <Text style={[styles.colQuantidade, sharedStyles.headerCell]}>Quantidade</Text>
-                <Text style={[styles.colItem, sharedStyles.headerCell]}>Item</Text>
-              </View>
-              {itens.length === 0 ? (
-                <Text style={sharedStyles.emptyState}>Nenhum item adicionado ainda.</Text>
-              ) : (
-                itens.map((item, i) => (
-                  <View
-                    style={[
-                      styles.itensRowBase,
-                      item.fotoSrc ? styles.itensRowComFoto : styles.itensRowSemFoto,
-                    ]}
-                    key={i}
-                    wrap={false}
-                  >
-                    <View style={styles.colFoto}>
-                      {item.fotoSrc ? (
-                        // eslint-disable-next-line jsx-a11y/alt-text
-                        <Image style={styles.fotoItem} src={item.fotoSrc as string} />
-                      ) : null}
-                    </View>
-                    <Text style={styles.colQuantidade}>{item.quantidade}</Text>
-                    <Text style={styles.colItem}>{item.item}</Text>
+              {solicitacao.tipo === "compra" ? (
+                <>
+                  <View style={styles.itensHeaderRow}>
+                    <Text style={[styles.colFoto, sharedStyles.headerCell, styles.celulaCentro]}>Foto</Text>
+                    <Text style={[styles.colItem, sharedStyles.headerCell]}>Item</Text>
+                    <Text style={[styles.colQuantidade, sharedStyles.headerCell]}>Quantidade</Text>
+                    <Text style={[styles.colObservacaoCompra, sharedStyles.headerCell]}>Observação</Text>
                   </View>
-                ))
+                  {itens.length === 0 ? (
+                    <Text style={sharedStyles.emptyState}>Nenhum item adicionado ainda.</Text>
+                  ) : (
+                    itens.map((item, i) => (
+                      <View
+                        style={[styles.itensRowBase, item.fotoSrc ? styles.itensRowComFoto : styles.itensRowSemFoto]}
+                        key={i}
+                        wrap={false}
+                      >
+                        <View style={styles.colFoto}>
+                          {item.fotoSrc ? (
+                            // eslint-disable-next-line jsx-a11y/alt-text
+                            <Image style={styles.fotoItem} src={item.fotoSrc as string} />
+                          ) : null}
+                        </View>
+                        <Text style={styles.colItem}>{item.item}</Text>
+                        <Text style={styles.colQuantidade}>{item.quantidade}</Text>
+                        <Text style={styles.colObservacaoCompra}>{item.observacao || "—"}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              ) : solicitacao.tipo === "passagem_aerea" ? (
+                <>
+                  <View style={styles.itensHeaderRow}>
+                    <Text style={[styles.colPassageiro, sharedStyles.headerCell]}>Passageiro</Text>
+                    <Text style={[styles.colOrigem, sharedStyles.headerCell]}>Origem</Text>
+                    <Text style={[styles.colDestino, sharedStyles.headerCell]}>Destino</Text>
+                    <Text style={[styles.colDataVoo, sharedStyles.headerCell]}>Data / Horário</Text>
+                    <Text style={[styles.colObservacaoVoo, sharedStyles.headerCell]}>Observações</Text>
+                  </View>
+                  {itens.length === 0 ? (
+                    <Text style={sharedStyles.emptyState}>Nenhum passageiro adicionado ainda.</Text>
+                  ) : (
+                    itens.map((item, i) => (
+                      <View style={[styles.itensRowBase, styles.itensRowSemFoto]} key={i} wrap={false}>
+                        <Text style={styles.colPassageiro}>{item.passageiro}</Text>
+                        <Text style={styles.colOrigem}>{item.origem}</Text>
+                        <Text style={styles.colDestino}>{item.destino}</Text>
+                        <Text style={styles.colDataVoo}>
+                          {formatDataBr(item.dataVoo)}
+                          {item.horarioVoo ? ` às ${item.horarioVoo.slice(0, 5)}` : ""}
+                        </Text>
+                        <Text style={styles.colObservacaoVoo}>{item.observacao || "—"}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              ) : (
+                <>
+                  <View style={styles.itensHeaderRow}>
+                    <Text style={[styles.colDescricao, sharedStyles.headerCell]}>Descrição</Text>
+                    <Text style={[styles.colValor, sharedStyles.headerCell]}>Valor</Text>
+                    <Text style={[styles.colObservacaoValor, sharedStyles.headerCell]}>Observação</Text>
+                  </View>
+                  {itens.length === 0 ? (
+                    <Text style={sharedStyles.emptyState}>Nenhum item adicionado ainda.</Text>
+                  ) : (
+                    itens.map((item, i) => (
+                      <View style={[styles.itensRowBase, styles.itensRowSemFoto]} key={i} wrap={false}>
+                        <Text style={styles.colDescricao}>{item.descricao}</Text>
+                        <Text style={styles.colValor}>{item.valor !== null ? formatMoeda(item.valor) : "—"}</Text>
+                        <Text style={styles.colObservacaoValor}>{item.observacao || "—"}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
               )}
             </View>
           </>

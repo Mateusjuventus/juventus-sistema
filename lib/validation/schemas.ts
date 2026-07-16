@@ -221,14 +221,12 @@ export const solicitacaoSchema = z
     setor: z.string().min(1, { message: "Setor é obrigatório" }),
     descricaoNecessidade: z.string().optional().or(z.literal("")),
     prazoSugerido: z.string().optional().or(z.literal("")),
+    // Em Pagamento/Reembolso, o valor final é sempre calculado a partir da soma dos itens (ver
+    // salvarItensInline em app/solicitacoes/actions.ts) — este campo não é mais preenchido pelo
+    // formulário, mas fica aqui pra não quebrar o parse.
     valor: z.coerce.number().nonnegative().optional().nullable(),
     chavePix: z.string().optional().or(z.literal("")),
     chavePixTipo: z.enum(["cpf", "cnpj", "email", "telefone"]).optional().or(z.literal("")),
-    passageiro: z.string().optional().or(z.literal("")),
-    origem: z.string().optional().or(z.literal("")),
-    destino: z.string().optional().or(z.literal("")),
-    dataVoo: z.string().optional().or(z.literal("")),
-    horarioVoo: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.tipo !== "reembolso" || Boolean(data.chavePix?.trim()), {
     message: "Chave PIX é obrigatória em Reembolso",
@@ -237,22 +235,6 @@ export const solicitacaoSchema = z
   .refine((data) => data.tipo === "passagem_aerea" || Boolean(data.descricaoNecessidade?.trim()), {
     message: "Descrição da necessidade é obrigatória",
     path: ["descricaoNecessidade"],
-  })
-  .refine((data) => data.tipo !== "passagem_aerea" || Boolean(data.passageiro?.trim()), {
-    message: "Passageiro é obrigatório em Passagem Aérea",
-    path: ["passageiro"],
-  })
-  .refine((data) => data.tipo !== "passagem_aerea" || Boolean(data.origem?.trim()), {
-    message: "Origem é obrigatória em Passagem Aérea",
-    path: ["origem"],
-  })
-  .refine((data) => data.tipo !== "passagem_aerea" || Boolean(data.destino?.trim()), {
-    message: "Destino é obrigatório em Passagem Aérea",
-    path: ["destino"],
-  })
-  .refine((data) => data.tipo !== "passagem_aerea" || Boolean(data.dataVoo?.trim()), {
-    message: "Data do voo é obrigatória em Passagem Aérea",
-    path: ["dataVoo"],
   });
 export type SolicitacaoInput = z.infer<typeof solicitacaoSchema>;
 
@@ -263,6 +245,7 @@ export const solicitacaoStatusSchema = z.object({
 export const solicitacaoItemSchema = z.object({
   quantidade: z.string().min(1, { message: "Quantidade é obrigatória" }),
   item: z.string().min(1, { message: "Item é obrigatório" }),
+  observacao: z.string().optional().or(z.literal("")),
 });
 export type SolicitacaoItemInput = z.infer<typeof solicitacaoItemSchema>;
 

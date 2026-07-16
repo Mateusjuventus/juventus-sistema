@@ -24,14 +24,6 @@ export function SolicitacaoItemForm({
       <input type="hidden" name="solicitacaoId" value={solicitacaoId} />
       <FieldGroup>
         <TextField
-          label="Quantidade"
-          name="quantidade"
-          required
-          placeholder="Ex: 60 Unidades"
-          defaultValue={values.quantidade}
-          error={errors.quantidade}
-        />
-        <TextField
           label="Item"
           name="item"
           required
@@ -39,6 +31,22 @@ export function SolicitacaoItemForm({
           defaultValue={values.item}
           error={errors.item}
         />
+        <TextField
+          label="Quantidade"
+          name="quantidade"
+          required
+          placeholder="Ex: 60 Unidades"
+          defaultValue={values.quantidade}
+          error={errors.quantidade}
+        />
+        <div className="sm:col-span-2">
+          <TextField
+            label="Observação (opcional)"
+            name="observacao"
+            defaultValue={values.observacao}
+            error={errors.observacao}
+          />
+        </div>
         <div className="sm:col-span-2">
           <PhotoField label="Foto do item (opcional)" name="foto" shape="square" />
         </div>

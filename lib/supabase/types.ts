@@ -300,10 +300,11 @@ export type SolicitacaoStatus = "pendente" | "aprovada" | "recusada" | "concluid
 
 /**
  * Solicitação formal (Compra, Pagamento, Exame Médico, Reembolso ou Passagem Aérea), gerada no
- * modelo de PDF do clube. `valor` só é usado em Pagamento/Reembolso; `chave_pix`/`chave_pix_tipo`
- * só em Reembolso; os itens (quantidade + item + foto) só existem em Compra (ver
- * SolicitacaoItemRow); `passageiro`/`origem`/`destino`/`data_voo`/`horario_voo` só em Passagem
- * Aérea (nesse tipo, `descricao_necessidade` guarda as "Observações", e é opcional).
+ * modelo de PDF do clube. `valor` só é usado em Pagamento/Reembolso, e é calculado automaticamente
+ * como a soma dos itens (ver SolicitacaoItemRow); `chave_pix`/`chave_pix_tipo` só em Reembolso.
+ * `passageiro`/`origem`/`destino`/`data_voo`/`horario_voo` não são mais preenchidos (ficaram em
+ * solicitacao_itens, já que uma Passagem Aérea pode ter vários passageiros) — as colunas continuam
+ * aqui só por compatibilidade com registros antigos.
  */
 export interface SolicitacaoRow {
   id: string;
@@ -327,12 +328,28 @@ export interface SolicitacaoRow {
   updated_at: string;
 }
 
+/**
+ * Item de uma solicitação — o significado dos campos depende do tipo da solicitação "pai":
+ * - Compra: quantidade + item + foto_path
+ * - Pagamento / Reembolso: descricao + observacao (opcional) + valor
+ * - Passagem Aérea: passageiro + origem + destino + data_voo + horario_voo + observacao (opcional)
+ * Exame Médico não usa itens. Todos os campos além de id/solicitacao_id/ordem/created_at são
+ * opcionais, já que cada solicitação só preenche o conjunto relevante ao seu tipo.
+ */
 export interface SolicitacaoItemRow {
   id: string;
   solicitacao_id: string;
-  quantidade: string;
-  item: string;
+  quantidade: string | null;
+  item: string | null;
   foto_path: string | null;
+  descricao: string | null;
+  observacao: string | null;
+  valor: number | null;
+  passageiro: string | null;
+  origem: string | null;
+  destino: string | null;
+  data_voo: string | null;
+  horario_voo: string | null;
   ordem: number;
   created_at: string;
 }

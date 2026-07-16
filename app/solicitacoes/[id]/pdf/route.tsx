@@ -34,6 +34,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
       quantidade: item.quantidade,
       item: item.item,
       fotoSrc: await getSignedPhotoUrl(supabase, item.foto_path),
+      descricao: item.descricao,
+      observacao: item.observacao,
+      valor: item.valor,
+      passageiro: item.passageiro,
+      origem: item.origem,
+      destino: item.destino,
+      dataVoo: item.data_voo,
+      horarioVoo: item.horario_voo,
     })),
   );
 
@@ -57,11 +65,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
         valor: s.valor,
         chavePix: s.chave_pix,
         chavePixTipoLabel,
-        passageiro: s.passageiro,
-        origem: s.origem,
-        destino: s.destino,
-        dataVoo: s.data_voo,
-        horarioVoo: s.horario_voo,
       }}
       itens={itens}
     />,
