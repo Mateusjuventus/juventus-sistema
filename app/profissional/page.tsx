@@ -86,6 +86,16 @@ function IconSolicitacoes({ className }: { className?: string }) {
   );
 }
 
+function IconEstoque({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M3 7l9-4 9 4-9 4-9-4Z" />
+      <path d="M3 7v10l9 4 9-4V7" />
+      <path d="M12 11v10" />
+    </svg>
+  );
+}
+
 /** Badge do ícone no topo do cartão — cor própria por módulo, pra facilitar identificar cada área
  * rapidamente na tela inicial. */
 function IconBadge({
@@ -151,6 +161,7 @@ export default async function ProfissionalPage() {
     { data: proximoJogoData },
     { data: gastosData },
     { count: totalSolicitacoesPendentesCount },
+    totalEstoqueItens,
   ] = await Promise.all([
     contarLinhas(supabase, "atletas"),
     contarLinhas(supabase, "comissao_tecnica"),
@@ -164,6 +175,7 @@ export default async function ProfissionalPage() {
       .maybeSingle(),
     supabase.from("gastos_jogo").select("valor_previsto"),
     supabase.from("solicitacoes").select("*", { count: "exact", head: true }).eq("status", "pendente"),
+    contarLinhas(supabase, "estoque_itens"),
   ]);
   const totalStaff = totalStaffCount ?? 0;
   const totalSolicitacoesPendentes = totalSolicitacoesPendentesCount ?? 0;
@@ -233,6 +245,20 @@ export default async function ProfissionalPage() {
       corBarra: "bg-purple-600",
       corBg: "bg-purple-50",
       corIcone: "text-purple-600",
+    },
+    {
+      // Um módulo só, mas com dois estoques totalmente separados (Esportivo e Médico) dentro dele
+      // — ver /estoque.
+      href: "/estoque",
+      titulo: "Estoque",
+      descricao:
+        totalEstoqueItens > 0
+          ? `${totalEstoqueItens} ite${totalEstoqueItens === 1 ? "m" : "ns"} cadastrado${totalEstoqueItens === 1 ? "" : "s"}`
+          : "Nenhum item cadastrado ainda",
+      icone: IconEstoque,
+      corBarra: "bg-teal-600",
+      corBg: "bg-teal-50",
+      corIcone: "text-teal-600",
     },
   ];
 

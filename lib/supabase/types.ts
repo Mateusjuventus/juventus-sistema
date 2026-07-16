@@ -361,3 +361,79 @@ export interface SolicitacaoItemRow {
   ordem: number;
   created_at: string;
 }
+
+export type EstoqueCategoria = "esportivo" | "medico";
+
+/**
+ * Item do catálogo de Estoque — Esportivo e Médico são duas listas totalmente independentes,
+ * nunca se misturam (nem no catálogo, nem em Entradas/Saídas). `tamanhos` guarda a quantidade de
+ * cada tamanho/variação num objeto só (ex: {"P": 12, "M": 20, "Único": 5}) — o item inteiro é uma
+ * linha só, não uma linha por tamanho. A quantidade só muda através de Entrada (soma) ou Saída
+ * (subtrai); editar o item corrige nome/código/tamanhos diretamente, pra consertar um engano.
+ */
+export interface EstoqueItemRow {
+  id: string;
+  categoria: EstoqueCategoria;
+  nome: string;
+  codigo: string | null;
+  tamanhos: Record<string, number>;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Ficha de Saída (retirada de material por um colaborador) — "numero" é sequencial e independente
+ * por categoria (Esportivo e Médico cada um com sua própria contagem 0001, 0002...).
+ */
+export interface EstoqueSaidaRow {
+  id: string;
+  categoria: EstoqueCategoria;
+  numero: number;
+  data: string;
+  nome_destinatario: string;
+  funcao: string | null;
+  departamento: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface EstoqueSaidaItemRow {
+  id: string;
+  saida_id: string;
+  item_id: string | null;
+  nome: string;
+  tamanho: string | null;
+  codigo: string | null;
+  quantidade: number;
+  ordem: number;
+  created_at: string;
+}
+
+/** Entrada de estoque (reposição/material que chegou) — registro simples, sem assinatura; soma
+ * direto nas quantidades do item. "numero" também sequencial e independente por categoria, numa
+ * contagem separada da de Saídas. */
+export interface EstoqueEntradaRow {
+  id: string;
+  categoria: EstoqueCategoria;
+  numero: number;
+  data: string;
+  fornecedor: string | null;
+  nota_fiscal: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface EstoqueEntradaItemRow {
+  id: string;
+  entrada_id: string;
+  item_id: string | null;
+  nome: string;
+  tamanho: string | null;
+  codigo: string | null;
+  quantidade: number;
+  ordem: number;
+  created_at: string;
+}

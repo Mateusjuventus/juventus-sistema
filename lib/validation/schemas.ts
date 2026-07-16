@@ -269,3 +269,45 @@ export const configuracaoFinanceiroSchema = z.object({
   assinatura2Cargo: z.string().min(1, { message: "Cargo é obrigatório" }),
 });
 export type ConfiguracaoFinanceiroInput = z.infer<typeof configuracaoFinanceiroSchema>;
+
+/** As duas listas de Estoque — Esportivo e Médico — totalmente independentes uma da outra. */
+export const ESTOQUE_CATEGORIAS = [
+  { value: "esportivo", label: "Esportivo" },
+  { value: "medico", label: "Médico" },
+] as const;
+
+/** Mesmas opções de departamento da ficha de Saída em papel já usada pelo clube. */
+export const ESTOQUE_DEPARTAMENTOS = [
+  "Administrativo",
+  "Técnico",
+  "Médico",
+  "Operacional",
+  "Limpeza",
+  "Lavanderia",
+  "Serviços Gerais",
+  "Portaria",
+  "Outros",
+] as const;
+
+export const estoqueItemSchema = z.object({
+  nome: z.string().min(1, { message: "Nome é obrigatório" }),
+  codigo: z.string().optional().or(z.literal("")),
+});
+export type EstoqueItemInput = z.infer<typeof estoqueItemSchema>;
+
+export const estoqueSaidaSchema = z.object({
+  data: z.string().min(1, { message: "Data é obrigatória" }),
+  nomeDestinatario: z.string().min(1, { message: "Nome do destinatário é obrigatório" }),
+  funcao: z.string().optional().or(z.literal("")),
+  departamento: z.string().optional().or(z.literal("")),
+  observacoes: z.string().optional().or(z.literal("")),
+});
+export type EstoqueSaidaInput = z.infer<typeof estoqueSaidaSchema>;
+
+export const estoqueEntradaSchema = z.object({
+  data: z.string().min(1, { message: "Data é obrigatória" }),
+  fornecedor: z.string().optional().or(z.literal("")),
+  notaFiscal: z.string().optional().or(z.literal("")),
+  observacoes: z.string().optional().or(z.literal("")),
+});
+export type EstoqueEntradaInput = z.infer<typeof estoqueEntradaSchema>;
