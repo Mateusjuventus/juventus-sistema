@@ -22,10 +22,13 @@ function formatHorario(horario: string | null): string | null {
 export default async function JogosPage({
   searchParams,
 }: {
-  searchParams: { q?: string; mandante?: string };
+  searchParams: { q?: string; mandante?: string; ordem?: string };
 }) {
   const q = searchParams.q?.trim() ?? "";
   const mandanteFiltro = searchParams.mandante ?? "";
+  // "proximidade" (padrão) = jogo mais próximo de hoje primeiro; "cronologico" = ordem cronológica
+  // normal, do mais antigo pro mais recente — alternável pelo botão "Ordenar" na tela.
+  const ordem = searchParams.ordem === "cronologico" ? "cronologico" : "proximidade";
   const supabase = createClient();
 
   let query = supabase.from("jogos").select("*").order("data_jogo", { ascending: false });
@@ -38,12 +41,24 @@ export default async function JogosPage({
     supabase.from("jogos").select("id, data_jogo"),
     supabase.from("convocacoes").select("jogo_id"),
   ]);
-  const jogos = (data ?? []) as JogoRow[];
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeTime = new Date(hojeStr).getTime();
+
+  // Por padrão, ordena pela data mais próxima de hoje primeiro (o próximo jogo a acontecer fica no
+  // topo) — em vez da ordem cronológica simples, que deixava o jogo mais distante no futuro lá em
+  // cima e o próximo jogo perdido no meio da lista. Quem preferir a ordem cronológica normal (mais
+  // antigo primeiro) pode alternar pelo botão "Ordenar" na tela.
+  const jogos = ((data ?? []) as JogoRow[]).sort((a, b) => {
+    if (ordem === "cronologico") {
+      return new Date(a.data_jogo).getTime() - new Date(b.data_jogo).getTime();
+    }
+    const distanciaA = Math.abs(new Date(a.data_jogo).getTime() - hojeTime);
+    const distanciaB = Math.abs(new Date(b.data_jogo).getTime() - hojeTime);
+    return distanciaA - distanciaB;
+  });
   const logoUrls = await Promise.all(
     jogos.map((j) => getSignedPhotoUrl(supabase, j.adversario_logo_path)),
   );
-
-  const hojeStr = new Date().toISOString().slice(0, 10);
   const jogoIdsComConvocacao = new Set((convocacoesData ?? []).map((c) => c.jogo_id as string));
   const jogosSemConvocacao = (todosJogosData ?? []).filter(
     (j) => j.data_jogo >= hojeStr && !jogoIdsComConvocacao.has(j.id),
@@ -60,6 +75,14 @@ export default async function JogosPage({
       </Link>
       <PageHeader title="Jogos / Competições" pendencia={pendenciaJogos} />
       <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <Link
+          href={`/jogos?q=${encodeURIComponent(q)}&mandante=${encodeURIComponent(mandanteFiltro)}&ordem=${
+            ordem === "cronologico" ? "proximidade" : "cronologico"
+          }`}
+          className="btn-secondary"
+        >
+          {ordem === "cronologico" ? "Ordenar por mais próximo" : "Ordenar cronologicamente"}
+        </Link>
         <a
           href={`/jogos/export?q=${encodeURIComponent(q)}&mandante=${encodeURIComponent(mandanteFiltro)}`}
           className="btn-secondary"
@@ -86,6 +109,8 @@ export default async function JogosPage({
               <option value="fora">Fora</option>
             </select>
           </div>
+          {/* Preserva a ordenação escolhida (botão "Ordenar" acima) ao filtrar pela busca. */}
+          <input type="hidden" name="ordem" value={ordem} />
         </SearchBar>
       </div>
 
