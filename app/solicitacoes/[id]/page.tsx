@@ -31,11 +31,16 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
     dataSolicitacao: s.data_solicitacao,
     solicitante: s.solicitante,
     setor: s.setor,
-    descricaoNecessidade: s.descricao_necessidade,
+    descricaoNecessidade: s.descricao_necessidade ?? "",
     prazoSugerido: s.prazo_sugerido ?? "",
     valor: s.valor !== null ? String(s.valor) : "",
     chavePix: s.chave_pix ?? "",
     chavePixTipo: s.chave_pix_tipo ?? "",
+    passageiro: s.passageiro ?? "",
+    origem: s.origem ?? "",
+    destino: s.destino ?? "",
+    dataVoo: s.data_voo ?? "",
+    horarioVoo: s.horario_voo ?? "",
   };
 
   return (

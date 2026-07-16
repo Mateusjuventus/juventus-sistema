@@ -34,11 +34,16 @@ export async function GET(request: NextRequest) {
     Data: formatData(s.data_solicitacao),
     Solicitante: s.solicitante,
     "Setor / C.C": s.setor,
-    "Descrição da Necessidade": s.descricao_necessidade,
+    "Descrição da Necessidade / Observações": s.descricao_necessidade ?? "",
     "Prazo Sugerido": formatData(s.prazo_sugerido),
     Valor: s.valor ?? "",
     "Chave PIX": s.chave_pix ?? "",
     "Tipo de Chave PIX": s.chave_pix_tipo ? CHAVE_PIX_TIPO_LABEL[s.chave_pix_tipo] ?? "" : "",
+    Passageiro: s.passageiro ?? "",
+    Origem: s.origem ?? "",
+    Destino: s.destino ?? "",
+    "Data do Voo": formatData(s.data_voo),
+    "Horário do Voo": s.horario_voo ? s.horario_voo.slice(0, 5) : "",
     Status: STATUS_LABEL[s.status] ?? s.status,
   }));
 

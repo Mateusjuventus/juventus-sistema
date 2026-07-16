@@ -194,11 +194,14 @@ export const gastoJogoSchema = z
 export type GastoJogoInput = z.infer<typeof gastoJogoSchema>;
 export { NOVA_CATEGORIA_GASTO_VALUE };
 
+/** Ordem fixa e numerada dos tipos de solicitação — a mesma ordem aparece no seletor do
+ * formulário, no filtro da listagem e na própria listagem. */
 export const SOLICITACAO_TIPOS = [
-  { value: "compra", label: "Compra" },
-  { value: "pagamento", label: "Pagamento" },
-  { value: "exame_medico", label: "Exame Médico" },
-  { value: "reembolso", label: "Reembolso" },
+  { value: "compra", label: "01 · Compra" },
+  { value: "pagamento", label: "02 · Pagamento" },
+  { value: "reembolso", label: "03 · Reembolso" },
+  { value: "passagem_aerea", label: "04 · Passagem Aérea" },
+  { value: "exame_medico", label: "05 · Exame Médico" },
 ] as const;
 
 export const SOLICITACAO_STATUS = [
@@ -210,21 +213,46 @@ export const SOLICITACAO_STATUS = [
 
 export const solicitacaoSchema = z
   .object({
-    tipo: z.enum(["compra", "pagamento", "exame_medico", "reembolso"], {
+    tipo: z.enum(["compra", "pagamento", "exame_medico", "reembolso", "passagem_aerea"], {
       errorMap: () => ({ message: "Tipo é obrigatório" }),
     }),
     dataSolicitacao: z.string().min(1, { message: "Data é obrigatória" }),
     solicitante: z.string().min(1, { message: "Solicitante é obrigatório" }),
     setor: z.string().min(1, { message: "Setor é obrigatório" }),
-    descricaoNecessidade: z.string().min(1, { message: "Descrição da necessidade é obrigatória" }),
+    descricaoNecessidade: z.string().optional().or(z.literal("")),
     prazoSugerido: z.string().optional().or(z.literal("")),
     valor: z.coerce.number().nonnegative().optional().nullable(),
     chavePix: z.string().optional().or(z.literal("")),
     chavePixTipo: z.enum(["cpf", "cnpj", "email", "telefone"]).optional().or(z.literal("")),
+    passageiro: z.string().optional().or(z.literal("")),
+    origem: z.string().optional().or(z.literal("")),
+    destino: z.string().optional().or(z.literal("")),
+    dataVoo: z.string().optional().or(z.literal("")),
+    horarioVoo: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.tipo !== "reembolso" || Boolean(data.chavePix?.trim()), {
     message: "Chave PIX é obrigatória em Reembolso",
     path: ["chavePix"],
+  })
+  .refine((data) => data.tipo === "passagem_aerea" || Boolean(data.descricaoNecessidade?.trim()), {
+    message: "Descrição da necessidade é obrigatória",
+    path: ["descricaoNecessidade"],
+  })
+  .refine((data) => data.tipo !== "passagem_aerea" || Boolean(data.passageiro?.trim()), {
+    message: "Passageiro é obrigatório em Passagem Aérea",
+    path: ["passageiro"],
+  })
+  .refine((data) => data.tipo !== "passagem_aerea" || Boolean(data.origem?.trim()), {
+    message: "Origem é obrigatória em Passagem Aérea",
+    path: ["origem"],
+  })
+  .refine((data) => data.tipo !== "passagem_aerea" || Boolean(data.destino?.trim()), {
+    message: "Destino é obrigatório em Passagem Aérea",
+    path: ["destino"],
+  })
+  .refine((data) => data.tipo !== "passagem_aerea" || Boolean(data.dataVoo?.trim()), {
+    message: "Data do voo é obrigatória em Passagem Aérea",
+    path: ["dataVoo"],
   });
 export type SolicitacaoInput = z.infer<typeof solicitacaoSchema>;
 

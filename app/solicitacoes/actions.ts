@@ -1,8 +1,10 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
 
 export interface SolicitacaoFormState {
@@ -22,10 +24,54 @@ function parseForm(formData: FormData) {
     valor: String(formData.get("valor") ?? "") || undefined,
     chavePix: String(formData.get("chavePix") ?? ""),
     chavePixTipo: String(formData.get("chavePixTipo") ?? ""),
+    passageiro: String(formData.get("passageiro") ?? ""),
+    origem: String(formData.get("origem") ?? ""),
+    destino: String(formData.get("destino") ?? ""),
+    dataVoo: String(formData.get("dataVoo") ?? ""),
+    horarioVoo: String(formData.get("horarioVoo") ?? ""),
   };
 
   const result = solicitacaoSchema.safeParse(raw);
   return { raw, result };
+}
+
+/**
+ * Salva os itens de uma solicitação de Compra já na criação, direto do mesmo formulário — os
+ * campos "itemQuantidade"/"itemItem"/"itemFoto" se repetem, um trio por linha adicionada no
+ * formulário (ver app/solicitacoes/solicitacao-form.tsx), na mesma ordem em que aparecem na tela.
+ * Linhas sem descrição do item são ignoradas (ex.: uma linha em branco deixada sem preencher).
+ */
+async function salvarItensInline(
+  supabase: ReturnType<typeof createClient>,
+  formData: FormData,
+  solicitacaoId: string,
+): Promise<{ error?: string }> {
+  const quantidades = formData.getAll("itemQuantidade").map(String);
+  const descricoes = formData.getAll("itemItem").map(String);
+  const fotos = formData.getAll("itemFoto");
+
+  let ordem = 0;
+  for (let i = 0; i < descricoes.length; i++) {
+    const item = descricoes[i]?.trim();
+    if (!item) continue;
+    const quantidade = quantidades[i]?.trim() || "1";
+
+    const id = randomUUID();
+    const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(supabase, fotos[i] ?? null, id);
+    if (uploadError) return { error: uploadError };
+
+    const { error } = await supabase.from("solicitacao_itens").insert({
+      id,
+      solicitacao_id: solicitacaoId,
+      quantidade,
+      item,
+      foto_path: fotoPath ?? null,
+      ordem: ordem++,
+    });
+    if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
+  }
+
+  return {};
 }
 
 export async function createSolicitacao(
@@ -50,17 +96,29 @@ export async function createSolicitacao(
       data_solicitacao: data.dataSolicitacao,
       solicitante: data.solicitante,
       setor: data.setor,
-      descricao_necessidade: data.descricaoNecessidade,
+      descricao_necessidade: data.descricaoNecessidade || null,
       prazo_sugerido: data.prazoSugerido || null,
       valor: data.valor ?? null,
       chave_pix: data.chavePix || null,
       chave_pix_tipo: data.chavePixTipo || null,
+      passageiro: data.passageiro || null,
+      origem: data.origem || null,
+      destino: data.destino || null,
+      data_voo: data.dataVoo || null,
+      horario_voo: data.horarioVoo || null,
     })
     .select("id")
     .single();
 
   if (error || !criada) {
     return { error: "Não foi possível salvar a solicitação. Tente novamente.", values: raw };
+  }
+
+  if (data.tipo === "compra") {
+    const { error: itensError } = await salvarItensInline(supabase, formData, criada.id);
+    if (itensError) {
+      return { error: `Solicitação salva, mas houve um problema com os itens: ${itensError}`, values: raw };
+    }
   }
 
   revalidatePath("/solicitacoes");
@@ -93,15 +151,27 @@ export async function updateSolicitacao(
       data_solicitacao: data.dataSolicitacao,
       solicitante: data.solicitante,
       setor: data.setor,
-      descricao_necessidade: data.descricaoNecessidade,
+      descricao_necessidade: data.descricaoNecessidade || null,
       prazo_sugerido: data.prazoSugerido || null,
       valor: data.valor ?? null,
       chave_pix: data.chavePix || null,
       chave_pix_tipo: data.chavePixTipo || null,
+      passageiro: data.passageiro || null,
+      origem: data.origem || null,
+      destino: data.destino || null,
+      data_voo: data.dataVoo || null,
+      horario_voo: data.horarioVoo || null,
     })
     .eq("id", id);
 
   if (error) return { error: "Não foi possível salvar a solicitação. Tente novamente.", values: raw };
+
+  if (data.tipo === "compra") {
+    const { error: itensError } = await salvarItensInline(supabase, formData, id);
+    if (itensError) {
+      return { error: `Solicitação salva, mas houve um problema com os itens: ${itensError}`, values: raw };
+    }
+  }
 
   revalidatePath("/solicitacoes");
   revalidatePath(`/solicitacoes/${id}`);

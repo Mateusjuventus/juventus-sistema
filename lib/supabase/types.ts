@@ -295,13 +295,15 @@ export interface ChecklistJogoItemComJogoRow extends ChecklistJogoItemRow {
   jogo: { id: string; adversario_nome: string; data_jogo: string; mandante: boolean } | null;
 }
 
-export type SolicitacaoTipo = "compra" | "pagamento" | "exame_medico" | "reembolso";
+export type SolicitacaoTipo = "compra" | "pagamento" | "exame_medico" | "reembolso" | "passagem_aerea";
 export type SolicitacaoStatus = "pendente" | "aprovada" | "recusada" | "concluida";
 
 /**
- * Solicitação formal (Compra, Pagamento, Exame Médico ou Reembolso), gerada no modelo de PDF do
- * clube. `valor` só é usado em Pagamento/Reembolso; `chave_pix`/`chave_pix_tipo` só em Reembolso;
- * os itens (quantidade + item + foto) só existem em Compra (ver SolicitacaoItemRow).
+ * Solicitação formal (Compra, Pagamento, Exame Médico, Reembolso ou Passagem Aérea), gerada no
+ * modelo de PDF do clube. `valor` só é usado em Pagamento/Reembolso; `chave_pix`/`chave_pix_tipo`
+ * só em Reembolso; os itens (quantidade + item + foto) só existem em Compra (ver
+ * SolicitacaoItemRow); `passageiro`/`origem`/`destino`/`data_voo`/`horario_voo` só em Passagem
+ * Aérea (nesse tipo, `descricao_necessidade` guarda as "Observações", e é opcional).
  */
 export interface SolicitacaoRow {
   id: string;
@@ -309,11 +311,16 @@ export interface SolicitacaoRow {
   data_solicitacao: string;
   solicitante: string;
   setor: string;
-  descricao_necessidade: string;
+  descricao_necessidade: string | null;
   prazo_sugerido: string | null;
   valor: number | null;
   chave_pix: string | null;
   chave_pix_tipo: StaffChavePixTipo | null;
+  passageiro: string | null;
+  origem: string | null;
+  destino: string | null;
+  data_voo: string | null;
+  horario_voo: string | null;
   status: SolicitacaoStatus;
   created_by: string | null;
   created_at: string;

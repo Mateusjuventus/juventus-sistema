@@ -7,6 +7,7 @@ const TITULOS: Record<SolicitacaoTipo, string> = {
   pagamento: "Solicitação de Pagamento",
   exame_medico: "Solicitação de Exame Médico",
   reembolso: "Solicitação de Reembolso",
+  passagem_aerea: "Solicitação de Passagem Aérea",
 };
 
 const DEPARTAMENTOS: Record<SolicitacaoTipo, string> = {
@@ -14,6 +15,7 @@ const DEPARTAMENTOS: Record<SolicitacaoTipo, string> = {
   pagamento: "Departamento Financeiro",
   exame_medico: "Departamento Médico",
   reembolso: "Departamento Financeiro",
+  passagem_aerea: "Departamento de Viagens",
 };
 
 const AZUL_VALOR = "#1d4ed8";
@@ -76,22 +78,24 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 8,
   },
-  itensRow: {
+  itensRowBase: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 0.5,
     borderBottomColor: "#e5e5e5",
-    paddingVertical: 6,
     paddingHorizontal: 8,
-    minHeight: 44,
   },
+  // Linha com foto precisa de altura extra pra caber a miniatura; sem foto, a linha fica do
+  // tamanho natural do texto (senão parecia "inchada" à toa quando nenhum item tinha foto).
+  itensRowComFoto: { paddingVertical: 6, minHeight: 44 },
+  itensRowSemFoto: { paddingVertical: 6 },
   colFoto: { width: 50 },
   colQuantidade: { width: 110 },
   colItem: { flex: 1 },
   fotoItem: { width: 36, height: 36, objectFit: "cover", borderRadius: 2 },
   fecho: { height: 8, backgroundColor: CORES.grena, marginTop: 10 },
-  assinaturasGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 40 },
-  assinaturaCol: { width: "46%", alignItems: "center", marginBottom: 28 },
+  assinaturasGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 56 },
+  assinaturaCol: { width: "46%", alignItems: "center", marginBottom: 48 },
   assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
   assinaturaLabel: { fontSize: 8.5, color: "#525252", textAlign: "center" },
   notaRodape: { fontSize: 7.5, color: "#737373", marginTop: 4, lineHeight: 1.4 },
@@ -108,11 +112,16 @@ export interface SolicitacaoPdfData {
   dataSolicitacao: string;
   solicitante: string;
   setor: string;
-  descricaoNecessidade: string;
+  descricaoNecessidade: string | null;
   prazoSugerido: string | null;
   valor: number | null;
   chavePix: string | null;
   chavePixTipoLabel: string | null;
+  passageiro: string | null;
+  origem: string | null;
+  destino: string | null;
+  dataVoo: string | null;
+  horarioVoo: string | null;
 }
 
 function formatMoeda(valor: number): string {
@@ -136,6 +145,45 @@ export function SolicitacaoDocument({
 }) {
   const departamento = DEPARTAMENTOS[solicitacao.tipo];
 
+  // Monta as linhas da tabela de dados dinamicamente, conforme o tipo — assim a última linha (que
+  // não deve ter borda inferior, já que a tabela toda já tem uma borda ao redor) é sempre a linha
+  // certa, sem precisar decidir isso "na mão" em cada combinação possível de tipo.
+  const linhas: { label: string; value: string }[] = [
+    { label: "Data", value: formatDataBr(solicitacao.dataSolicitacao) },
+    { label: "Solicitante", value: solicitacao.solicitante },
+    { label: "Setor / C.C", value: solicitacao.setor },
+  ];
+  if (solicitacao.prazoSugerido) {
+    linhas.push({ label: "Prazo Sugerido", value: formatDataBr(solicitacao.prazoSugerido) });
+  }
+  if (solicitacao.tipo === "passagem_aerea") {
+    linhas.push({ label: "Passageiro", value: solicitacao.passageiro ?? "" });
+    linhas.push({ label: "Origem", value: solicitacao.origem ?? "" });
+    linhas.push({ label: "Destino", value: solicitacao.destino ?? "" });
+    linhas.push({
+      label: "Data e Horário do Voo",
+      value: `${formatDataBr(solicitacao.dataVoo)}${solicitacao.horarioVoo ? ` às ${solicitacao.horarioVoo.slice(0, 5)}` : ""}`,
+    });
+  }
+  if (solicitacao.valor !== null) {
+    linhas.push({
+      label: solicitacao.tipo === "reembolso" ? "Valor a Reembolsar" : "Valor a Pagar",
+      value: formatMoeda(solicitacao.valor),
+    });
+  }
+  if (solicitacao.tipo === "reembolso") {
+    linhas.push({
+      label: "Chave PIX",
+      value: `${solicitacao.chavePix ?? ""}${solicitacao.chavePixTipoLabel ? ` (${solicitacao.chavePixTipoLabel})` : ""}`,
+    });
+  }
+  if (solicitacao.descricaoNecessidade) {
+    linhas.push({
+      label: solicitacao.tipo === "passagem_aerea" ? "Observações" : "Descrição da Necessidade",
+      value: solicitacao.descricaoNecessidade,
+    });
+  }
+
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
@@ -150,73 +198,16 @@ export function SolicitacaoDocument({
         </View>
 
         <View style={styles.infoTable}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabelCell}>
-              <Text style={styles.infoLabelTexto}>Data</Text>
-            </View>
-            <View style={styles.infoValorCell}>
-              <Text style={styles.infoValorTexto}>{formatDataBr(solicitacao.dataSolicitacao)}</Text>
-            </View>
-          </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabelCell}>
-              <Text style={styles.infoLabelTexto}>Solicitante</Text>
-            </View>
-            <View style={styles.infoValorCell}>
-              <Text style={styles.infoValorTexto}>{solicitacao.solicitante}</Text>
-            </View>
-          </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabelCell}>
-              <Text style={styles.infoLabelTexto}>Setor / C.C</Text>
-            </View>
-            <View style={styles.infoValorCell}>
-              <Text style={styles.infoValorTexto}>{solicitacao.setor}</Text>
-            </View>
-          </View>
-          {solicitacao.prazoSugerido ? (
-            <View style={styles.infoRow}>
+          {linhas.map((linha, i) => (
+            <View style={i === linhas.length - 1 ? styles.infoRowUltima : styles.infoRow} key={linha.label}>
               <View style={styles.infoLabelCell}>
-                <Text style={styles.infoLabelTexto}>Prazo Sugerido</Text>
+                <Text style={styles.infoLabelTexto}>{linha.label}</Text>
               </View>
               <View style={styles.infoValorCell}>
-                <Text style={styles.infoValorTexto}>{formatDataBr(solicitacao.prazoSugerido)}</Text>
+                <Text style={styles.infoValorTexto}>{linha.value}</Text>
               </View>
             </View>
-          ) : null}
-          {solicitacao.valor !== null ? (
-            <View style={styles.infoRow}>
-              <View style={styles.infoLabelCell}>
-                <Text style={styles.infoLabelTexto}>
-                  {solicitacao.tipo === "reembolso" ? "Valor a Reembolsar" : "Valor a Pagar"}
-                </Text>
-              </View>
-              <View style={styles.infoValorCell}>
-                <Text style={styles.infoValorTexto}>{formatMoeda(solicitacao.valor)}</Text>
-              </View>
-            </View>
-          ) : null}
-          {solicitacao.tipo === "reembolso" ? (
-            <View style={styles.infoRow}>
-              <View style={styles.infoLabelCell}>
-                <Text style={styles.infoLabelTexto}>Chave PIX</Text>
-              </View>
-              <View style={styles.infoValorCell}>
-                <Text style={styles.infoValorTexto}>
-                  {solicitacao.chavePix}
-                  {solicitacao.chavePixTipoLabel ? ` (${solicitacao.chavePixTipoLabel})` : ""}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-          <View style={styles.infoRowUltima}>
-            <View style={styles.infoLabelCell}>
-              <Text style={styles.infoLabelTexto}>Descrição da Necessidade</Text>
-            </View>
-            <View style={styles.infoValorCell}>
-              <Text style={styles.infoValorTexto}>{solicitacao.descricaoNecessidade}</Text>
-            </View>
-          </View>
+          ))}
         </View>
 
         {solicitacao.tipo === "compra" ? (
@@ -234,7 +225,14 @@ export function SolicitacaoDocument({
                 <Text style={sharedStyles.emptyState}>Nenhum item adicionado ainda.</Text>
               ) : (
                 itens.map((item, i) => (
-                  <View style={styles.itensRow} key={i} wrap={false}>
+                  <View
+                    style={[
+                      styles.itensRowBase,
+                      item.fotoSrc ? styles.itensRowComFoto : styles.itensRowSemFoto,
+                    ]}
+                    key={i}
+                    wrap={false}
+                  >
                     <View style={styles.colFoto}>
                       {item.fotoSrc ? (
                         // eslint-disable-next-line jsx-a11y/alt-text

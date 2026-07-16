@@ -4,31 +4,13 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { solicitacaoItemSchema } from "@/lib/validation/schemas";
 
 export interface SolicitacaoItemFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
-}
-
-async function uploadFotoIfPresent(
-  supabase: ReturnType<typeof createClient>,
-  formData: FormData,
-  itemId: string,
-): Promise<{ path?: string | null; error?: string }> {
-  const file = formData.get("foto");
-  if (!(file instanceof File) || file.size === 0) return {};
-
-  const path = buildPhotoPath("solicitacao-itens", itemId, file.name);
-  const { error } = await supabase.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
-    upsert: true,
-    contentType: file.type || undefined,
-  });
-
-  if (error) return { error: "Não foi possível enviar a foto. O item não foi salvo." };
-  return { path };
 }
 
 export async function createSolicitacaoItem(
@@ -50,7 +32,11 @@ export async function createSolicitacaoItem(
 
   const supabase = createClient();
   const id = randomUUID();
-  const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
+  const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(
+    supabase,
+    formData.get("foto"),
+    id,
+  );
   if (uploadError) return { error: uploadError, values: raw };
 
   const { data: existentes } = await supabase

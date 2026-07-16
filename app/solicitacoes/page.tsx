@@ -99,13 +99,19 @@ export default async function SolicitacoesPage({
         {solicitacoes.map((s) => {
           const tipoLabel = SOLICITACAO_TIPOS.find((t) => t.value === s.tipo)?.label ?? s.tipo;
           const prazoFormatado = s.prazo_sugerido ? formatData(s.prazo_sugerido) : null;
+          const subtitulo =
+            s.tipo === "passagem_aerea" && s.origem && s.destino
+              ? `${s.origem} → ${s.destino} (${s.passageiro ?? "—"})`
+              : s.descricao_necessidade;
           return (
             <div key={s.id} className="card flex flex-wrap items-center gap-3 p-4">
               <div className="min-w-[220px] flex-1">
                 <p className="font-medium text-neutral-800">
                   {tipoLabel} · {s.solicitante}
                 </p>
-                <p className="mt-0.5 line-clamp-1 text-sm text-neutral-500">{s.descricao_necessidade}</p>
+                {subtitulo ? (
+                  <p className="mt-0.5 line-clamp-1 text-sm text-neutral-500">{subtitulo}</p>
+                ) : null}
               </div>
               <div className="flex flex-col items-end text-sm text-neutral-500">
                 <span>Data: {formatData(s.data_solicitacao)}</span>

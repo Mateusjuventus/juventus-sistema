@@ -57,6 +57,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
         valor: s.valor,
         chavePix: s.chave_pix,
         chavePixTipoLabel,
+        passageiro: s.passageiro,
+        origem: s.origem,
+        destino: s.destino,
+        dataVoo: s.data_voo,
+        horarioVoo: s.horario_voo,
       }}
       itens={itens}
     />,
