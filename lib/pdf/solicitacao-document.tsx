@@ -48,26 +48,29 @@ const styles = StyleSheet.create({
   infoTable: { borderWidth: 1, borderTopWidth: 0, borderColor: "#262626" },
   infoRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: "#a3a3a3" },
   infoRowUltima: { flexDirection: "row" },
+  // Padding/fonte reduzidos (eram paddingVertical: 6 / fontSize 8.5-9) pra essa tabela de cima
+  // (Data, Solicitante, Setor etc.) ficar com a mesma altura de linha compacta da tabela de itens
+  // logo abaixo — antes ficava bem mais "alta" que a tabela de itens, o que destoava.
   infoLabelCell: {
     width: 150,
     backgroundColor: "#ffffff",
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: 8,
     justifyContent: "center",
     borderRightWidth: 0.5,
     borderRightColor: "#a3a3a3",
   },
-  infoLabelTexto: { fontSize: 8.5, fontWeight: 700, color: CORES.grena },
-  infoValorCell: { flex: 1, paddingVertical: 6, paddingHorizontal: 8, justifyContent: "center" },
-  infoValorTexto: { fontSize: 9, color: "#171717" },
+  infoLabelTexto: { fontSize: 8, fontWeight: 700, color: CORES.grena },
+  infoValorCell: { flex: 1, paddingVertical: 4, paddingHorizontal: 8, justifyContent: "center" },
+  infoValorTexto: { fontSize: 8.5, color: "#171717" },
   itensBar: {
     borderWidth: 1,
     borderTopWidth: 0,
     borderColor: "#262626",
     backgroundColor: CORES.grena,
-    paddingVertical: 5,
+    paddingVertical: 4,
     paddingHorizontal: 8,
-    marginTop: 10,
+    marginTop: 8,
   },
   itensBarTexto: {
     fontSize: 9.5,
