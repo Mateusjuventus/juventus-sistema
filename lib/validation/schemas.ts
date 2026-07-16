@@ -276,6 +276,12 @@ export const ESTOQUE_CATEGORIAS = [
   { value: "medico", label: "Médico" },
 ] as const;
 
+/** Valor sentinela usado no <select> de item da Entrada (ver EntradaItensFields em
+ * app/estoque/[categoria]/movimento-itens-fields.tsx) pra indicar "+ Cadastrar item novo" em vez de
+ * um item já existente no catálogo — mesmo padrão de NOVA_FUNCAO_VALUE/NOVA_CATEGORIA_GASTO_VALUE
+ * acima. Ver resolverItensEntrada em app/estoque/[categoria]/actions.ts. */
+export const ESTOQUE_ITEM_NOVO_VALUE = "__novo__";
+
 /** Mesmas opções de departamento da ficha de Saída em papel já usada pelo clube. */
 export const ESTOQUE_DEPARTAMENTOS = [
   "Administrativo",
