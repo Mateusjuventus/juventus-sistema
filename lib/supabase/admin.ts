@@ -2,15 +2,19 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Cliente Supabase com a service_role key — ignora todas as políticas de RLS (linha a linha).
- * Uso reservado exclusivamente ao fluxo de cadastro público de Staff Operacional
- * (app/cadastro-staff), que precisa ler o catálogo de funções e gravar o cadastro sem uma sessão
- * de usuário autenticado (a pessoa preenche o link sem fazer login).
+ *
+ * Usos permitidos, e só estes dois:
+ * 1. Fluxo de cadastro público de Staff Operacional (app/cadastro-staff), que precisa ler o
+ *    catálogo de funções e gravar o cadastro sem uma sessão de usuário autenticado (a pessoa
+ *    preenche o link sem fazer login).
+ * 2. Gerenciamento de usuários (app/usuarios/actions.ts) — criar login de um novo usuário
+ *    (supabase.auth.admin.createUser) e gravar/alterar o papel dele em `perfis`, já que essa
+ *    tabela de propósito não tem política de insert/update para usuários autenticados comuns (só
+ *    select) — a única forma seria mesmo por aqui. TODA ação que usa este cliente pra isso precisa
+ *    primeiro conferir com `isMaster()` (lib/auth/role.ts) que quem está chamando é master.
  *
  * NÃO usar este cliente em nenhum outro lugar do sistema, e NUNCA importar este arquivo em um
  * componente "use client" — a service_role key só pode existir no servidor.
- *
- * Passa cache: "no-store" em toda requisição para nunca usar o cache de fetch do Next.js/Vercel —
- * essa página precisa sempre refletir o estado mais recente do banco (ex.: o botão ativo/inativo).
  */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,9 +29,5 @@ export function createAdminClient() {
 
   return createSupabaseClient(url, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
-    global: {
-      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
-        fetch(input, { ...init, cache: "no-store" }),
-    },
   });
 }

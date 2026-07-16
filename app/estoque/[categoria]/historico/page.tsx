@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { parseCategoria } from "@/lib/estoque/categoria";
 import { ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import type {
@@ -10,6 +12,7 @@ import type {
   EstoqueSaidaItemRow,
   EstoqueSaidaRow,
 } from "@/lib/supabase/types";
+import { deleteEntrada, deleteSaida } from "../actions";
 
 function formatData(iso: string): string {
   const [ano, mes, dia] = iso.split("-");
@@ -49,7 +52,11 @@ export default async function HistoricoEstoquePage({
     .order("numero", { ascending: false });
   if (q) entradasQuery = entradasQuery.ilike("fornecedor", `%${q}%`);
 
-  const [{ data: saidasData }, { data: entradasData }] = await Promise.all([saidasQuery, entradasQuery]);
+  const [{ data: saidasData }, { data: entradasData }, master] = await Promise.all([
+    saidasQuery,
+    entradasQuery,
+    isMaster(supabase),
+  ]);
   const saidas = (saidasData ?? []) as EstoqueSaidaRow[];
   const entradas = (entradasData ?? []) as EstoqueEntradaRow[];
 
@@ -144,6 +151,7 @@ export default async function HistoricoEstoquePage({
                       >
                         Reimprimir
                       </a>
+                      {master ? <DeleteButton action={deleteSaida} id={s.id} entityLabel="saída" /> : null}
                     </div>
                   </td>
                 </tr>
@@ -163,12 +171,13 @@ export default async function HistoricoEstoquePage({
               <th className="px-4 py-3 font-semibold">Fornecedor</th>
               <th className="px-4 py-3 font-semibold">Nota Fiscal</th>
               <th className="px-4 py-3 text-right font-semibold">Itens</th>
+              <th className="px-4 py-3 text-right font-semibold">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {entradas.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-neutral-400">
                   Nenhuma entrada encontrada.
                 </td>
               </tr>
@@ -180,6 +189,22 @@ export default async function HistoricoEstoquePage({
                   <td className="px-4 py-3">{e.fornecedor || "—"}</td>
                   <td className="px-4 py-3">{e.nota_fiscal || "—"}</td>
                   <td className="px-4 py-3 text-right">{totalPorEntrada.get(e.id) ?? 0}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/estoque/${categoria}/entrada/${e.id}`} className="btn-secondary btn-sm">
+                        Ver
+                      </Link>
+                      <a
+                        href={`/estoque/${categoria}/entrada/${e.id}/pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary btn-sm"
+                      >
+                        Reimprimir
+                      </a>
+                      {master ? <DeleteButton action={deleteEntrada} id={e.id} entityLabel="entrada" /> : null}
+                    </div>
+                  </td>
                 </tr>
               ))
             )}

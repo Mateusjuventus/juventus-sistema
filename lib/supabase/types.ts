@@ -441,3 +441,14 @@ export interface EstoqueEntradaItemRow {
   ordem: number;
   created_at: string;
 }
+
+export type PerfilRole = "master" | "regular";
+
+/** Papel de cada usuário logado — "master" pode excluir Entrada/Saída do Estoque e acessar a tela
+ * de Usuários (/usuarios); "regular" usa o resto do sistema normalmente, sem essas duas coisas. */
+export interface PerfilRow {
+  id: string;
+  email: string;
+  role: PerfilRole;
+  created_at: string;
+}

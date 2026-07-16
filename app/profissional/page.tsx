@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { isMaster } from "@/lib/auth/role";
 import type { JogoRow } from "@/lib/supabase/types";
 
 const EM_BREVE: string[] = [];
@@ -96,6 +97,17 @@ function IconEstoque({ className }: { className?: string }) {
   );
 }
 
+function IconUsuarios({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" />
+      <path d="M16 4.5c1.6.3 2.8 1.7 2.8 3.4s-1.2 3.1-2.8 3.4" />
+      <path d="M18.5 14.7c2 .6 3 2.2 3 5.3" />
+    </svg>
+  );
+}
+
 /** Badge do ícone no topo do cartão — cor própria por módulo, pra facilitar identificar cada área
  * rapidamente na tela inicial. */
 function IconBadge({
@@ -162,6 +174,7 @@ export default async function ProfissionalPage() {
     { data: gastosData },
     { count: totalSolicitacoesPendentesCount },
     totalEstoqueItens,
+    master,
   ] = await Promise.all([
     contarLinhas(supabase, "atletas"),
     contarLinhas(supabase, "comissao_tecnica"),
@@ -176,6 +189,7 @@ export default async function ProfissionalPage() {
     supabase.from("gastos_jogo").select("valor_previsto"),
     supabase.from("solicitacoes").select("*", { count: "exact", head: true }).eq("status", "pendente"),
     contarLinhas(supabase, "estoque_itens"),
+    isMaster(supabase),
   ]);
   const totalStaff = totalStaffCount ?? 0;
   const totalSolicitacoesPendentes = totalSolicitacoesPendentesCount ?? 0;
@@ -261,6 +275,19 @@ export default async function ProfissionalPage() {
       corIcone: "text-teal-600",
     },
   ];
+
+  // Só quem é master vê o cartão de Usuários — é onde se cadastra/gerencia outras contas.
+  if (master) {
+    CADASTROS.push({
+      href: "/usuarios",
+      titulo: "Usuários",
+      descricao: "Cadastrar e gerenciar acessos",
+      icone: IconUsuarios,
+      corBarra: "bg-indigo-600",
+      corBg: "bg-indigo-50",
+      corIcone: "text-indigo-600",
+    });
+  }
 
   // Fica isolado no fim da grade agora — o usuário pediu pra Prestação de Contas ficar embaixo,
   // deixando os Jogos em destaque no topo (ver cartão logo no início da grade, abaixo).
