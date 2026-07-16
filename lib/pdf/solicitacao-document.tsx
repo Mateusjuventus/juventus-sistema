@@ -110,7 +110,10 @@ const styles = StyleSheet.create({
   colItem: { width: 140, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   colQuantidade: { width: 70, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   colObservacaoCompra: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
-  fotoItem: { width: 28, height: 28, objectFit: "cover", borderRadius: 2 },
+  // objectFit "contain" (não "cover") pra foto aparecer inteira dentro do quadro, sem cortar
+  // nenhuma borda — se a foto não for quadrada, sobra um espacinho em branco de um dos lados em
+  // vez de cortar parte da imagem.
+  fotoItem: { width: 28, height: 28, objectFit: "contain", borderRadius: 2 },
   // Colunas da tabela de itens de Pagamento/Reembolso — Observação por último (flex), pelo mesmo
   // motivo acima.
   colDescricao: { width: 180, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
