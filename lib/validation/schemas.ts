@@ -292,6 +292,7 @@ export const ESTOQUE_DEPARTAMENTOS = [
 export const estoqueItemSchema = z.object({
   nome: z.string().min(1, { message: "Nome é obrigatório" }),
   codigo: z.string().optional().or(z.literal("")),
+  mg: z.string().optional().or(z.literal("")),
 });
 export type EstoqueItemInput = z.infer<typeof estoqueItemSchema>;
 
@@ -311,3 +312,9 @@ export const estoqueEntradaSchema = z.object({
   observacoes: z.string().optional().or(z.literal("")),
 });
 export type EstoqueEntradaInput = z.infer<typeof estoqueEntradaSchema>;
+
+/** Valor especial do campo "itemId" nas linhas de uma Entrada — em vez de escolher um item já
+ * cadastrado, a pessoa escolhe "+ Cadastrar item novo" e preenche nome/código/mg na hora (ver
+ * EntradaItensFields em app/estoque/[categoria]/movimento-itens-fields.tsx e resolverItensEntrada
+ * em app/estoque/[categoria]/actions.ts). Mesma ideia do NOVA_FUNCAO_VALUE de Staff Operacional. */
+export const ESTOQUE_ITEM_NOVO_VALUE = "__novo__";

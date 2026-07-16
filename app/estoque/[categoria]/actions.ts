@@ -10,7 +10,13 @@ import {
   gravarPlanoAjustes,
   proximoNumero,
 } from "@/lib/estoque/estoque-ajustes";
-import { estoqueEntradaSchema, estoqueItemSchema, estoqueSaidaSchema } from "@/lib/validation/schemas";
+import {
+  ESTOQUE_ITEM_NOVO_VALUE,
+  estoqueEntradaSchema,
+  estoqueItemSchema,
+  estoqueSaidaSchema,
+} from "@/lib/validation/schemas";
+import type { EstoqueCategoria } from "@/lib/supabase/types";
 
 export interface EstoqueItemFormState {
   error?: string;
@@ -28,6 +34,7 @@ function parseItemForm(formData: FormData) {
   const raw = {
     nome: String(formData.get("nome") ?? ""),
     codigo: String(formData.get("codigo") ?? ""),
+    mg: String(formData.get("mg") ?? ""),
   };
   const result = estoqueItemSchema.safeParse(raw);
   return { raw, result };
@@ -67,6 +74,7 @@ export async function createItem(
     categoria,
     nome: result.data.nome,
     codigo: result.data.codigo || null,
+    mg: result.data.mg || null,
     tamanhos: buildTamanhos(formData),
   });
   if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
@@ -93,7 +101,12 @@ export async function updateItem(
   const supabase = createClient();
   const { error } = await supabase
     .from("estoque_itens")
-    .update({ nome: result.data.nome, codigo: result.data.codigo || null, tamanhos: buildTamanhos(formData) })
+    .update({
+      nome: result.data.nome,
+      codigo: result.data.codigo || null,
+      mg: result.data.mg || null,
+      tamanhos: buildTamanhos(formData),
+    })
     .eq("id", id);
   if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
 
@@ -130,6 +143,102 @@ function lerLinhasItens(formData: FormData, sinal: 1 | -1): AjusteEstoque[] {
   return ajustes;
 }
 
+/**
+ * Lê as linhas dinâmicas da Entrada (itemId/itemNome/itemCodigo/itemMg/itemTamanho/itemQuantidade —
+ * ver EntradaItensFields em ../movimento-itens-fields.tsx). Em cada linha, a pessoa já escolheu
+ * explicitamente um item existente (itemId = o id dele) ou "+ Cadastrar item novo"
+ * (itemId = ESTOQUE_ITEM_NOVO_VALUE, com nome/código/mg preenchidos do lado) — por isso não há mais
+ * nenhuma tentativa de "adivinhar" pelo nome digitado aqui. Linhas de item novo com o mesmo nome (a
+ * pessoa marcou "novo" mais de uma vez pro mesmo item, ex. pra somar duas unidades diferentes)
+ * reaproveitam o item recém-criado em vez de duplicar o cadastro. Linhas sem item escolhido,
+ * tamanho ou quantidade preenchidos são ignoradas.
+ */
+async function resolverItensEntrada(
+  supabase: ReturnType<typeof createClient>,
+  formData: FormData,
+  categoria: EstoqueCategoria,
+): Promise<{ error: string } | { ajustes: AjusteEstoque[] }> {
+  const itemIds = formData.getAll("itemId").map(String);
+  const nomes = formData.getAll("itemNome").map(String);
+  const codigos = formData.getAll("itemCodigo").map(String);
+  const mgs = formData.getAll("itemMg").map(String);
+  const tamanhos = formData.getAll("itemTamanho").map(String);
+  const quantidades = formData.getAll("itemQuantidade").map(String);
+
+  type Linha = { itemIdOuNovo: string; nome: string; codigo: string; mg: string; tamanho: string; quantidade: number };
+  const linhas: Linha[] = [];
+  for (let i = 0; i < itemIds.length; i++) {
+    const itemIdOuNovo = itemIds[i]?.trim();
+    const tamanho = tamanhos[i]?.trim();
+    const quantidade = Number(quantidades[i]);
+    if (!itemIdOuNovo || !tamanho || !quantidade || quantidade <= 0) continue;
+    linhas.push({
+      itemIdOuNovo,
+      nome: nomes[i]?.trim() ?? "",
+      codigo: codigos[i]?.trim() ?? "",
+      mg: mgs[i]?.trim() ?? "",
+      tamanho,
+      quantidade,
+    });
+  }
+  if (linhas.length === 0) return { ajustes: [] };
+
+  // Já existentes na categoria, só pra avisar se a pessoa tentar "cadastrar novo" um nome que já
+  // está no catálogo (mais fácil ela escolher o item na lista do que criar um duplicado).
+  const { data, error } = await supabase.from("estoque_itens").select("nome").eq("categoria", categoria);
+  if (error) return { error: "Não foi possível conferir o catálogo do estoque. Tente novamente." };
+  const nomesExistentes = new Set(
+    ((data ?? []) as { nome: string }[]).map((it) => it.nome.trim().toLowerCase()),
+  );
+
+  // Cache dos itens novos já cadastrados nesta mesma entrada, pra reaproveitar se o mesmo nome
+  // aparecer em mais de uma linha marcada como "item novo" (ex.: duas unidades diferentes do mesmo
+  // produto novo).
+  const novosPorNome = new Map<string, string>();
+  const ajustes: AjusteEstoque[] = [];
+
+  for (const linha of linhas) {
+    if (linha.itemIdOuNovo !== ESTOQUE_ITEM_NOVO_VALUE) {
+      ajustes.push({ itemId: linha.itemIdOuNovo, tamanho: linha.tamanho, delta: linha.quantidade });
+      continue;
+    }
+
+    if (!linha.nome) {
+      return { error: "Informe o nome do item nas linhas marcadas como \"+ Cadastrar item novo\"." };
+    }
+    const chave = linha.nome.toLowerCase();
+
+    let itemId = novosPorNome.get(chave);
+    if (!itemId) {
+      if (nomesExistentes.has(chave)) {
+        return {
+          error: `Já existe um item chamado "${linha.nome}" no catálogo. Selecione-o na lista em vez de cadastrar novo.`,
+        };
+      }
+      const { data: criado, error: criarError } = await supabase
+        .from("estoque_itens")
+        .insert({
+          categoria,
+          nome: linha.nome,
+          codigo: linha.codigo || null,
+          mg: linha.mg || null,
+          tamanhos: {},
+        })
+        .select("id")
+        .single();
+      if (criarError || !criado) {
+        return { error: `Não foi possível cadastrar o item "${linha.nome}". Tente novamente.` };
+      }
+      itemId = (criado as { id: string }).id;
+      novosPorNome.set(chave, itemId);
+    }
+
+    ajustes.push({ itemId, tamanho: linha.tamanho, delta: linha.quantidade });
+  }
+
+  return { ajustes };
+}
+
 export async function createEntrada(
   _prevState: EstoqueMovimentoFormState,
   formData: FormData,
@@ -150,12 +259,14 @@ export async function createEntrada(
     return { fieldErrors, values: raw };
   }
 
-  const ajustes = lerLinhasItens(formData, 1);
+  const supabase = createClient();
+  const resolvido = await resolverItensEntrada(supabase, formData, categoria);
+  if ("error" in resolvido) return { error: resolvido.error, values: raw };
+  const ajustes = resolvido.ajustes;
   if (ajustes.length === 0) {
     return { error: "Adicione pelo menos um item com tamanho e quantidade.", values: raw };
   }
 
-  const supabase = createClient();
   const calculo = await calcularAjustesEstoque(supabase, ajustes);
   if ("error" in calculo) return { error: calculo.error, values: raw };
 
