@@ -44,7 +44,7 @@ export default async function EditarItemEstoquePage({
           action={updateItem}
           categoria={categoria}
           itemId={item.id}
-          defaultValues={{ nome: item.nome, codigo: item.codigo ?? "" }}
+          defaultValues={{ nome: item.nome, codigo: item.codigo ?? "", mg: item.mg ?? "" }}
           tamanhosIniciais={tamanhosIniciais}
           submitLabel="Salvar alterações"
         />

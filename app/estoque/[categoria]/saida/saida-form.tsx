@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { ESTOQUE_DEPARTAMENTOS } from "@/lib/validation/schemas";
 import type { EstoqueCategoria, EstoqueItemRow } from "@/lib/supabase/types";
 import type { EstoqueMovimentoFormState } from "../actions";
-import { ItensMovimentoFields } from "../movimento-itens-fields";
+import { SaidaItensFields } from "../movimento-itens-fields";
 
 const initialState: EstoqueMovimentoFormState = {};
 
@@ -80,7 +80,7 @@ export function SaidaForm({
         </FieldGroup>
       </FormSection>
 
-      <ItensMovimentoFields itens={itens} tipo="saida" />
+      <SaidaItensFields itens={itens} categoria={categoria} />
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>

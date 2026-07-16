@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
+import { exemploUnidadesSection, labelNomeItem, labelUnidade, labelUnidadesSection, placeholderUnidade } from "@/lib/estoque/labels";
 import type { EstoqueCategoria } from "@/lib/supabase/types";
 import type { EstoqueItemFormState } from "../actions";
 
@@ -19,9 +20,16 @@ interface LinhaTamanho {
  * Linhas de tamanho/quantidade do item, dentro do próprio formulário — mesmo padrão das listas
  * dinâmicas de item já usadas em Solicitações (ver app/solicitacoes/solicitacao-form.tsx): cada
  * linha usa os MESMOS nomes de campo (itemTamanho/itemQuantidade); no servidor, lê-se todas as
- * ocorrências na mesma ordem (ver buildTamanhos em ../actions.ts).
+ * ocorrências na mesma ordem (ver buildTamanhos em ../actions.ts). No Médico, esse mesmo campo
+ * guarda unidades de medida (Caixa/Unidade/Pacote) em vez de tamanho de roupa — só o rótulo muda.
  */
-function TamanhosFields({ tamanhosIniciais }: { tamanhosIniciais: LinhaTamanho[] }) {
+function TamanhosFields({
+  categoria,
+  tamanhosIniciais,
+}: {
+  categoria: EstoqueCategoria;
+  tamanhosIniciais: LinhaTamanho[];
+}) {
   const [rows, setRows] = useState<LinhaTamanho[]>(() =>
     tamanhosIniciais.length > 0
       ? tamanhosIniciais
@@ -29,21 +37,19 @@ function TamanhosFields({ tamanhosIniciais }: { tamanhosIniciais: LinhaTamanho[]
   );
 
   return (
-    <FormSection title="Tamanhos e quantidades">
-      <p className="-mt-1 text-sm text-neutral-500">
-        Ex: P, M, G, Único... Adicione uma linha por tamanho/variação que esse item tem.
-      </p>
+    <FormSection title={labelUnidadesSection(categoria)}>
+      <p className="-mt-1 text-sm text-neutral-500">{exemploUnidadesSection(categoria)}</p>
       <div className="space-y-3">
         {rows.map((row) => (
           <div key={row.rowId} className="flex items-end gap-3">
             <div className="flex-1">
               <TextField
-                label="Tamanho"
+                label={labelUnidade(categoria)}
                 name="itemTamanho"
                 id={`itemTamanho-${row.rowId}`}
                 autoComplete="off"
                 defaultValue={row.tamanho}
-                placeholder="Ex: M"
+                placeholder={placeholderUnidade(categoria)}
               />
             </div>
             <div className="flex-1">
@@ -108,13 +114,13 @@ export function ItemForm({
       <FormSection title="Dados do item">
         <FieldGroup>
           <TextField
-            label="Nome do item"
+            label={labelNomeItem(categoria)}
             name="nome"
             defaultValue={values.nome}
             error={errors.nome}
             required
             autoComplete="off"
-            placeholder="Ex: Camiseta Polo"
+            placeholder={categoria === "medico" ? "Ex: Dipirona 500mg comprimido" : "Ex: Camiseta Polo"}
           />
           <TextField
             label="Código (opcional)"
@@ -124,10 +130,20 @@ export function ItemForm({
             autoComplete="off"
             placeholder="Ex: CP"
           />
+          {categoria === "medico" ? (
+            <TextField
+              label="Mg / dosagem (opcional)"
+              name="mg"
+              defaultValue={values.mg}
+              error={errors.mg}
+              autoComplete="off"
+              placeholder="Ex: 500mg — deixe em branco se não se aplica"
+            />
+          ) : null}
         </FieldGroup>
       </FormSection>
 
-      <TamanhosFields tamanhosIniciais={tamanhosIniciais} />
+      <TamanhosFields categoria={categoria} tamanhosIniciais={tamanhosIniciais} />
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>

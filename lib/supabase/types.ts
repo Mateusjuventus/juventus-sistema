@@ -370,12 +370,16 @@ export type EstoqueCategoria = "esportivo" | "medico";
  * cada tamanho/variação num objeto só (ex: {"P": 12, "M": 20, "Único": 5}) — o item inteiro é uma
  * linha só, não uma linha por tamanho. A quantidade só muda através de Entrada (soma) ou Saída
  * (subtrai); editar o item corrige nome/código/tamanhos diretamente, pra consertar um engano.
+ * No Médico, o mesmo campo `tamanhos` guarda as unidades de medida (ex: {"Caixa": 4, "Unidade": 10})
+ * em vez de tamanhos de roupa — só muda o rótulo mostrado na tela, o dado é o mesmo. `mg` é usado só
+ * pelo Médico (dosagem/concentração, ex: "500mg"), opcional e não usado no Esportivo.
  */
 export interface EstoqueItemRow {
   id: string;
   categoria: EstoqueCategoria;
   nome: string;
   codigo: string | null;
+  mg: string | null;
   tamanhos: Record<string, number>;
   created_by: string | null;
   created_at: string;

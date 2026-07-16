@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { parseCategoria } from "@/lib/estoque/categoria";
 import { totalItem } from "@/lib/estoque/estoque-ajustes";
+import { labelNomeItem, labelUnidadesSection } from "@/lib/estoque/labels";
 import { ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import type { EstoqueItemRow } from "@/lib/supabase/types";
 import { deleteItem } from "./actions";
@@ -38,6 +39,14 @@ export default async function EstoqueCategoriaPage({ params }: { params: { categ
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <a
+            href={`/estoque/${categoria}/relatorio/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+          >
+            Relatório PDF
+          </a>
           <Link href={`/estoque/${categoria}/historico`} className="btn-secondary">
             Histórico
           </Link>
@@ -60,8 +69,9 @@ export default async function EstoqueCategoriaPage({ params }: { params: { categ
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
-              <th className="px-4 py-3 font-semibold">Item</th>
-              <th className="px-4 py-3 font-semibold">Tamanhos / Quantidades</th>
+              <th className="px-4 py-3 font-semibold">{labelNomeItem(categoria)}</th>
+              {categoria === "medico" ? <th className="px-4 py-3 font-semibold">Mg</th> : null}
+              <th className="px-4 py-3 font-semibold">{labelUnidadesSection(categoria)}</th>
               <th className="px-4 py-3 text-right font-semibold">Total</th>
               <th className="px-4 py-3 text-right font-semibold">Ações</th>
             </tr>
@@ -69,7 +79,7 @@ export default async function EstoqueCategoriaPage({ params }: { params: { categ
           <tbody className="divide-y divide-neutral-100">
             {itens.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={categoria === "medico" ? 5 : 4} className="px-4 py-8 text-center text-neutral-400">
                   Nenhum item cadastrado ainda.
                 </td>
               </tr>
@@ -82,6 +92,9 @@ export default async function EstoqueCategoriaPage({ params }: { params: { categ
                       <p className="font-medium text-neutral-800">{item.nome}</p>
                       {item.codigo ? <p className="text-xs text-neutral-400">{item.codigo}</p> : null}
                     </td>
+                    {categoria === "medico" ? (
+                      <td className="px-4 py-3 text-neutral-600">{item.mg || "—"}</td>
+                    ) : null}
                     <td className="px-4 py-3">
                       {tamanhos.length === 0 ? (
                         <span className="text-neutral-400">—</span>

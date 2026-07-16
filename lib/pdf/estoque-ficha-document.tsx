@@ -226,7 +226,9 @@ export function EstoqueFichaDocument({
         <View style={styles.itensTable}>
           <View style={styles.itensHeaderRow}>
             <Text style={[styles.colDescricao, styles.colDivisor, sharedStyles.headerCell]}>Descrição</Text>
-            <Text style={[styles.colTamanho, styles.colDivisor, sharedStyles.headerCell]}>Tamanho</Text>
+            <Text style={[styles.colTamanho, styles.colDivisor, sharedStyles.headerCell]}>
+              {ficha.categoria === "medico" ? "Unidade" : "Tamanho"}
+            </Text>
             <Text style={[styles.colCodigo, styles.colDivisor, sharedStyles.headerCell]}>Código</Text>
             <Text style={[styles.colQtd, sharedStyles.headerCell]}>Qtd.</Text>
           </View>

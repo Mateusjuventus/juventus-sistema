@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { parseCategoria } from "@/lib/estoque/categoria";
+import { labelUnidade } from "@/lib/estoque/labels";
 import { ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import type { EstoqueSaidaItemRow, EstoqueSaidaRow } from "@/lib/supabase/types";
 
@@ -66,7 +67,7 @@ export default async function SaidaDetalhePage({
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
               <th className="px-4 py-3 font-semibold">Descrição</th>
-              <th className="px-4 py-3 font-semibold">Tamanho</th>
+              <th className="px-4 py-3 font-semibold">{labelUnidade(categoria)}</th>
               <th className="px-4 py-3 font-semibold">Código</th>
               <th className="px-4 py-3 text-right font-semibold">Qtd.</th>
             </tr>

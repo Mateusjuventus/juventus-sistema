@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { FieldGroup, FormSection, TextField } from "@/components/fields";
+import { FieldGroup, FormSection, SuggestionField, TextField } from "@/components/fields";
 import { labelNomeItem, labelUnidade, placeholderUnidade } from "@/lib/estoque/labels";
-import { ESTOQUE_ITEM_NOVO_VALUE } from "@/lib/validation/schemas";
 import type { EstoqueCategoria, EstoqueItemRow } from "@/lib/supabase/types";
 
 interface LinhaSaida {
@@ -112,35 +111,35 @@ export function SaidaItensFields({ itens, categoria }: { itens: EstoqueItemRow[]
 
 interface LinhaEntrada {
   rowId: string;
-  /** "" (nada escolhido ainda), o id de um item já cadastrado, ou ESTOQUE_ITEM_NOVO_VALUE. */
-  itemId: string;
+  nome: string;
 }
 
 /**
- * Linhas de item de uma Entrada — pra cada linha, a pessoa escolhe explicitamente "Item já
- * cadastrado" (um <select> com a lista atual, igual à Saída) ou "+ Cadastrar item novo" (revela os
- * campos de nome/código/mg pra cadastrar na hora). Mesmo padrão já usado em Staff Operacional
- * (NOVA_FUNCAO_VALUE) e em Financeiro (NOVA_CATEGORIA_GASTO_VALUE): um valor especial no próprio
- * select em vez de um campo de texto livre tentando adivinhar. No servidor, cada linha usa os
- * MESMOS nomes de campo (itemId/itemNome/itemCodigo/itemMg/itemTamanho/itemQuantidade); os campos
- * de item novo são lidos só quando itemId da linha é ESTOQUE_ITEM_NOVO_VALUE — ver
- * resolverItensEntrada em ./actions.ts. Por isso ficam sempre montados (como campo oculto quando a
- * linha não está em modo "item novo"), pra manter os índices alinhados entre as linhas.
+ * Linhas de item de uma Entrada — o item é digitado pelo nome (com sugestões dos itens já
+ * cadastrados naquela categoria, mas aceita qualquer texto novo). Se o nome digitado bater com um
+ * item que já existe (sem diferenciar maiúsculas/minúsculas), a entrada soma nesse item; se não
+ * bater com nenhum, o item é cadastrado automaticamente na hora de registrar a entrada — assim,
+ * conforme o produto chega, só precisa lançar a entrada, sem ter que cadastrar o item à parte
+ * antes. Ver resolverItensEntrada em ./actions.ts. No Médico, mostra também o campo "Mg" (dosagem),
+ * opcional, usado só quando o item precisa ser cadastrado nessa hora.
  */
 export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow[]; categoria: EstoqueCategoria }) {
-  const [rows, setRows] = useState<LinhaEntrada[]>(() => [{ rowId: crypto.randomUUID(), itemId: "" }]);
+  const [rows, setRows] = useState<LinhaEntrada[]>(() => [{ rowId: crypto.randomUUID(), nome: "" }]);
+  const nomesExistentes = itens.map((it) => it.nome);
 
   return (
     <FormSection title="Itens">
       <p className="-mt-1 text-sm text-neutral-500">
-        Pra cada item, escolha um já cadastrado ou &quot;+ Cadastrar item novo&quot;, e informe{" "}
-        {categoria === "medico" ? "a unidade" : "o tamanho"} e a quantidade que chegou.
+        Digite {categoria === "medico" ? "a descrição" : "o nome"} do item,{" "}
+        {categoria === "medico" ? "a unidade" : "o tamanho"} e a quantidade que chegou. Se o item ainda não
+        existir no catálogo, ele é cadastrado automaticamente ao registrar a entrada.
       </p>
       <div className="space-y-4">
         {rows.map((row, i) => {
-          const itemSelecionado = itens.find((it) => it.id === row.itemId);
-          const modoNovo = row.itemId === ESTOQUE_ITEM_NOVO_VALUE;
-          const tamanhosDisponiveis = Object.entries(itemSelecionado?.tamanhos ?? {});
+          const itemExistente = itens.find(
+            (it) => it.nome.trim().toLowerCase() === row.nome.trim().toLowerCase(),
+          );
+          const tamanhosDisponiveis = Object.entries(itemExistente?.tamanhos ?? {});
           return (
             <div key={row.rowId} className="rounded-md border border-neutral-200 p-4">
               <div className="mb-3 flex items-center justify-between">
@@ -156,65 +155,33 @@ export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow
                 ) : null}
               </div>
               <FieldGroup>
-                <div>
-                  <label htmlFor={`itemId-${row.rowId}`} className="field-label">
-                    Item<span className="text-red-700"> *</span>
-                  </label>
-                  <select
-                    id={`itemId-${row.rowId}`}
-                    name="itemId"
-                    className="field-input"
-                    value={row.itemId}
-                    onChange={(e) =>
-                      setRows((r) =>
-                        r.map((x) => (x.rowId === row.rowId ? { ...x, itemId: e.target.value } : x)),
-                      )
-                    }
-                  >
-                    <option value="">Selecione...</option>
-                    {itens.map((it) => (
-                      <option key={it.id} value={it.id}>
-                        {it.nome}
-                        {it.codigo ? ` (${it.codigo})` : ""}
-                      </option>
-                    ))}
-                    <option value={ESTOQUE_ITEM_NOVO_VALUE}>+ Cadastrar item novo</option>
-                  </select>
-                </div>
-                {modoNovo ? (
-                  <>
-                    <TextField
-                      label={labelNomeItem(categoria)}
-                      name="itemNome"
-                      id={`itemNome-${row.rowId}`}
-                      required
-                      autoComplete="off"
-                      placeholder={categoria === "medico" ? "Ex: Dipirona 500mg comprimido" : "Ex: Camiseta Polo"}
-                    />
-                    <TextField
-                      label="Código (opcional)"
-                      name="itemCodigo"
-                      id={`itemCodigo-${row.rowId}`}
-                      autoComplete="off"
-                      placeholder="Opcional"
-                    />
-                    {categoria === "medico" ? (
-                      <TextField
-                        label="Mg / dosagem (opcional)"
-                        name="itemMg"
-                        id={`itemMg-${row.rowId}`}
-                        autoComplete="off"
-                        placeholder="Ex: 500mg — opcional"
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    <input type="hidden" name="itemNome" value="" />
-                    <input type="hidden" name="itemCodigo" value="" />
-                    {categoria === "medico" ? <input type="hidden" name="itemMg" value="" /> : null}
-                  </>
-                )}
+                <SuggestionField
+                  label={labelNomeItem(categoria)}
+                  name="itemNome"
+                  id={`itemNome-${row.rowId}`}
+                  suggestions={nomesExistentes}
+                  placeholder={categoria === "medico" ? "Ex: Dipirona 500mg comprimido" : "Nome do item"}
+                  defaultValue={row.nome}
+                  onChange={(value) =>
+                    setRows((r) => r.map((x) => (x.rowId === row.rowId ? { ...x, nome: value } : x)))
+                  }
+                />
+                <TextField
+                  label="Código (só se for item novo)"
+                  name="itemCodigo"
+                  id={`itemCodigo-${row.rowId}`}
+                  autoComplete="off"
+                  placeholder="Opcional"
+                />
+                {categoria === "medico" ? (
+                  <TextField
+                    label="Mg / dosagem (só se for item novo)"
+                    name="itemMg"
+                    id={`itemMg-${row.rowId}`}
+                    autoComplete="off"
+                    placeholder="Ex: 500mg — opcional"
+                  />
+                ) : null}
                 <TextField
                   label={labelUnidade(categoria)}
                   name="itemTamanho"
@@ -232,15 +199,17 @@ export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow
                   placeholder="0"
                 />
               </FieldGroup>
-              {!modoNovo && tamanhosDisponiveis.length > 0 ? (
-                <p className="mt-2 text-xs text-neutral-400">
-                  Já em estoque: {tamanhosDisponiveis.map(([t, q]) => `${t}: ${q}`).join(" · ")}
-                </p>
-              ) : !modoNovo && itemSelecionado ? (
-                <p className="mt-2 text-xs text-neutral-400">Este item ainda não tem nenhuma quantidade cadastrada.</p>
-              ) : modoNovo ? (
-                <p className="mt-2 text-xs text-neutral-400">Este item será cadastrado no catálogo ao registrar a entrada.</p>
-              ) : null}
+              <p className="mt-2 text-xs text-neutral-400">
+                {itemExistente
+                  ? tamanhosDisponiveis.length > 0
+                    ? `Item já cadastrado. Já em estoque: ${tamanhosDisponiveis
+                        .map(([t, q]) => `${t}: ${q}`)
+                        .join(" · ")}`
+                    : "Item já cadastrado, ainda sem nenhuma quantidade."
+                  : row.nome.trim()
+                    ? "Item novo — será cadastrado automaticamente ao registrar a entrada."
+                    : null}
+              </p>
             </div>
           );
         })}
@@ -248,7 +217,7 @@ export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow
       <button
         type="button"
         className="btn-secondary mt-4"
-        onClick={() => setRows((r) => [...r, { rowId: crypto.randomUUID(), itemId: "" }])}
+        onClick={() => setRows((r) => [...r, { rowId: crypto.randomUUID(), nome: "" }])}
       >
         + Adicionar item
       </button>

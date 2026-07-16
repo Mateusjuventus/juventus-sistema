@@ -134,33 +134,47 @@ export function SelectField({
 export function SuggestionField({
   label,
   name,
+  id,
   defaultValue,
   required,
   error,
   suggestions,
+  placeholder,
+  onChange,
 }: {
   label: string;
   name: string;
+  /** Opcional — usar quando o mesmo `name` se repete em várias linhas de um formulário dinâmico,
+   * pra cada linha ter um `id`/`htmlFor`/`list` único (HTML não permite `id` duplicado na mesma
+   * página). Se não vier, usa `name` como antes. */
+  id?: string;
   defaultValue?: string;
   required?: boolean;
   error?: string;
   suggestions: readonly string[];
+  placeholder?: string;
+  /** Opcional — só é preciso quando algum outro campo do formulário depende do valor digitado (ex.:
+   * mostrar uma dica de "item já cadastrado" enquanto a pessoa digita). Precisa vir de um
+   * componente "use client", já que é um handler de evento. */
+  onChange?: (value: string) => void;
 }) {
-  const listId = `${name}-suggestions`;
+  const fieldId = id ?? name;
+  const listId = `${fieldId}-suggestions`;
   return (
     <div>
-      <label htmlFor={name} className="field-label">
+      <label htmlFor={fieldId} className="field-label">
         {label}
         {required ? <span className="text-red-700"> *</span> : null}
       </label>
       <input
-        id={name}
+        id={fieldId}
         name={name}
         list={listId}
         defaultValue={defaultValue ?? ""}
         required={required}
         className="field-input"
-        placeholder="Selecione ou digite outra opção"
+        placeholder={placeholder ?? "Selecione ou digite outra opção"}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
       />
       <datalist id={listId}>
         {suggestions.map((s) => (

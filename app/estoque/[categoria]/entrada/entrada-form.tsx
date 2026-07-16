@@ -5,7 +5,7 @@ import { FieldGroup, FormSection, TextAreaField, TextField } from "@/components/
 import { SubmitButton } from "@/components/submit-button";
 import type { EstoqueCategoria, EstoqueItemRow } from "@/lib/supabase/types";
 import type { EstoqueMovimentoFormState } from "../actions";
-import { ItensMovimentoFields } from "../movimento-itens-fields";
+import { EntradaItensFields } from "../movimento-itens-fields";
 
 const initialState: EstoqueMovimentoFormState = {};
 
@@ -65,7 +65,7 @@ export function EntradaForm({
         </FieldGroup>
       </FormSection>
 
-      <ItensMovimentoFields itens={itens} tipo="entrada" />
+      <EntradaItensFields itens={itens} categoria={categoria} />
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
