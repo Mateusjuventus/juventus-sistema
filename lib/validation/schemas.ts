@@ -211,6 +211,12 @@ export const SOLICITACAO_STATUS = [
   { value: "concluida", label: "Concluída" },
 ] as const;
 
+/** Tipo de conta bancária, usado junto com (ou no lugar de) a Chave PIX em Pagamento/Reembolso. */
+export const TIPO_CONTA_BANCARIA = [
+  { value: "corrente", label: "Conta Corrente" },
+  { value: "poupanca", label: "Conta Poupança" },
+] as const;
+
 export const solicitacaoSchema = z
   .object({
     tipo: z.enum(["compra", "pagamento", "exame_medico", "reembolso", "passagem_aerea"], {
@@ -227,6 +233,13 @@ export const solicitacaoSchema = z
     valor: z.coerce.number().nonnegative().optional().nullable(),
     chavePix: z.string().optional().or(z.literal("")),
     chavePixTipo: z.enum(["cpf", "cnpj", "email", "telefone"]).optional().or(z.literal("")),
+    // Dados bancários — sempre opcionais (em Pagamento/Reembolso, a pessoa preenche a Chave PIX
+    // e/ou os dados bancários, o que for mais conveniente).
+    banco: z.string().optional().or(z.literal("")),
+    agencia: z.string().optional().or(z.literal("")),
+    conta: z.string().optional().or(z.literal("")),
+    tipoConta: z.enum(["corrente", "poupanca"]).optional().or(z.literal("")),
+    titularConta: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.tipo !== "reembolso" || Boolean(data.chavePix?.trim()), {
     message: "Chave PIX é obrigatória em Reembolso",

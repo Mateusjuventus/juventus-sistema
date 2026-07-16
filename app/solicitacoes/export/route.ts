@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
-import { SOLICITACAO_TIPOS, SOLICITACAO_STATUS, STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
+import { SOLICITACAO_TIPOS, SOLICITACAO_STATUS, STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import type { SolicitacaoItemRow, SolicitacaoRow, SolicitacaoTipo, SolicitacaoStatus } from "@/lib/supabase/types";
 
 function formatData(data: string | null): string {
@@ -15,6 +15,7 @@ function formatData(data: string | null): string {
 const TIPO_LABEL = Object.fromEntries(SOLICITACAO_TIPOS.map((t) => [t.value, t.label]));
 const STATUS_LABEL = Object.fromEntries(SOLICITACAO_STATUS.map((s) => [s.value, s.label]));
 const CHAVE_PIX_TIPO_LABEL = Object.fromEntries(STAFF_CHAVE_PIX_TIPOS.map((t) => [t.value, t.label]));
+const TIPO_CONTA_LABEL = Object.fromEntries(TIPO_CONTA_BANCARIA.map((t) => [t.value, t.label]));
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -41,6 +42,11 @@ export async function GET(request: NextRequest) {
     Valor: s.valor ?? "",
     "Chave PIX": s.chave_pix ?? "",
     "Tipo de Chave PIX": s.chave_pix_tipo ? CHAVE_PIX_TIPO_LABEL[s.chave_pix_tipo] ?? "" : "",
+    Banco: s.banco ?? "",
+    Agência: s.agencia ?? "",
+    Conta: s.conta ?? "",
+    "Tipo de Conta": s.tipo_conta ? TIPO_CONTA_LABEL[s.tipo_conta] ?? "" : "",
+    "Titular da Conta": s.titular_conta ?? "",
     Status: STATUS_LABEL[s.status] ?? s.status,
   }));
 

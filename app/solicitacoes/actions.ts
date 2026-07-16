@@ -29,6 +29,11 @@ function parseForm(formData: FormData) {
     valor: String(formData.get("valor") ?? "") || undefined,
     chavePix: String(formData.get("chavePix") ?? ""),
     chavePixTipo: String(formData.get("chavePixTipo") ?? ""),
+    banco: String(formData.get("banco") ?? ""),
+    agencia: String(formData.get("agencia") ?? ""),
+    conta: String(formData.get("conta") ?? ""),
+    tipoConta: String(formData.get("tipoConta") ?? ""),
+    titularConta: String(formData.get("titularConta") ?? ""),
   };
 
   const result = solicitacaoSchema.safeParse(raw);
@@ -167,6 +172,11 @@ export async function createSolicitacao(
       valor: null,
       chave_pix: data.chavePix || null,
       chave_pix_tipo: data.chavePixTipo || null,
+      banco: data.banco || null,
+      agencia: data.agencia || null,
+      conta: data.conta || null,
+      tipo_conta: data.tipoConta || null,
+      titular_conta: data.titularConta || null,
     })
     .select("id")
     .single();
@@ -216,6 +226,11 @@ export async function updateSolicitacao(
       prazo_sugerido: data.prazoSugerido || null,
       chave_pix: data.chavePix || null,
       chave_pix_tipo: data.chavePixTipo || null,
+      banco: data.banco || null,
+      agencia: data.agencia || null,
+      conta: data.conta || null,
+      tipo_conta: data.tipoConta || null,
+      titular_conta: data.titularConta || null,
     })
     .eq("id", id);
 

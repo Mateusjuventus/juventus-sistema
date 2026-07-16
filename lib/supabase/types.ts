@@ -297,11 +297,14 @@ export interface ChecklistJogoItemComJogoRow extends ChecklistJogoItemRow {
 
 export type SolicitacaoTipo = "compra" | "pagamento" | "exame_medico" | "reembolso" | "passagem_aerea";
 export type SolicitacaoStatus = "pendente" | "aprovada" | "recusada" | "concluida";
+export type SolicitacaoTipoConta = "corrente" | "poupanca";
 
 /**
  * Solicitação formal (Compra, Pagamento, Exame Médico, Reembolso ou Passagem Aérea), gerada no
  * modelo de PDF do clube. `valor` só é usado em Pagamento/Reembolso, e é calculado automaticamente
- * como a soma dos itens (ver SolicitacaoItemRow); `chave_pix`/`chave_pix_tipo` só em Reembolso.
+ * como a soma dos itens (ver SolicitacaoItemRow); `chave_pix`/`chave_pix_tipo` e os dados bancários
+ * (`banco`/`agencia`/`conta`/`tipo_conta`/`titular_conta`) são usados em Pagamento e Reembolso —
+ * ambos opcionais, a pessoa preenche o que for mais conveniente pro caso.
  * `passageiro`/`origem`/`destino`/`data_voo`/`horario_voo` não são mais preenchidos (ficaram em
  * solicitacao_itens, já que uma Passagem Aérea pode ter vários passageiros) — as colunas continuam
  * aqui só por compatibilidade com registros antigos.
@@ -317,6 +320,11 @@ export interface SolicitacaoRow {
   valor: number | null;
   chave_pix: string | null;
   chave_pix_tipo: StaffChavePixTipo | null;
+  banco: string | null;
+  agencia: string | null;
+  conta: string | null;
+  tipo_conta: SolicitacaoTipoConta | null;
+  titular_conta: string | null;
   passageiro: string | null;
   origem: string | null;
   destino: string | null;

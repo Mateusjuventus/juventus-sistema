@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
+import { STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import { SolicitacaoDocument, type SolicitacaoPdfItem } from "@/lib/pdf/solicitacao-document";
 import type { SolicitacaoItemRow, SolicitacaoRow } from "@/lib/supabase/types";
 
@@ -48,6 +48,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const chavePixTipoLabel = s.chave_pix_tipo
     ? STAFF_CHAVE_PIX_TIPOS.find((t) => t.value === s.chave_pix_tipo)?.label ?? null
     : null;
+  const tipoContaLabel = s.tipo_conta
+    ? TIPO_CONTA_BANCARIA.find((t) => t.value === s.tipo_conta)?.label ?? null
+    : null;
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
@@ -65,6 +68,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
         valor: s.valor,
         chavePix: s.chave_pix,
         chavePixTipoLabel,
+        banco: s.banco,
+        agencia: s.agencia,
+        conta: s.conta,
+        tipoContaLabel,
+        titularConta: s.titular_conta,
       }}
       itens={itens}
     />,

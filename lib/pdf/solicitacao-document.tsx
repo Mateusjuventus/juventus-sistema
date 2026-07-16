@@ -154,6 +154,11 @@ export interface SolicitacaoPdfData {
   valor: number | null;
   chavePix: string | null;
   chavePixTipoLabel: string | null;
+  banco: string | null;
+  agencia: string | null;
+  conta: string | null;
+  tipoContaLabel: string | null;
+  titularConta: string | null;
 }
 
 function formatMoeda(valor: number): string {
@@ -195,11 +200,21 @@ export function SolicitacaoDocument({
       value: formatMoeda(solicitacao.valor),
     });
   }
-  if (solicitacao.tipo === "reembolso") {
+  const mostrarDadosPagamento = solicitacao.tipo === "reembolso" || solicitacao.tipo === "pagamento";
+  if (mostrarDadosPagamento && solicitacao.chavePix) {
     linhas.push({
       label: "Chave PIX",
-      value: `${solicitacao.chavePix ?? ""}${solicitacao.chavePixTipoLabel ? ` (${solicitacao.chavePixTipoLabel})` : ""}`,
+      value: `${solicitacao.chavePix}${solicitacao.chavePixTipoLabel ? ` (${solicitacao.chavePixTipoLabel})` : ""}`,
     });
+  }
+  if (mostrarDadosPagamento && (solicitacao.banco || solicitacao.agencia || solicitacao.conta)) {
+    const partes = [
+      solicitacao.banco,
+      solicitacao.agencia ? `Ag. ${solicitacao.agencia}` : null,
+      solicitacao.conta ? `Conta ${solicitacao.conta}${solicitacao.tipoContaLabel ? ` (${solicitacao.tipoContaLabel})` : ""}` : null,
+      solicitacao.titularConta ? `Titular: ${solicitacao.titularConta}` : null,
+    ].filter(Boolean);
+    linhas.push({ label: "Dados Bancários", value: partes.join(" · ") });
   }
   if (solicitacao.descricaoNecessidade) {
     linhas.push({

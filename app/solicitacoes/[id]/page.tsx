@@ -46,6 +46,11 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
     prazoSugerido: s.prazo_sugerido ?? "",
     chavePix: s.chave_pix ?? "",
     chavePixTipo: s.chave_pix_tipo ?? "",
+    banco: s.banco ?? "",
+    agencia: s.agencia ?? "",
+    conta: s.conta ?? "",
+    tipoConta: s.tipo_conta ?? "",
+    titularConta: s.titular_conta ?? "",
   };
 
   const temItens = s.tipo === "compra" || s.tipo === "pagamento" || s.tipo === "reembolso" || s.tipo === "passagem_aerea";

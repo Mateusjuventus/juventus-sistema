@@ -5,10 +5,53 @@ import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
-import { SOLICITACAO_TIPOS, STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
+import { SOLICITACAO_TIPOS, STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import type { SolicitacaoFormState } from "./actions";
 
 const initialState: SolicitacaoFormState = {};
+
+/**
+ * Seletor do tipo de solicitação — fica sempre visível como um grupo de botões (em vez de um
+ * <select> escondido dentro de uma lista suspensa), com as opções numeradas e fixas. Clicar num
+ * botão seleciona o tipo (via input escondido, pra ir junto no FormData) e revela os campos certos
+ * logo abaixo.
+ */
+function TipoSolicitacaoField({
+  tipo,
+  setTipo,
+  error,
+}: {
+  tipo: string;
+  setTipo: (value: string) => void;
+  error?: string;
+}) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="field-label">
+        Tipo de solicitação
+        <span className="text-red-700"> *</span>
+      </label>
+      <input type="hidden" name="tipo" value={tipo} />
+      <div className="flex flex-wrap gap-2">
+        {SOLICITACAO_TIPOS.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => setTipo(t.value)}
+            className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+              tipo === t.value
+                ? "border-grena bg-grena text-white"
+                : "border-neutral-300 bg-white text-neutral-700 hover:border-grena hover:text-grena"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {error ? <p className="field-error">{error}</p> : null}
+    </div>
+  );
+}
 
 /**
  * Linhas de item da Compra, dentro do próprio formulário — dá pra adicionar/remover linhas antes
@@ -183,20 +226,7 @@ export function SolicitacaoForm({
       {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados da solicitação">
         <FieldGroup>
-          <SelectField
-            label="Tipo de solicitação"
-            name="tipo"
-            required
-            defaultValue={values.tipo ?? "compra"}
-            error={errors.tipo}
-            onChange={setTipo}
-          >
-            {SOLICITACAO_TIPOS.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </SelectField>
+          <TipoSolicitacaoField tipo={tipo} setTipo={setTipo} error={errors.tipo} />
           <TextField
             label="Data"
             name="dataSolicitacao"
@@ -226,30 +256,6 @@ export function SolicitacaoForm({
             defaultValue={values.prazoSugerido}
             error={errors.prazoSugerido}
           />
-          {tipo === "reembolso" ? (
-            <>
-              <TextField
-                label="Chave PIX"
-                name="chavePix"
-                required
-                defaultValue={values.chavePix}
-                error={errors.chavePix}
-              />
-              <SelectField
-                label="Tipo de chave PIX"
-                name="chavePixTipo"
-                defaultValue={values.chavePixTipo}
-                error={errors.chavePixTipo}
-              >
-                <option value="">Selecione</option>
-                {STAFF_CHAVE_PIX_TIPOS.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </SelectField>
-            </>
-          ) : null}
           <div className="sm:col-span-2">
             <TextAreaField
               label={tipo === "passagem_aerea" ? "Observações" : "Descrição da necessidade"}
@@ -262,6 +268,62 @@ export function SolicitacaoForm({
           </div>
         </FieldGroup>
       </FormSection>
+
+      {tipo === "pagamento" || tipo === "reembolso" ? (
+        <FormSection title="Chave PIX / Dados bancários">
+          <p className="-mt-1 text-sm text-neutral-500">
+            {tipo === "reembolso"
+              ? "Preencha a Chave PIX (obrigatória) e, se preferir, também os dados bancários."
+              : "Preencha a Chave PIX e/ou os dados bancários — o que for mais conveniente pra esse pagamento."}
+          </p>
+          <FieldGroup>
+            <TextField
+              label="Chave PIX"
+              name="chavePix"
+              required={tipo === "reembolso"}
+              defaultValue={values.chavePix}
+              error={errors.chavePix}
+            />
+            <SelectField
+              label="Tipo de chave PIX"
+              name="chavePixTipo"
+              defaultValue={values.chavePixTipo}
+              error={errors.chavePixTipo}
+            >
+              <option value="">Selecione</option>
+              {STAFF_CHAVE_PIX_TIPOS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </SelectField>
+            <TextField label="Banco" name="banco" defaultValue={values.banco} error={errors.banco} />
+            <TextField label="Agência" name="agencia" defaultValue={values.agencia} error={errors.agencia} />
+            <TextField label="Conta" name="conta" defaultValue={values.conta} error={errors.conta} />
+            <SelectField
+              label="Tipo de conta"
+              name="tipoConta"
+              defaultValue={values.tipoConta}
+              error={errors.tipoConta}
+            >
+              <option value="">Selecione</option>
+              {TIPO_CONTA_BANCARIA.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </SelectField>
+            <div className="sm:col-span-2">
+              <TextField
+                label="Titular da conta (se diferente do solicitante)"
+                name="titularConta"
+                defaultValue={values.titularConta}
+                error={errors.titularConta}
+              />
+            </div>
+          </FieldGroup>
+        </FormSection>
+      ) : null}
 
       {tipo === "compra" ? <ItensCompraFields /> : null}
       {tipo === "pagamento" || tipo === "reembolso" ? <ItensPagamentoReembolsoFields tipo={tipo} /> : null}
