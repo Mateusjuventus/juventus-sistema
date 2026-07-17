@@ -155,7 +155,7 @@ export async function atualizarModulos(
   const modulos = parseModulos(formData, role);
 
   const { error } = await admin.from("perfis").update({ modulos_permitidos: modulos }).eq("id", id);
-  if (error) return { error: "Não foi possível salvar os módulos. Tente novamente." };
+  if (error) return { error: `Não foi possível salvar os módulos. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");
   return { success: "Módulos salvos." };
@@ -183,7 +183,7 @@ export async function atualizarDepartamentos(
     .from("perfis")
     .update({ departamentos_permitidos: departamentos })
     .eq("id", id);
-  if (error) return { error: "Não foi possível salvar os departamentos. Tente novamente." };
+  if (error) return { error: `Não foi possível salvar os departamentos. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");
   return { success: "Departamentos salvos." };
@@ -208,7 +208,7 @@ export async function atualizarCategoriasTarefas(
     .from("perfis")
     .update({ tarefas_categorias_visiveis: tarefasCategorias })
     .eq("id", id);
-  if (error) return { error: "Não foi possível salvar as categorias. Tente novamente." };
+  if (error) return { error: `Não foi possível salvar as categorias. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");
   return { success: "Categorias salvas." };
@@ -236,8 +236,34 @@ export async function atualizarEstoqueCategorias(
     .from("perfis")
     .update({ estoque_categorias_permitidas: estoqueCategorias })
     .eq("id", id);
-  if (error) return { error: "Não foi possível salvar as ramificações de estoque. Tente novamente." };
+  if (error)
+    return { error: `Não foi possível salvar as ramificações de estoque. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");
   return { success: "Ramificações de estoque salvas." };
+}
+
+/**
+ * Redefine a senha de um usuário existente — pra quando ele perde/esquece e não tem como recuperar
+ * sozinho (este sistema não usa recuperação por e-mail). Só master pode chamar. O master define uma
+ * senha provisória nova aqui e repassa pra pessoa por fora do sistema (WhatsApp etc.), do mesmo
+ * jeito que na criação do usuário — ela consegue trocar de novo depois de entrar.
+ */
+export async function redefinirSenha(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  const novaSenha = String(formData.get("novaSenha") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+  if (novaSenha.length < 6) return { error: "A senha precisa ter pelo menos 6 caracteres." };
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(id, { password: novaSenha });
+  if (error) return { error: `Não foi possível redefinir a senha. Tente novamente. (${error.message})` };
+
+  return { success: "Senha redefinida. Já pode passar a nova senha pra pessoa." };
 }
