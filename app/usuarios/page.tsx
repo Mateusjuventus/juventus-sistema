@@ -14,8 +14,10 @@ import {
   atualizarEstoqueCategorias,
   atualizarModulos,
   atualizarPapel,
+  redefinirSenha,
 } from "./actions";
 import { PermissaoCheckboxesForm } from "@/components/permissao-checkboxes-form";
+import { RedefinirSenhaForm } from "@/components/redefinir-senha-form";
 import { UsuarioForm } from "./usuario-form";
 
 function formatDataHora(iso: string): string {
@@ -94,6 +96,17 @@ export default async function UsuariosPage() {
                   )}
                 </div>
               </div>
+
+              <details className="border-t border-neutral-100 pt-3">
+                <summary className="cursor-pointer select-none text-sm font-medium text-grena">
+                  Redefinir senha
+                </summary>
+                <p className="-mt-0.5 mb-2 mt-2 text-xs text-neutral-400">
+                  Pra quando essa pessoa perde ou esquece a senha — defina uma nova provisória
+                  aqui e repasse pra ela por fora do sistema (WhatsApp etc.).
+                </p>
+                <RedefinirSenhaForm id={perfil.id} action={redefinirSenha} />
+              </details>
 
               <details className="border-t border-neutral-100 pt-3">
                 <summary className="cursor-pointer select-none text-sm font-medium text-grena">

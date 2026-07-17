@@ -62,96 +62,108 @@ export function UsuarioForm() {
           </SelectField>
         </FieldGroup>
 
-        {role === "master" ? (
-          <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
-            Papel Master já dá acesso completo a todos os departamentos e módulos — não precisa
-            marcar nada abaixo.
+        <details className="border-t border-neutral-100 pt-3">
+          <summary className="cursor-pointer select-none text-sm font-medium text-grena">
+            Exibir permissões
+          </summary>
+          <p className="-mt-0.5 mb-3 text-xs text-neutral-400">
+            Por padrão vem tudo liberado. Feche esta seção sem mexer se não quiser restringir nada
+            agora — dá pra ajustar depois na tela de Usuários.
           </p>
-        ) : (
-          <>
-            <div>
-              <p className="field-label">Departamentos liberados</p>
-              <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {DEPARTAMENTOS.map((dep) => (
-                  <label key={dep.chave} className="flex items-center gap-2 text-sm text-neutral-700">
-                    <input
-                      type="checkbox"
-                      name="departamentos"
-                      value={dep.chave}
-                      defaultChecked
-                      className={CHECKBOX_CLASS}
-                    />
-                    {dep.label}
-                  </label>
-                ))}
-              </div>
-            </div>
 
-            <div>
-              <p className="field-label">Módulos liberados (Futebol Profissional)</p>
-              <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {MODULOS.map((modulo) => (
-                  <label key={modulo.chave} className="flex items-center gap-2 text-sm text-neutral-700">
-                    <input
-                      type="checkbox"
-                      name="modulos"
-                      value={modulo.chave}
-                      defaultChecked
-                      onChange={(e) => alternarModulo(modulo.chave, e.target.checked)}
-                      className={CHECKBOX_CLASS}
-                    />
-                    {modulo.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {modulosMarcados.includes("estoque") ? (
-              <div className="ml-4 border-l-2 border-neutral-100 pl-4">
-                <p className="field-label">Estoque: ramificações liberadas</p>
-                <p className="-mt-0.5 text-xs text-neutral-400">
-                  Desmarque uma se essa pessoa não deve ver aquele estoque (ex.: só Médico).
-                </p>
-                <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {ESTOQUE_CATEGORIAS.map((cat) => (
-                    <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
-                      <input
-                        type="checkbox"
-                        name="estoqueCategorias"
-                        value={cat.value}
-                        defaultChecked
-                        className={CHECKBOX_CLASS}
-                      />
-                      {cat.label}
-                    </label>
-                  ))}
+          <div className="space-y-4">
+            {role === "master" ? (
+              <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+                Papel Master já dá acesso completo a todos os departamentos e módulos — não precisa
+                marcar nada abaixo.
+              </p>
+            ) : (
+              <>
+                <div>
+                  <p className="field-label">Departamentos liberados</p>
+                  <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {DEPARTAMENTOS.map((dep) => (
+                      <label key={dep.chave} className="flex items-center gap-2 text-sm text-neutral-700">
+                        <input
+                          type="checkbox"
+                          name="departamentos"
+                          value={dep.chave}
+                          defaultChecked
+                          className={CHECKBOX_CLASS}
+                        />
+                        {dep.label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : null}
-          </>
-        )}
 
-        <div>
-          <p className="field-label">Categorias de Tarefas visíveis</p>
-          <p className="-mt-0.5 text-xs text-neutral-400">
-            Controla só quais abas aparecem pra essa pessoa em &quot;Tarefas&quot; — a lista
-            continua compartilhada com todo mundo.
-          </p>
-          <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {TAREFA_CATEGORIAS.map((cat) => (
-              <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
-                <input
-                  type="checkbox"
-                  name="tarefasCategorias"
-                  value={cat.value}
-                  defaultChecked
-                  className={CHECKBOX_CLASS}
-                />
-                {cat.label}
-              </label>
-            ))}
+                <div>
+                  <p className="field-label">Módulos liberados (Futebol Profissional)</p>
+                  <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {MODULOS.map((modulo) => (
+                      <label key={modulo.chave} className="flex items-center gap-2 text-sm text-neutral-700">
+                        <input
+                          type="checkbox"
+                          name="modulos"
+                          value={modulo.chave}
+                          defaultChecked
+                          onChange={(e) => alternarModulo(modulo.chave, e.target.checked)}
+                          className={CHECKBOX_CLASS}
+                        />
+                        {modulo.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {modulosMarcados.includes("estoque") ? (
+                  <div className="ml-4 border-l-2 border-neutral-100 pl-4">
+                    <p className="field-label">Estoque: ramificações liberadas</p>
+                    <p className="-mt-0.5 text-xs text-neutral-400">
+                      Desmarque uma se essa pessoa não deve ver aquele estoque (ex.: só Médico).
+                    </p>
+                    <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {ESTOQUE_CATEGORIAS.map((cat) => (
+                        <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                          <input
+                            type="checkbox"
+                            name="estoqueCategorias"
+                            value={cat.value}
+                            defaultChecked
+                            className={CHECKBOX_CLASS}
+                          />
+                          {cat.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            )}
+
+            <div>
+              <p className="field-label">Categorias de Tarefas visíveis</p>
+              <p className="-mt-0.5 text-xs text-neutral-400">
+                Controla só quais abas aparecem pra essa pessoa em &quot;Tarefas&quot; — a lista
+                continua compartilhada com todo mundo.
+              </p>
+              <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {TAREFA_CATEGORIAS.map((cat) => (
+                  <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                    <input
+                      type="checkbox"
+                      name="tarefasCategorias"
+                      value={cat.value}
+                      defaultChecked
+                      className={CHECKBOX_CLASS}
+                    />
+                    {cat.label}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        </details>
       </FormSection>
 
       {state.error ? (
