@@ -46,7 +46,7 @@ export default async function UsuariosPage() {
         ← Voltar
       </Link>
       <PageHeader title="Usuários" />
-      <p className="-mt-4 text-center text-sm text-neutral-500">
+      <p className="mt-1 text-center text-sm text-neutral-500">
         Só quem é <strong>master</strong> pode excluir Entrada/Saída do Estoque e acessar esta tela.
       </p>
 

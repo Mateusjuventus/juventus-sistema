@@ -28,7 +28,7 @@ export default async function EstoquePage() {
         ← Voltar
       </Link>
       <PageHeader title="Estoque" />
-      <p className="-mt-4 text-center text-sm text-neutral-500">
+      <p className="mt-1 text-center text-sm text-neutral-500">
         Escolha o estoque — Esportivo e Médico são controlados separadamente.
       </p>
 
