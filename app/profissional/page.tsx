@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { isMaster } from "@/lib/auth/role";
+import { isMaster, getModulosPermitidos } from "@/lib/auth/role";
 import type { JogoRow } from "@/lib/supabase/types";
 
 const EM_BREVE: string[] = [];
@@ -143,6 +143,9 @@ type CartaoModulo = {
   corBarra: string;
   corBg: string;
   corIcone: string;
+  /** Chave do módulo (ver lib/auth/modulos.ts) — quando presente, o cartão só aparece se o
+   * usuário logado tiver esse módulo liberado. Ausente = sempre aparece (ex: Usuários). */
+  moduloChave?: string;
 };
 
 /** Cartão padrão de módulo (ícone + título + descrição) — usado tanto pelos itens de CADASTROS
@@ -175,6 +178,7 @@ export default async function ProfissionalPage() {
     { count: totalSolicitacoesPendentesCount },
     totalEstoqueItens,
     master,
+    modulosPermitidos,
   ] = await Promise.all([
     contarLinhas(supabase, "atletas"),
     contarLinhas(supabase, "comissao_tecnica"),
@@ -190,7 +194,9 @@ export default async function ProfissionalPage() {
     supabase.from("solicitacoes").select("*", { count: "exact", head: true }).eq("status", "pendente"),
     contarLinhas(supabase, "estoque_itens"),
     isMaster(supabase),
+    getModulosPermitidos(supabase),
   ]);
+  const temModulo = (chave: string) => (modulosPermitidos as string[]).includes(chave);
   const totalStaff = totalStaffCount ?? 0;
   const totalSolicitacoesPendentes = totalSolicitacoesPendentesCount ?? 0;
 
@@ -229,7 +235,7 @@ export default async function ProfissionalPage() {
     ? [juventusLogoCard, adversarioLogoCard]
     : [adversarioLogoCard, juventusLogoCard];
 
-  const CADASTROS: CartaoModulo[] = [
+  let CADASTROS: CartaoModulo[] = [
     {
       href: "/atletas",
       titulo: "Atletas",
@@ -238,6 +244,7 @@ export default async function ProfissionalPage() {
       corBarra: "bg-grena",
       corBg: "bg-grena/10",
       corIcone: "text-grena",
+      moduloChave: "atletas",
     },
     {
       href: "/comissao-tecnica",
@@ -247,6 +254,7 @@ export default async function ProfissionalPage() {
       corBarra: "bg-emerald-600",
       corBg: "bg-emerald-50",
       corIcone: "text-emerald-600",
+      moduloChave: "comissao_tecnica",
     },
     {
       href: "/solicitacoes",
@@ -259,6 +267,7 @@ export default async function ProfissionalPage() {
       corBarra: "bg-purple-600",
       corBg: "bg-purple-50",
       corIcone: "text-purple-600",
+      moduloChave: "solicitacoes",
     },
     {
       // Um módulo só, mas com dois estoques totalmente separados (Esportivo e Médico) dentro dele
@@ -273,8 +282,14 @@ export default async function ProfissionalPage() {
       corBarra: "bg-teal-600",
       corBg: "bg-teal-50",
       corIcone: "text-teal-600",
+      moduloChave: "estoque",
     },
   ];
+
+  // Esconde o cartão de qualquer módulo que o usuário logado não tenha liberado (ver
+  // lib/auth/modulos.ts). O bloqueio de verdade é no middleware; isto é só pra não mostrar um
+  // atalho que vai barrar a pessoa ao clicar.
+  CADASTROS = CADASTROS.filter((item) => !item.moduloChave || temModulo(item.moduloChave));
 
   // Só quem é master vê o cartão de Usuários — é onde se cadastra/gerencia outras contas.
   if (master) {
@@ -335,37 +350,40 @@ export default async function ProfissionalPage() {
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Jogos / Competições vem primeiro agora, a pedido do usuário. */}
-        <Link
-          href="/jogos"
-          className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-        >
-          <span className="absolute inset-x-0 top-0 h-1 bg-red-700" />
-          <SetaCartao />
-          <IconBadge icone={IconJogos} corBg="bg-red-50" corIcone="text-red-700" />
-          <h2 className="text-lg font-bold text-grena-escuro">Jogos / Competições</h2>
-          {proximoJogo ? (
-            <>
-              <div className="flex items-center gap-3">
-                {logoEsquerda}
-                <span className="text-sm font-bold text-neutral-300">×</span>
-                {logoDireita}
-              </div>
-              <p className="-mt-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
-                {proximoJogo.competicao}
-              </p>
-              <p className="-mt-1 text-sm font-medium text-neutral-500">
-                {formatData(proximoJogo.data_jogo)}
-                {formatHorario(proximoJogo.horario) ? ` · ${formatHorario(proximoJogo.horario)}` : ""}
-              </p>
-              {proximoJogo.local_estadio ? (
-                <p className="-mt-1 text-xs text-neutral-400">{proximoJogo.local_estadio}</p>
-              ) : null}
-            </>
-          ) : (
-            <p className="text-sm font-medium text-neutral-500">Nenhum jogo agendado</p>
-          )}
-        </Link>
+        {/* Jogos / Competições vem primeiro agora, a pedido do usuário. Só aparece pra quem tem
+            o módulo "jogos" liberado (ver lib/auth/modulos.ts). */}
+        {temModulo("jogos") ? (
+          <Link
+            href="/jogos"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-red-700" />
+            <SetaCartao />
+            <IconBadge icone={IconJogos} corBg="bg-red-50" corIcone="text-red-700" />
+            <h2 className="text-lg font-bold text-grena-escuro">Jogos / Competições</h2>
+            {proximoJogo ? (
+              <>
+                <div className="flex items-center gap-3">
+                  {logoEsquerda}
+                  <span className="text-sm font-bold text-neutral-300">×</span>
+                  {logoDireita}
+                </div>
+                <p className="-mt-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
+                  {proximoJogo.competicao}
+                </p>
+                <p className="-mt-1 text-sm font-medium text-neutral-500">
+                  {formatData(proximoJogo.data_jogo)}
+                  {formatHorario(proximoJogo.horario) ? ` · ${formatHorario(proximoJogo.horario)}` : ""}
+                </p>
+                {proximoJogo.local_estadio ? (
+                  <p className="-mt-1 text-xs text-neutral-400">{proximoJogo.local_estadio}</p>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-sm font-medium text-neutral-500">Nenhum jogo agendado</p>
+            )}
+          </Link>
+        ) : null}
 
         {CADASTROS.map((item) => (
           <CartaoCadastro key={item.href} item={item} />
@@ -373,22 +391,25 @@ export default async function ProfissionalPage() {
 
         {/* Staff Operacional fica sozinho na segunda linha — é o cartão mais simples (só o
             número de ativos), então sobra menos espaço vazio nessa linha do que sobraria com
-            Jogos (que tem bem mais conteúdo). */}
-        <Link
-          href="/staff-operacional"
-          className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-        >
-          <span className="absolute inset-x-0 top-0 h-1 bg-amber-600" />
-          <SetaCartao />
-          <IconBadge icone={IconStaff} corBg="bg-amber-50" corIcone="text-amber-700" />
-          <h2 className="text-lg font-bold text-grena-escuro">Staff Operacional</h2>
-          <p className="text-sm font-medium text-neutral-500">
-            {totalStaff} ativo{totalStaff === 1 ? "" : "s"}
-          </p>
-        </Link>
+            Jogos (que tem bem mais conteúdo). Só aparece pra quem tem o módulo liberado. */}
+        {temModulo("staff_operacional") ? (
+          <Link
+            href="/staff-operacional"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-amber-600" />
+            <SetaCartao />
+            <IconBadge icone={IconStaff} corBg="bg-amber-50" corIcone="text-amber-700" />
+            <h2 className="text-lg font-bold text-grena-escuro">Staff Operacional</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalStaff} ativo{totalStaff === 1 ? "" : "s"}
+            </p>
+          </Link>
+        ) : null}
 
-        {/* Prestação de Contas agora fica por último, a pedido do usuário. */}
-        <CartaoCadastro item={financeiroCard} />
+        {/* Prestação de Contas agora fica por último, a pedido do usuário. Só aparece pra quem
+            tem o módulo "financeiro" liberado. */}
+        {temModulo("financeiro") ? <CartaoCadastro item={financeiroCard} /> : null}
       </div>
 
       {EM_BREVE.length > 0 ? (

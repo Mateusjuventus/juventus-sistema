@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isMaster } from "@/lib/auth/role";
+import { TODOS_MODULOS, ehModuloValido } from "@/lib/auth/modulos";
 import type { PerfilRole } from "@/lib/supabase/types";
 
 export interface UsuarioFormState {
@@ -15,6 +16,16 @@ export interface UsuarioFormState {
 
 function parseRole(formData: FormData): PerfilRole {
   return formData.get("role") === "master" ? "master" : "regular";
+}
+
+/** Lê os checkboxes de "Módulos liberados" marcados no formulário, validando contra a lista
+ * conhecida (`lib/auth/modulos.ts`) — qualquer valor fora dela é ignorado. "Master" sempre grava
+ * todos os módulos, já que o papel dele já dá acesso a tudo independente disso (ver
+ * `lib/auth/role.ts`) — evita ficar com uma lista "incompleta" salva caso a pessoa vire "regular"
+ * depois. */
+function parseModulos(formData: FormData, role: PerfilRole): string[] {
+  if (role === "master") return TODOS_MODULOS;
+  return formData.getAll("modulos").map(String).filter(ehModuloValido);
 }
 
 /**
@@ -35,6 +46,7 @@ export async function criarUsuario(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const senha = String(formData.get("senha") ?? "");
   const role = parseRole(formData);
+  const modulos = parseModulos(formData, role);
   const raw = { email, role };
 
   const fieldErrors: Record<string, string> = {};
@@ -58,7 +70,7 @@ export async function criarUsuario(
 
   const { error: perfilError } = await admin
     .from("perfis")
-    .insert({ id: data.user.id, email, role });
+    .insert({ id: data.user.id, email, role, modulos_permitidos: modulos });
   if (perfilError) {
     return {
       error: "O login foi criado, mas houve um problema ao salvar o papel dele. Tente novamente ou avise o suporte.",
@@ -81,6 +93,27 @@ export async function atualizarPapel(formData: FormData): Promise<void> {
 
   const admin = createAdminClient();
   await admin.from("perfis").update({ role }).eq("id", id);
+
+  revalidatePath("/usuarios");
+}
+
+/** Salva os módulos liberados (checkboxes) de um usuário "regular" já existente. Só master pode
+ * chamar. Não faz sentido chamar isso pra um usuário "master" (ele já tem tudo liberado) — a tela
+ * nem mostra os checkboxes nesse caso, mas a action confere de novo o papel atual no banco antes
+ * de gravar, por segurança. */
+export async function atualizarModulos(formData: FormData): Promise<void> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const admin = createAdminClient();
+  const { data: perfilAtual } = await admin.from("perfis").select("role").eq("id", id).maybeSingle();
+  const role = ((perfilAtual as { role?: PerfilRole } | null)?.role ?? "regular") as PerfilRole;
+  const modulos = parseModulos(formData, role);
+
+  await admin.from("perfis").update({ modulos_permitidos: modulos }).eq("id", id);
 
   revalidatePath("/usuarios");
 }

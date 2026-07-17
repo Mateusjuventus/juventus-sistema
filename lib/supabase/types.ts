@@ -444,11 +444,13 @@ export interface EstoqueEntradaItemRow {
 
 export type PerfilRole = "master" | "regular";
 
-/** Papel de cada usuário logado — "master" pode excluir Entrada/Saída do Estoque e acessar a tela
- * de Usuários (/usuarios); "regular" usa o resto do sistema normalmente, sem essas duas coisas. */
+/** Papel de cada usuário logado — "master" pode excluir Entrada/Saída do Estoque, acessar a tela
+ * de Usuários (/usuarios) e sempre tem acesso a todos os módulos, independente de
+ * `modulos_permitidos`; "regular" usa só os módulos liberados pra ele (ver `lib/auth/modulos.ts`). */
 export interface PerfilRow {
   id: string;
   email: string;
   role: PerfilRole;
+  modulos_permitidos: string[];
   created_at: string;
 }
