@@ -9,6 +9,7 @@ import { TODOS_DEPARTAMENTOS, ehDepartamentoValido } from "@/lib/auth/departamen
 import { ehTarefaCategoriaValida } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS, ehEstoqueCategoriaValida } from "@/lib/auth/estoque-categorias";
 import type { PerfilRole } from "@/lib/supabase/types";
+import type { PermissaoActionState } from "@/components/permissao-checkboxes-form";
 
 export interface UsuarioFormState {
   error?: string;
@@ -136,77 +137,107 @@ export async function atualizarPapel(formData: FormData): Promise<void> {
 /** Salva os módulos liberados (checkboxes) de um usuário "regular" já existente. Só master pode
  * chamar. Não faz sentido chamar isso pra um usuário "master" (ele já tem tudo liberado) — a tela
  * nem mostra os checkboxes nesse caso, mas a action confere de novo o papel atual no banco antes
- * de gravar, por segurança. */
-export async function atualizarModulos(formData: FormData): Promise<void> {
+ * de gravar, por segurança. Retorna sucesso/erro (em vez de `void`) pra `useFormState` mostrar um
+ * feedback visível depois do clique em "Salvar". */
+export async function atualizarModulos(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
   const supabase = createClient();
-  if (!(await isMaster(supabase))) return;
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
 
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
+  if (!id) return { error: "Usuário inválido." };
 
   const admin = createAdminClient();
   const { data: perfilAtual } = await admin.from("perfis").select("role").eq("id", id).maybeSingle();
   const role = ((perfilAtual as { role?: PerfilRole } | null)?.role ?? "regular") as PerfilRole;
   const modulos = parseModulos(formData, role);
 
-  await admin.from("perfis").update({ modulos_permitidos: modulos }).eq("id", id);
+  const { error } = await admin.from("perfis").update({ modulos_permitidos: modulos }).eq("id", id);
+  if (error) return { error: "Não foi possível salvar os módulos. Tente novamente." };
 
   revalidatePath("/usuarios");
+  return { success: "Módulos salvos." };
 }
 
 /** Salva os departamentos liberados (Futebol Profissional / Futebol de Base) de um usuário
  * "regular" já existente. Mesma regra de `atualizarModulos`: só master pode chamar, e não faz
  * sentido pra quem é master (já tem os dois). */
-export async function atualizarDepartamentos(formData: FormData): Promise<void> {
+export async function atualizarDepartamentos(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
   const supabase = createClient();
-  if (!(await isMaster(supabase))) return;
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
 
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
+  if (!id) return { error: "Usuário inválido." };
 
   const admin = createAdminClient();
   const { data: perfilAtual } = await admin.from("perfis").select("role").eq("id", id).maybeSingle();
   const role = ((perfilAtual as { role?: PerfilRole } | null)?.role ?? "regular") as PerfilRole;
   const departamentos = parseDepartamentos(formData, role);
 
-  await admin.from("perfis").update({ departamentos_permitidos: departamentos }).eq("id", id);
+  const { error } = await admin
+    .from("perfis")
+    .update({ departamentos_permitidos: departamentos })
+    .eq("id", id);
+  if (error) return { error: "Não foi possível salvar os departamentos. Tente novamente." };
 
   revalidatePath("/usuarios");
+  return { success: "Departamentos salvos." };
 }
 
 /** Salva quais categorias de Tarefas aparecem pra esse usuário em `/tarefas`. Só master pode
  * chamar (é quem administra os outros usuários pela tela de Usuários), mas vale igual pra
  * qualquer papel — não é uma permissão de acesso, só o que aparece como aba pra essa pessoa. */
-export async function atualizarCategoriasTarefas(formData: FormData): Promise<void> {
+export async function atualizarCategoriasTarefas(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
   const supabase = createClient();
-  if (!(await isMaster(supabase))) return;
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
 
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
+  if (!id) return { error: "Usuário inválido." };
   const tarefasCategorias = parseCategoriasTarefas(formData);
 
   const admin = createAdminClient();
-  await admin.from("perfis").update({ tarefas_categorias_visiveis: tarefasCategorias }).eq("id", id);
+  const { error } = await admin
+    .from("perfis")
+    .update({ tarefas_categorias_visiveis: tarefasCategorias })
+    .eq("id", id);
+  if (error) return { error: "Não foi possível salvar as categorias. Tente novamente." };
 
   revalidatePath("/usuarios");
+  return { success: "Categorias salvas." };
 }
 
 /** Salva quais ramificações de Estoque (Esportivo/Médico) um usuário "regular" já existente pode
  * acessar. Mesma regra de `atualizarModulos`/`atualizarDepartamentos`: só master pode chamar, e
  * não faz sentido pra quem é master (já tem as duas). */
-export async function atualizarEstoqueCategorias(formData: FormData): Promise<void> {
+export async function atualizarEstoqueCategorias(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
   const supabase = createClient();
-  if (!(await isMaster(supabase))) return;
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
 
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
+  if (!id) return { error: "Usuário inválido." };
 
   const admin = createAdminClient();
   const { data: perfilAtual } = await admin.from("perfis").select("role").eq("id", id).maybeSingle();
   const role = ((perfilAtual as { role?: PerfilRole } | null)?.role ?? "regular") as PerfilRole;
   const estoqueCategorias = parseEstoqueCategorias(formData, role);
 
-  await admin.from("perfis").update({ estoque_categorias_permitidas: estoqueCategorias }).eq("id", id);
+  const { error } = await admin
+    .from("perfis")
+    .update({ estoque_categorias_permitidas: estoqueCategorias })
+    .eq("id", id);
+  if (error) return { error: "Não foi possível salvar as ramificações de estoque. Tente novamente." };
 
   revalidatePath("/usuarios");
+  return { success: "Ramificações de estoque salvas." };
 }

@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { TarefaStatusBadge, TarefaStatusSelect } from "@/components/tarefa-status";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasTarefasVisiveis } from "@/lib/auth/role";
+import { PermissaoCheckboxesForm } from "@/components/permissao-checkboxes-form";
 import { TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
 import type { TarefaCategoria, TarefaRow } from "@/lib/supabase/types";
 import { atualizarMinhasCategoriasTarefas, deleteTarefa, updateTarefaStatus } from "./actions";
@@ -78,32 +79,17 @@ export default async function TarefasPage({
         <summary className="cursor-pointer select-none text-neutral-500 hover:text-grena">
           Personalizar categorias
         </summary>
-        <form
-          action={atualizarMinhasCategoriasTarefas}
-          className="card mt-2 space-y-2 p-4"
-        >
-          <p className="text-xs text-neutral-500">
-            Escolha quais abas aparecem pra você aqui em Tarefas — não afeta ninguém, nem esconde
-            as tarefas de outra categoria (elas continuam existindo, só não aparecem como aba).
-          </p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {TAREFA_CATEGORIAS.map((c) => (
-              <label key={c.value} className="flex items-center gap-2 text-sm text-neutral-700">
-                <input
-                  type="checkbox"
-                  name="categorias"
-                  value={c.value}
-                  defaultChecked={categoriasVisiveis.includes(c.value)}
-                  className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
-                />
-                {c.label}
-              </label>
-            ))}
-          </div>
-          <button type="submit" className="btn-secondary btn-sm">
-            Salvar
-          </button>
-        </form>
+        <div className="card mt-2 p-4">
+          <PermissaoCheckboxesForm
+            fieldName="categorias"
+            titulo="Categorias visíveis pra você"
+            ajuda="Não afeta ninguém, nem esconde as tarefas de outra categoria (elas continuam existindo, só não aparecem como aba)."
+            opcoes={TAREFA_CATEGORIAS}
+            valoresIniciais={categoriasVisiveis}
+            action={atualizarMinhasCategoriasTarefas}
+            submitLabel="Salvar"
+          />
+        </div>
       </details>
 
       {error ? (

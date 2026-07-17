@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ehTarefaCategoriaValida } from "@/lib/auth/tarefas-categorias";
+import type { PermissaoActionState } from "@/components/permissao-checkboxes-form";
 import { tarefaSchema, tarefaStatusSchema } from "@/lib/validation/schemas";
 
 export interface TarefaFormState {
@@ -113,19 +114,28 @@ export async function updateTarefaStatus(formData: FormData): Promise<void> {
  * grava a própria linha (`auth.uid()`), nunca a de outra pessoa — por isso não tem parâmetro `id`
  * vindo do formulário, é sempre "eu mesmo". A lista de tarefas em si continua compartilhada com
  * todo mundo; isto só decide o que aparece de aba pra essa pessoa (ver
- * `lib/auth/tarefas-categorias.ts`).
+ * `lib/auth/tarefas-categorias.ts`). Retorna sucesso/erro (em vez de `void`) pra `useFormState`
+ * mostrar um feedback visível depois do clique em "Salvar".
  */
-export async function atualizarMinhasCategoriasTarefas(formData: FormData): Promise<void> {
+export async function atualizarMinhasCategoriasTarefas(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return { error: "Sessão expirada — recarregue a página e faça login de novo." };
 
   const categorias = formData.getAll("categorias").map(String).filter(ehTarefaCategoriaValida);
 
   const admin = createAdminClient();
-  await admin.from("perfis").update({ tarefas_categorias_visiveis: categorias }).eq("id", user.id);
+  const { error } = await admin
+    .from("perfis")
+    .update({ tarefas_categorias_visiveis: categorias })
+    .eq("id", user.id);
+  if (error) return { error: "Não foi possível salvar. Tente novamente." };
 
   revalidatePath("/tarefas");
+  return { success: "Salvo." };
 }
