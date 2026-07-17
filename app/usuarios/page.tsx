@@ -15,9 +15,8 @@ import {
   atualizarModulos,
   atualizarPapel,
 } from "./actions";
+import { PermissaoCheckboxesForm } from "@/components/permissao-checkboxes-form";
 import { UsuarioForm } from "./usuario-form";
-
-const CHECKBOX_CLASS = "h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena";
 
 function formatDataHora(iso: string): string {
   const data = new Date(iso);
@@ -96,123 +95,67 @@ export default async function UsuariosPage() {
                 </div>
               </div>
 
-              {perfil.role === "master" ? (
-                <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
-                  Acesso completo a todos os departamentos e módulos (papel Master).
-                </p>
-              ) : (
-                <>
-                  <form
-                    action={atualizarDepartamentos}
-                    className="space-y-2 border-t border-neutral-100 pt-3"
-                  >
-                    <input type="hidden" name="id" value={perfil.id} />
-                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      Departamentos liberados
+              <details className="border-t border-neutral-100 pt-3">
+                <summary className="cursor-pointer select-none text-sm font-medium text-grena">
+                  Exibir permissões
+                </summary>
+
+                <div className="mt-3 space-y-3">
+                  {perfil.role === "master" ? (
+                    <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+                      Acesso completo a todos os departamentos e módulos (papel Master).
                     </p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {DEPARTAMENTOS.map((dep) => (
-                        <label key={dep.chave} className="flex items-center gap-2 text-sm text-neutral-700">
-                          <input
-                            type="checkbox"
-                            name="departamentos"
-                            value={dep.chave}
-                            defaultChecked={departamentosPermitidos.includes(dep.chave)}
-                            className={CHECKBOX_CLASS}
-                          />
-                          {dep.label}
-                        </label>
-                      ))}
-                    </div>
-                    <button type="submit" className="btn-secondary btn-sm">
-                      Salvar departamentos
-                    </button>
-                  </form>
-
-                  <form action={atualizarModulos} className="space-y-2 border-t border-neutral-100 pt-3">
-                    <input type="hidden" name="id" value={perfil.id} />
-                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      Módulos liberados (Futebol Profissional)
-                    </p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {MODULOS.map((modulo) => (
-                        <label
-                          key={modulo.chave}
-                          className="flex items-center gap-2 text-sm text-neutral-700"
-                        >
-                          <input
-                            type="checkbox"
-                            name="modulos"
-                            value={modulo.chave}
-                            defaultChecked={modulosPermitidos.includes(modulo.chave)}
-                            className={CHECKBOX_CLASS}
-                          />
-                          {modulo.label}
-                        </label>
-                      ))}
-                    </div>
-                    <button type="submit" className="btn-secondary btn-sm">
-                      Salvar módulos
-                    </button>
-                  </form>
-
-                  {modulosPermitidos.includes("estoque") ? (
-                    <form
-                      action={atualizarEstoqueCategorias}
-                      className="ml-4 space-y-2 border-l-2 border-neutral-100 py-3 pl-4"
-                    >
-                      <input type="hidden" name="id" value={perfil.id} />
-                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Estoque: ramificações liberadas
-                      </p>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {ESTOQUE_CATEGORIAS.map((cat) => (
-                          <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
-                            <input
-                              type="checkbox"
-                              name="estoqueCategorias"
-                              value={cat.value}
-                              defaultChecked={estoqueCategoriasPermitidas.includes(cat.value)}
-                              className={CHECKBOX_CLASS}
-                            />
-                            {cat.label}
-                          </label>
-                        ))}
-                      </div>
-                      <button type="submit" className="btn-secondary btn-sm">
-                        Salvar ramificações de estoque
-                      </button>
-                    </form>
-                  ) : null}
-                </>
-              )}
-
-              <form
-                action={atualizarCategoriasTarefas}
-                className="space-y-2 border-t border-neutral-100 pt-3"
-              >
-                <input type="hidden" name="id" value={perfil.id} />
-                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Categorias de Tarefas visíveis
-                </p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {TAREFA_CATEGORIAS.map((cat) => (
-                    <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
-                      <input
-                        type="checkbox"
-                        name="tarefasCategorias"
-                        value={cat.value}
-                        defaultChecked={categoriasTarefasVisiveis.includes(cat.value)}
-                        className={CHECKBOX_CLASS}
+                  ) : (
+                    <>
+                      <PermissaoCheckboxesForm
+                        id={perfil.id}
+                        fieldName="departamentos"
+                        titulo="Departamentos liberados"
+                        opcoes={DEPARTAMENTOS.map((d) => ({ value: d.chave, label: d.label }))}
+                        valoresIniciais={departamentosPermitidos}
+                        action={atualizarDepartamentos}
+                        submitLabel="Salvar departamentos"
                       />
-                      {cat.label}
-                    </label>
-                  ))}
+
+                      <PermissaoCheckboxesForm
+                        id={perfil.id}
+                        fieldName="modulos"
+                        titulo="Módulos liberados (Futebol Profissional)"
+                        opcoes={MODULOS.map((m) => ({ value: m.chave, label: m.label }))}
+                        valoresIniciais={modulosPermitidos}
+                        action={atualizarModulos}
+                        submitLabel="Salvar módulos"
+                        className="border-t border-neutral-100 pt-3"
+                      />
+
+                      {modulosPermitidos.includes("estoque") ? (
+                        <PermissaoCheckboxesForm
+                          id={perfil.id}
+                          fieldName="estoqueCategorias"
+                          titulo="Estoque: ramificações liberadas"
+                          ajuda="Desmarque uma se essa pessoa não deve ver aquele estoque (ex.: só Médico)."
+                          opcoes={ESTOQUE_CATEGORIAS}
+                          valoresIniciais={estoqueCategoriasPermitidas}
+                          action={atualizarEstoqueCategorias}
+                          submitLabel="Salvar ramificações de estoque"
+                          className="ml-4 border-l-2 border-neutral-100 pl-4"
+                        />
+                      ) : null}
+                    </>
+                  )}
+
+                  <PermissaoCheckboxesForm
+                    id={perfil.id}
+                    fieldName="tarefasCategorias"
+                    titulo="Categorias de Tarefas visíveis"
+                    opcoes={TAREFA_CATEGORIAS}
+                    valoresIniciais={categoriasTarefasVisiveis}
+                    action={atualizarCategoriasTarefas}
+                    submitLabel="Salvar categorias de tarefas"
+                    className="border-t border-neutral-100 pt-3"
+                  />
                 </div>
-                <button type="submit" className="btn-secondary btn-sm">
-                  Salvar categorias de tarefas
-                </button>
-              </form>
+              </details>
             </div>
           );
         })}
