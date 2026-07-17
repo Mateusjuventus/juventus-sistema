@@ -327,27 +327,43 @@ export default async function ProfissionalPage() {
       </div>
 
       {/* Faixa de resumo — números gerais das áreas, pra dar uma visão rápida antes de entrar em
-          cada módulo. */}
-      <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-gradient-to-br from-grena to-grena-escuro p-5 text-white sm:grid-cols-4">
-        <div>
-          <p className="text-xl font-extrabold sm:text-2xl">{totalAtletas}</p>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">Atletas ativos</p>
-        </div>
-        <div>
-          <p className="text-xl font-extrabold sm:text-2xl">{totalStaff}</p>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">Staff ativo</p>
-        </div>
-        <div>
-          <p className="text-xl font-extrabold sm:text-2xl">{formatMoeda(totalPrevisto)}</p>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">Previsto</p>
-        </div>
-        <div>
-          <p className="text-xl font-extrabold sm:text-2xl">
-            {proximoJogo ? formatData(proximoJogo.data_jogo) : "—"}
-          </p>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">Próximo jogo</p>
-        </div>
-      </div>
+          cada módulo. Cada número só aparece se o usuário tiver o módulo correspondente liberado
+          (ver lib/auth/modulos.ts) — a faixa toda some se não sobrar nenhum. */}
+      {(() => {
+        const GRID_COLS_POR_QUANTIDADE: Record<number, string> = {
+          1: "sm:grid-cols-1",
+          2: "sm:grid-cols-2",
+          3: "sm:grid-cols-3",
+          4: "sm:grid-cols-4",
+        };
+        const estatisticas = [
+          { moduloChave: "atletas", valor: totalAtletas, label: "Atletas ativos" },
+          { moduloChave: "staff_operacional", valor: totalStaff, label: "Staff ativo" },
+          { moduloChave: "financeiro", valor: formatMoeda(totalPrevisto), label: "Previsto" },
+          {
+            moduloChave: "jogos",
+            valor: proximoJogo ? formatData(proximoJogo.data_jogo) : "—",
+            label: "Próximo jogo",
+          },
+        ].filter((item) => temModulo(item.moduloChave));
+
+        if (estatisticas.length === 0) return null;
+
+        return (
+          <div
+            className={`mt-6 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-gradient-to-br from-grena to-grena-escuro p-5 text-white ${GRID_COLS_POR_QUANTIDADE[estatisticas.length]}`}
+          >
+            {estatisticas.map((item) => (
+              <div key={item.moduloChave}>
+                <p className="text-xl font-extrabold sm:text-2xl">{item.valor}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">
+                  {item.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Jogos / Competições vem primeiro agora, a pedido do usuário. Só aparece pra quem tem

@@ -13,15 +13,30 @@ export function TarefaForm({
   entityId,
   defaultValues,
   submitLabel,
+  categoriasPermitidas,
 }: {
   action: (prevState: TarefaFormState, formData: FormData) => Promise<TarefaFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
   submitLabel: string;
+  /** Categorias que aparecem no seletor — o restante das 5 fixas fica de fora conforme o que foi
+   * liberado pra esse usuário em /usuarios (ver lib/auth/tarefas-categorias.ts). Se vier vazia,
+   * mostra todas (evita um seletor sem nenhuma opção). */
+  categoriasPermitidas?: string[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
+  // Sempre mantém a categoria já salva na lista, mesmo que não esteja mais liberada pra esse
+  // usuário — senão editar uma tarefa antiga de outra categoria "perderia" a categoria dela no
+  // seletor. Fora isso, só mostra as categorias liberadas (ou todas, se nada foi restringido).
+  const opcoesCategoria = TAREFA_CATEGORIAS.filter(
+    (c) =>
+      !categoriasPermitidas ||
+      categoriasPermitidas.length === 0 ||
+      categoriasPermitidas.includes(c.value) ||
+      c.value === values.categoria,
+  );
 
   return (
     <form action={formAction} className="space-y-6">
@@ -43,7 +58,7 @@ export function TarefaForm({
             error={errors.categoria}
           >
             <option value="">Selecione...</option>
-            {TAREFA_CATEGORIAS.map((c) => (
+            {opcoesCategoria.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
               </option>

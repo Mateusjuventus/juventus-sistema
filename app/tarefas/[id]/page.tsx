@@ -2,13 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
+import { getCategoriasTarefasVisiveis } from "@/lib/auth/role";
 import type { TarefaRow } from "@/lib/supabase/types";
 import { TarefaForm } from "../tarefa-form";
 import { updateTarefa } from "../actions";
 
 export default async function EditarTarefaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const { data } = await supabase.from("tarefas").select("*").eq("id", params.id).single();
+  const [{ data }, categoriasPermitidas] = await Promise.all([
+    supabase.from("tarefas").select("*").eq("id", params.id).single(),
+    getCategoriasTarefasVisiveis(supabase),
+  ]);
 
   if (!data) notFound();
 
@@ -34,6 +38,7 @@ export default async function EditarTarefaPage({ params }: { params: { id: strin
           entityId={t.id}
           defaultValues={defaultValues}
           submitLabel="Salvar alterações"
+          categoriasPermitidas={categoriasPermitidas}
         />
       </div>
     </AppShell>

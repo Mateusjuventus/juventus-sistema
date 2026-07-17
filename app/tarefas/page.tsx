@@ -4,9 +4,10 @@ import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { TarefaStatusBadge, TarefaStatusSelect } from "@/components/tarefa-status";
 import { createClient } from "@/lib/supabase/server";
+import { getCategoriasTarefasVisiveis } from "@/lib/auth/role";
 import { TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
 import type { TarefaCategoria, TarefaRow } from "@/lib/supabase/types";
-import { deleteTarefa, updateTarefaStatus } from "./actions";
+import { atualizarMinhasCategoriasTarefas, deleteTarefa, updateTarefaStatus } from "./actions";
 
 function formatData(data: string | null): string | null {
   if (!data) return null;
@@ -19,13 +20,19 @@ export default async function TarefasPage({
 }: {
   searchParams: { categoria?: string };
 }) {
+  const supabase = createClient();
+  const categoriasVisiveis = await getCategoriasTarefasVisiveis(supabase);
+  const categoriasExibidas = TAREFA_CATEGORIAS.filter((c) => categoriasVisiveis.includes(c.value));
+  // Se por algum motivo a pessoa não tiver nenhuma categoria liberada, mostra todas mesmo assim —
+  // uma tela de Tarefas totalmente vazia sem explicação é pior do que mostrar tudo.
+  const categoriasParaAba = categoriasExibidas.length > 0 ? categoriasExibidas : TAREFA_CATEGORIAS;
+
   const categoriaAtiva = (
-    TAREFA_CATEGORIAS.some((c) => c.value === searchParams.categoria)
+    categoriasParaAba.some((c) => c.value === searchParams.categoria)
       ? searchParams.categoria
-      : TAREFA_CATEGORIAS[0].value
+      : categoriasParaAba[0].value
   ) as TarefaCategoria;
 
-  const supabase = createClient();
   const { data, error } = await supabase
     .from("tarefas")
     .select("*")
@@ -51,8 +58,8 @@ export default async function TarefasPage({
         </Link>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-1 border-b border-neutral-200">
-        {TAREFA_CATEGORIAS.map((c) => (
+      <div className="mt-4 flex flex-wrap items-center gap-1 border-b border-neutral-200">
+        {categoriasParaAba.map((c) => (
           <Link
             key={c.value}
             href={`/tarefas?categoria=${c.value}`}
@@ -66,6 +73,38 @@ export default async function TarefasPage({
           </Link>
         ))}
       </div>
+
+      <details className="mt-2 text-sm">
+        <summary className="cursor-pointer select-none text-neutral-500 hover:text-grena">
+          Personalizar categorias
+        </summary>
+        <form
+          action={atualizarMinhasCategoriasTarefas}
+          className="card mt-2 space-y-2 p-4"
+        >
+          <p className="text-xs text-neutral-500">
+            Escolha quais abas aparecem pra você aqui em Tarefas — não afeta ninguém, nem esconde
+            as tarefas de outra categoria (elas continuam existindo, só não aparecem como aba).
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {TAREFA_CATEGORIAS.map((c) => (
+              <label key={c.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                <input
+                  type="checkbox"
+                  name="categorias"
+                  value={c.value}
+                  defaultChecked={categoriasVisiveis.includes(c.value)}
+                  className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                />
+                {c.label}
+              </label>
+            ))}
+          </div>
+          <button type="submit" className="btn-secondary btn-sm">
+            Salvar
+          </button>
+        </form>
+      </details>
 
       {error ? (
         <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">

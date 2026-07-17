@@ -1,6 +1,8 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { moduloDaRota, TODOS_MODULOS } from "@/lib/auth/modulos";
+import { TODOS_DEPARTAMENTOS } from "@/lib/auth/departamentos";
+import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
 
 // "/cadastro-staff" é o link público de autocadastro de Staff Operacional (a pessoa preenche sem
 // fazer login) — ver app/cadastro-staff. Não exige sessão, mas também não dá acesso a mais nada do
@@ -55,27 +57,62 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Bloqueio por módulo: só entra aqui se a rota pertencer a um dos módulos com permissão
-  // configurável (ver lib/auth/modulos.ts). "Master" nunca é bloqueado. "Regular" só passa se o
-  // módulo estiver em `modulos_permitidos` — quem ainda não tem essa coluna preenchida (não
-  // deveria acontecer, já que a migration preenche todo mundo) cai no padrão "todos os módulos",
-  // pra nunca bloquear por engano.
-  const modulo = user ? moduloDaRota(request.nextUrl.pathname) : undefined;
-  if (user && modulo) {
+  // Bloqueio por departamento + módulo. "Master" nunca é bloqueado. Três rotas entram aqui:
+  //  - o hub de um departamento (/profissional, /base) — precisa ter aquele departamento liberado;
+  //  - a rota de um módulo (ver lib/auth/modulos.ts) — precisa ter o departamento "futebol_profissional"
+  //    (todo módulo hoje é desse departamento) E o próprio módulo liberado.
+  // Quem ainda não tem essas colunas preenchidas (não deveria acontecer, já que a migration
+  // preenche todo mundo) cai no padrão "tudo liberado", pra nunca bloquear por engano.
+  const pathname = request.nextUrl.pathname;
+  const modulo = user ? moduloDaRota(pathname) : undefined;
+  const isHubProfissional = pathname === "/profissional";
+  const isHubBase = pathname === "/base";
+  // Estoque tem duas ramificações (Esportivo/Médico) com permissão própria — ver
+  // lib/auth/estoque-categorias.ts. Só entra aqui pra uma URL tipo /estoque/<categoria>/..., não
+  // pro hub /estoque em si (esse é filtrado na própria página, não bloqueado aqui).
+  const estoqueCategoriaMatch =
+    modulo?.chave === "estoque" ? pathname.match(/^\/estoque\/([^/]+)/) : null;
+  const estoqueCategoria = estoqueCategoriaMatch ? estoqueCategoriaMatch[1] : null;
+
+  if (user && (modulo || isHubProfissional || isHubBase)) {
     const { data: perfil } = await supabase
       .from("perfis")
-      .select("role, modulos_permitidos")
+      .select("role, modulos_permitidos, departamentos_permitidos, estoque_categorias_permitidas")
       .eq("id", user.id)
       .maybeSingle();
     const role = (perfil as { role?: string } | null)?.role ?? "regular";
     const modulosPermitidos =
       (perfil as { modulos_permitidos?: string[] } | null)?.modulos_permitidos ?? TODOS_MODULOS;
+    const departamentosPermitidos =
+      (perfil as { departamentos_permitidos?: string[] } | null)?.departamentos_permitidos ??
+      TODOS_DEPARTAMENTOS;
+    const estoqueCategoriasPermitidas =
+      (perfil as { estoque_categorias_permitidas?: string[] } | null)?.estoque_categorias_permitidas ??
+      TODAS_ESTOQUE_CATEGORIAS;
 
-    if (role !== "master" && !modulosPermitidos.includes(modulo.chave)) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/profissional";
-      redirectUrl.search = "";
-      return NextResponse.redirect(redirectUrl);
+    if (role !== "master") {
+      let redirecionarPara: string | null = null;
+
+      if (modulo) {
+        const semDepartamento = !departamentosPermitidos.includes("futebol_profissional");
+        const semModulo = !modulosPermitidos.includes(modulo.chave);
+        const semCategoriaEstoque =
+          !!estoqueCategoria && !estoqueCategoriasPermitidas.includes(estoqueCategoria);
+        if (semDepartamento) redirecionarPara = "/";
+        else if (semModulo) redirecionarPara = "/profissional";
+        else if (semCategoriaEstoque) redirecionarPara = "/estoque";
+      } else if (isHubProfissional && !departamentosPermitidos.includes("futebol_profissional")) {
+        redirecionarPara = "/";
+      } else if (isHubBase && !departamentosPermitidos.includes("futebol_base")) {
+        redirecionarPara = "/";
+      }
+
+      if (redirecionarPara) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = redirecionarPara;
+        redirectUrl.search = "";
+        return NextResponse.redirect(redirectUrl);
+      }
     }
   }
 

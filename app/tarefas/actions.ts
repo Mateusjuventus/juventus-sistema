@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ehTarefaCategoriaValida } from "@/lib/auth/tarefas-categorias";
 import { tarefaSchema, tarefaStatusSchema } from "@/lib/validation/schemas";
 
 export interface TarefaFormState {
@@ -102,5 +104,28 @@ export async function updateTarefaStatus(formData: FormData): Promise<void> {
 
   const supabase = createClient();
   await supabase.from("tarefas").update({ status: result.data.status }).eq("id", id);
+  revalidatePath("/tarefas");
+}
+
+/**
+ * Autoatendimento: qualquer usuário logado pode ajustar, pra si mesmo, quais das 5 categorias
+ * fixas aparecem como aba em `/tarefas` — sem precisar pedir pro master mexer em `/usuarios`. Só
+ * grava a própria linha (`auth.uid()`), nunca a de outra pessoa — por isso não tem parâmetro `id`
+ * vindo do formulário, é sempre "eu mesmo". A lista de tarefas em si continua compartilhada com
+ * todo mundo; isto só decide o que aparece de aba pra essa pessoa (ver
+ * `lib/auth/tarefas-categorias.ts`).
+ */
+export async function atualizarMinhasCategoriasTarefas(formData: FormData): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const categorias = formData.getAll("categorias").map(String).filter(ehTarefaCategoriaValida);
+
+  const admin = createAdminClient();
+  await admin.from("perfis").update({ tarefas_categorias_visiveis: categorias }).eq("id", user.id);
+
   revalidatePath("/tarefas");
 }

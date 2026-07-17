@@ -452,5 +452,8 @@ export interface PerfilRow {
   email: string;
   role: PerfilRole;
   modulos_permitidos: string[];
+  departamentos_permitidos: string[];
+  tarefas_categorias_visiveis: string[];
+  estoque_categorias_permitidas: string[];
   created_at: string;
 }

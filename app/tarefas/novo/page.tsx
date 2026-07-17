@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/server";
+import { getCategoriasTarefasVisiveis } from "@/lib/auth/role";
 import { TarefaForm } from "../tarefa-form";
 import { createTarefa } from "../actions";
 
-export default function NovaTarefaPage({
+export default async function NovaTarefaPage({
   searchParams,
 }: {
   searchParams: { categoria?: string };
 }) {
   const categoria = searchParams.categoria ?? "";
+  const supabase = createClient();
+  const categoriasPermitidas = await getCategoriasTarefasVisiveis(supabase);
 
   return (
     <AppShell>
@@ -21,6 +25,7 @@ export default function NovaTarefaPage({
           action={createTarefa}
           submitLabel="Cadastrar"
           defaultValues={categoria ? { categoria } : undefined}
+          categoriasPermitidas={categoriasPermitidas}
         />
       </div>
     </AppShell>

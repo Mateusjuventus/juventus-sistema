@@ -3,18 +3,24 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { totalItem } from "@/lib/estoque/estoque-ajustes";
+import { getEstoqueCategoriasPermitidas } from "@/lib/auth/role";
 import { ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import type { EstoqueItemRow } from "@/lib/supabase/types";
 
 /**
  * Estoque é um módulo só, mas com duas listas totalmente separadas — Esportivo e Médico nunca se
  * misturam (catálogo, entradas, saídas e histórico, cada um com o seu). Esta tela é só a porta de
- * entrada: escolher qual das duas.
+ * entrada: escolher qual das duas. Só mostra a(s) ramificação(ões) que o usuário logado tem
+ * liberada(s) (ver lib/auth/estoque-categorias.ts) — o bloqueio de verdade é no middleware.
  */
 export default async function EstoquePage() {
   const supabase = createClient();
-  const { data } = await supabase.from("estoque_itens").select("*");
+  const [{ data }, categoriasPermitidas] = await Promise.all([
+    supabase.from("estoque_itens").select("*"),
+    getEstoqueCategoriasPermitidas(supabase),
+  ]);
   const itens = (data ?? []) as EstoqueItemRow[];
+  const categoriasExibidas = ESTOQUE_CATEGORIAS.filter((c) => categoriasPermitidas.includes(c.value));
 
   return (
     <AppShell>
@@ -27,7 +33,7 @@ export default async function EstoquePage() {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {ESTOQUE_CATEGORIAS.map((c) => {
+        {categoriasExibidas.map((c) => {
           const doGrupo = itens.filter((item) => item.categoria === c.value);
           const totalPecas = doGrupo.reduce((soma, item) => soma + totalItem(item), 0);
           return (

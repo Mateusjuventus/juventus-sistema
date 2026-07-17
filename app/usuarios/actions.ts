@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isMaster } from "@/lib/auth/role";
 import { TODOS_MODULOS, ehModuloValido } from "@/lib/auth/modulos";
+import { TODOS_DEPARTAMENTOS, ehDepartamentoValido } from "@/lib/auth/departamentos";
+import { ehTarefaCategoriaValida } from "@/lib/auth/tarefas-categorias";
+import { TODAS_ESTOQUE_CATEGORIAS, ehEstoqueCategoriaValida } from "@/lib/auth/estoque-categorias";
 import type { PerfilRole } from "@/lib/supabase/types";
 
 export interface UsuarioFormState {
@@ -28,6 +31,30 @@ function parseModulos(formData: FormData, role: PerfilRole): string[] {
   return formData.getAll("modulos").map(String).filter(ehModuloValido);
 }
 
+/** Mesma lógica de `parseModulos`, mas pros dois departamentos (Futebol Profissional / Futebol de
+ * Base — ver `lib/auth/departamentos.ts`). "Master" sempre grava os dois. */
+function parseDepartamentos(formData: FormData, role: PerfilRole): string[] {
+  if (role === "master") return TODOS_DEPARTAMENTOS;
+  return formData.getAll("departamentos").map(String).filter(ehDepartamentoValido);
+}
+
+/** Categorias de Tarefas (Logística, Registro, Financeiro, Solicitações, Gerais) marcadas como
+ * visíveis pra esse usuário em `/tarefas` — ver `lib/auth/tarefas-categorias.ts`. Diferente de
+ * módulo/departamento, isto vale igual pra master e regular (é só preferência de exibição, não
+ * controla acesso a nada). */
+function parseCategoriasTarefas(formData: FormData): string[] {
+  return formData.getAll("tarefasCategorias").map(String).filter(ehTarefaCategoriaValida);
+}
+
+/** Ramificações de Estoque (Esportivo/Médico) liberadas pra esse usuário — ver
+ * `lib/auth/estoque-categorias.ts`. Diferente de Tarefas, isto É uma permissão de acesso (o
+ * middleware bloqueia quem não tiver), então "master" sempre grava as duas, igual módulo/
+ * departamento. */
+function parseEstoqueCategorias(formData: FormData, role: PerfilRole): string[] {
+  if (role === "master") return TODAS_ESTOQUE_CATEGORIAS;
+  return formData.getAll("estoqueCategorias").map(String).filter(ehEstoqueCategoriaValida);
+}
+
 /**
  * Cria o login de um novo usuário (e-mail + senha provisória, sem depender de envio de e-mail) e
  * já grava o papel dele em `perfis`. Só pode ser chamada por quem já é master — checa isso antes
@@ -47,6 +74,9 @@ export async function criarUsuario(
   const senha = String(formData.get("senha") ?? "");
   const role = parseRole(formData);
   const modulos = parseModulos(formData, role);
+  const departamentos = parseDepartamentos(formData, role);
+  const tarefasCategorias = parseCategoriasTarefas(formData);
+  const estoqueCategorias = parseEstoqueCategorias(formData, role);
   const raw = { email, role };
 
   const fieldErrors: Record<string, string> = {};
@@ -68,9 +98,15 @@ export async function criarUsuario(
     };
   }
 
-  const { error: perfilError } = await admin
-    .from("perfis")
-    .insert({ id: data.user.id, email, role, modulos_permitidos: modulos });
+  const { error: perfilError } = await admin.from("perfis").insert({
+    id: data.user.id,
+    email,
+    role,
+    modulos_permitidos: modulos,
+    departamentos_permitidos: departamentos,
+    tarefas_categorias_visiveis: tarefasCategorias,
+    estoque_categorias_permitidas: estoqueCategorias,
+  });
   if (perfilError) {
     return {
       error: "O login foi criado, mas houve um problema ao salvar o papel dele. Tente novamente ou avise o suporte.",
@@ -114,6 +150,63 @@ export async function atualizarModulos(formData: FormData): Promise<void> {
   const modulos = parseModulos(formData, role);
 
   await admin.from("perfis").update({ modulos_permitidos: modulos }).eq("id", id);
+
+  revalidatePath("/usuarios");
+}
+
+/** Salva os departamentos liberados (Futebol Profissional / Futebol de Base) de um usuário
+ * "regular" já existente. Mesma regra de `atualizarModulos`: só master pode chamar, e não faz
+ * sentido pra quem é master (já tem os dois). */
+export async function atualizarDepartamentos(formData: FormData): Promise<void> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const admin = createAdminClient();
+  const { data: perfilAtual } = await admin.from("perfis").select("role").eq("id", id).maybeSingle();
+  const role = ((perfilAtual as { role?: PerfilRole } | null)?.role ?? "regular") as PerfilRole;
+  const departamentos = parseDepartamentos(formData, role);
+
+  await admin.from("perfis").update({ departamentos_permitidos: departamentos }).eq("id", id);
+
+  revalidatePath("/usuarios");
+}
+
+/** Salva quais categorias de Tarefas aparecem pra esse usuário em `/tarefas`. Só master pode
+ * chamar (é quem administra os outros usuários pela tela de Usuários), mas vale igual pra
+ * qualquer papel — não é uma permissão de acesso, só o que aparece como aba pra essa pessoa. */
+export async function atualizarCategoriasTarefas(formData: FormData): Promise<void> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const tarefasCategorias = parseCategoriasTarefas(formData);
+
+  const admin = createAdminClient();
+  await admin.from("perfis").update({ tarefas_categorias_visiveis: tarefasCategorias }).eq("id", id);
+
+  revalidatePath("/usuarios");
+}
+
+/** Salva quais ramificações de Estoque (Esportivo/Médico) um usuário "regular" já existente pode
+ * acessar. Mesma regra de `atualizarModulos`/`atualizarDepartamentos`: só master pode chamar, e
+ * não faz sentido pra quem é master (já tem as duas). */
+export async function atualizarEstoqueCategorias(formData: FormData): Promise<void> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const admin = createAdminClient();
+  const { data: perfilAtual } = await admin.from("perfis").select("role").eq("id", id).maybeSingle();
+  const role = ((perfilAtual as { role?: PerfilRole } | null)?.role ?? "regular") as PerfilRole;
+  const estoqueCategorias = parseEstoqueCategorias(formData, role);
+
+  await admin.from("perfis").update({ estoque_categorias_permitidas: estoqueCategorias }).eq("id", id);
 
   revalidatePath("/usuarios");
 }
