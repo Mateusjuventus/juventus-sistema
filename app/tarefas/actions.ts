@@ -134,7 +134,7 @@ export async function atualizarMinhasCategoriasTarefas(
     .from("perfis")
     .update({ tarefas_categorias_visiveis: categorias })
     .eq("id", user.id);
-  if (error) return { error: "Não foi possível salvar. Tente novamente." };
+  if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
 
   revalidatePath("/tarefas");
   return { success: "Salvo." };

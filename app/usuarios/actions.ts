@@ -155,7 +155,7 @@ export async function atualizarModulos(
   const modulos = parseModulos(formData, role);
 
   const { error } = await admin.from("perfis").update({ modulos_permitidos: modulos }).eq("id", id);
-  if (error) return { error: "Não foi possível salvar os módulos. Tente novamente." };
+  if (error) return { error: `Não foi possível salvar os módulos. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");
   return { success: "Módulos salvos." };
@@ -183,7 +183,7 @@ export async function atualizarDepartamentos(
     .from("perfis")
     .update({ departamentos_permitidos: departamentos })
     .eq("id", id);
-  if (error) return { error: "Não foi possível salvar os departamentos. Tente novamente." };
+  if (error) return { error: `Não foi possível salvar os departamentos. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");
   return { success: "Departamentos salvos." };
@@ -208,7 +208,7 @@ export async function atualizarCategoriasTarefas(
     .from("perfis")
     .update({ tarefas_categorias_visiveis: tarefasCategorias })
     .eq("id", id);
-  if (error) return { error: "Não foi possível salvar as categorias. Tente novamente." };
+  if (error) return { error: `Não foi possível salvar as categorias. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");
   return { success: "Categorias salvas." };
@@ -236,7 +236,8 @@ export async function atualizarEstoqueCategorias(
     .from("perfis")
     .update({ estoque_categorias_permitidas: estoqueCategorias })
     .eq("id", id);
-  if (error) return { error: "Não foi possível salvar as ramificações de estoque. Tente novamente." };
+  if (error)
+    return { error: `Não foi possível salvar as ramificações de estoque. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");
   return { success: "Ramificações de estoque salvas." };
