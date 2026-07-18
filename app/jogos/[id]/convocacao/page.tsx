@@ -75,17 +75,35 @@ export default async function ConvocacaoPage({ params }: { params: { id: string 
           {jogo.mandante ? "Jogo em casa" : "Jogo fora"}
         </p>
         {convocacao ? (
-          <a
-            href={`/jogos/${jogo.id}/presskit`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary"
-          >
-            Gerar Presskit (PDF)
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={`/jogos/${jogo.id}/presskit`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+            >
+              Gerar Presskit (PDF)
+            </a>
+            <a
+              href={`/jogos/${jogo.id}/relacionados/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              Gerar Relacionados (PDF)
+            </a>
+            <a
+              href={`/jogos/${jogo.id}/relacionados/jpg`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              Gerar Relacionados (JPG)
+            </a>
+          </div>
         ) : (
           <span className="text-xs text-neutral-400">
-            Salve a convocação para liberar a geração do presskit.
+            Salve a convocação para liberar a geração do presskit e dos pôsteres.
           </span>
         )}
       </div>

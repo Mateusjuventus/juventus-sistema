@@ -38,6 +38,13 @@ export function ComissaoForm({
             defaultValue={values.nomeCompleto}
             error={errors.nomeCompleto}
           />
+          <TextField
+            label="Apelido"
+            name="apelido"
+            defaultValue={values.apelido}
+            error={errors.apelido}
+            placeholder="Como a pessoa é chamada no dia a dia"
+          />
           <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
           <TextField
             label="CPF"

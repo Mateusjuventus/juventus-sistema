@@ -37,6 +37,7 @@ const enderecoFields = {
 
 export const atletaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
+  apelido: z.string().optional().or(z.literal("")),
   rg: rgField,
   cpf: cpfField,
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
@@ -56,6 +57,7 @@ export type AtletaInput = z.infer<typeof atletaSchema>;
 
 export const comissaoTecnicaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
+  apelido: z.string().optional().or(z.literal("")),
   rg: rgField,
   cpf: cpfField,
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),

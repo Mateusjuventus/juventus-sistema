@@ -17,6 +17,7 @@ export interface ComissaoFormState {
 function parseForm(formData: FormData) {
   const raw = {
     nomeCompleto: String(formData.get("nomeCompleto") ?? ""),
+    apelido: String(formData.get("apelido") ?? ""),
     rg: String(formData.get("rg") ?? ""),
     cpf: String(formData.get("cpf") ?? ""),
     dataNascimento: String(formData.get("dataNascimento") ?? ""),
@@ -79,6 +80,7 @@ export async function createComissao(
   const { error } = await supabase.from("comissao_tecnica").insert({
     id,
     nome_completo: data.nomeCompleto,
+    apelido: data.apelido || null,
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,
@@ -116,6 +118,7 @@ export async function updateComissao(
 
   const updatePayload: Record<string, unknown> = {
     nome_completo: data.nomeCompleto,
+    apelido: data.apelido || null,
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,

@@ -26,6 +26,7 @@ export interface AtletaRow {
   foto_path: string | null;
   status: AtletaStatus;
   data_fim_contrato: string | null;
+  apelido: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -42,6 +43,7 @@ export interface ComissaoTecnicaRow {
   email: string | null;
   foto_path: string | null;
   tipo_quarto_preferido: TipoQuarto | null;
+  apelido: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
