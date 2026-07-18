@@ -41,10 +41,13 @@ export function PosterCabecalhoImg({
   competicao,
   mandante,
   adversarioLogoUrl,
+  mostrarCompeticao = true,
 }: {
   competicao: string;
   mandante: boolean;
   adversarioLogoUrl: string | null;
+  /** Concentração e Dia de Jogo não mostram o nome da competição no cabeçalho (ver referência). */
+  mostrarCompeticao?: boolean;
 }) {
   const juventus = getJuventusEscudoDataUri();
   const primeiro = mandante ? juventus : adversarioLogoUrl;
@@ -83,18 +86,20 @@ export function PosterCabecalhoImg({
             <div style={{ display: "flex", width: 110, height: 110 }} />
           )}
         </div>
-        <div
-          style={{
-            display: "flex",
-            fontFamily: "Anton",
-            fontSize: 38,
-            color: "#1C2C6B",
-            marginTop: 20,
-            letterSpacing: 1,
-          }}
-        >
-          {competicao.toUpperCase()}
-        </div>
+        {mostrarCompeticao ? (
+          <div
+            style={{
+              display: "flex",
+              fontFamily: "Anton",
+              fontSize: 38,
+              color: "#1C2C6B",
+              marginTop: 20,
+              letterSpacing: 1,
+            }}
+          >
+            {competicao.toUpperCase()}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -148,6 +153,126 @@ export function PosterDadosJogoImg({ texto }: { texto: string }) {
         marginTop: 12,
         marginBottom: 26,
         textAlign: "center",
+      }}
+    >
+      {texto}
+    </div>
+  );
+}
+
+/** Faixa vinho com a data/dia da semana — usada por Concentração e Dia de Jogo. */
+export function PosterFaixaDataImg({ texto }: { texto: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        backgroundColor: CORES_POSTER.grena,
+        marginTop: 18,
+        paddingTop: 14,
+        paddingBottom: 14,
+        justifyContent: "center",
+        width: "100%",
+      }}
+    >
+      <div style={{ display: "flex", fontFamily: "Anton", fontSize: 30, color: CORES_POSTER.branco }}>
+        {texto}
+      </div>
+    </div>
+  );
+}
+
+/** Lista de regras em bullets, preto e em negrito — só a seção Concentração usa. */
+export function PosterOrientacoesImg({ titulo, regras }: { titulo: string; regras: string[] }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", marginTop: 30 }}>
+      <div style={{ display: "flex", fontSize: 22, fontWeight: 700, color: CORES_POSTER.preto, marginBottom: 14 }}>
+        {titulo}
+      </div>
+      {regras.map((regra, i) => (
+        <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+          <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: CORES_POSTER.preto }}>•</div>
+          <div style={{ display: "flex", flex: 1, fontSize: 18, fontWeight: 700, color: CORES_POSTER.preto }}>
+            {regra}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Uma linha de cronograma (horário em caixa vinho + atividade + local) — usada por Concentração e
+ * Dia de Jogo. `alignItems: "center"` no container faz o horário/local ficarem centralizados
+ * verticalmente mesmo quando a atividade quebra em duas linhas (ex: "JUVENTUS X FERROVIÁRIA").
+ */
+export function PosterLinhaProgramacaoImg({
+  horario,
+  atividade,
+  local,
+}: {
+  horario: string;
+  atividade: string;
+  local: string;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 18, width: "100%", marginBottom: 18 }}>
+      <div
+        style={{
+          display: "flex",
+          backgroundColor: CORES_POSTER.grena,
+          paddingTop: 10,
+          paddingBottom: 10,
+          paddingLeft: 14,
+          paddingRight: 14,
+          minWidth: 120,
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ display: "flex", fontFamily: "Anton", fontSize: 20, color: CORES_POSTER.branco, textAlign: "center" }}>
+          {horario}
+        </div>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          justifyContent: "center",
+          fontSize: 22,
+          fontWeight: 700,
+          color: CORES_POSTER.grena,
+          textAlign: "center",
+        }}
+      >
+        {atividade.toUpperCase()}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          width: 180,
+          justifyContent: "center",
+          fontSize: 22,
+          fontWeight: 700,
+          color: CORES_POSTER.grena,
+          textAlign: "center",
+        }}
+      >
+        {local.toUpperCase()}
+      </div>
+    </div>
+  );
+}
+
+/** Frase final livre do pôster Dia de Jogo (ex: "Atletas liberados após o almoço!"). */
+export function PosterLiberacaoImg({ texto }: { texto: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        fontSize: 24,
+        fontWeight: 700,
+        color: CORES_POSTER.preto,
+        marginTop: 30,
+        textTransform: "uppercase",
       }}
     >
       {texto}

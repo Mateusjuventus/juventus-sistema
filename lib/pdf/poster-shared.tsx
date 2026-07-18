@@ -81,6 +81,82 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 14,
   },
+  faixaDado: {
+    backgroundColor: CORES_POSTER.grena,
+    marginTop: 10,
+    paddingVertical: 7,
+  },
+  faixaDadoTexto: {
+    fontFamily: "Anton",
+    fontSize: 17,
+    color: CORES_POSTER.branco,
+    textAlign: "center",
+    letterSpacing: 0.5,
+  },
+  orientacoesTitulo: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: CORES_POSTER.preto,
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  orientacoesLinha: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 6,
+  },
+  orientacoesMarcador: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: CORES_POSTER.preto,
+  },
+  orientacoesTexto: {
+    flex: 1,
+    fontSize: 10,
+    fontWeight: 700,
+    color: CORES_POSTER.preto,
+  },
+  linhaProgramacao: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  linhaHorarioCaixa: {
+    backgroundColor: CORES_POSTER.grena,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    minWidth: 68,
+  },
+  linhaHorarioTexto: {
+    fontFamily: "Anton",
+    fontSize: 12,
+    color: CORES_POSTER.branco,
+    textAlign: "center",
+  },
+  linhaAtividadeTexto: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: 700,
+    color: CORES_POSTER.grena,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  linhaLocalTexto: {
+    width: 100,
+    fontSize: 12,
+    fontWeight: 700,
+    color: CORES_POSTER.grena,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  liberacaoTexto: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: CORES_POSTER.preto,
+    marginTop: 18,
+    textTransform: "uppercase",
+  },
 });
 
 /**
@@ -93,10 +169,13 @@ export function PosterCabecalho({
   competicao,
   mandante,
   adversarioLogoSrc,
+  mostrarCompeticao = true,
 }: {
   competicao: string;
   mandante: boolean;
   adversarioLogoSrc: LogoSrc;
+  /** Concentração e Dia de Jogo não mostram o nome da competição no cabeçalho (ver referência). */
+  mostrarCompeticao?: boolean;
 }) {
   const primeiro = mandante ? juventusEscudoSrc : (adversarioLogoSrc as any);
   const segundo = mandante ? (adversarioLogoSrc as any) : juventusEscudoSrc;
@@ -126,7 +205,9 @@ export function PosterCabecalho({
             <View style={styles.escudo} />
           )}
         </View>
-        <Text style={styles.competicaoTexto}>{competicao.toUpperCase()}</Text>
+        {mostrarCompeticao ? (
+          <Text style={styles.competicaoTexto}>{competicao.toUpperCase()}</Text>
+        ) : null}
       </View>
     </>
   );
@@ -146,6 +227,60 @@ export function PosterConfronto({ texto }: { texto: string }) {
 
 export function PosterDadosJogo({ texto }: { texto: string }) {
   return <Text style={styles.dadosJogoTexto}>{texto}</Text>;
+}
+
+/** Faixa vinho com a data/dia da semana — usada por Concentração e Dia de Jogo (não pelo Relacionados). */
+export function PosterFaixaData({ texto }: { texto: string }) {
+  return (
+    <View style={styles.faixaDado}>
+      <Text style={styles.faixaDadoTexto}>{texto}</Text>
+    </View>
+  );
+}
+
+/** Lista de regras em bullets, preto e em negrito — só a seção Concentração usa. */
+export function PosterOrientacoes({ titulo, regras }: { titulo: string; regras: string[] }) {
+  return (
+    <View>
+      <Text style={styles.orientacoesTitulo}>{titulo}</Text>
+      {regras.map((regra, i) => (
+        <View style={styles.orientacoesLinha} key={i}>
+          <Text style={styles.orientacoesMarcador}>•</Text>
+          <Text style={styles.orientacoesTexto}>{regra}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * Uma linha de cronograma (horário em caixa vinho + atividade + local) — usada por Concentração e
+ * Dia de Jogo. `alignItems: "center"` no container faz o horário/local ficarem centralizados
+ * verticalmente mesmo quando a atividade quebra em duas linhas (ex: "JUVENTUS X FERROVIÁRIA").
+ */
+export function PosterLinhaProgramacao({
+  horario,
+  atividade,
+  local,
+}: {
+  horario: string;
+  atividade: string;
+  local: string;
+}) {
+  return (
+    <View style={styles.linhaProgramacao}>
+      <View style={styles.linhaHorarioCaixa}>
+        <Text style={styles.linhaHorarioTexto}>{horario}</Text>
+      </View>
+      <Text style={styles.linhaAtividadeTexto}>{atividade}</Text>
+      <Text style={styles.linhaLocalTexto}>{local}</Text>
+    </View>
+  );
+}
+
+/** Frase final livre do pôster Dia de Jogo (ex: "Atletas liberados após o almoço!"). */
+export function PosterLiberacao({ texto }: { texto: string }) {
+  return <Text style={styles.liberacaoTexto}>{texto}</Text>;
 }
 
 export function PosterRodape() {
