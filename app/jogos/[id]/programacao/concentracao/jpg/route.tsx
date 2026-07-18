@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     regras: dados.regras,
   });
 
-  const jpgBuffer = await renderizarPosterComoJpeg(jsx as any);
+  const jpgBuffer = await renderizarPosterComoJpeg(jsx as any, { comMolduraLateral: true });
 
   const nomeArquivo = nomeArquivoPoster("concentracao", dados.jogo.adversario_nome, dados.jogo.data_jogo);
 

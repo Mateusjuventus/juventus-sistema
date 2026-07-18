@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import React from "react";
-import { CORES_POSTER, HASHTAG_RODAPE, POSTER_IMAGEM_LARGURA } from "./estilo";
+import {
+  CORES_POSTER,
+  CORPO_LATERAL_PADDING_DIREITA,
+  CORPO_LATERAL_PADDING_ESQUERDA,
+  HASHTAG_RODAPE,
+  POSTER_IMAGEM_LARGURA,
+} from "./estilo";
 
 /**
  * Blocos compartilhados pelos 3 pôsteres na versão IMAGEM (JPG), gerada com o `ImageResponse` do
@@ -319,4 +325,86 @@ export const posterImagemBase = {
   flexDirection: "column" as const,
   backgroundColor: CORES_POSTER.branco,
   position: "relative" as const,
+};
+
+// ---------------------------------------------------------------------------------------------
+// Variante "lateral" (Concentração e Dia de Jogo) — moldura em barra dupla na borda esquerda,
+// altura total do pôster, em vez das faixas horizontais do topo/rodapé do Relacionados. Medidas
+// tiradas por análise de pixel da referência do Mateus (largura do pôster = 1191px): barra grossa
+// 0–8.63%, vão em branco 8.63–9.89%, barra fina 9.89–11.97%. `posterImagemBase` já tem
+// `position: relative`, então os `position: absolute` abaixo ficam relativos a ele.
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Cabeçalho de Concentração/Dia de Jogo: estrelas e escudos direto no fundo branco, sem as faixas
+ * vinho do Relacionados (a referência não tem essas faixas nesses dois pôsteres — só a moldura
+ * lateral). Também não mostra nome de competição.
+ */
+export function PosterCabecalhoLateralImg({
+  mandante,
+  adversarioLogoUrl,
+}: {
+  mandante: boolean;
+  adversarioLogoUrl: string | null;
+}) {
+  const juventus = getJuventusEscudoDataUri();
+  const primeiro = mandante ? juventus : adversarioLogoUrl;
+  const segundo = mandante ? adversarioLogoUrl : juventus;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "center", paddingTop: 34, gap: 10 }}>
+        <Estrela cor={CORES_POSTER.prata} />
+        <Estrela cor={CORES_POSTER.dourado} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", paddingTop: 26, gap: 26 }}>
+        {primeiro ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={primeiro} width={110} height={110} style={{ objectFit: "contain" }} />
+        ) : (
+          <div style={{ display: "flex", width: 110, height: 110 }} />
+        )}
+        {segundo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={segundo} width={110} height={110} style={{ objectFit: "contain" }} />
+        ) : (
+          <div style={{ display: "flex", width: 110, height: 110 }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Rodapé de Concentração/Dia de Jogo: só a hashtag, sem as faixas vinho do Relacionados. */
+export function PosterRodapeLateralImg() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        fontFamily: "Anton",
+        fontSize: 24,
+        color: CORES_POSTER.grena,
+        justifyContent: "center",
+        width: "100%",
+        paddingTop: 20,
+        paddingBottom: 40,
+      }}
+    >
+      {HASHTAG_RODAPE}
+    </div>
+  );
+}
+
+/**
+ * Padding do corpo pra Concentração/Dia de Jogo — bem maior que o do Relacionados (~16% da
+ * largura de cada lado, medido na referência) porque o conteúdo precisa ficar nitidamente à
+ * direita da moldura lateral.
+ */
+export const corpoLateralImg = {
+  display: "flex" as const,
+  flexDirection: "column" as const,
+  alignItems: "center" as const,
+  paddingTop: 24,
+  paddingLeft: CORPO_LATERAL_PADDING_ESQUERDA,
+  paddingRight: CORPO_LATERAL_PADDING_DIREITA,
 };

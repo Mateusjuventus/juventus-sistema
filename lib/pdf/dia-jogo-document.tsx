@@ -3,11 +3,12 @@ import { Document, Page, View } from "@react-pdf/renderer";
 import type { ItemProgramacaoTexto } from "@/lib/posters/programacao-item";
 import {
   LogoSrc,
-  PosterCabecalho,
+  PosterCabecalhoLateral,
   PosterFaixaData,
   PosterLiberacao,
   PosterLinhaProgramacao,
-  PosterRodape,
+  PosterMolduraLateral,
+  PosterRodapeLateral,
   PosterTitulo,
   styles as sharedStyles,
 } from "./poster-shared";
@@ -30,13 +31,9 @@ export function DiaJogoDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        <PosterCabecalho
-          competicao=""
-          mandante={mandante}
-          adversarioLogoSrc={adversarioLogoSrc}
-          mostrarCompeticao={false}
-        />
-        <View style={sharedStyles.corpo}>
+        <PosterMolduraLateral />
+        <PosterCabecalhoLateral mandante={mandante} adversarioLogoSrc={adversarioLogoSrc} />
+        <View style={sharedStyles.corpoLateral}>
           <PosterTitulo texto="DIA DE JOGO" />
           <PosterFaixaData texto={dataFaixaTexto} />
           <View style={{ marginTop: 22 }}>
@@ -51,7 +48,7 @@ export function DiaJogoDocument({
           </View>
           {liberacaoTexto ? <PosterLiberacao texto={liberacaoTexto} /> : null}
         </View>
-        <PosterRodape />
+        <PosterRodapeLateral />
       </Page>
     </Document>
   );

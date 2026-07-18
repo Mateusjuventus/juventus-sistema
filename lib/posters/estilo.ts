@@ -20,6 +20,25 @@ export const CORES_POSTER = {
 export const POSTER_IMAGEM_LARGURA = 1191;
 export const POSTER_IMAGEM_ALTURA = 1684;
 
+// Altura de "sobra" bem generosa pro canvas do `ImageResponse` (ver lib/posters/renderizar-imagem.ts).
+export const ALTURA_CANVAS_GENEROSA = 3400;
+
+// Moldura lateral (Concentração e Dia de Jogo): duas barras vinho na borda esquerda, cobrindo a
+// altura inteira do pôster — medidas tiradas por análise de pixel da referência do Mateus (ver
+// lib/pdf/poster-shared.tsx). No JPG, a moldura é desenhada por cima da imagem já cortada (em
+// `renderizar-imagem.ts`, via `sharp().composite()`) em vez de fazer parte do JSX/Satori — o
+// Satori/Yoga não estica um `position: absolute` só com `top`+`bottom` sem uma altura explícita
+// no pai, e forçar essa altura quebraria o corte automático do excesso de canvas (o pôster
+// inteiro nunca seria cortado, porque a barra passaria a "contar" como conteúdo até o fim).
+export const MOLDURA_LATERAL_GROSSA_LARGURA = 103;
+export const MOLDURA_LATERAL_FINA_ESQUERDA = 118;
+export const MOLDURA_LATERAL_FINA_LARGURA = 23;
+// Padding esquerdo/direito do corpo dos pôsteres com moldura lateral (~16% da largura, medido na
+// referência) — bem maior que o do Relacionados porque o conteúdo precisa ficar nitidamente à
+// direita da moldura.
+export const CORPO_LATERAL_PADDING_ESQUERDA = 195;
+export const CORPO_LATERAL_PADDING_DIREITA = 193;
+
 export const HASHTAG_RODAPE = "#MOLEQUETRAVESSO";
 
 /**
