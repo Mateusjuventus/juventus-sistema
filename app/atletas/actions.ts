@@ -17,6 +17,7 @@ export interface AtletaFormState {
 function parseForm(formData: FormData) {
   const raw = {
     nomeCompleto: String(formData.get("nomeCompleto") ?? ""),
+    apelido: String(formData.get("apelido") ?? ""),
     rg: String(formData.get("rg") ?? ""),
     cpf: String(formData.get("cpf") ?? ""),
     dataNascimento: String(formData.get("dataNascimento") ?? ""),
@@ -88,6 +89,7 @@ export async function createAtleta(
   const { error } = await supabase.from("atletas").insert({
     id,
     nome_completo: data.nomeCompleto,
+    apelido: data.apelido || null,
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,
@@ -136,6 +138,7 @@ export async function updateAtleta(
 
   const updatePayload: Record<string, unknown> = {
     nome_completo: data.nomeCompleto,
+    apelido: data.apelido || null,
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,

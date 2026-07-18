@@ -19,6 +19,7 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
 
   const defaultValues: Record<string, string> = {
     nomeCompleto: atleta.nome_completo,
+    apelido: atleta.apelido ?? "",
     rg: atleta.rg,
     cpf: formatCPF(atleta.cpf),
     dataNascimento: atleta.data_nascimento,

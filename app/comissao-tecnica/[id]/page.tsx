@@ -19,6 +19,7 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
 
   const defaultValues: Record<string, string> = {
     nomeCompleto: pessoa.nome_completo,
+    apelido: pessoa.apelido ?? "",
     rg: pessoa.rg,
     cpf: formatCPF(pessoa.cpf),
     dataNascimento: pessoa.data_nascimento,
