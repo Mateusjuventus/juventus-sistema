@@ -101,9 +101,26 @@ export interface JogoRow {
   mandante: boolean;
   gols_pro: number | null;
   gols_contra: number | null;
+  concentracao_data: string | null;
+  concentracao_regras: string;
+  dia_jogo_liberacao: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type ProgramacaoTipo = "concentracao" | "dia_jogo";
+
+export interface JogoProgramacaoItemRow {
+  id: string;
+  jogo_id: string;
+  tipo: ProgramacaoTipo;
+  ordem: number;
+  horario: string;
+  atividade: string;
+  local: string;
+  eh_confronto: boolean;
+  created_at: string;
 }
 
 export type ConvocacaoAtletaStatus = "titular" | "reserva";
