@@ -125,6 +125,29 @@ export interface JogoProgramacaoItemRow {
 
 export type ConvocacaoAtletaStatus = "titular" | "reserva";
 
+export interface IngressoCargaRow {
+  id: string;
+  jogo_id: string;
+  quantidade: number;
+  data: string;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IngressoSolicitacaoRow {
+  id: string;
+  jogo_id: string;
+  nome_solicitante: string;
+  quantidade_solicitada: number;
+  quantidade_atendida: number;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ConvocacaoRow {
   id: string;
   jogo_id: string;

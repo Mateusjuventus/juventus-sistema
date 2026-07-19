@@ -320,3 +320,27 @@ export const estoqueEntradaSchema = z.object({
   observacoes: z.string().optional().or(z.literal("")),
 });
 export type EstoqueEntradaInput = z.infer<typeof estoqueEntradaSchema>;
+
+export const ingressoCargaSchema = z.object({
+  quantidade: z.coerce.number().int({ message: "Quantidade deve ser um número inteiro" }).positive({
+    message: "Quantidade deve ser maior que zero",
+  }),
+  data: z.string().min(1, { message: "Data é obrigatória" }),
+  observacoes: z.string().optional().or(z.literal("")),
+});
+export type IngressoCargaInput = z.infer<typeof ingressoCargaSchema>;
+
+export const ingressoSolicitacaoSchema = z.object({
+  nomeSolicitante: z.string().min(1, { message: "Nome do solicitante é obrigatório" }),
+  quantidadeSolicitada: z.coerce
+    .number()
+    .int({ message: "Quantidade solicitada deve ser um número inteiro" })
+    .positive({ message: "Quantidade solicitada deve ser maior que zero" }),
+  quantidadeAtendida: z.coerce
+    .number()
+    .int({ message: "Quantidade atendida deve ser um número inteiro" })
+    .nonnegative({ message: "Quantidade atendida não pode ser negativa" })
+    .optional(),
+  observacoes: z.string().optional().or(z.literal("")),
+});
+export type IngressoSolicitacaoInput = z.infer<typeof ingressoSolicitacaoSchema>;
