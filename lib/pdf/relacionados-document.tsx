@@ -19,8 +19,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   textoNome: {
+    fontFamily: "Helvetica-Bold",
     fontSize: 12.5,
-    fontWeight: 700,
     color: CORES_POSTER.branco,
     textAlign: "center",
     textTransform: "uppercase",

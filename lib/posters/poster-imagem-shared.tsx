@@ -124,7 +124,7 @@ export function PosterTituloImg({ texto }: { texto: string }) {
         width: "100%",
       }}
     >
-      <div style={{ display: "flex", fontFamily: "Anton", fontSize: 68, color: CORES_POSTER.branco }}>
+      <div style={{ display: "flex", fontFamily: "Anton", fontSize: 76, color: CORES_POSTER.branco }}>
         {texto}
       </div>
     </div>
@@ -191,13 +191,22 @@ export function PosterFaixaDataImg({ texto }: { texto: string }) {
 export function PosterOrientacoesImg({ titulo, regras }: { titulo: string; regras: string[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", marginTop: 30 }}>
-      <div style={{ display: "flex", fontSize: 22, fontWeight: 700, color: CORES_POSTER.preto, marginBottom: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          fontSize: 27,
+          fontWeight: 700,
+          color: CORES_POSTER.preto,
+          marginBottom: 16,
+          letterSpacing: 0.3,
+        }}
+      >
         {titulo}
       </div>
       {regras.map((regra, i) => (
-        <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-          <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: CORES_POSTER.preto }}>•</div>
-          <div style={{ display: "flex", flex: 1, fontSize: 18, fontWeight: 700, color: CORES_POSTER.preto }}>
+        <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+          <div style={{ display: "flex", fontSize: 22, fontWeight: 700, color: CORES_POSTER.preto }}>•</div>
+          <div style={{ display: "flex", flex: 1, fontSize: 22, fontWeight: 700, color: CORES_POSTER.preto }}>
             {regra}
           </div>
         </div>
@@ -221,20 +230,21 @@ export function PosterLinhaProgramacaoImg({
   local: string;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 18, width: "100%", marginBottom: 18 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 18, width: "100%", marginBottom: 20 }}>
       <div
         style={{
           display: "flex",
-          backgroundColor: CORES_POSTER.grena,
-          paddingTop: 10,
-          paddingBottom: 10,
-          paddingLeft: 14,
-          paddingRight: 14,
-          minWidth: 120,
+          alignItems: "center",
           justifyContent: "center",
+          backgroundColor: CORES_POSTER.grena,
+          paddingTop: 12,
+          paddingBottom: 12,
+          paddingLeft: 16,
+          paddingRight: 16,
+          minWidth: 140,
         }}
       >
-        <div style={{ display: "flex", fontFamily: "Anton", fontSize: 20, color: CORES_POSTER.branco, textAlign: "center" }}>
+        <div style={{ display: "flex", fontFamily: "Anton", fontSize: 26, color: CORES_POSTER.branco, textAlign: "center" }}>
           {horario}
         </div>
       </div>
@@ -243,10 +253,11 @@ export function PosterLinhaProgramacaoImg({
           display: "flex",
           flex: 1,
           justifyContent: "center",
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: 700,
           color: CORES_POSTER.grena,
           textAlign: "center",
+          letterSpacing: 0.3,
         }}
       >
         {atividade.toUpperCase()}
@@ -254,12 +265,13 @@ export function PosterLinhaProgramacaoImg({
       <div
         style={{
           display: "flex",
-          width: 180,
+          width: 190,
           justifyContent: "center",
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: 700,
           color: CORES_POSTER.grena,
           textAlign: "center",
+          letterSpacing: 0.3,
         }}
       >
         {local.toUpperCase()}
@@ -353,11 +365,11 @@ export function PosterCabecalhoLateralImg({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-      <div style={{ display: "flex", justifyContent: "center", paddingTop: 34, gap: 10 }}>
+      <div style={{ display: "flex", width: "100%", justifyContent: "center", paddingTop: 40, gap: 10 }}>
         <Estrela cor={CORES_POSTER.prata} />
         <Estrela cor={CORES_POSTER.dourado} />
       </div>
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", paddingTop: 26, gap: 26 }}>
+      <div style={{ display: "flex", width: "100%", justifyContent: "center", alignItems: "center", paddingTop: 26, gap: 26 }}>
         {primeiro ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={primeiro} width={110} height={110} style={{ objectFit: "contain" }} />
