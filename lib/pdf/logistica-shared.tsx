@@ -1,3 +1,4 @@
+import React from "react";
 import { Text, View, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import type { JogoRow } from "@/lib/supabase/types";
 

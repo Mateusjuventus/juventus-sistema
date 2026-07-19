@@ -22,7 +22,8 @@ export function JogoTabs({
     | "credenciamento"
     | "checklist"
     | "recibo"
-    | "financeiro";
+    | "financeiro"
+    | "ingressos";
 }) {
   const logisticaSubTabs = [
     { key: "rooming-list", label: "Rooming List", href: `/jogos/${jogoId}/rooming-list` },
@@ -54,6 +55,12 @@ export function JogoTabs({
       label: "Financeiro",
       href: `/jogos/${jogoId}/financeiro`,
       active: active === "financeiro",
+    },
+    {
+      key: "ingressos",
+      label: "Carga de Ingressos",
+      href: `/jogos/${jogoId}/ingressos`,
+      active: active === "ingressos",
     },
   ] as const;
 
