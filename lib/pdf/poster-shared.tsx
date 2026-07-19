@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import React from "react";
-import { Font, Image, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Font, Image, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import { CORES_POSTER, HASHTAG_RODAPE } from "@/lib/posters/estilo";
 
 // Mesma correção de hifenização do restante dos PDFs (ver lib/pdf/logistica-shared.tsx) — sem
@@ -157,7 +157,64 @@ export const styles = StyleSheet.create({
     marginTop: 18,
     textTransform: "uppercase",
   },
+  // Moldura lateral (barra dupla vinho na borda esquerda, altura total da página) — usada por
+  // Concentração e Dia de Jogo em vez das faixas horizontais do topo/rodapé do Relacionados.
+  // Medidas tiradas por análise de pixel da referência do Mateus (largura A4 = 595.28pt):
+  // barra grossa 0–8.63%, vão em branco 8.63–9.89%, barra fina 9.89–11.97%.
+  molduraLateralGrossa: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 51.4,
+    backgroundColor: CORES_POSTER.grena,
+  },
+  molduraLateralFina: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 58.9,
+    width: 11.6,
+    backgroundColor: CORES_POSTER.grena,
+  },
+  // Mesma proporção de margem (~16%) usada pela caixa de título na referência — bem maior que o
+  // `corpo` do Relacionados porque aqui o conteúdo precisa ficar nitidamente à direita da moldura.
+  corpoLateral: {
+    paddingTop: 20,
+    paddingLeft: 98,
+    paddingRight: 96,
+    paddingBottom: 50,
+  },
+  cabecalhoLateralEstrelas: {
+    alignItems: "center",
+    paddingTop: 18,
+  },
+  cabecalhoLateralEscudos: {
+    alignItems: "center",
+    paddingTop: 14,
+  },
+  rodapeLateralHashtag: {
+    fontFamily: "Anton",
+    fontSize: 13,
+    color: CORES_POSTER.grena,
+    textAlign: "center",
+    paddingBottom: 20,
+  },
 });
+
+// Estrela desenhada em SVG (em vez do caractere "★") — as fontes padrão do react-pdf (Helvetica)
+// não têm esse glifo Unicode, então o <Text>★</Text> simplesmente não desenhava nada (mesmo bug
+// já corrigido na versão em imagem/Satori, ver `lib/posters/poster-imagem-shared.tsx`).
+function Estrela({ cor, tamanho = 12 }: { cor: string; tamanho?: number }) {
+  return (
+    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24">
+      <Path
+        fill={cor}
+        d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 17.27l-6.18 3.24L7 13.63l-5-4.87 6.91-1L12 1.5z"
+      />
+    </Svg>
+  );
+}
 
 /**
  * Cabeçalho compartilhado pelos 3 pôsteres: as duas faixas vinho do topo, os escudos (Juventus +
@@ -184,8 +241,8 @@ export function PosterCabecalho({
     <>
       <View style={styles.barraTopoGrossa}>
         <View style={styles.estrelas}>
-          <Text style={[styles.estrela, { color: CORES_POSTER.prata }]}>★</Text>
-          <Text style={[styles.estrela, { color: CORES_POSTER.dourado }]}>★</Text>
+          <Estrela cor={CORES_POSTER.prata} />
+          <Estrela cor={CORES_POSTER.dourado} />
         </View>
       </View>
       <View style={styles.barraTopoFina} />
@@ -281,6 +338,72 @@ export function PosterLinhaProgramacao({
 /** Frase final livre do pôster Dia de Jogo (ex: "Atletas liberados após o almoço!"). */
 export function PosterLiberacao({ texto }: { texto: string }) {
   return <Text style={styles.liberacaoTexto}>{texto}</Text>;
+}
+
+/**
+ * Moldura lateral (duas barras vinho na borda esquerda, altura total da página) — usada por
+ * Concentração e Dia de Jogo em vez das faixas horizontais do topo/rodapé do Relacionados. Deve
+ * ser o primeiro elemento dentro do `<Page>` (posicionamento absoluto é relativo à página).
+ */
+export function PosterMolduraLateral() {
+  return (
+    <>
+      <View style={styles.molduraLateralGrossa} />
+      <View style={styles.molduraLateralFina} />
+    </>
+  );
+}
+
+/**
+ * Cabeçalho de Concentração/Dia de Jogo: estrelas e escudos direto no fundo branco, sem as faixas
+ * vinho do Relacionados (a referência do Mateus não tem essas faixas nesses dois pôsteres — só a
+ * moldura lateral). Também não mostra nome de competição (mesma regra do `PosterCabecalho`).
+ */
+export function PosterCabecalhoLateral({
+  mandante,
+  adversarioLogoSrc,
+}: {
+  mandante: boolean;
+  adversarioLogoSrc: LogoSrc;
+}) {
+  const primeiro = mandante ? juventusEscudoSrc : (adversarioLogoSrc as any);
+  const segundo = mandante ? (adversarioLogoSrc as any) : juventusEscudoSrc;
+
+  return (
+    <>
+      <View style={styles.cabecalhoLateralEstrelas}>
+        <View style={styles.estrelas}>
+          <Estrela cor={CORES_POSTER.prata} />
+          <Estrela cor={CORES_POSTER.dourado} />
+        </View>
+      </View>
+      <View style={styles.cabecalhoLateralEscudos}>
+        <View style={styles.escudosLinha}>
+          {primeiro ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image style={styles.escudo} src={primeiro} />
+          ) : (
+            <View style={styles.escudo} />
+          )}
+          {segundo ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image style={styles.escudo} src={segundo} />
+          ) : (
+            <View style={styles.escudo} />
+          )}
+        </View>
+      </View>
+    </>
+  );
+}
+
+/** Rodapé de Concentração/Dia de Jogo: só a hashtag, sem as faixas vinho do Relacionados. */
+export function PosterRodapeLateral() {
+  return (
+    <View style={styles.rodapeFixo}>
+      <Text style={styles.rodapeLateralHashtag}>{HASHTAG_RODAPE}</Text>
+    </View>
+  );
 }
 
 export function PosterRodape() {

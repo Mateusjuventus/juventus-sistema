@@ -1,12 +1,13 @@
 import React from "react";
 import type { ItemProgramacaoTexto } from "./programacao-item";
 import {
-  PosterCabecalhoImg,
+  PosterCabecalhoLateralImg,
   PosterFaixaDataImg,
   PosterLiberacaoImg,
   PosterLinhaProgramacaoImg,
-  PosterRodapeImg,
+  PosterRodapeLateralImg,
   PosterTituloImg,
+  corpoLateralImg,
   posterImagemBase,
 } from "./poster-imagem-shared";
 
@@ -23,10 +24,13 @@ export function diaJogoImagemJsx({
   itens: ItemProgramacaoTexto[];
   liberacaoTexto: string | null;
 }) {
+  // A moldura lateral (barra dupla vinho na borda esquerda) não faz parte deste JSX — é desenhada
+  // depois, em cima da imagem já cortada, por `renderizarPosterComoJpeg(jsx, { comMolduraLateral:
+  // true })` (ver o porquê em `lib/posters/renderizar-imagem.ts`).
   return (
     <div style={posterImagemBase}>
-      <PosterCabecalhoImg competicao="" mandante={mandante} adversarioLogoUrl={adversarioLogoUrl} mostrarCompeticao={false} />
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 48px" }}>
+      <PosterCabecalhoLateralImg mandante={mandante} adversarioLogoUrl={adversarioLogoUrl} />
+      <div style={corpoLateralImg}>
         <PosterTituloImg texto="DIA DE JOGO" />
         <PosterFaixaDataImg texto={dataFaixaTexto} />
         <div style={{ display: "flex", flexDirection: "column", width: "100%", marginTop: 36 }}>
@@ -35,14 +39,12 @@ export function diaJogoImagemJsx({
           ))}
         </div>
         {liberacaoTexto ? (
-          <div style={{ display: "flex", width: "100%", paddingBottom: 40 }}>
+          <div style={{ display: "flex", width: "100%" }}>
             <PosterLiberacaoImg texto={liberacaoTexto} />
           </div>
-        ) : (
-          <div style={{ display: "flex", paddingBottom: 20 }} />
-        )}
+        ) : null}
       </div>
-      <PosterRodapeImg />
+      <PosterRodapeLateralImg />
     </div>
   );
 }
