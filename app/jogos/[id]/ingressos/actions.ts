@@ -9,12 +9,16 @@ export interface IngressoCargaFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
+  /** Só usado pelo formulário inline de criação (lista principal) — indica sucesso pra limpar os
+   * campos sem navegar pra outra página. A edição continua numa página própria e usa redirect. */
+  success?: boolean;
 }
 
 export interface IngressoSolicitacaoFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
+  success?: boolean;
 }
 
 /**
@@ -86,7 +90,7 @@ export async function createCarga(
   if (error) return { error: "Não foi possível salvar a carga. Tente novamente.", values: raw };
 
   revalidatePath(`/jogos/${jogoId}/ingressos`);
-  redirect(`/jogos/${jogoId}/ingressos`);
+  return { success: true };
 }
 
 export async function updateCarga(
@@ -181,7 +185,7 @@ export async function createSolicitacao(
   if (error) return { error: "Não foi possível salvar a solicitação. Tente novamente.", values: raw };
 
   revalidatePath(`/jogos/${jogoId}/ingressos`);
-  redirect(`/jogos/${jogoId}/ingressos`);
+  return { success: true };
 }
 
 export async function updateSolicitacao(

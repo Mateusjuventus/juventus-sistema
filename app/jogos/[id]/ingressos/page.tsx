@@ -5,7 +5,9 @@ import { JogoTabs } from "@/components/jogo-tabs";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import type { IngressoCargaRow, IngressoSolicitacaoRow, JogoRow } from "@/lib/supabase/types";
-import { deleteCarga, deleteSolicitacao } from "./actions";
+import { createCarga, createSolicitacao, deleteCarga, deleteSolicitacao } from "./actions";
+import { CargaInlineForm } from "./carga-inline-form";
+import { SolicitacaoInlineForm } from "./solicitacao-inline-form";
 
 function formatData(data: string): string {
   const [ano, mes, dia] = data.split("-");
@@ -75,11 +77,9 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
       </div>
 
       <div className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-neutral-800">Cargas recebidas</h2>
-          <Link href={`/jogos/${jogo.id}/ingressos/cargas/nova`} className="btn-primary">
-            + Nova carga
-          </Link>
+        <h2 className="mb-3 text-base font-semibold text-neutral-800">Cargas recebidas</h2>
+        <div className="mb-3">
+          <CargaInlineForm jogoId={jogo.id} action={createCarga} />
         </div>
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
@@ -120,11 +120,9 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
       </div>
 
       <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-neutral-800">Solicitações</h2>
-          <Link href={`/jogos/${jogo.id}/ingressos/solicitacoes/nova`} className="btn-primary">
-            + Nova solicitação
-          </Link>
+        <h2 className="mb-3 text-base font-semibold text-neutral-800">Solicitações</h2>
+        <div className="mb-3">
+          <SolicitacaoInlineForm jogoId={jogo.id} action={createSolicitacao} />
         </div>
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
