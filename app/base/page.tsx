@@ -5,11 +5,17 @@ import { createClient } from "@/lib/supabase/server";
 import { getModulosBasePermitidos } from "@/lib/auth/role";
 import { MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-base";
 
-/** Só os módulos já construídos do Futebol de Base (Fases 1-2 = Atletas, Comissão Técnica, Staff
- * Operacional) ganham um cartão de verdade aqui — os demais (Fases 3-4, ver a spec) aparecem como
- * "Em breve" mais abaixo, e só se o usuário tiver o módulo liberado (senão nem faz sentido
- * anunciar o que está por vir). */
-const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = ["atletas", "comissao_tecnica", "staff_operacional"];
+/** Só os módulos já construídos do Futebol de Base (Fases 1-3 = Atletas, Comissão Técnica, Staff
+ * Operacional, Jogos, Financeiro) ganham um cartão de verdade aqui — os demais (Fase 4, ver a
+ * spec) aparecem como "Em breve" mais abaixo, e só se o usuário tiver o módulo liberado (senão nem
+ * faz sentido anunciar o que está por vir). */
+const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = [
+  "atletas",
+  "comissao_tecnica",
+  "staff_operacional",
+  "jogos",
+  "financeiro",
+];
 
 function IconAtletas({ className }: { className?: string }) {
   return (
@@ -38,20 +44,43 @@ function IconStaff({ className }: { className?: string }) {
   );
 }
 
+function IconJogos({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3v18M3 12h18" />
+    </svg>
+  );
+}
+
+function IconFinanceiro({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M12 3v18M8 7h5.5a2.5 2.5 0 010 5H8m0 0h6a2.5 2.5 0 010 5H8" />
+    </svg>
+  );
+}
+
 export default async function BasePage() {
   const supabase = createClient();
   const modulosPermitidos = await getModulosBasePermitidos(supabase);
   const temModulo = (chave: ModuloBaseChave) => modulosPermitidos.includes(chave);
 
-  const [{ count: totalAtletasCount }, { count: totalComissaoCount }, { count: totalStaffCount }] =
-    await Promise.all([
-      supabase.from("atletas_base").select("*", { count: "exact", head: true }),
-      supabase.from("comissao_tecnica_base").select("*", { count: "exact", head: true }),
-      supabase.from("staff_operacional_base").select("*", { count: "exact", head: true }).eq("ativo", true),
-    ]);
+  const [
+    { count: totalAtletasCount },
+    { count: totalComissaoCount },
+    { count: totalStaffCount },
+    { count: totalJogosCount },
+  ] = await Promise.all([
+    supabase.from("atletas_base").select("*", { count: "exact", head: true }),
+    supabase.from("comissao_tecnica_base").select("*", { count: "exact", head: true }),
+    supabase.from("staff_operacional_base").select("*", { count: "exact", head: true }).eq("ativo", true),
+    supabase.from("jogos_base").select("*", { count: "exact", head: true }),
+  ]);
   const totalAtletas = totalAtletasCount ?? 0;
   const totalComissao = totalComissaoCount ?? 0;
   const totalStaff = totalStaffCount ?? 0;
+  const totalJogos = totalJogosCount ?? 0;
 
   const emBreve = MODULOS_BASE.filter(
     (m) => !MODULOS_CONSTRUIDOS.includes(m.chave) && temModulo(m.chave),
@@ -124,6 +153,42 @@ export default async function BasePage() {
             <p className="text-sm font-medium text-neutral-500">
               {totalStaff} ativo{totalStaff === 1 ? "" : "s"}
             </p>
+          </Link>
+        ) : null}
+
+        {temModulo("jogos") ? (
+          <Link
+            href="/base/jogos"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-blue-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <IconJogos className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Jogos / Competições</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalJogos} jogo{totalJogos === 1 ? "" : "s"} cadastrado{totalJogos === 1 ? "" : "s"}
+            </p>
+          </Link>
+        ) : null}
+
+        {temModulo("financeiro") ? (
+          <Link
+            href="/base/financeiro"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-rose-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+              <IconFinanceiro className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Prestação de Contas</h2>
+            <p className="text-sm font-medium text-neutral-500">Financeiro dos jogos</p>
           </Link>
         ) : null}
       </div>

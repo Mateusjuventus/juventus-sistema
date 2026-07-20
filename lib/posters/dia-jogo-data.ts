@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import type { JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
+import type { JogoBaseRow, JogoProgramacaoItemBaseRow, JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
 import { buildConfrontoTexto } from "./jogo-texto";
 import { formatDataFaixa } from "./concentracao-data";
 import type { ItemProgramacaoTexto } from "./programacao-item";
@@ -49,6 +49,43 @@ export async function buildDiaJogoData(jogoId: string): Promise<DiaJogoData | nu
 
   return {
     jogo,
+    adversarioLogoUrl,
+    dataFaixaTexto: formatDataFaixa(jogo.data_jogo),
+    itens,
+    liberacaoTexto: jogo.dia_jogo_liberacao,
+  };
+}
+
+/** Mesma coisa que `buildDiaJogoData`, mas para o Futebol de Base — ver `buildConcentracaoDataBase`. */
+export async function buildDiaJogoDataBase(jogoId: string): Promise<DiaJogoData | null> {
+  const supabase = createClient();
+
+  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", jogoId).single();
+  if (!jogoData) return null;
+  const jogo = jogoData as JogoBaseRow;
+
+  const [{ data: itensData }, adversarioLogoUrl] = await Promise.all([
+    supabase
+      .from("jogo_programacao_itens_base")
+      .select("*")
+      .eq("jogo_id", jogoId)
+      .eq("tipo", "dia_jogo")
+      .order("ordem", { ascending: true }),
+    getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
+  ]);
+
+  const itensRaw = (itensData ?? []) as JogoProgramacaoItemBaseRow[];
+  if (itensRaw.length === 0) return null;
+
+  const confrontoTexto = buildConfrontoTexto(jogo);
+  const itens: ItemProgramacaoTexto[] = itensRaw.map((item) => ({
+    horario: item.horario,
+    atividade: item.eh_confronto ? confrontoTexto : item.atividade,
+    local: item.local,
+  }));
+
+  return {
+    jogo: jogo as unknown as JogoRow,
     adversarioLogoUrl,
     dataFaixaTexto: formatDataFaixa(jogo.data_jogo),
     itens,

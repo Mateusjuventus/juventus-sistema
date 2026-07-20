@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import type { JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
+import type { JogoBaseRow, JogoProgramacaoItemBaseRow, JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
 import { diaDaSemana } from "./relacionados-data";
 import type { ItemProgramacaoTexto } from "./programacao-item";
 
@@ -57,6 +57,53 @@ export async function buildConcentracaoData(jogoId: string): Promise<Concentraca
 
   return {
     jogo,
+    adversarioLogoUrl,
+    dataFaixaTexto: formatDataFaixa(jogo.concentracao_data),
+    itens,
+    regras,
+  };
+}
+
+/**
+ * Mesma coisa que `buildConcentracaoData`, mas para o Futebol de Base (`jogos_base`/
+ * `jogo_programacao_itens_base`). Devolve o mesmo formato `ConcentracaoData` — o documento/imagem
+ * do pôster (`ConcentracaoDocument`/`concentracaoImagemJsx`) recebe só dados já achatados, então
+ * não precisa de nenhuma mudança pra funcionar com o Futebol de Base.
+ */
+export async function buildConcentracaoDataBase(jogoId: string): Promise<ConcentracaoData | null> {
+  const supabase = createClient();
+
+  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", jogoId).single();
+  if (!jogoData) return null;
+  const jogo = jogoData as JogoBaseRow;
+  if (!jogo.concentracao_data) return null;
+
+  const [{ data: itensData }, adversarioLogoUrl] = await Promise.all([
+    supabase
+      .from("jogo_programacao_itens_base")
+      .select("*")
+      .eq("jogo_id", jogoId)
+      .eq("tipo", "concentracao")
+      .order("ordem", { ascending: true }),
+    getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
+  ]);
+
+  const itensRaw = (itensData ?? []) as JogoProgramacaoItemBaseRow[];
+  if (itensRaw.length === 0) return null;
+
+  const itens: ItemProgramacaoTexto[] = itensRaw.map((item) => ({
+    horario: item.horario,
+    atividade: item.atividade,
+    local: item.local,
+  }));
+
+  const regras = jogo.concentracao_regras
+    .split("\n")
+    .map((linha) => linha.trim())
+    .filter(Boolean);
+
+  return {
+    jogo: jogo as unknown as JogoRow,
     adversarioLogoUrl,
     dataFaixaTexto: formatDataFaixa(jogo.concentracao_data),
     itens,

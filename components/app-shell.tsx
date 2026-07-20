@@ -23,6 +23,8 @@ const NAV_LINKS_BASE: { href: string; label: string; moduloChave: ModuloBaseChav
   { href: "/base/atletas", label: "Atletas", moduloChave: "atletas" },
   { href: "/base/comissao-tecnica", label: "Comissão Técnica", moduloChave: "comissao_tecnica" },
   { href: "/base/staff-operacional", label: "Staff Operacional", moduloChave: "staff_operacional" },
+  { href: "/base/jogos", label: "Jogos", moduloChave: "jogos" },
+  { href: "/base/financeiro", label: "Financeiro", moduloChave: "financeiro" },
 ];
 
 /**
