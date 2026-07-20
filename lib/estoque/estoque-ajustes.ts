@@ -70,8 +70,10 @@ export async function gravarPlanoAjustes(
 }
 
 /** Soma todas as quantidades (todos os tamanhos) de um item — usado pra mostrar o total por linha
- * e o total geral do estoque. */
-export function totalItem(item: EstoqueItemRow): number {
+ * e o total geral do estoque. Assinatura generalizada (só pede o campo `tamanhos`) pra funcionar
+ * tanto com `EstoqueItemRow` (Profissional) quanto `EstoqueItemBaseRow` (Futebol de Base, que não
+ * tem `categoria`) sem precisar de uma cópia desta função. */
+export function totalItem(item: { tamanhos: Record<string, number> }): number {
   return Object.values(item.tamanhos ?? {}).reduce((soma, qtd) => soma + Number(qtd || 0), 0);
 }
 

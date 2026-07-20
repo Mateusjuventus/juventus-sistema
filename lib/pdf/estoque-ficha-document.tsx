@@ -151,10 +151,15 @@ export function EstoqueFichaDocument({
   juventusLogoSrc,
   ficha,
   itens,
+  subtitulo,
 }: {
   juventusLogoSrc: LogoSrc;
   ficha: EstoqueFichaPdfData;
   itens: EstoqueFichaPdfItem[];
+  /** Substitui o subtítulo padrão calculado por SUBTITULOS[ficha.categoria] — usado pelo Futebol de
+   * Base (ver app/base/estoque/*), já que lá o subtítulo fixo "Departamento de Futebol Profissional"
+   * não se aplica. */
+  subtitulo?: string;
 }) {
   const emBranco = ficha.numero === null;
   const totalQtd = itens.reduce((soma, i) => soma + i.quantidade, 0);
@@ -171,7 +176,7 @@ export function EstoqueFichaDocument({
         </View>
         <View style={styles.tituloBar}>
           <Text style={styles.tituloTexto}>{TITULOS[ficha.categoria]}</Text>
-          <Text style={styles.subtituloTexto}>{SUBTITULOS[ficha.categoria]}</Text>
+          <Text style={styles.subtituloTexto}>{subtitulo ?? SUBTITULOS[ficha.categoria]}</Text>
         </View>
 
         <View style={styles.sectionBar}>

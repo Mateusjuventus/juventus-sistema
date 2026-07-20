@@ -5,15 +5,16 @@ import { createClient } from "@/lib/supabase/server";
 import { getModulosBasePermitidos } from "@/lib/auth/role";
 import { MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-base";
 
-/** Só os módulos já construídos do Futebol de Base (Fases 1-3 = Atletas, Comissão Técnica, Staff
- * Operacional, Jogos, Financeiro) ganham um cartão de verdade aqui — os demais (Fase 4, ver a
- * spec) aparecem como "Em breve" mais abaixo, e só se o usuário tiver o módulo liberado (senão nem
- * faz sentido anunciar o que está por vir). */
+/** Todos os 7 módulos do Futebol de Base já construídos (Fases 1-4 completas, ver a spec) — a
+ * lista de "Em breve" abaixo fica sempre vazia agora, mas o filtro continua aqui por segurança,
+ * caso um novo módulo seja adicionado no futuro sem ganhar um cartão de imediato. */
 const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = [
   "atletas",
   "comissao_tecnica",
   "staff_operacional",
   "jogos",
+  "solicitacoes",
+  "estoque",
   "financeiro",
 ];
 
@@ -61,6 +62,26 @@ function IconFinanceiro({ className }: { className?: string }) {
   );
 }
 
+function IconSolicitacoes({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M8 3h6l4 4v13a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1Z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+
+function IconEstoque({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M3 7l9-4 9 4-9 4-9-4Z" />
+      <path d="M3 7v10l9 4 9-4V7" />
+      <path d="M12 11v10" />
+    </svg>
+  );
+}
+
 export default async function BasePage() {
   const supabase = createClient();
   const modulosPermitidos = await getModulosBasePermitidos(supabase);
@@ -71,16 +92,22 @@ export default async function BasePage() {
     { count: totalComissaoCount },
     { count: totalStaffCount },
     { count: totalJogosCount },
+    { count: totalSolicitacoesPendentesCount },
+    { count: totalEstoqueItensCount },
   ] = await Promise.all([
     supabase.from("atletas_base").select("*", { count: "exact", head: true }),
     supabase.from("comissao_tecnica_base").select("*", { count: "exact", head: true }),
     supabase.from("staff_operacional_base").select("*", { count: "exact", head: true }).eq("ativo", true),
     supabase.from("jogos_base").select("*", { count: "exact", head: true }),
+    supabase.from("solicitacoes_base").select("*", { count: "exact", head: true }).eq("status", "pendente"),
+    supabase.from("estoque_itens_base").select("*", { count: "exact", head: true }),
   ]);
   const totalAtletas = totalAtletasCount ?? 0;
   const totalComissao = totalComissaoCount ?? 0;
   const totalStaff = totalStaffCount ?? 0;
   const totalJogos = totalJogosCount ?? 0;
+  const totalSolicitacoesPendentes = totalSolicitacoesPendentesCount ?? 0;
+  const totalEstoqueItens = totalEstoqueItensCount ?? 0;
 
   const emBreve = MODULOS_BASE.filter(
     (m) => !MODULOS_CONSTRUIDOS.includes(m.chave) && temModulo(m.chave),
@@ -189,6 +216,48 @@ export default async function BasePage() {
             </div>
             <h2 className="text-lg font-bold text-grena-escuro">Prestação de Contas</h2>
             <p className="text-sm font-medium text-neutral-500">Financeiro dos jogos</p>
+          </Link>
+        ) : null}
+
+        {temModulo("solicitacoes") ? (
+          <Link
+            href="/base/solicitacoes"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-purple-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+              <IconSolicitacoes className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Solicitações</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalSolicitacoesPendentes > 0
+                ? `${totalSolicitacoesPendentes} pendente${totalSolicitacoesPendentes === 1 ? "" : "s"}`
+                : "Nenhuma pendente"}
+            </p>
+          </Link>
+        ) : null}
+
+        {temModulo("estoque") ? (
+          <Link
+            href="/base/estoque"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-indigo-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <IconEstoque className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Estoque</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalEstoqueItens > 0
+                ? `${totalEstoqueItens} ite${totalEstoqueItens === 1 ? "m" : "ns"} cadastrado${totalEstoqueItens === 1 ? "" : "s"}`
+                : "Nenhum item cadastrado ainda"}
+            </p>
           </Link>
         ) : null}
       </div>
