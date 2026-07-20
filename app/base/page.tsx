@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { SproutIcon } from "@/components/department-icon";
+import { JuventusCrest } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getModulosBasePermitidos } from "@/lib/auth/role";
 import { MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-base";
@@ -119,9 +119,7 @@ export default async function BasePage() {
         ← Início
       </Link>
       <div className="mt-2 flex flex-col items-center gap-2 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white">
-          <SproutIcon className="h-6 w-6" />
-        </span>
+        <JuventusCrest className="h-14 w-auto" />
         <h1 className="text-3xl font-bold text-grena-escuro">Futebol de Base</h1>
       </div>
 

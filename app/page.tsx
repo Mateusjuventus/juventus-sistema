@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { SproutIcon } from "@/components/department-icon";
 import { JuventusCrest } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getDepartamentosPermitidos } from "@/lib/auth/role";
@@ -40,9 +39,7 @@ export default async function HomePage() {
                 href="/base"
                 className="card group flex flex-col items-center gap-4 p-10 text-center transition-all hover:-translate-y-1 hover:shadow-lg hover:ring-2 hover:ring-dourado"
               >
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white">
-                  <SproutIcon className="h-8 w-8" />
-                </span>
+                <JuventusCrest className="h-16 w-auto" />
                 <h2 className="text-2xl font-bold text-grena-escuro">Futebol de Base</h2>
                 <span className="text-sm font-medium text-grena group-hover:underline">
                   Entrar →
