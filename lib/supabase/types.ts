@@ -79,6 +79,26 @@ export interface ComissaoTecnicaRow {
   updated_at: string;
 }
 
+/** Espelha `ComissaoTecnicaRow`, mas para o Futebol de Base — tabela `comissao_tecnica_base`, mais
+ * `categoria` (ver `lib/auth/categorias-base.ts`). */
+export interface ComissaoTecnicaBaseRow {
+  id: string;
+  categoria: CategoriaBase;
+  nome_completo: string;
+  rg: string;
+  cpf: string;
+  data_nascimento: string;
+  funcao: string;
+  telefone: string | null;
+  email: string | null;
+  foto_path: string | null;
+  tipo_quarto_preferido: TipoQuarto | null;
+  apelido: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StaffFuncaoCatalogoRow {
   id: string;
   nome: string;
@@ -115,6 +135,39 @@ export interface StaffOperacionalRow {
 
 /** Linha de staff_operacional já com a função embutida via join (`funcao:staff_funcoes_catalogo(nome)`). */
 export interface StaffOperacionalComFuncaoRow extends StaffOperacionalRow {
+  funcao: { nome: string } | null;
+}
+
+/** Espelha `StaffOperacionalRow`, mas para o Futebol de Base — tabela `staff_operacional_base`, sem
+ * categoria (lista única, compartilhada — ver a spec). `funcao_id` referencia o mesmo catálogo
+ * compartilhado `staff_funcoes_catalogo`. */
+export interface StaffOperacionalBaseRow {
+  id: string;
+  nome_completo: string;
+  rg: string;
+  cpf: string;
+  data_nascimento: string;
+  funcao_id: string;
+  telefone: string | null;
+  chave_pix: string | null;
+  chave_pix_tipo: StaffChavePixTipo | null;
+  valor_padrao_pagamento: number | null;
+  email: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  ativo: boolean;
+  foto_path: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StaffOperacionalBaseComFuncaoRow extends StaffOperacionalBaseRow {
   funcao: { nome: string } | null;
 }
 
@@ -341,6 +394,14 @@ export interface ConfiguracaoFinanceiroRow {
  * singleton (sempre uma linha só).
  */
 export interface ConfiguracaoCadastroStaffRow {
+  id: string;
+  cadastro_publico_ativo: boolean;
+  updated_at: string;
+}
+
+/** Mesma coisa, mas pro autocadastro de Staff Operacional do Futebol de Base (/cadastro-staff-base)
+ * — tabela totalmente independente da do Profissional. */
+export interface ConfiguracaoCadastroStaffBaseRow {
   id: string;
   cadastro_publico_ativo: boolean;
   updated_at: string;

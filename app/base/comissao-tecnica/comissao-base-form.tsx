@@ -1,0 +1,133 @@
+"use client";
+
+import { useFormState } from "react-dom";
+import { FieldGroup, FormSection, SelectField, SuggestionField, TextField } from "@/components/fields";
+import { PhotoField } from "@/components/photo-field";
+import { SubmitButton } from "@/components/submit-button";
+import { SUGESTOES_FUNCAO_COMISSAO } from "@/lib/validation/schemas";
+import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import type { ComissaoBaseFormState } from "./actions";
+
+const initialState: ComissaoBaseFormState = {};
+
+/** Espelha `app/comissao-tecnica/comissao-form.tsx`, com o campo Categoria a mais (obrigatório,
+ * editável mesmo depois de criado). */
+export function ComissaoBaseForm({
+  action,
+  entityId,
+  defaultValues,
+  fotoUrl,
+  submitLabel,
+}: {
+  action: (prevState: ComissaoBaseFormState, formData: FormData) => Promise<ComissaoBaseFormState>;
+  entityId?: string;
+  defaultValues?: Record<string, string>;
+  fotoUrl?: string | null;
+  submitLabel: string;
+}) {
+  const [state, formAction] = useFormState(action, initialState);
+  const values = state.values ?? defaultValues ?? {};
+  const errors = state.fieldErrors ?? {};
+
+  return (
+    <form action={formAction} className="space-y-6" encType="multipart/form-data">
+      {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
+      <FormSection title="Dados pessoais">
+        <FieldGroup>
+          <TextField
+            label="Nome completo"
+            name="nomeCompleto"
+            required
+            defaultValue={values.nomeCompleto}
+            error={errors.nomeCompleto}
+          />
+          <TextField
+            label="Apelido"
+            name="apelido"
+            defaultValue={values.apelido}
+            error={errors.apelido}
+            placeholder="Como a pessoa é chamada no dia a dia"
+          />
+          <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
+          <TextField
+            label="CPF"
+            name="cpf"
+            required
+            placeholder="000.000.000-00"
+            defaultValue={values.cpf}
+            error={errors.cpf}
+          />
+          <TextField
+            label="Data de nascimento"
+            name="dataNascimento"
+            type="date"
+            required
+            defaultValue={values.dataNascimento}
+            error={errors.dataNascimento}
+          />
+          <TextField
+            label="Telefone"
+            name="telefone"
+            defaultValue={values.telefone}
+            error={errors.telefone}
+          />
+          <TextField
+            label="E-mail"
+            name="email"
+            type="email"
+            defaultValue={values.email}
+            error={errors.email}
+          />
+          <div className="sm:col-span-2">
+            <PhotoField label="Foto (opcional)" name="foto" currentUrl={fotoUrl} />
+          </div>
+        </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Função">
+        <FieldGroup>
+          <SelectField
+            label="Categoria"
+            name="categoria"
+            required
+            defaultValue={values.categoria}
+            error={errors.categoria}
+          >
+            <option value="">Selecione</option>
+            {CATEGORIAS_BASE.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </SelectField>
+          <SuggestionField
+            label="Função/cargo"
+            name="funcao"
+            required
+            defaultValue={values.funcao}
+            error={errors.funcao}
+            suggestions={SUGESTOES_FUNCAO_COMISSAO}
+          />
+          <SelectField
+            label="Tipo de quarto preferido (jogos fora)"
+            name="tipoQuartoPreferido"
+            defaultValue={values.tipoQuartoPreferido}
+            error={errors.tipoQuartoPreferido}
+          >
+            <option value="">Não definido</option>
+            <option value="single">Single</option>
+            <option value="duplo">Duplo</option>
+          </SelectField>
+        </FieldGroup>
+      </FormSection>
+
+      {state.error ? (
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+      ) : null}
+
+      <div className="flex gap-3">
+        <SubmitButton label={submitLabel} />
+      </div>
+    </form>
+  );
+}

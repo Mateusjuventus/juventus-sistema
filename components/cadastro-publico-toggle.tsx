@@ -1,13 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { alternarCadastroPublico } from "@/app/staff-operacional/cadastro-publico-actions";
 
 /**
  * Liga/desliga o link público de autocadastro de Staff Operacional e mostra o link pronto pra
  * copiar (quando ativo). Só aparece dentro da tela de Staff Operacional, que já exige login.
+ *
+ * Reaproveitado tanto pelo Futebol Profissional (`/cadastro-staff`, `alternarCadastroPublico`)
+ * quanto pelo Futebol de Base (`/cadastro-staff-base`, `alternarCadastroPublicoBase`) — cada
+ * departamento passa seu próprio `linkPath`/`action`, apontando pra sua própria tabela de
+ * configuração (totalmente independentes uma da outra, ver a spec do Futebol de Base).
  */
-export function CadastroPublicoToggle({ id, ativo }: { id: string; ativo: boolean }) {
+export function CadastroPublicoToggle({
+  id,
+  ativo,
+  linkPath,
+  action,
+}: {
+  id: string;
+  ativo: boolean;
+  linkPath: string;
+  action: (formData: FormData) => Promise<void>;
+}) {
   const [origin, setOrigin] = useState("");
   const [copiado, setCopiado] = useState(false);
 
@@ -15,7 +29,7 @@ export function CadastroPublicoToggle({ id, ativo }: { id: string; ativo: boolea
     setOrigin(window.location.origin);
   }, []);
 
-  const link = `${origin}/cadastro-staff`;
+  const link = `${origin}${linkPath}`;
 
   async function copiarLink() {
     try {
@@ -55,7 +69,7 @@ export function CadastroPublicoToggle({ id, ativo }: { id: string; ativo: boolea
         </p>
       )}
 
-      <form action={alternarCadastroPublico} className="ml-auto">
+      <form action={action} className="ml-auto">
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="novoValor" value={(!ativo).toString()} />
         <button type="submit" className={ativo ? "btn-secondary" : "btn-primary"}>

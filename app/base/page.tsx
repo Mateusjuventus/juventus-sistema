@@ -5,10 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getModulosBasePermitidos } from "@/lib/auth/role";
 import { MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-base";
 
-/** Só os módulos já construídos do Futebol de Base (Fase 1 = Atletas) ganham um cartão de
- * verdade aqui — os demais (Fases 2-4, ver a spec) aparecem como "Em breve" mais abaixo, e só se
- * o usuário tiver o módulo liberado (senão nem faz sentido anunciar o que está por vir). */
-const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = ["atletas"];
+/** Só os módulos já construídos do Futebol de Base (Fases 1-2 = Atletas, Comissão Técnica, Staff
+ * Operacional) ganham um cartão de verdade aqui — os demais (Fases 3-4, ver a spec) aparecem como
+ * "Em breve" mais abaixo, e só se o usuário tiver o módulo liberado (senão nem faz sentido
+ * anunciar o que está por vir). */
+const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = ["atletas", "comissao_tecnica", "staff_operacional"];
 
 function IconAtletas({ className }: { className?: string }) {
   return (
@@ -19,15 +20,38 @@ function IconAtletas({ className }: { className?: string }) {
   );
 }
 
+function IconComissao({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <rect x="6" y="4" width="12" height="16" rx="2" />
+      <path d="M9 9h6M9 13h6" />
+    </svg>
+  );
+}
+
+function IconStaff({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <rect x="3" y="8" width="18" height="12" rx="2" />
+      <path d="M8 8V6a2 2 0 012-2h4a2 2 0 012 2v2" />
+    </svg>
+  );
+}
+
 export default async function BasePage() {
   const supabase = createClient();
   const modulosPermitidos = await getModulosBasePermitidos(supabase);
   const temModulo = (chave: ModuloBaseChave) => modulosPermitidos.includes(chave);
 
-  const { count: totalAtletasCount } = await supabase
-    .from("atletas_base")
-    .select("*", { count: "exact", head: true });
+  const [{ count: totalAtletasCount }, { count: totalComissaoCount }, { count: totalStaffCount }] =
+    await Promise.all([
+      supabase.from("atletas_base").select("*", { count: "exact", head: true }),
+      supabase.from("comissao_tecnica_base").select("*", { count: "exact", head: true }),
+      supabase.from("staff_operacional_base").select("*", { count: "exact", head: true }).eq("ativo", true),
+    ]);
   const totalAtletas = totalAtletasCount ?? 0;
+  const totalComissao = totalComissaoCount ?? 0;
+  const totalStaff = totalStaffCount ?? 0;
 
   const emBreve = MODULOS_BASE.filter(
     (m) => !MODULOS_CONSTRUIDOS.includes(m.chave) && temModulo(m.chave),
@@ -61,6 +85,44 @@ export default async function BasePage() {
             <h2 className="text-lg font-bold text-grena-escuro">Atletas</h2>
             <p className="text-sm font-medium text-neutral-500">
               {totalAtletas} cadastrado{totalAtletas === 1 ? "" : "s"}
+            </p>
+          </Link>
+        ) : null}
+
+        {temModulo("comissao_tecnica") ? (
+          <Link
+            href="/base/comissao-tecnica"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-teal-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <IconComissao className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Comissão Técnica / Diretoria</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalComissao} cadastrado{totalComissao === 1 ? "" : "s"}
+            </p>
+          </Link>
+        ) : null}
+
+        {temModulo("staff_operacional") ? (
+          <Link
+            href="/base/staff-operacional"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-amber-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <IconStaff className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Staff Operacional</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalStaff} ativo{totalStaff === 1 ? "" : "s"}
             </p>
           </Link>
         ) : null}

@@ -77,6 +77,15 @@ export const comissaoTecnicaSchema = z.object({
 });
 export type ComissaoTecnicaInput = z.infer<typeof comissaoTecnicaSchema>;
 
+/** Mesmo formulário de `comissaoTecnicaSchema`, mais a categoria de idade do Futebol de Base
+ * (obrigatória — ver `lib/auth/categorias-base.ts`). */
+export const comissaoTecnicaBaseSchema = comissaoTecnicaSchema.extend({
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+});
+export type ComissaoTecnicaBaseInput = z.infer<typeof comissaoTecnicaBaseSchema>;
+
 const NOVA_FUNCAO_VALUE = "__nova__";
 
 export const staffOperacionalSchema = z
