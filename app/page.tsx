@@ -36,18 +36,18 @@ export default async function HomePage() {
             ) : null}
 
             {temBase ? (
-              <div
-                className="card flex flex-col items-center gap-4 p-10 text-center opacity-60"
-                aria-disabled
+              <Link
+                href="/base"
+                className="card group flex flex-col items-center gap-4 p-10 text-center transition-all hover:-translate-y-1 hover:shadow-lg hover:ring-2 hover:ring-dourado"
               >
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-300 text-white">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white">
                   <SproutIcon className="h-8 w-8" />
                 </span>
-                <h2 className="text-2xl font-bold text-neutral-600">Futebol de Base</h2>
-                <span className="w-fit rounded-full bg-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-600">
-                  Em breve
+                <h2 className="text-2xl font-bold text-grena-escuro">Futebol de Base</h2>
+                <span className="text-sm font-medium text-grena group-hover:underline">
+                  Entrar →
                 </span>
-              </div>
+              </Link>
             ) : null}
           </div>
         ) : (
