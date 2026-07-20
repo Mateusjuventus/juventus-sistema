@@ -1,0 +1,62 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/server";
+import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { formatCPF } from "@/lib/validation/cpf";
+import type { StaffFuncaoCatalogoRow, StaffOperacionalBaseRow } from "@/lib/supabase/types";
+import { StaffBaseForm } from "../staff-base-form";
+import { updateStaffBase } from "../actions";
+
+export default async function EditarStaffBasePage({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const [{ data }, { data: funcoesData }] = await Promise.all([
+    supabase.from("staff_operacional_base").select("*").eq("id", params.id).single(),
+    supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
+  ]);
+
+  if (!data) notFound();
+
+  const s = data as StaffOperacionalBaseRow;
+  const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
+  const fotoUrl = await getSignedPhotoUrl(supabase, s.foto_path);
+
+  const defaultValues: Record<string, string> = {
+    nomeCompleto: s.nome_completo,
+    rg: s.rg,
+    cpf: formatCPF(s.cpf),
+    dataNascimento: s.data_nascimento,
+    funcaoId: s.funcao_id,
+    telefone: s.telefone ?? "",
+    email: s.email ?? "",
+    cep: s.cep ?? "",
+    logradouro: s.logradouro ?? "",
+    numero: s.numero ?? "",
+    complemento: s.complemento ?? "",
+    bairro: s.bairro ?? "",
+    cidade: s.cidade ?? "",
+    uf: s.uf ?? "",
+    chavePix: s.chave_pix ?? "",
+    chavePixTipo: s.chave_pix_tipo ?? "",
+    valorPadraoPagamento: s.valor_padrao_pagamento?.toString() ?? "",
+  };
+
+  return (
+    <AppShell departamento="futebol_base">
+      <Link href="/base/staff-operacional" className="text-sm font-medium text-grena hover:underline">
+        ← Voltar
+      </Link>
+      <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Editar staff operacional</h1>
+      <div className="mt-4">
+        <StaffBaseForm
+          action={updateStaffBase}
+          entityId={s.id}
+          defaultValues={defaultValues}
+          fotoUrl={fotoUrl}
+          submitLabel="Salvar alterações"
+          funcoes={funcoes}
+        />
+      </div>
+    </AppShell>
+  );
+}

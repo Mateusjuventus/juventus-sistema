@@ -9,12 +9,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import type {
-  ConfiguracaoCadastroStaffRow,
+  ConfiguracaoCadastroStaffBaseRow,
   StaffFuncaoCatalogoRow,
-  StaffOperacionalComFuncaoRow,
+  StaffOperacionalBaseComFuncaoRow,
 } from "@/lib/supabase/types";
-import { deleteStaff, alternarStaffAtivo } from "./actions";
-import { alternarCadastroPublico } from "./cadastro-publico-actions";
+import { deleteStaffBase, alternarStaffBaseAtivo } from "./actions";
+import { alternarCadastroPublicoBase } from "./cadastro-publico-actions";
 
 function formatMoeda(valor: number | null): string {
   if (valor === null) return "—";
@@ -26,7 +26,7 @@ function StaffRow({
   fotoUrl,
   opaco,
 }: {
-  s: StaffOperacionalComFuncaoRow;
+  s: StaffOperacionalBaseComFuncaoRow;
   fotoUrl: string | null;
   opaco?: boolean;
 }) {
@@ -48,18 +48,19 @@ function StaffRow({
       <td className="px-4 py-3">{formatMoeda(s.valor_padrao_pagamento)}</td>
       <td className="px-4 py-3">
         <div className="flex flex-wrap justify-end gap-2">
-          <Link href={`/staff-operacional/${s.id}`} className="btn-secondary">
+          <Link href={`/base/staff-operacional/${s.id}`} className="btn-secondary">
             Editar
           </Link>
-          <StaffAtivoButton action={alternarStaffAtivo} id={s.id} ativo={s.ativo} />
-          <DeleteButton action={deleteStaff} id={s.id} entityLabel="registro" />
+          <StaffAtivoButton action={alternarStaffBaseAtivo} id={s.id} ativo={s.ativo} />
+          <DeleteButton action={deleteStaffBase} id={s.id} entityLabel="registro" />
         </div>
       </td>
     </tr>
   );
 }
 
-export default async function StaffOperacionalPage({
+/** Espelha `app/staff-operacional/page.tsx` — lista única (sem categoria) do Futebol de Base. */
+export default async function StaffOperacionalBasePage({
   searchParams,
 }: {
   searchParams: { q?: string; funcaoId?: string };
@@ -69,7 +70,7 @@ export default async function StaffOperacionalPage({
   const supabase = createClient();
 
   let query = supabase
-    .from("staff_operacional")
+    .from("staff_operacional_base")
     .select("*, funcao:staff_funcoes_catalogo(nome)")
     .order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
@@ -78,11 +79,11 @@ export default async function StaffOperacionalPage({
   const [{ data, error }, { data: funcoesData }, { data: configData }] = await Promise.all([
     query,
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
-    supabase.from("configuracoes_cadastro_staff").select("*").limit(1).maybeSingle(),
+    supabase.from("configuracoes_cadastro_staff_base").select("*").limit(1).maybeSingle(),
   ]);
-  const staff = (data ?? []) as StaffOperacionalComFuncaoRow[];
+  const staff = (data ?? []) as StaffOperacionalBaseComFuncaoRow[];
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
-  const config = configData as ConfiguracaoCadastroStaffRow | null;
+  const config = configData as ConfiguracaoCadastroStaffBaseRow | null;
 
   const fotoUrls = await Promise.all(staff.map((s) => getSignedPhotoUrl(supabase, s.foto_path)));
   const fotoPorId = new Map(staff.map((s, i) => [s.id, fotoUrls[i]]));
@@ -91,19 +92,19 @@ export default async function StaffOperacionalPage({
   const inativos = staff.filter((s) => !s.ativo);
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
+    <AppShell departamento="futebol_base">
+      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
       <PageHeader title="Staff Operacional" />
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <a
-          href={`/staff-operacional/export?q=${encodeURIComponent(q)}&funcaoId=${encodeURIComponent(funcaoId)}`}
+          href={`/base/staff-operacional/export?q=${encodeURIComponent(q)}&funcaoId=${encodeURIComponent(funcaoId)}`}
           className="btn-secondary"
         >
           Exportar para Excel
         </a>
-        <Link href="/staff-operacional/novo" className="btn-primary">
+        <Link href="/base/staff-operacional/novo" className="btn-primary">
           + Novo staff
         </Link>
       </div>
@@ -113,14 +114,14 @@ export default async function StaffOperacionalPage({
           <CadastroPublicoToggle
             id={config.id}
             ativo={config.cadastro_publico_ativo}
-            linkPath="/cadastro-staff"
-            action={alternarCadastroPublico}
+            linkPath="/cadastro-staff-base"
+            action={alternarCadastroPublicoBase}
           />
         </div>
       ) : null}
 
       <div className="card mt-4 p-4">
-        <SearchBar action="/staff-operacional" defaultValue={q} placeholder="Buscar por nome...">
+        <SearchBar action="/base/staff-operacional" defaultValue={q} placeholder="Buscar por nome...">
           <div className="min-w-[180px]">
             <label htmlFor="funcaoId" className="field-label">
               Função/setor
