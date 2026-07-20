@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
 import { MODULOS } from "@/lib/auth/modulos";
+import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
 import { ESTOQUE_CATEGORIAS, TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
 import type { PerfilRow } from "@/lib/supabase/types";
@@ -13,6 +14,7 @@ import {
   atualizarDepartamentos,
   atualizarEstoqueCategorias,
   atualizarModulos,
+  atualizarModulosBase,
   atualizarPapel,
   redefinirSenha,
 } from "./actions";
@@ -46,7 +48,7 @@ export default async function UsuariosPage() {
         ← Voltar
       </Link>
       <PageHeader title="Usuários" />
-      <p className="-mt-4 text-center text-sm text-neutral-500">
+      <p className="mt-1 text-center text-sm text-neutral-500">
         Só quem é <strong>master</strong> pode excluir Entrada/Saída do Estoque e acessar esta tela.
       </p>
 
@@ -58,6 +60,7 @@ export default async function UsuariosPage() {
         {perfis.map((perfil) => {
           const ehVocaMesmo = perfil.id === usuarioAtual?.id;
           const modulosPermitidos = perfil.modulos_permitidos ?? [];
+          const modulosBasePermitidos = perfil.modulos_base_permitidos ?? [];
           const departamentosPermitidos = perfil.departamentos_permitidos ?? [];
           const categoriasTarefasVisiveis = perfil.tarefas_categorias_visiveis ?? [];
           const estoqueCategoriasPermitidas = perfil.estoque_categorias_permitidas ?? [];
@@ -152,6 +155,19 @@ export default async function UsuariosPage() {
                           action={atualizarEstoqueCategorias}
                           submitLabel="Salvar ramificações de estoque"
                           className="ml-4 border-l-2 border-neutral-100 pl-4"
+                        />
+                      ) : null}
+
+                      {departamentosPermitidos.includes("futebol_base") ? (
+                        <PermissaoCheckboxesForm
+                          id={perfil.id}
+                          fieldName="modulosBase"
+                          titulo="Módulos liberados (Futebol de Base)"
+                          opcoes={MODULOS_BASE.map((m) => ({ value: m.chave, label: m.label }))}
+                          valoresIniciais={modulosBasePermitidos}
+                          action={atualizarModulosBase}
+                          submitLabel="Salvar módulos de base"
+                          className="border-t border-neutral-100 pt-3"
                         />
                       ) : null}
                     </>

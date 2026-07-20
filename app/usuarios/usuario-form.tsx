@@ -5,6 +5,7 @@ import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
 import { MODULOS } from "@/lib/auth/modulos";
+import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
 import { TAREFA_CATEGORIAS, ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import { criarUsuario, type UsuarioFormState } from "./actions";
@@ -17,11 +18,18 @@ export function UsuarioForm() {
   const [state, formAction] = useFormState(criarUsuario, initialState);
   const [role, setRole] = useState(initialState.values?.role ?? "regular");
   const [modulosMarcados, setModulosMarcados] = useState<string[]>(MODULOS.map((m) => m.chave));
+  const [departamentosMarcados, setDepartamentosMarcados] = useState<string[]>(
+    DEPARTAMENTOS.map((d) => d.chave),
+  );
   const values = state.values ?? {};
   const errors = state.fieldErrors ?? {};
 
   function alternarModulo(chave: string, marcado: boolean) {
     setModulosMarcados((atual) => (marcado ? [...atual, chave] : atual.filter((c) => c !== chave)));
+  }
+
+  function alternarDepartamento(chave: string, marcado: boolean) {
+    setDepartamentosMarcados((atual) => (marcado ? [...atual, chave] : atual.filter((c) => c !== chave)));
   }
 
   return (
@@ -89,6 +97,7 @@ export function UsuarioForm() {
                           name="departamentos"
                           value={dep.chave}
                           defaultChecked
+                          onChange={(e) => alternarDepartamento(dep.chave, e.target.checked)}
                           className={CHECKBOX_CLASS}
                         />
                         {dep.label}
@@ -133,6 +142,26 @@ export function UsuarioForm() {
                             className={CHECKBOX_CLASS}
                           />
                           {cat.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {departamentosMarcados.includes("futebol_base") ? (
+                  <div>
+                    <p className="field-label">Módulos liberados (Futebol de Base)</p>
+                    <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {MODULOS_BASE.map((modulo) => (
+                        <label key={modulo.chave} className="flex items-center gap-2 text-sm text-neutral-700">
+                          <input
+                            type="checkbox"
+                            name="modulosBase"
+                            value={modulo.chave}
+                            defaultChecked
+                            className={CHECKBOX_CLASS}
+                          />
+                          {modulo.label}
                         </label>
                       ))}
                     </div>

@@ -4,8 +4,9 @@ import { logout } from "@/app/actions";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { BellIcon, ChecklistIcon, HomeIcon } from "@/components/department-icon";
 import { createClient } from "@/lib/supabase/server";
-import { getModulosPermitidos } from "@/lib/auth/role";
+import { getModulosPermitidos, getModulosBasePermitidos } from "@/lib/auth/role";
 import type { ModuloChave } from "@/lib/auth/modulos";
+import type { ModuloBaseChave } from "@/lib/auth/modulos-base";
 
 const NAV_LINKS: { href: string; label: string; moduloChave: ModuloChave }[] = [
   { href: "/atletas", label: "Atletas", moduloChave: "atletas" },
@@ -14,25 +15,50 @@ const NAV_LINKS: { href: string; label: string; moduloChave: ModuloChave }[] = [
   { href: "/jogos", label: "Jogos", moduloChave: "jogos" },
 ];
 
+/** Mesma lista, pros módulos do Futebol de Base (ver `lib/auth/modulos-base.ts`). Só os módulos já
+ * construídos aparecem aqui de fato pra alguém, já que `getModulosBasePermitidos` também filtra
+ * pelo que a pessoa tem liberado — os módulos ainda não construídos (Fases 2-4) simplesmente não
+ * têm rota, então não seria útil incluir aqui antes de existirem. */
+const NAV_LINKS_BASE: { href: string; label: string; moduloChave: ModuloBaseChave }[] = [
+  { href: "/base/atletas", label: "Atletas", moduloChave: "atletas" },
+];
+
 /**
- * `nav="full"` (padrão) mostra os atalhos dos módulos do Futebol Profissional que o usuário
- * logado tem liberados (ver `lib/auth/modulos.ts`) — usado dentro do departamento. `nav="none"`
- * mostra só a logo e o botão Sair — usado na tela inicial de escolha de departamento, onde ainda
- * não faz sentido atalho pra módulos de um departamento específico.
+ * `nav="full"` (padrão) mostra os atalhos dos módulos do departamento atual que o usuário logado
+ * tem liberados (ver `lib/auth/modulos.ts`/`lib/auth/modulos-base.ts`) — usado dentro do
+ * departamento. `nav="none"` mostra só a logo e o botão Sair — usado na tela inicial de escolha de
+ * departamento, onde ainda não faz sentido atalho pra módulos de um departamento específico.
+ *
+ * `departamento` decide qual departamento está "ativo" nesta página — de que lista de módulos usar
+ * e pra onde aponta o link "Início". Todas as páginas de `/base/*` passam
+ * `departamento="futebol_base"`; o resto do sistema usa o padrão (`"futebol_profissional"`). O
+ * link de Avisos só aparece no Futebol Profissional — não existe uma versão dele pro Futebol de
+ * Base ainda (ver a spec).
  */
 export async function AppShell({
   children,
   nav = "full",
+  departamento = "futebol_profissional",
 }: {
   children: ReactNode;
   nav?: "full" | "none";
+  departamento?: "futebol_profissional" | "futebol_base";
 }) {
-  let linksPermitidos: typeof NAV_LINKS = [];
+  let linksPermitidos: { href: string; label: string }[] = [];
   if (nav === "full") {
     const supabase = createClient();
-    const modulosPermitidos = await getModulosPermitidos(supabase);
-    linksPermitidos = NAV_LINKS.filter((link) => modulosPermitidos.includes(link.moduloChave));
+    if (departamento === "futebol_base") {
+      const modulosBasePermitidos = await getModulosBasePermitidos(supabase);
+      linksPermitidos = NAV_LINKS_BASE.filter((link) => modulosBasePermitidos.includes(link.moduloChave));
+    } else {
+      const modulosPermitidos = await getModulosPermitidos(supabase);
+      linksPermitidos = NAV_LINKS.filter((link) => modulosPermitidos.includes(link.moduloChave));
+    }
   }
+
+  const homeHref = departamento === "futebol_base" ? "/base" : "/profissional";
+  const homeTitle =
+    departamento === "futebol_base" ? "Início do Futebol de Base" : "Início do Futebol Profissional";
 
   return (
     <div className="min-h-screen">
@@ -45,9 +71,9 @@ export async function AppShell({
           <nav className="flex flex-wrap items-center gap-1 text-sm">
             {nav === "full" ? (
               <Link
-                href="/profissional"
+                href={homeHref}
                 className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
-                title="Início do Futebol Profissional"
+                title={homeTitle}
               >
                 <HomeIcon className="h-4 w-4" />
                 Início
@@ -62,13 +88,15 @@ export async function AppShell({
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/avisos"
-              className="ml-1 flex items-center gap-1.5 rounded-md border border-dourado/60 px-3 py-1.5 font-medium text-dourado transition-colors hover:bg-dourado/10"
-            >
-              <BellIcon className="h-4 w-4" />
-              Avisos
-            </Link>
+            {departamento === "futebol_base" ? null : (
+              <Link
+                href="/avisos"
+                className="ml-1 flex items-center gap-1.5 rounded-md border border-dourado/60 px-3 py-1.5 font-medium text-dourado transition-colors hover:bg-dourado/10"
+              >
+                <BellIcon className="h-4 w-4" />
+                Avisos
+              </Link>
+            )}
             <Link
               href="/tarefas"
               className="flex items-center gap-1.5 rounded-md border border-dourado/60 px-3 py-1.5 font-medium text-dourado transition-colors hover:bg-dourado/10"

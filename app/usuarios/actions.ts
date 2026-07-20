@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isMaster } from "@/lib/auth/role";
 import { TODOS_MODULOS, ehModuloValido } from "@/lib/auth/modulos";
+import { TODOS_MODULOS_BASE, ehModuloBaseValido } from "@/lib/auth/modulos-base";
 import { TODOS_DEPARTAMENTOS, ehDepartamentoValido } from "@/lib/auth/departamentos";
 import { ehTarefaCategoriaValida } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS, ehEstoqueCategoriaValida } from "@/lib/auth/estoque-categorias";
@@ -30,6 +31,13 @@ function parseRole(formData: FormData): PerfilRole {
 function parseModulos(formData: FormData, role: PerfilRole): string[] {
   if (role === "master") return TODOS_MODULOS;
   return formData.getAll("modulos").map(String).filter(ehModuloValido);
+}
+
+/** Mesma lógica de `parseModulos`, mas pros módulos do Futebol de Base (ver
+ * `lib/auth/modulos-base.ts`). "Master" sempre grava todos. */
+function parseModulosBase(formData: FormData, role: PerfilRole): string[] {
+  if (role === "master") return TODOS_MODULOS_BASE;
+  return formData.getAll("modulosBase").map(String).filter(ehModuloBaseValido);
 }
 
 /** Mesma lógica de `parseModulos`, mas pros dois departamentos (Futebol Profissional / Futebol de
@@ -75,6 +83,7 @@ export async function criarUsuario(
   const senha = String(formData.get("senha") ?? "");
   const role = parseRole(formData);
   const modulos = parseModulos(formData, role);
+  const modulosBase = parseModulosBase(formData, role);
   const departamentos = parseDepartamentos(formData, role);
   const tarefasCategorias = parseCategoriasTarefas(formData);
   const estoqueCategorias = parseEstoqueCategorias(formData, role);
@@ -104,6 +113,7 @@ export async function criarUsuario(
     email,
     role,
     modulos_permitidos: modulos,
+    modulos_base_permitidos: modulosBase,
     departamentos_permitidos: departamentos,
     tarefas_categorias_visiveis: tarefasCategorias,
     estoque_categorias_permitidas: estoqueCategorias,
@@ -155,6 +165,30 @@ export async function atualizarModulos(
   const modulos = parseModulos(formData, role);
 
   const { error } = await admin.from("perfis").update({ modulos_permitidos: modulos }).eq("id", id);
+  if (error) return { error: `Não foi possível salvar os módulos. Tente novamente. (${error.message})` };
+
+  revalidatePath("/usuarios");
+  return { success: "Módulos salvos." };
+}
+
+/** Salva os módulos liberados do Futebol de Base (checkboxes) de um usuário "regular" já
+ * existente — espelha `atualizarModulos`. Só master pode chamar. */
+export async function atualizarModulosBase(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+
+  const admin = createAdminClient();
+  const { data: perfilAtual } = await admin.from("perfis").select("role").eq("id", id).maybeSingle();
+  const role = ((perfilAtual as { role?: PerfilRole } | null)?.role ?? "regular") as PerfilRole;
+  const modulosBase = parseModulosBase(formData, role);
+
+  const { error } = await admin.from("perfis").update({ modulos_base_permitidos: modulosBase }).eq("id", id);
   if (error) return { error: `Não foi possível salvar os módulos. Tente novamente. (${error.message})` };
 
   revalidatePath("/usuarios");

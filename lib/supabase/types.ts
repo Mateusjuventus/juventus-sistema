@@ -32,6 +32,36 @@ export interface AtletaRow {
   updated_at: string;
 }
 
+/** Categorias de idade do Futebol de Base (Sub20 a Sub11) — ver `lib/auth/categorias-base.ts`. */
+export type CategoriaBase = "sub20" | "sub17" | "sub15" | "sub14" | "sub13" | "sub12" | "sub11";
+
+/** Espelha `AtletaRow`, mas para o departamento Futebol de Base — tabela `atletas_base`, totalmente
+ * independente de `atletas` (ver docs/superpowers/specs/2026-07-20-futebol-de-base-design.md). */
+export interface AtletaBaseRow {
+  id: string;
+  categoria: CategoriaBase;
+  nome_completo: string;
+  rg: string;
+  cpf: string;
+  data_nascimento: string;
+  posicao: string;
+  numero_camisa: number | null;
+  pe_dominante: PeDominante | null;
+  telefone: string | null;
+  cidade_natal: string | null;
+  uf_natal: string | null;
+  endereco_atual: string | null;
+  data_inicio_clube: string | null;
+  empresario_nome: string | null;
+  foto_path: string | null;
+  status: AtletaStatus;
+  data_fim_contrato: string | null;
+  apelido: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ComissaoTecnicaRow {
   id: string;
   nome_completo: string;
@@ -494,6 +524,7 @@ export interface PerfilRow {
   email: string;
   role: PerfilRole;
   modulos_permitidos: string[];
+  modulos_base_permitidos: string[];
   departamentos_permitidos: string[];
   tarefas_categorias_visiveis: string[];
   estoque_categorias_permitidas: string[];

@@ -1,6 +1,7 @@
 import type { createClient } from "@/lib/supabase/server";
 import type { PerfilRole } from "@/lib/supabase/types";
 import { TODOS_MODULOS, type ModuloChave } from "@/lib/auth/modulos";
+import { TODOS_MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-base";
 import { TODOS_DEPARTAMENTOS, type DepartamentoChave } from "@/lib/auth/departamentos";
 import { TODAS_TAREFA_CATEGORIAS } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
@@ -8,6 +9,7 @@ import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
 interface PerfilPermissoes {
   role: PerfilRole;
   modulos_permitidos: string[] | null;
+  modulos_base_permitidos: string[] | null;
   departamentos_permitidos: string[] | null;
   tarefas_categorias_visiveis: string[] | null;
   estoque_categorias_permitidas: string[] | null;
@@ -26,7 +28,7 @@ async function getPerfilPermissoes(
   const { data } = await supabase
     .from("perfis")
     .select(
-      "role, modulos_permitidos, departamentos_permitidos, tarefas_categorias_visiveis, estoque_categorias_permitidas",
+      "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, tarefas_categorias_visiveis, estoque_categorias_permitidas",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -82,6 +84,26 @@ export async function getModulosPermitidos(
   if (!departamentos.includes("futebol_profissional")) return [];
 
   return (perfil.modulos_permitidos ?? TODOS_MODULOS) as ModuloChave[];
+}
+
+/**
+ * Módulos que o usuário logado pode ver/acessar dentro do Futebol de Base. Espelha
+ * `getModulosPermitidos()`: "master" sempre tem todos; quem não tem o departamento
+ * "futebol_base" liberado não tem nenhum módulo de Base, independente do que está salvo em
+ * `modulos_base_permitidos`. Usado pra filtrar os cartões da Home do departamento
+ * (`app/base/page.tsx`) e o menu superior (`components/app-shell.tsx`).
+ */
+export async function getModulosBasePermitidos(
+  supabase: ReturnType<typeof createClient>,
+): Promise<ModuloBaseChave[]> {
+  const perfil = await getPerfilPermissoes(supabase);
+  if (!perfil) return [];
+  if (perfil.role === "master") return TODOS_MODULOS_BASE;
+
+  const departamentos = perfil.departamentos_permitidos ?? TODOS_DEPARTAMENTOS;
+  if (!departamentos.includes("futebol_base")) return [];
+
+  return (perfil.modulos_base_permitidos ?? TODOS_MODULOS_BASE) as ModuloBaseChave[];
 }
 
 /**

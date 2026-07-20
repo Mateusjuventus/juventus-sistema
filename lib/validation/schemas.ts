@@ -55,6 +55,15 @@ export const atletaSchema = z.object({
 });
 export type AtletaInput = z.infer<typeof atletaSchema>;
 
+/** Mesmo formulário de `atletaSchema`, mais a categoria de idade do Futebol de Base (Sub20 a
+ * Sub11 — ver `lib/auth/categorias-base.ts`), obrigatória. */
+export const atletaBaseSchema = atletaSchema.extend({
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+});
+export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;
+
 export const comissaoTecnicaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
   apelido: z.string().optional().or(z.literal("")),
