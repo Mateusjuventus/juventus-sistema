@@ -736,6 +736,115 @@ export interface EstoqueEntradaItemRow {
   created_at: string;
 }
 
+/**
+ * Futebol de Base — Estoque e Solicitações (Fase 4, ver a spec). Nenhum dos dois ganha a dimensão
+ * `categoria` (Sub-20 a Sub-11): Solicitações já era uma lista única no Profissional, e o Estoque do
+ * Base só tem material esportivo (Estoque Médico está fora de escopo), então nem existe uma coluna
+ * `categoria` aqui — ao contrário de `EstoqueItemRow`, que tem duas listas (Esportivo/Médico).
+ */
+export interface EstoqueItemBaseRow {
+  id: string;
+  nome: string;
+  codigo: string | null;
+  mg: string | null;
+  tamanhos: Record<string, number>;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EstoqueSaidaBaseRow {
+  id: string;
+  numero: number;
+  data: string;
+  nome_destinatario: string;
+  funcao: string | null;
+  departamento: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface EstoqueSaidaItemBaseRow {
+  id: string;
+  saida_id: string;
+  item_id: string | null;
+  nome: string;
+  tamanho: string | null;
+  codigo: string | null;
+  quantidade: number;
+  ordem: number;
+  created_at: string;
+}
+
+export interface EstoqueEntradaBaseRow {
+  id: string;
+  numero: number;
+  data: string;
+  fornecedor: string | null;
+  nota_fiscal: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface EstoqueEntradaItemBaseRow {
+  id: string;
+  entrada_id: string;
+  item_id: string | null;
+  nome: string;
+  tamanho: string | null;
+  codigo: string | null;
+  quantidade: number;
+  ordem: number;
+  created_at: string;
+}
+
+export interface SolicitacaoBaseRow {
+  id: string;
+  tipo: SolicitacaoTipo;
+  data_solicitacao: string;
+  solicitante: string;
+  setor: string;
+  descricao_necessidade: string | null;
+  prazo_sugerido: string | null;
+  valor: number | null;
+  chave_pix: string | null;
+  chave_pix_tipo: StaffChavePixTipo | null;
+  banco: string | null;
+  agencia: string | null;
+  conta: string | null;
+  tipo_conta: SolicitacaoTipoConta | null;
+  titular_conta: string | null;
+  passageiro: string | null;
+  origem: string | null;
+  destino: string | null;
+  data_voo: string | null;
+  horario_voo: string | null;
+  status: SolicitacaoStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SolicitacaoItemBaseRow {
+  id: string;
+  solicitacao_id: string;
+  quantidade: string | null;
+  item: string | null;
+  foto_path: string | null;
+  descricao: string | null;
+  observacao: string | null;
+  valor: number | null;
+  passageiro: string | null;
+  origem: string | null;
+  destino: string | null;
+  data_voo: string | null;
+  horario_voo: string | null;
+  ordem: number;
+  created_at: string;
+}
+
 export type PerfilRole = "master" | "regular";
 
 /** Papel de cada usuário logado — "master" pode excluir Entrada/Saída do Estoque, acessar a tela

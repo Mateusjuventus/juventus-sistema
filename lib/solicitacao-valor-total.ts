@@ -14,3 +14,13 @@ export async function recalcularValorTotal(supabase: SupabaseClient, solicitacao
     .update({ valor: soma > 0 ? soma : null })
     .eq("id", solicitacaoId);
 }
+
+/** Espelha `recalcularValorTotal` para o Futebol de Base (`solicitacoes_base`/`solicitacao_itens_base`). */
+export async function recalcularValorTotalBase(supabase: SupabaseClient, solicitacaoId: string): Promise<void> {
+  const { data } = await supabase.from("solicitacao_itens_base").select("valor").eq("solicitacao_id", solicitacaoId);
+  const soma = (data ?? []).reduce((acc: number, row: { valor: number | null }) => acc + (Number(row.valor) || 0), 0);
+  await supabase
+    .from("solicitacoes_base")
+    .update({ valor: soma > 0 ? soma : null })
+    .eq("id", solicitacaoId);
+}

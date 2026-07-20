@@ -15,15 +15,16 @@ const NAV_LINKS: { href: string; label: string; moduloChave: ModuloChave }[] = [
   { href: "/jogos", label: "Jogos", moduloChave: "jogos" },
 ];
 
-/** Mesma lista, pros módulos do Futebol de Base (ver `lib/auth/modulos-base.ts`). Só os módulos já
- * construídos aparecem aqui de fato pra alguém, já que `getModulosBasePermitidos` também filtra
- * pelo que a pessoa tem liberado — os módulos ainda não construídos (Fases 3-4) simplesmente não
- * têm rota, então não seria útil incluir aqui antes de existirem. */
+/** Mesma lista, pros módulos do Futebol de Base (ver `lib/auth/modulos-base.ts`) — agora com os 7
+ * módulos completos (Fases 1-4). `getModulosBasePermitidos` ainda filtra pelo que a pessoa tem
+ * liberado. */
 const NAV_LINKS_BASE: { href: string; label: string; moduloChave: ModuloBaseChave }[] = [
   { href: "/base/atletas", label: "Atletas", moduloChave: "atletas" },
   { href: "/base/comissao-tecnica", label: "Comissão Técnica", moduloChave: "comissao_tecnica" },
   { href: "/base/staff-operacional", label: "Staff Operacional", moduloChave: "staff_operacional" },
   { href: "/base/jogos", label: "Jogos", moduloChave: "jogos" },
+  { href: "/base/solicitacoes", label: "Solicitações", moduloChave: "solicitacoes" },
+  { href: "/base/estoque", label: "Estoque", moduloChave: "estoque" },
   { href: "/base/financeiro", label: "Financeiro", moduloChave: "financeiro" },
 ];
 
