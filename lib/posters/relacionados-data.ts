@@ -1,6 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import type { AtletaRow, ConvocacaoAtletaRow, ConvocacaoRow, JogoRow } from "@/lib/supabase/types";
+import type {
+  AtletaBaseRow,
+  AtletaRow,
+  ConvocacaoAtletaBaseRow,
+  ConvocacaoAtletaRow,
+  ConvocacaoBaseRow,
+  ConvocacaoRow,
+  JogoBaseRow,
+  JogoRow,
+} from "@/lib/supabase/types";
 import { buildConfrontoTexto } from "./jogo-texto";
 
 export interface RelacionadosData {
@@ -83,6 +92,56 @@ export async function buildRelacionadosData(jogoId: string): Promise<Relacionado
 
   return {
     jogo,
+    adversarioLogoUrl,
+    confrontoTexto: buildConfrontoTexto(jogo),
+    dadosJogoTexto: partesDados.join(" | "),
+    colunaEsquerda: nomes.slice(0, meio),
+    colunaDireita: nomes.slice(meio),
+  };
+}
+
+/** Mesma coisa que `buildRelacionadosData`, mas para o Futebol de Base — ver `buildConcentracaoDataBase`. */
+export async function buildRelacionadosDataBase(jogoId: string): Promise<RelacionadosData | null> {
+  const supabase = createClient();
+
+  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", jogoId).single();
+  if (!jogoData) return null;
+  const jogo = jogoData as JogoBaseRow;
+
+  const { data: convocacaoData } = await supabase
+    .from("convocacoes_base")
+    .select("*")
+    .eq("jogo_id", jogoId)
+    .maybeSingle();
+  if (!convocacaoData) return null;
+  const convocacao = convocacaoData as ConvocacaoBaseRow;
+
+  const [{ data: caData }, adversarioLogoUrl] = await Promise.all([
+    supabase
+      .from("convocacao_atletas_base")
+      .select("*, atleta:atletas_base(*)")
+      .eq("convocacao_id", convocacao.id),
+    getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
+  ]);
+
+  const convocados = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
+  const nomes = convocados
+    .map((c) => c.atleta)
+    .sort((a, b) => (a.numero_camisa ?? 999) - (b.numero_camisa ?? 999))
+    .map((atleta) => (atleta.apelido?.trim() || atleta.nome_completo).toUpperCase());
+
+  const meio = Math.ceil(nomes.length / 2);
+
+  const partesDados = [diaDaSemana(jogo.data_jogo)];
+  let linha2 = formatDataBr(jogo.data_jogo);
+  const horarioFormatado = formatHorario(jogo.horario);
+  if (horarioFormatado) linha2 += ` às ${horarioFormatado}`;
+  if (jogo.rodada_fase) linha2 += ` - ${jogo.rodada_fase}`;
+  partesDados.push(linha2);
+  if (jogo.local_estadio) partesDados.push(jogo.local_estadio);
+
+  return {
+    jogo: jogo as unknown as JogoRow,
     adversarioLogoUrl,
     confrontoTexto: buildConfrontoTexto(jogo),
     dadosJogoTexto: partesDados.join(" | "),

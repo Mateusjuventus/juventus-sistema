@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
-import type { ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
+import type { ConfiguracaoFinanceiroBaseRow, ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
 import type { AssinaturaInfo } from "./logistica-shared";
 
 const PADRAO_ASSINATURA_1: AssinaturaInfo = { nome: "Mateus dos Santos", cargo: "Supervisor de Futebol" };
@@ -15,6 +15,24 @@ export async function getAssinaturasFinanceiro(
 ): Promise<{ assinatura1: AssinaturaInfo; assinatura2: AssinaturaInfo }> {
   const { data } = await supabase.from("configuracoes_financeiro").select("*").limit(1).maybeSingle();
   const config = data as ConfiguracaoFinanceiroRow | null;
+
+  return {
+    assinatura1: config
+      ? { nome: config.assinatura1_nome, cargo: config.assinatura1_cargo }
+      : PADRAO_ASSINATURA_1,
+    assinatura2: config
+      ? { nome: config.assinatura2_nome, cargo: config.assinatura2_cargo }
+      : PADRAO_ASSINATURA_2,
+  };
+}
+
+/** Mesma coisa que `getAssinaturasFinanceiro`, mas para o Futebol de Base
+ * (`configuracoes_financeiro_base` — tabela totalmente independente, ver a spec). */
+export async function getAssinaturasFinanceiroBase(
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ assinatura1: AssinaturaInfo; assinatura2: AssinaturaInfo }> {
+  const { data } = await supabase.from("configuracoes_financeiro_base").select("*").limit(1).maybeSingle();
+  const config = data as ConfiguracaoFinanceiroBaseRow | null;
 
   return {
     assinatura1: config

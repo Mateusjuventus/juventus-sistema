@@ -428,6 +428,167 @@ export interface ChecklistJogoItemComJogoRow extends ChecklistJogoItemRow {
   jogo: { id: string; adversario_nome: string; data_jogo: string; mandante: boolean } | null;
 }
 
+// =========================================================
+// FUTEBOL DE BASE — Jogos + Financeiro (Fase 3, ver
+// docs/superpowers/specs/2026-07-20-futebol-de-base-design.md). Espelham exatamente as
+// interfaces acima, só acrescentando `categoria` em jogos_base (igual a atletas_base/
+// comissao_tecnica_base) — o restante do universo de Jogos (checklist, convocação, logística,
+// recibo, programação) não tem categoria própria, ela vem sempre do jogo. Credenciamento por
+// zona e Carga de Ingressos ficam fora de escopo pro Futebol de Base.
+// =========================================================
+
+export interface JogoBaseRow {
+  id: string;
+  categoria: CategoriaBase;
+  competicao: string;
+  rodada_fase: string | null;
+  adversario_nome: string;
+  adversario_logo_path: string | null;
+  data_jogo: string;
+  horario: string | null;
+  local_estadio: string | null;
+  endereco: string | null;
+  mandante: boolean;
+  gols_pro: number | null;
+  gols_contra: number | null;
+  concentracao_data: string | null;
+  concentracao_regras: string;
+  dia_jogo_liberacao: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JogoProgramacaoItemBaseRow {
+  id: string;
+  jogo_id: string;
+  tipo: ProgramacaoTipo;
+  ordem: number;
+  horario: string;
+  atividade: string;
+  local: string;
+  eh_confronto: boolean;
+  created_at: string;
+}
+
+export interface ChecklistJogoItemBaseRow {
+  id: string;
+  jogo_id: string;
+  item: string;
+  concluido: boolean;
+  prazo: string | null;
+  ordem: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConvocacaoBaseRow {
+  id: string;
+  jogo_id: string;
+  capitao_atleta_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConvocacaoAtletaBaseRow {
+  convocacao_id: string;
+  atleta_id: string;
+  status: ConvocacaoAtletaStatus;
+}
+
+export interface ConvocacaoComissaoBaseRow {
+  convocacao_id: string;
+  comissao_id: string;
+}
+
+export interface ConvocacaoStaffBaseRow {
+  convocacao_id: string;
+  staff_id: string;
+}
+
+export interface RoomingListBaseRow {
+  id: string;
+  jogo_id: string;
+  hotel_nome: string | null;
+  hotel_endereco: string | null;
+  checkin: string | null;
+  checkout: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoomingListQuartoBaseRow {
+  id: string;
+  rooming_list_id: string;
+  tipo: TipoQuarto;
+  ordem: number;
+}
+
+export interface RoomingListOcupanteBaseRow {
+  quarto_id: string;
+  pessoa_tipo: PessoaTipoRooming;
+  pessoa_id: string;
+}
+
+export interface OnibusListaBaseRow {
+  id: string;
+  jogo_id: string;
+  onibus_numero: number;
+  horario_saida: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface OnibusPassageiroBaseRow {
+  onibus_lista_id: string;
+  pessoa_tipo: PessoaTipoOnibus;
+  pessoa_id: string;
+}
+
+export interface ReciboJogoBaseRow {
+  id: string;
+  jogo_id: string;
+  pessoa_tipo: PessoaTipoRecibo;
+  pessoa_id: string;
+  funcao_jogo: string | null;
+  valor: number | null;
+  chave_pix: string | null;
+  chave_pix_tipo: ChavePixTipo | null;
+  pago: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GastoJogoBaseRow {
+  id: string;
+  jogo_id: string;
+  categoria_id: string;
+  descricao: string | null;
+  valor_previsto: number;
+  valor_efetuado: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Linha de gastos_jogo_base já com a categoria embutida via join (`categoria:categorias_gasto(nome)`). */
+export interface GastoJogoBaseComCategoriaRow extends GastoJogoBaseRow {
+  categoria: { nome: string } | null;
+}
+
+/** Configurações do Financeiro (Base) — tabela singleton independente da do Profissional. */
+export interface ConfiguracaoFinanceiroBaseRow {
+  id: string;
+  assinatura1_nome: string;
+  assinatura1_cargo: string;
+  assinatura2_nome: string;
+  assinatura2_cargo: string;
+  updated_at: string;
+}
+
 export type SolicitacaoTipo = "compra" | "pagamento" | "exame_medico" | "reembolso" | "passagem_aerea";
 export type SolicitacaoStatus = "pendente" | "aprovada" | "recusada" | "concluida";
 export type SolicitacaoTipoConta = "corrente" | "poupanca";
