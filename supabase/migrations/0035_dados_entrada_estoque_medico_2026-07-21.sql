@@ -12,10 +12,9 @@
 -- No fim, cria 1 registro em estoque_entradas com data = hoje e número sequencial (o próximo da
 -- categoria médico).
 --
--- Observação: "CEFALEXINA 500MG" aparece 2x na lista (3CX e 6CX) — tratado aqui como o MESMO item
--- do catálogo recebendo duas entregas dentro da mesma entrada (3 + 6 = 9 caixas ao final), com as
--- duas linhas preservadas separadamente no histórico da ficha. Se a intenção era outra (ex.: são
--- duas apresentações diferentes do mesmo remédio), me avise antes de rodar.
+-- Observação: "CEFALEXINA 500MG" aparecia 2x na lista original (3CX e 6CX) — a pedido do Mateus,
+-- as duas linhas foram unidas numa só (3 + 6 = 9 caixas), registrada como uma única linha no
+-- histórico da ficha.
 
 do $$
 declare
@@ -49,8 +48,7 @@ begin
       ('BENALET', 'Caixa', 3),
       ('BENZETACIL', 'Caixa', 1),
       ('BUSCOPAN 10MG', 'Caixa', 2),
-      ('CEFALEXINA 500MG', 'Caixa', 3),
-      ('CEFALEXINA 500MG', 'Caixa', 6),
+      ('CEFALEXINA 500MG', 'Caixa', 9),
       ('CETOCONAZOL', 'Caixa', 3),
       ('CETOPROFENO 150MG', 'Caixa', 1),
       ('CETOPROFENO 50MG', 'Caixa', 2),
