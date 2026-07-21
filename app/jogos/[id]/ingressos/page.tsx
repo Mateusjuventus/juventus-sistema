@@ -17,19 +17,20 @@ function formatData(data: string): string {
 export default async function IngressosJogoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: cargasData }, { data: solicitacoesData }] = await Promise.all([
-    supabase.from("jogos").select("*").eq("id", params.id).single(),
-    supabase
-      .from("ingressos_cargas")
-      .select("*")
-      .eq("jogo_id", params.id)
-      .order("data", { ascending: true }),
-    supabase
-      .from("ingressos_solicitacoes")
-      .select("*")
-      .eq("jogo_id", params.id)
-      .order("created_at", { ascending: true }),
-  ]);
+  const [{ data: jogoData }, { data: cargasData, error: cargasError }, { data: solicitacoesData, error: solicitacoesError }] =
+    await Promise.all([
+      supabase.from("jogos").select("*").eq("id", params.id).single(),
+      supabase
+        .from("ingressos_cargas")
+        .select("*")
+        .eq("jogo_id", params.id)
+        .order("data", { ascending: true }),
+      supabase
+        .from("ingressos_solicitacoes")
+        .select("*")
+        .eq("jogo_id", params.id)
+        .order("created_at", { ascending: true }),
+    ]);
 
   if (!jogoData) notFound();
 
@@ -44,6 +45,12 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
   return (
     <AppShell>
       <JogoTabs jogoId={jogo.id} active="ingressos" />
+
+      {cargasError || solicitacoesError ? (
+        <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          Não foi possível carregar os dados de ingressos. ({(cargasError ?? solicitacoesError)?.message})
+        </p>
+      ) : null}
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Carga de Ingressos</h1>
