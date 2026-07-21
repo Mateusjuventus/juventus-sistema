@@ -15,6 +15,11 @@
 -- Observação: "CEFALEXINA 500MG" aparecia 2x na lista original (3CX e 6CX) — a pedido do Mateus,
 -- as duas linhas foram unidas numa só (3 + 6 = 9 caixas), registrada como uma única linha no
 -- histórico da ficha.
+--
+-- A dosagem (mg) vai no campo próprio "mg" de estoque_itens (mesma coluna usada pelo formulário de
+-- cadastro de item, "Mg / dosagem (opcional)") — não faz mais parte do nome/descrição do item. Como
+-- CETOPROFENO e NIMESULIDA aparecem na lista em duas dosagens diferentes, o item do catálogo é
+-- identificado pelo par (nome, mg) — não só pelo nome — pra não misturar as duas apresentações.
 
 do $$
 declare
@@ -40,62 +45,64 @@ begin
 
   for rec in
     select * from (values
-      ('ACETILCISTEINA', 'Caixa', 2),
-      ('ALGINAC', 'Caixa', 1),
-      ('ALIVETORE', 'Caixa', 3),
-      ('AMOXICILINA 875MG', 'Caixa', 3),
-      ('AZITROMICINA 500MG', 'Caixa', 3),
-      ('BENALET', 'Caixa', 3),
-      ('BENZETACIL', 'Caixa', 1),
-      ('BUSCOPAN 10MG', 'Caixa', 2),
-      ('CEFALEXINA 500MG', 'Caixa', 9),
-      ('CETOCONAZOL', 'Caixa', 3),
-      ('CETOPROFENO 150MG', 'Caixa', 1),
-      ('CETOPROFENO 50MG', 'Caixa', 2),
-      ('CICLOBENZAPRINA', 'Caixa', 4),
-      ('CIMEGRIPE', 'Caixa', 3),
-      ('CITONEURIN 1000MG', 'Caixa', 5),
-      ('COLATEN FORCE', 'Caixa', 2),
-      ('CRONOBÊ', 'Caixa', 4),
-      ('DICLOFENACO 500MG', 'Caixa', 3),
-      ('DIPIRONA 500MG', 'Caixa', 1),
-      ('DIPROSPAN INJETÁVEL', 'Caixa', 2),
-      ('DRAMIN B6', 'Caixa', 1),
-      ('ECOFILM', 'Frasco', 2),
-      ('ETNA', 'Caixa', 3),
-      ('FLEXONE', 'Caixa', 2),
-      ('GASTRO GEL', 'Caixa', 1),
-      ('HIDROXIZINA', 'Caixa', 2),
-      ('IMOSEC', 'Caixa', 1),
-      ('LISADOR', 'Caixa', 1),
-      ('LISINA 250MG', 'Caixa', 1),
-      ('LORATADINA 10MG', 'Caixa', 3),
-      ('NEBACETIN', 'Caixa', 2),
-      ('NIMESULIDA 100MG', 'Caixa', 3),
-      ('NIMESULIDA 400MG', 'Caixa', 8),
-      ('ONDASENTRONA 8MG', 'Caixa', 3),
-      ('PANTOPRAZOL', 'Caixa', 1),
-      ('PLASIL', 'Caixa', 3),
-      ('REPOFLOR', 'Caixa', 1),
-      ('RINOSORO', 'Caixa', 9),
-      ('TANDRILAX', 'Caixa', 2),
-      ('TRIADE', 'Caixa', 2),
-      ('TRIFOR', 'Caixa', 10),
-      ('VICK VAPORUB', 'Caixa', 2),
-      ('VITAMINA C', 'Caixa', 1),
-      ('VOLTAREN 75MG', 'Caixa', 1),
-      ('VOLTAREN INJETAVEL', 'Caixa', 4),
-      ('VONAU', 'Caixa', 1)
-    ) as t(nome, unidade, quantidade)
+      ('ACETILCISTEINA', null, 'Caixa', 2),
+      ('ALGINAC', null, 'Caixa', 1),
+      ('ALIVETORE', null, 'Caixa', 3),
+      ('AMOXICILINA', '875mg', 'Caixa', 3),
+      ('AZITROMICINA', '500mg', 'Caixa', 3),
+      ('BENALET', null, 'Caixa', 3),
+      ('BENZETACIL', null, 'Caixa', 1),
+      ('BUSCOPAN', '10mg', 'Caixa', 2),
+      ('CEFALEXINA', '500mg', 'Caixa', 9),
+      ('CETOCONAZOL', null, 'Caixa', 3),
+      ('CETOPROFENO', '150mg', 'Caixa', 1),
+      ('CETOPROFENO', '50mg', 'Caixa', 2),
+      ('CICLOBENZAPRINA', null, 'Caixa', 4),
+      ('CIMEGRIPE', null, 'Caixa', 3),
+      ('CITONEURIN', '1000mg', 'Caixa', 5),
+      ('COLATEN FORCE', null, 'Caixa', 2),
+      ('CRONOBÊ', null, 'Caixa', 4),
+      ('DICLOFENACO', '500mg', 'Caixa', 3),
+      ('DIPIRONA', '500mg', 'Caixa', 1),
+      ('DIPROSPAN INJETÁVEL', null, 'Caixa', 2),
+      ('DRAMIN B6', null, 'Caixa', 1),
+      ('ECOFILM', null, 'Frasco', 2),
+      ('ETNA', null, 'Caixa', 3),
+      ('FLEXONE', null, 'Caixa', 2),
+      ('GASTRO GEL', null, 'Caixa', 1),
+      ('HIDROXIZINA', null, 'Caixa', 2),
+      ('IMOSEC', null, 'Caixa', 1),
+      ('LISADOR', null, 'Caixa', 1),
+      ('LISINA', '250mg', 'Caixa', 1),
+      ('LORATADINA', '10mg', 'Caixa', 3),
+      ('NEBACETIN', null, 'Caixa', 2),
+      ('NIMESULIDA', '100mg', 'Caixa', 3),
+      ('NIMESULIDA', '400mg', 'Caixa', 8),
+      ('ONDASENTRONA', '8mg', 'Caixa', 3),
+      ('PANTOPRAZOL', null, 'Caixa', 1),
+      ('PLASIL', null, 'Caixa', 3),
+      ('REPOFLOR', null, 'Caixa', 1),
+      ('RINOSORO', null, 'Caixa', 9),
+      ('TANDRILAX', null, 'Caixa', 2),
+      ('TRIADE', null, 'Caixa', 2),
+      ('TRIFOR', null, 'Caixa', 10),
+      ('VICK VAPORUB', null, 'Caixa', 2),
+      ('VITAMINA C', null, 'Caixa', 1),
+      ('VOLTAREN', '75mg', 'Caixa', 1),
+      ('VOLTAREN INJETAVEL', null, 'Caixa', 4),
+      ('VONAU', null, 'Caixa', 1)
+    ) as t(nome, mg, unidade, quantidade)
   loop
     select id into v_item_id
     from public.estoque_itens
-    where categoria = v_categoria and lower(trim(nome)) = lower(trim(rec.nome))
+    where categoria = v_categoria
+      and lower(trim(nome)) = lower(trim(rec.nome))
+      and coalesce(lower(trim(mg)), '') = coalesce(lower(trim(rec.mg)), '')
     limit 1;
 
     if v_item_id is null then
-      insert into public.estoque_itens (categoria, nome, tamanhos)
-      values (v_categoria, rec.nome, '{}'::jsonb)
+      insert into public.estoque_itens (categoria, nome, mg, tamanhos)
+      values (v_categoria, rec.nome, rec.mg, '{}'::jsonb)
       returning id into v_item_id;
     end if;
 
