@@ -87,7 +87,9 @@ export async function createCarga(
     data: result.data.data,
     observacoes: result.data.observacoes || null,
   });
-  if (error) return { error: "Não foi possível salvar a carga. Tente novamente.", values: raw };
+  if (error) {
+    return { error: `Não foi possível salvar a carga. Tente novamente. (${error.message})`, values: raw };
+  }
 
   revalidatePath(`/jogos/${jogoId}/ingressos`);
   return { success: true };
@@ -119,7 +121,9 @@ export async function updateCarga(
       observacoes: result.data.observacoes || null,
     })
     .eq("id", id);
-  if (error) return { error: "Não foi possível salvar a carga. Tente novamente.", values: raw };
+  if (error) {
+    return { error: `Não foi possível salvar a carga. Tente novamente. (${error.message})`, values: raw };
+  }
 
   revalidatePath(`/jogos/${jogoId}/ingressos`);
   redirect(`/jogos/${jogoId}/ingressos`);
@@ -182,7 +186,9 @@ export async function createSolicitacao(
     quantidade_atendida: quantidadeAtendida,
     observacoes: result.data.observacoes || null,
   });
-  if (error) return { error: "Não foi possível salvar a solicitação. Tente novamente.", values: raw };
+  if (error) {
+    return { error: `Não foi possível salvar a solicitação. Tente novamente. (${error.message})`, values: raw };
+  }
 
   revalidatePath(`/jogos/${jogoId}/ingressos`);
   return { success: true };
@@ -228,7 +234,9 @@ export async function updateSolicitacao(
       observacoes: result.data.observacoes || null,
     })
     .eq("id", id);
-  if (error) return { error: "Não foi possível salvar a solicitação. Tente novamente.", values: raw };
+  if (error) {
+    return { error: `Não foi possível salvar a solicitação. Tente novamente. (${error.message})`, values: raw };
+  }
 
   revalidatePath(`/jogos/${jogoId}/ingressos`);
   redirect(`/jogos/${jogoId}/ingressos`);
