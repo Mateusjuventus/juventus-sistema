@@ -57,6 +57,21 @@ export function BellIcon({ className }: { className?: string }) {
   );
 }
 
+/** Ícone do gatilho do menu "Minha Conta" no cabeçalho — silhueta de pessoa. */
+export function PersonIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 /** Ícone do botão "Tarefas" no cabeçalho — uma prancheta com itens marcados. */
 export function ChecklistIcon({ className }: { className?: string }) {
   return (
