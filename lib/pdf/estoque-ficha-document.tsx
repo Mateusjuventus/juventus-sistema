@@ -12,12 +12,22 @@ const SUBTITULOS: Record<EstoqueCategoria, string> = {
   medico: "Departamento Médico",
 };
 
-/** Mesmo texto de declaração usado no formulário impresso já em uso pelo clube. */
-const PARAGRAFOS_DECLARACAO = [
-  "Declaro que recebi do Clube os uniformes e/ou equipamentos relacionados acima, comprometendo-me a utilizá-los exclusivamente durante a jornada de trabalho e no exercício de minhas atividades profissionais.",
-  "Comprometo-me, ainda, a zelar pela conservação dos itens recebidos e a devolvê-los em perfeitas condições de uso, ressalvado o desgaste natural decorrente da utilização regular, no ato da rescisão do meu contrato de trabalho ou sempre que solicitado pelo Clube.",
-  "Fico ciente de que a não devolução dos itens, ou a devolução em condições incompatíveis com o desgaste natural de uso, poderá acarretar o desconto dos respectivos valores, conforme o custo individual de cada item, observada a legislação trabalhista vigente.",
-];
+/** Texto de declaração da ficha de Saída — muda conforme a categoria: Esportivo fala de uniformes/
+ * equipamentos que retornam ao Clube (mesmo texto do formulário impresso já em uso); Médico fala de
+ * medicamentos retirados pra uso nas atividades do Clube (não retornam), com o texto exato pedido
+ * pelo Mateus em 2026-07-21. */
+const PARAGRAFOS_DECLARACAO: Record<EstoqueCategoria, string[]> = {
+  esportivo: [
+    "Declaro que recebi do Clube os uniformes e/ou equipamentos relacionados acima, comprometendo-me a utilizá-los exclusivamente durante a jornada de trabalho e no exercício de minhas atividades profissionais.",
+    "Comprometo-me, ainda, a zelar pela conservação dos itens recebidos e a devolvê-los em perfeitas condições de uso, ressalvado o desgaste natural decorrente da utilização regular, no ato da rescisão do meu contrato de trabalho ou sempre que solicitado pelo Clube.",
+    "Fico ciente de que a não devolução dos itens, ou a devolução em condições incompatíveis com o desgaste natural de uso, poderá acarretar o desconto dos respectivos valores, conforme o custo individual de cada item, observada a legislação trabalhista vigente.",
+  ],
+  medico: [
+    "Declaro que os medicamentos relacionados acima foram retirados do estoque do Departamento Médico para utilização nas atividades do Clube, conforme a necessidade e a finalidade a que se destinam.",
+    "Declaro, ainda, que a presente retirada foi devidamente conferida e registrada, sendo de minha responsabilidade a correta destinação dos medicamentos, em conformidade com os procedimentos internos de controle de estoque e utilização estabelecidos pelo Clube.",
+    "Estou ciente de que toda movimentação de entrada e saída de medicamentos deverá ser devidamente registrada, visando garantir a rastreabilidade, o controle de estoque e a segurança na utilização dos itens.",
+  ],
+};
 
 const styles = StyleSheet.create({
   logoBox: {
@@ -280,9 +290,13 @@ export function EstoqueFichaDocument({
         </View>
 
         <View style={styles.declaracaoBox}>
-          {PARAGRAFOS_DECLARACAO.map((paragrafo, i) => (
+          {PARAGRAFOS_DECLARACAO[ficha.categoria].map((paragrafo, i) => (
             <Text
-              style={i === PARAGRAFOS_DECLARACAO.length - 1 ? [styles.declaracaoTexto, { marginBottom: 0 }] : styles.declaracaoTexto}
+              style={
+                i === PARAGRAFOS_DECLARACAO[ficha.categoria].length - 1
+                  ? [styles.declaracaoTexto, { marginBottom: 0 }]
+                  : styles.declaracaoTexto
+              }
               key={i}
             >
               {paragrafo}
