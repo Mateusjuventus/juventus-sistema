@@ -10,12 +10,8 @@ export interface ProgramacaoLinhaFormState {
   success?: boolean;
 }
 
-async function caminhoProgramacao(
-  supabase: ReturnType<typeof createClient>,
-  jogoId: string,
-): Promise<string | null> {
-  const { data: jogo } = await supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle();
-  return jogo ? `/base/jogos/${jogo.categoria}/${jogoId}/programacao` : null;
+function caminhoProgramacao(jogoId: string): string {
+  return `/base/jogos/${jogoId}/programacao`;
 }
 
 export async function adicionarItemProgramacaoBase(
@@ -63,7 +59,7 @@ export async function adicionarItemProgramacaoBase(
     return { error: `Não foi possível adicionar a linha: ${insertError.message}` };
   }
 
-  const caminho = await caminhoProgramacao(supabase, jogoId);
+  const caminho = caminhoProgramacao(jogoId);
   if (caminho) revalidatePath(caminho);
   return { success: true };
 }
@@ -81,7 +77,7 @@ export async function removerItemProgramacaoBase(formData: FormData): Promise<vo
 
   await supabase.from("jogo_programacao_itens_base").delete().eq("id", id);
   if (item) {
-    const caminho = await caminhoProgramacao(supabase, item.jogo_id);
+    const caminho = caminhoProgramacao(item.jogo_id);
     if (caminho) revalidatePath(caminho);
   }
 }
@@ -101,7 +97,7 @@ export async function salvarConfigConcentracaoBase(formData: FormData): Promise<
     })
     .eq("id", jogoId);
 
-  const caminho = await caminhoProgramacao(supabase, jogoId);
+  const caminho = caminhoProgramacao(jogoId);
   if (caminho) revalidatePath(caminho);
 }
 
@@ -116,6 +112,6 @@ export async function salvarConfigDiaJogoBase(formData: FormData): Promise<void>
     .update({ dia_jogo_liberacao: diaJogoLiberacao || null })
     .eq("id", jogoId);
 
-  const caminho = await caminhoProgramacao(supabase, jogoId);
+  const caminho = caminhoProgramacao(jogoId);
   if (caminho) revalidatePath(caminho);
 }

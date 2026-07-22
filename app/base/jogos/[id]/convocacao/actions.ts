@@ -92,7 +92,6 @@ export async function saveConvocacaoBase(
   }
   await Promise.all(inserts);
 
-  const { data: jogo } = await supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle();
-  if (jogo) revalidatePath(`/base/jogos/${jogo.categoria}/${jogoId}/convocacao`);
+  revalidatePath(`/base/jogos/${jogoId}/convocacao`);
   return { success: true };
 }

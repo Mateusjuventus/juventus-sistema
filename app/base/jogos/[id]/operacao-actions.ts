@@ -6,18 +6,11 @@ import type { TipoQuarto } from "@/lib/supabase/types";
 
 /**
  * Espelha `app/jogos/[id]/operacao-actions.ts` para o Futebol de Base: rooming list, ônibus e
- * recibo de pagamento (Credenciamento por zona fica fora de escopo, ver a spec). Como essas
- * actions só recebem o `jogoId` pelo FormData (não a categoria), busca a categoria do próprio
- * jogo antes de revalidar — mesmo padrão usado em `deleteAtletaBase`/`deleteComissaoBase`.
+ * recibo de pagamento (Credenciamento por zona fica fora de escopo, ver a spec).
  */
 
-async function revalidarAbaBase(
-  supabase: ReturnType<typeof createClient>,
-  jogoId: string,
-  aba: "rooming-list" | "onibus" | "recibo",
-) {
-  const { data: jogo } = await supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle();
-  if (jogo) revalidatePath(`/base/jogos/${jogo.categoria}/${jogoId}/${aba}`);
+function revalidarAbaBase(jogoId: string, aba: "rooming-list" | "onibus" | "recibo") {
+  revalidatePath(`/base/jogos/${jogoId}/${aba}`);
 }
 
 // =========================================================
@@ -118,7 +111,7 @@ export async function saveRoomingListBase(
     }
   }
 
-  await revalidarAbaBase(supabase, jogoId, "rooming-list");
+  revalidarAbaBase(jogoId, "rooming-list");
   return { success: true };
 }
 
@@ -206,7 +199,7 @@ export async function saveOnibusBase(
     }
   }
 
-  await revalidarAbaBase(supabase, jogoId, "onibus");
+  revalidarAbaBase(jogoId, "onibus");
   return { success: true };
 }
 
@@ -281,6 +274,6 @@ export async function saveReciboBase(
     if (insertError) return { error: "Não foi possível salvar os recibos. Tente novamente." };
   }
 
-  await revalidarAbaBase(supabase, jogoId, "recibo");
+  revalidarAbaBase(jogoId, "recibo");
   return { success: true };
 }

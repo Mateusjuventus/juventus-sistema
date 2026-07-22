@@ -3,7 +3,6 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { OnibusListaBaseRow, OnibusPassageiroBaseRow } from "@/lib/supabase/types";
 import { getJogoBaseEConvocados } from "../operacao-data";
 import { OnibusFormBase, type OnibusInicial } from "./onibus-form-base";
@@ -13,11 +12,8 @@ import { saveOnibusBase } from "../operacao-actions";
 export default async function OnibusBasePage({
   params,
 }: {
-  params: { categoria: string; id: string };
+  params: { id: string };
 }) {
-  if (!ehCategoriaBaseValida(params.categoria)) notFound();
-  const categoria = params.categoria;
-
   const dados = await getJogoBaseEConvocados(params.id);
   if (!dados) notFound();
   const { jogo, convocacao, atletas, comissao, staff } = dados;
@@ -25,8 +21,8 @@ export default async function OnibusBasePage({
   if (!convocacao) {
     return (
       <AppShell departamento="futebol_base">
-        <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="onibus" />
-        <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${categoria}/${jogo.id}/convocacao`} />
+        <JogoTabsBase jogoId={jogo.id} active="onibus" />
+        <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${jogo.id}/convocacao`} />
       </AppShell>
     );
   }
@@ -59,13 +55,13 @@ export default async function OnibusBasePage({
 
   return (
     <AppShell departamento="futebol_base">
-      <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="onibus" />
+      <JogoTabsBase jogoId={jogo.id} active="onibus" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Lista de Passageiros do Ônibus</h1>
         {temOnibus ? (
           <a
-            href={`/base/jogos/${categoria}/${jogo.id}/onibus/pdf`}
+            href={`/base/jogos/${jogo.id}/onibus/pdf`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"

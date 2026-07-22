@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { CategoriaGastoRow, JogoBaseRow } from "@/lib/supabase/types";
 import { GastoFormBase } from "../gasto-form-base";
 import { createGastoBase } from "../actions";
@@ -12,10 +11,8 @@ import { createGastoBase } from "../actions";
 export default async function NovoGastoBasePage({
   params,
 }: {
-  params: { categoria: string; id: string };
+  params: { id: string };
 }) {
-  if (!ehCategoriaBaseValida(params.categoria)) notFound();
-  const categoria = params.categoria;
   const supabase = createClient();
 
   const [{ data: jogoData }, { data: categoriasData }] = await Promise.all([
@@ -30,9 +27,9 @@ export default async function NovoGastoBasePage({
 
   return (
     <AppShell departamento="futebol_base">
-      <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="financeiro" />
+      <JogoTabsBase jogoId={jogo.id} active="financeiro" />
       <Link
-        href={`/base/jogos/${categoria}/${jogo.id}/financeiro`}
+        href={`/base/jogos/${jogo.id}/financeiro`}
         className="text-sm font-medium text-grena hover:underline"
       >
         ← Voltar para Financeiro

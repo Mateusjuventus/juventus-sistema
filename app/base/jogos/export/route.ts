@@ -1,5 +1,4 @@
 import { type NextRequest } from "next/server";
-import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
@@ -24,26 +23,27 @@ function formatResultado(j: JogoBaseRow): string {
   return "Empate";
 }
 
-/** Exporta a lista de Jogos de uma categoria do Futebol de Base pra Excel — espelha
- * `app/jogos/export/route.ts`, filtrado pela categoria da URL. */
-export async function GET(request: NextRequest, { params }: { params: { categoria: string } }) {
-  if (!ehCategoriaBaseValida(params.categoria)) notFound();
-  const categoria = params.categoria;
-
+/** Exporta a lista de Jogos do Futebol de Base pra Excel — espelha `app/jogos/export/route.ts`.
+ * A categoria não faz mais parte da URL (lista unificada); um filtro opcional `?categoria=` pode
+ * restringir a exportação a uma única categoria, espelhando o filtro da listagem. */
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
   const mandanteFiltro = searchParams.get("mandante") ?? "";
+  const categoriaFiltro = searchParams.get("categoria") ?? "";
   const supabase = createClient();
 
-  let query = supabase.from("jogos_base").select("*").eq("categoria", categoria).order("data_jogo", { ascending: false });
+  let query = supabase.from("jogos_base").select("*").order("data_jogo", { ascending: false });
   if (q) query = query.ilike("adversario_nome", `%${q}%`);
   if (mandanteFiltro === "casa") query = query.eq("mandante", true);
   if (mandanteFiltro === "fora") query = query.eq("mandante", false);
+  if (ehCategoriaBaseValida(categoriaFiltro)) query = query.eq("categoria", categoriaFiltro);
 
   const { data } = await query;
   const jogos = (data ?? []) as JogoBaseRow[];
 
   const linhas = jogos.map((j) => ({
+    Categoria: categoriaBaseLabel(j.categoria),
     Adversário: j.adversario_nome,
     "Mandante/Visitante": j.mandante ? "Em casa" : "Fora",
     Competição: j.competicao,
@@ -56,7 +56,8 @@ export async function GET(request: NextRequest, { params }: { params: { categori
     Resultado: formatResultado(j),
   }));
 
-  return buildXlsxResponse(`jogos-base-${categoria}.xlsx`, [
-    { nome: categoriaBaseLabel(categoria), linhas },
-  ]);
+  const nomeAba = ehCategoriaBaseValida(categoriaFiltro) ? categoriaBaseLabel(categoriaFiltro) : "Jogos";
+  const nomeArquivo = ehCategoriaBaseValida(categoriaFiltro) ? `jogos-base-${categoriaFiltro}.xlsx` : "jogos-base.xlsx";
+
+  return buildXlsxResponse(nomeArquivo, [{ nome: nomeAba, linhas }]);
 }

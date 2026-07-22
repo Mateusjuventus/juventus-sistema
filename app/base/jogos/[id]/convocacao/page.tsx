@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type {
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
@@ -27,16 +26,17 @@ import { saveConvocacaoBase } from "./actions";
 export default async function ConvocacaoBasePage({
   params,
 }: {
-  params: { categoria: string; id: string };
+  params: { id: string };
 }) {
-  if (!ehCategoriaBaseValida(params.categoria)) notFound();
-  const categoria = params.categoria;
-
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: atletasData }, { data: comissaoData }, { data: staffData }, { data: convocacaoData }] =
+  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
+  if (!jogoData) notFound();
+  const jogo = jogoData as JogoBaseRow;
+  const categoria = jogo.categoria;
+
+  const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, { data: convocacaoData }] =
     await Promise.all([
-      supabase.from("jogos_base").select("*").eq("id", params.id).single(),
       supabase.from("atletas_base").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
       supabase
         .from("comissao_tecnica_base")
@@ -50,9 +50,6 @@ export default async function ConvocacaoBasePage({
       supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);
 
-  if (!jogoData) notFound();
-
-  const jogo = jogoData as JogoBaseRow;
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
@@ -78,7 +75,7 @@ export default async function ConvocacaoBasePage({
 
   return (
     <AppShell departamento="futebol_base">
-      <JogoTabsBase jogoId={jogo.id} categoria={jogo.categoria} active="convocacao" />
+      <JogoTabsBase jogoId={jogo.id} active="convocacao" />
 
       <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <p className="text-sm text-neutral-600">
@@ -97,7 +94,7 @@ export default async function ConvocacaoBasePage({
         {convocacao ? (
           <div className="flex flex-wrap items-center gap-2">
             <a
-              href={`/base/jogos/${categoria}/${jogo.id}/presskit`}
+              href={`/base/jogos/${jogo.id}/presskit`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary"
@@ -105,7 +102,7 @@ export default async function ConvocacaoBasePage({
               Gerar Presskit (PDF)
             </a>
             <a
-              href={`/base/jogos/${categoria}/${jogo.id}/relacionados/pdf`}
+              href={`/base/jogos/${jogo.id}/relacionados/pdf`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"
@@ -113,7 +110,7 @@ export default async function ConvocacaoBasePage({
               Gerar Relacionados (PDF)
             </a>
             <a
-              href={`/base/jogos/${categoria}/${jogo.id}/relacionados/jpg`}
+              href={`/base/jogos/${jogo.id}/relacionados/jpg`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"

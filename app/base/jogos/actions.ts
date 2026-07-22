@@ -9,9 +9,9 @@ import { jogoBaseSchema } from "@/lib/validation/schemas";
 
 /**
  * Espelha `app/jogos/actions.ts`, mas grava em `jogos_base` (tabela totalmente independente — ver
- * docs/superpowers/specs/2026-07-20-futebol-de-base-design.md) e inclui `categoria`. Mesmo padrão
- * de `app/base/atletas/actions.ts`: a categoria pode ser trocada no formulário, então tanto criar
- * quanto editar redirecionam pra lista da categoria que veio do formulário.
+ * docs/superpowers/specs/2026-07-20-futebol-de-base-design.md) e inclui `categoria`. A lista de
+ * Jogos do Futebol de Base é unificada (sem segmento de categoria na URL) — a categoria continua
+ * sendo um campo do formulário, editável a qualquer momento, mas não afeta o redirecionamento.
  */
 export interface JogoBaseFormState {
   error?: string;
@@ -102,7 +102,7 @@ export async function createJogoBase(
   if (error) return { error: "Não foi possível salvar o jogo. Tente novamente.", values: raw };
 
   revalidatePath("/base/jogos");
-  redirect(`/base/jogos/${data.categoria}`);
+  redirect("/base/jogos");
 }
 
 export async function updateJogoBase(
@@ -144,19 +144,15 @@ export async function updateJogoBase(
   if (error) return { error: "Não foi possível salvar o jogo. Tente novamente.", values: raw };
 
   revalidatePath("/base/jogos");
-  redirect(`/base/jogos/${data.categoria}`);
+  revalidatePath(`/base/jogos/${id}`);
+  redirect("/base/jogos");
 }
 
-/** Antes de excluir, lê a categoria da linha pra revalidar a lista certa. */
 export async function deleteJogoBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
 
-  const { data } = await supabase.from("jogos_base").select("categoria").eq("id", id).maybeSingle();
-  const categoria = (data as { categoria?: string } | null)?.categoria;
-
   await supabase.from("jogos_base").delete().eq("id", id);
 
   revalidatePath("/base/jogos");
-  if (categoria) revalidatePath(`/base/jogos/${categoria}`);
 }

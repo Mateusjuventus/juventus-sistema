@@ -3,7 +3,6 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { ReciboJogoBaseRow } from "@/lib/supabase/types";
 import { getJogoBaseEConvocados } from "../operacao-data";
 import { ReciboFormBase } from "./recibo-form-base";
@@ -13,11 +12,8 @@ import { saveReciboBase } from "../operacao-actions";
 export default async function ReciboBasePage({
   params,
 }: {
-  params: { categoria: string; id: string };
+  params: { id: string };
 }) {
-  if (!ehCategoriaBaseValida(params.categoria)) notFound();
-  const categoria = params.categoria;
-
   const dados = await getJogoBaseEConvocados(params.id);
   if (!dados) notFound();
   const { jogo, convocacao, comissao, staff } = dados;
@@ -25,8 +21,8 @@ export default async function ReciboBasePage({
   if (!convocacao) {
     return (
       <AppShell departamento="futebol_base">
-        <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="recibo" />
-        <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${categoria}/${jogo.id}/convocacao`} />
+        <JogoTabsBase jogoId={jogo.id} active="recibo" />
+        <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${jogo.id}/convocacao`} />
       </AppShell>
     );
   }
@@ -38,14 +34,14 @@ export default async function ReciboBasePage({
 
   return (
     <AppShell departamento="futebol_base">
-      <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="recibo" />
+      <JogoTabsBase jogoId={jogo.id} active="recibo" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Recibo de Pagamento</h1>
         {temRecibos ? (
           <div className="flex gap-2">
             <a
-              href={`/base/jogos/${categoria}/${jogo.id}/recibo/pdf`}
+              href={`/base/jogos/${jogo.id}/recibo/pdf`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"
@@ -53,7 +49,7 @@ export default async function ReciboBasePage({
               Recibos individuais (PDF)
             </a>
             <a
-              href={`/base/jogos/${categoria}/${jogo.id}/recibo/pdf-consolidado`}
+              href={`/base/jogos/${jogo.id}/recibo/pdf-consolidado`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"

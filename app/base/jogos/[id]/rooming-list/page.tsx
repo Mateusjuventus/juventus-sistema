@@ -3,7 +3,6 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { RoomingListBaseRow, RoomingListOcupanteBaseRow, RoomingListQuartoBaseRow } from "@/lib/supabase/types";
 import { getJogoBaseEConvocados } from "../operacao-data";
 import { RoomingListFormBase, type QuartoInicial } from "./rooming-list-form-base";
@@ -13,11 +12,8 @@ import { saveRoomingListBase } from "../operacao-actions";
 export default async function RoomingListBasePage({
   params,
 }: {
-  params: { categoria: string; id: string };
+  params: { id: string };
 }) {
-  if (!ehCategoriaBaseValida(params.categoria)) notFound();
-  const categoria = params.categoria;
-
   const dados = await getJogoBaseEConvocados(params.id);
   if (!dados) notFound();
   const { jogo, convocacao, atletas, comissao, staff } = dados;
@@ -25,8 +21,8 @@ export default async function RoomingListBasePage({
   if (!convocacao) {
     return (
       <AppShell departamento="futebol_base">
-        <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="rooming-list" />
-        <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${categoria}/${jogo.id}/convocacao`} />
+        <JogoTabsBase jogoId={jogo.id} active="rooming-list" />
+        <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${jogo.id}/convocacao`} />
       </AppShell>
     );
   }
@@ -68,13 +64,13 @@ export default async function RoomingListBasePage({
 
   return (
     <AppShell departamento="futebol_base">
-      <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="rooming-list" />
+      <JogoTabsBase jogoId={jogo.id} active="rooming-list" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Rooming List</h1>
         {temRoomingList ? (
           <a
-            href={`/base/jogos/${categoria}/${jogo.id}/rooming-list/pdf`}
+            href={`/base/jogos/${jogo.id}/rooming-list/pdf`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"

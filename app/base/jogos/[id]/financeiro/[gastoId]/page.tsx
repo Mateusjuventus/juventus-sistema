@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { CategoriaGastoRow, GastoJogoBaseRow, JogoBaseRow } from "@/lib/supabase/types";
 import { GastoFormBase } from "../gasto-form-base";
 import { updateGastoBase } from "../actions";
@@ -12,10 +11,8 @@ import { updateGastoBase } from "../actions";
 export default async function EditarGastoBasePage({
   params,
 }: {
-  params: { categoria: string; id: string; gastoId: string };
+  params: { id: string; gastoId: string };
 }) {
-  if (!ehCategoriaBaseValida(params.categoria)) notFound();
-  const categoria = params.categoria;
   const supabase = createClient();
 
   const [{ data: jogoData }, { data: gastoData }, { data: categoriasData }] = await Promise.all([
@@ -39,9 +36,9 @@ export default async function EditarGastoBasePage({
 
   return (
     <AppShell departamento="futebol_base">
-      <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="financeiro" />
+      <JogoTabsBase jogoId={jogo.id} active="financeiro" />
       <Link
-        href={`/base/jogos/${categoria}/${jogo.id}/financeiro`}
+        href={`/base/jogos/${jogo.id}/financeiro`}
         className="text-sm font-medium text-grena hover:underline"
       >
         ← Voltar para Financeiro

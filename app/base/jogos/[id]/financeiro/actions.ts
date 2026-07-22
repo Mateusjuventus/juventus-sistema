@@ -57,12 +57,8 @@ async function resolveCategoriaId(
   return { id: criada.id as string };
 }
 
-async function caminhoFinanceiro(
-  supabase: ReturnType<typeof createClient>,
-  jogoId: string,
-): Promise<string | null> {
-  const { data: jogo } = await supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle();
-  return jogo ? `/base/jogos/${jogo.categoria}/${jogoId}/financeiro` : null;
+function caminhoFinanceiro(jogoId: string): string {
+  return `/base/jogos/${jogoId}/financeiro`;
 }
 
 export async function createGastoBase(
@@ -97,7 +93,7 @@ export async function createGastoBase(
 
   if (error) return { error: "Não foi possível salvar o gasto. Tente novamente.", values: raw };
 
-  const caminho = await caminhoFinanceiro(supabase, jogoId);
+  const caminho = caminhoFinanceiro(jogoId);
   if (caminho) {
     revalidatePath(caminho);
     redirect(caminho);
@@ -141,7 +137,7 @@ export async function updateGastoBase(
 
   if (error) return { error: "Não foi possível salvar o gasto. Tente novamente.", values: raw };
 
-  const caminho = await caminhoFinanceiro(supabase, jogoId);
+  const caminho = caminhoFinanceiro(jogoId);
   if (caminho) {
     revalidatePath(caminho);
     redirect(caminho);
@@ -157,7 +153,7 @@ export async function deleteGastoBase(formData: FormData): Promise<void> {
   await supabase.from("gastos_jogo_base").delete().eq("id", id);
 
   if (data?.jogo_id) {
-    const caminho = await caminhoFinanceiro(supabase, data.jogo_id);
+    const caminho = caminhoFinanceiro(data.jogo_id);
     if (caminho) revalidatePath(caminho);
   }
 }

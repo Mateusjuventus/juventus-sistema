@@ -3,7 +3,6 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { JogoBaseRow, JogoProgramacaoItemBaseRow } from "@/lib/supabase/types";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import {
@@ -37,10 +36,8 @@ function LinhaProgramacao({
 export default async function ProgramacaoBasePage({
   params,
 }: {
-  params: { categoria: string; id: string };
+  params: { id: string };
 }) {
-  if (!ehCategoriaBaseValida(params.categoria)) notFound();
-  const categoria = params.categoria;
   const supabase = createClient();
 
   const [{ data: jogoData }, { data: itensData }] = await Promise.all([
@@ -63,11 +60,11 @@ export default async function ProgramacaoBasePage({
   const concentracaoLiberada = Boolean(jogo.concentracao_data) && itensConcentracao.length > 0;
   const diaJogoLiberado = itensDiaJogo.length > 0;
 
-  const base = `/base/jogos/${categoria}/${jogo.id}`;
+  const base = `/base/jogos/${jogo.id}`;
 
   return (
     <AppShell departamento="futebol_base">
-      <JogoTabsBase jogoId={jogo.id} categoria={categoria} active="programacao" />
+      <JogoTabsBase jogoId={jogo.id} active="programacao" />
 
       <div className="space-y-6">
         {/* Concentração */}

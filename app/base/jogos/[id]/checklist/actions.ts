@@ -36,12 +36,8 @@ export async function buscarOuCriarChecklistBase(jogo: JogoBaseRow): Promise<Che
   return criados as ChecklistJogoItemBaseRow[];
 }
 
-/** Como a rota não carrega a categoria, busca-se o jogo antes de revalidar (mesmo padrão de
- * `revalidarAbaBase` em `operacao-actions.ts`). */
-async function revalidarChecklistBase(jogoId: string) {
-  const supabase = createClient();
-  const { data: jogo } = await supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle();
-  if (jogo) revalidatePath(`/base/jogos/${jogo.categoria}/${jogoId}/checklist`);
+function revalidarChecklistBase(jogoId: string) {
+  revalidatePath(`/base/jogos/${jogoId}/checklist`);
 }
 
 export async function alternarChecklistItemBase(formData: FormData): Promise<void> {
