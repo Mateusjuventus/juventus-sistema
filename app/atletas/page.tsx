@@ -6,6 +6,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
+import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 import { deleteAtleta } from "./actions";
 
@@ -23,10 +24,22 @@ const STATUS_BADGE_CLASS: Record<AtletaStatus, string> = {
   departamento_medico: "bg-amber-100 text-amber-800",
 };
 
+const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
+  ATLETA_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+);
+
 function StatusBadge({ status }: { status: AtletaStatus }) {
   return (
     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[status]}`}>
       {STATUS_LABEL[status]}
+    </span>
+  );
+}
+
+function TipoContratoBadge({ tipoContrato }: { tipoContrato: string }) {
+  return (
+    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
+      {TIPO_CONTRATO_LABEL[tipoContrato] ?? tipoContrato}
     </span>
   );
 }
@@ -212,6 +225,7 @@ export default async function AtletasPage({
 
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={atleta.status} />
+                {atleta.tipo_contrato ? <TipoContratoBadge tipoContrato={atleta.tipo_contrato} /> : null}
                 {venceLogo ? (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                     Contrato a vencer

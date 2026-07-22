@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaBaseRow, AtletaStatus } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,10 @@ const STATUS_LABEL: Record<AtletaStatus, string> = {
   suspenso: "Suspenso",
   departamento_medico: "Departamento Médico",
 };
+
+const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
+  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+);
 
 const PE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -64,6 +69,8 @@ export async function GET(request: NextRequest, { params }: { params: { categori
     Empresário: a.empresario_nome ?? "",
     Status: STATUS_LABEL[a.status],
     "Fim do contrato": formatData(a.data_fim_contrato),
+    "Tipo de contrato": a.tipo_contrato ? TIPO_CONTRATO_LABEL[a.tipo_contrato] ?? a.tipo_contrato : "",
+    "Contrato de formação": a.tipo_contrato === "amador" ? (a.possui_contrato_formacao ? "Sim" : "Não") : "",
   }));
 
   return buildXlsxResponse(`atletas-base-${categoria}.xlsx`, [
