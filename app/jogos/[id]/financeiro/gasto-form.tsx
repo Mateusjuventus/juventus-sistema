@@ -2,6 +2,7 @@
 
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, TextField } from "@/components/fields";
+import { CurrencyField } from "@/components/currency-field";
 import { CategoriaGastoField } from "@/components/categoria-gasto-field";
 import { SubmitButton } from "@/components/submit-button";
 import type { CategoriaGastoRow } from "@/lib/supabase/types";
@@ -47,25 +48,18 @@ export function GastoForm({
             error={errors.descricao}
             placeholder="Ex: Ônibus 2 — viagem de volta"
           />
-          <TextField
+          <CurrencyField
             label="Valor previsto"
             name="valorPrevisto"
-            type="number"
-            step="0.01"
-            min={0}
             required
             defaultValue={values.valorPrevisto}
             error={errors.valorPrevisto}
           />
-          <TextField
+          <CurrencyField
             label="Valor efetuado"
             name="valorEfetuado"
-            type="number"
-            step="0.01"
-            min={0}
             defaultValue={values.valorEfetuado}
             error={errors.valorEfetuado}
-            placeholder="Preencha depois que o gasto acontecer"
           />
         </FieldGroup>
       </FormSection>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
+import { CurrencyInput } from "@/components/currency-field";
 import { SubmitButton } from "@/components/submit-button";
 import type { ComissaoTecnicaBaseRow, ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
 import type { ReciboFormState } from "../operacao-actions";
@@ -91,14 +92,7 @@ export function ReciboFormBase({
                       />
                     </td>
                     <td className="py-2 pr-3">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        name={`valor_${p.tipo}_${p.id}`}
-                        defaultValue={valorInicial}
-                        className="field-input"
-                      />
+                      <CurrencyInput name={`valor_${p.tipo}_${p.id}`} defaultValue={valorInicial} />
                     </td>
                     <td className="py-2 pr-3">
                       <input

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextAreaField, TextField } from "@/components/fields";
+import { CurrencyField } from "@/components/currency-field";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { SOLICITACAO_TIPOS, STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
@@ -161,15 +162,7 @@ function ItensPagamentoReembolsoFields({ tipo }: { tipo: string }) {
                 autoComplete="off"
                 placeholder="Ex: Mensalidade do plano de saúde"
               />
-              <TextField
-                label="Valor (R$)"
-                name="itemValor"
-                id={`itemValor-${rowId}`}
-                autoComplete="off"
-                type="number"
-                step="0.01"
-                min={0}
-              />
+              <CurrencyField label="Valor (R$)" name="itemValor" id={`itemValor-${rowId}`} />
               <div className="sm:col-span-2">
                 <TextField
                   label="Observação (opcional)"
@@ -394,11 +387,14 @@ export function SolicitacaoForm({
         </FormSection>
       ) : null}
 
-      {tipo === "compra" ? <ItensCompraFields key="compra" /> : null}
-      {tipo === "pagamento" || tipo === "reembolso" ? (
+      {/* Os itens só são preenchidos aqui na CRIAÇÃO — na edição, cada item já tem sua própria tela
+          de adicionar/editar (ver app/base/solicitacoes/[id]/itens/), pra não correr o risco de,
+          ao salvar as outras alterações da solicitação, criar sem querer um item novo duplicado. */}
+      {!entityId && tipo === "compra" ? <ItensCompraFields key="compra" /> : null}
+      {!entityId && (tipo === "pagamento" || tipo === "reembolso") ? (
         <ItensPagamentoReembolsoFields key={`itens-${tipo}`} tipo={tipo} />
       ) : null}
-      {tipo === "passagem_aerea" ? <ItensPassagemFields key="passagem_aerea" /> : null}
+      {!entityId && tipo === "passagem_aerea" ? <ItensPassagemFields key="passagem_aerea" /> : null}
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>

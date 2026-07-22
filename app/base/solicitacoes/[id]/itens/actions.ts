@@ -6,7 +6,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotalBase } from "@/lib/solicitacao-valor-total";
-import { solicitacaoItemSchema } from "@/lib/validation/schemas";
+import {
+  solicitacaoItemSchema,
+  solicitacaoItemPagamentoSchema,
+  solicitacaoItemPassagemSchema,
+} from "@/lib/validation/schemas";
+import type { SolicitacaoTipo } from "@/lib/supabase/types";
 
 /** Espelha `app/solicitacoes/[id]/itens/actions.ts` para o Futebol de Base. */
 export interface SolicitacaoItemFormState {
@@ -15,18 +20,42 @@ export interface SolicitacaoItemFormState {
   values?: Record<string, string | undefined>;
 }
 
-export async function createSolicitacaoItemBase(
-  _prevState: SolicitacaoItemFormState,
-  formData: FormData,
-): Promise<SolicitacaoItemFormState> {
-  const solicitacaoId = String(formData.get("solicitacaoId") ?? "");
+function parseItemForm(tipo: SolicitacaoTipo, formData: FormData) {
+  if (tipo === "pagamento" || tipo === "reembolso") {
+    const raw = {
+      descricao: String(formData.get("descricao") ?? ""),
+      valor: String(formData.get("valor") ?? ""),
+      observacao: String(formData.get("observacao") ?? ""),
+    };
+    return { raw, result: solicitacaoItemPagamentoSchema.safeParse(raw) };
+  }
+  if (tipo === "passagem_aerea") {
+    const raw = {
+      passageiro: String(formData.get("passageiro") ?? ""),
+      origem: String(formData.get("origem") ?? ""),
+      destino: String(formData.get("destino") ?? ""),
+      dataVoo: String(formData.get("dataVoo") ?? ""),
+      horarioVoo: String(formData.get("horarioVoo") ?? ""),
+      observacao: String(formData.get("observacao") ?? ""),
+    };
+    return { raw, result: solicitacaoItemPassagemSchema.safeParse(raw) };
+  }
   const raw = {
     quantidade: String(formData.get("quantidade") ?? ""),
     item: String(formData.get("item") ?? ""),
     observacao: String(formData.get("observacao") ?? ""),
   };
+  return { raw, result: solicitacaoItemSchema.safeParse(raw) };
+}
 
-  const result = solicitacaoItemSchema.safeParse(raw);
+export async function createSolicitacaoItemBase(
+  _prevState: SolicitacaoItemFormState,
+  formData: FormData,
+): Promise<SolicitacaoItemFormState> {
+  const solicitacaoId = String(formData.get("solicitacaoId") ?? "");
+  const tipo = String(formData.get("tipo") ?? "") as SolicitacaoTipo;
+  const { raw, result } = parseItemForm(tipo, formData);
+
   if (!result.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
@@ -35,12 +64,6 @@ export async function createSolicitacaoItemBase(
 
   const supabase = createClient();
   const id = randomUUID();
-  const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(
-    supabase,
-    formData.get("foto"),
-    id,
-  );
-  if (uploadError) return { error: uploadError, values: raw };
 
   const { data: existentes } = await supabase
     .from("solicitacao_itens_base")
@@ -50,17 +73,137 @@ export async function createSolicitacaoItemBase(
     .limit(1);
   const proximaOrdem = existentes && existentes.length > 0 ? (existentes[0].ordem as number) + 1 : 0;
 
-  const { error } = await supabase.from("solicitacao_itens_base").insert({
-    id,
-    solicitacao_id: solicitacaoId,
-    quantidade: result.data.quantidade,
-    item: result.data.item,
-    observacao: result.data.observacao || null,
-    foto_path: fotoPath ?? null,
-    ordem: proximaOrdem,
-  });
+  if (tipo === "pagamento" || tipo === "reembolso") {
+    const data = result.data as { descricao: string; valor: number; observacao?: string };
+    const { error } = await supabase.from("solicitacao_itens_base").insert({
+      id,
+      solicitacao_id: solicitacaoId,
+      descricao: data.descricao,
+      valor: data.valor,
+      observacao: data.observacao || null,
+      ordem: proximaOrdem,
+    });
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+    await recalcularValorTotalBase(supabase, solicitacaoId);
+  } else if (tipo === "passagem_aerea") {
+    const data = result.data as {
+      passageiro: string;
+      origem?: string;
+      destino?: string;
+      dataVoo?: string;
+      horarioVoo?: string;
+      observacao?: string;
+    };
+    const { error } = await supabase.from("solicitacao_itens_base").insert({
+      id,
+      solicitacao_id: solicitacaoId,
+      passageiro: data.passageiro,
+      origem: data.origem || null,
+      destino: data.destino || null,
+      data_voo: data.dataVoo || null,
+      horario_voo: data.horarioVoo || null,
+      observacao: data.observacao || null,
+      ordem: proximaOrdem,
+    });
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+  } else {
+    const data = result.data as { quantidade: string; item: string; observacao?: string };
+    const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(
+      supabase,
+      formData.get("foto"),
+      id,
+    );
+    if (uploadError) return { error: uploadError, values: raw };
 
-  if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+    const { error } = await supabase.from("solicitacao_itens_base").insert({
+      id,
+      solicitacao_id: solicitacaoId,
+      quantidade: data.quantidade,
+      item: data.item,
+      observacao: data.observacao || null,
+      foto_path: fotoPath ?? null,
+      ordem: proximaOrdem,
+    });
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+  }
+
+  revalidatePath(`/base/solicitacoes/${solicitacaoId}`);
+  redirect(`/base/solicitacoes/${solicitacaoId}`);
+}
+
+export async function updateSolicitacaoItemBase(
+  _prevState: SolicitacaoItemFormState,
+  formData: FormData,
+): Promise<SolicitacaoItemFormState> {
+  const solicitacaoId = String(formData.get("solicitacaoId") ?? "");
+  const id = String(formData.get("id") ?? "");
+  const tipo = String(formData.get("tipo") ?? "") as SolicitacaoTipo;
+  const { raw, result } = parseItemForm(tipo, formData);
+
+  if (!id || !solicitacaoId) {
+    return { error: "Item não identificado. Recarregue a página e tente novamente.", values: raw };
+  }
+  if (!result.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
+    return { fieldErrors, values: raw };
+  }
+
+  const supabase = createClient();
+
+  if (tipo === "pagamento" || tipo === "reembolso") {
+    const data = result.data as { descricao: string; valor: number; observacao?: string };
+    const { error } = await supabase
+      .from("solicitacao_itens_base")
+      .update({
+        descricao: data.descricao,
+        valor: data.valor,
+        observacao: data.observacao || null,
+      })
+      .eq("id", id);
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+    await recalcularValorTotalBase(supabase, solicitacaoId);
+  } else if (tipo === "passagem_aerea") {
+    const data = result.data as {
+      passageiro: string;
+      origem?: string;
+      destino?: string;
+      dataVoo?: string;
+      horarioVoo?: string;
+      observacao?: string;
+    };
+    const { error } = await supabase
+      .from("solicitacao_itens_base")
+      .update({
+        passageiro: data.passageiro,
+        origem: data.origem || null,
+        destino: data.destino || null,
+        data_voo: data.dataVoo || null,
+        horario_voo: data.horarioVoo || null,
+        observacao: data.observacao || null,
+      })
+      .eq("id", id);
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+  } else {
+    const data = result.data as { quantidade: string; item: string; observacao?: string };
+    const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(
+      supabase,
+      formData.get("foto"),
+      id,
+    );
+    if (uploadError) return { error: uploadError, values: raw };
+
+    const { error } = await supabase
+      .from("solicitacao_itens_base")
+      .update({
+        quantidade: data.quantidade,
+        item: data.item,
+        observacao: data.observacao || null,
+        ...(fotoPath ? { foto_path: fotoPath } : {}),
+      })
+      .eq("id", id);
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+  }
 
   revalidatePath(`/base/solicitacoes/${solicitacaoId}`);
   redirect(`/base/solicitacoes/${solicitacaoId}`);
