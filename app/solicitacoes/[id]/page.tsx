@@ -89,11 +89,9 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
             {s.tipo === "pagamento" || s.tipo === "reembolso" ? (
               <p className="text-sm font-semibold text-neutral-600">Total: {formatMoeda(s.valor)}</p>
             ) : null}
-            {s.tipo === "compra" ? (
-              <Link href={`/solicitacoes/${s.id}/itens/novo`} className="btn-primary">
-                + Novo item
-              </Link>
-            ) : null}
+            <Link href={`/solicitacoes/${s.id}/itens/novo`} className="btn-primary">
+              {s.tipo === "passagem_aerea" ? "+ Novo passageiro" : "+ Novo item"}
+            </Link>
           </div>
 
           {itens.length === 0 ? (
@@ -147,11 +145,16 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
                     </div>
                   ) : null}
 
-                  <DeleteButton
-                    action={deleteSolicitacaoItem}
-                    id={item.id}
-                    entityLabel={s.tipo === "passagem_aerea" ? "passageiro" : "item"}
-                  />
+                  <div className="flex shrink-0 gap-2">
+                    <Link href={`/solicitacoes/${s.id}/itens/${item.id}`} className="btn-secondary">
+                      Editar
+                    </Link>
+                    <DeleteButton
+                      action={deleteSolicitacaoItem}
+                      id={item.id}
+                      entityLabel={s.tipo === "passagem_aerea" ? "passageiro" : "item"}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

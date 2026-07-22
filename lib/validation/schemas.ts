@@ -291,6 +291,26 @@ export const solicitacaoItemSchema = z.object({
 });
 export type SolicitacaoItemInput = z.infer<typeof solicitacaoItemSchema>;
 
+/** Item de Pagamento/Reembolso — usado tanto pra adicionar quanto pra editar um item já existente
+ * (ver app/solicitacoes/[id]/itens/actions.ts). */
+export const solicitacaoItemPagamentoSchema = z.object({
+  descricao: z.string().min(1, { message: "Descrição é obrigatória" }),
+  valor: z.coerce.number().positive({ message: "Valor deve ser maior que zero" }),
+  observacao: z.string().optional().or(z.literal("")),
+});
+export type SolicitacaoItemPagamentoInput = z.infer<typeof solicitacaoItemPagamentoSchema>;
+
+/** Item (passageiro/trecho) de Passagem Aérea — usado tanto pra adicionar quanto pra editar. */
+export const solicitacaoItemPassagemSchema = z.object({
+  passageiro: z.string().min(1, { message: "Passageiro é obrigatório" }),
+  origem: z.string().optional().or(z.literal("")),
+  destino: z.string().optional().or(z.literal("")),
+  dataVoo: z.string().optional().or(z.literal("")),
+  horarioVoo: z.string().optional().or(z.literal("")),
+  observacao: z.string().optional().or(z.literal("")),
+});
+export type SolicitacaoItemPassagemInput = z.infer<typeof solicitacaoItemPassagemSchema>;
+
 export const configuracaoFinanceiroSchema = z.object({
   assinatura1Nome: z.string().min(1, { message: "Nome é obrigatório" }),
   assinatura1Cargo: z.string().min(1, { message: "Cargo é obrigatório" }),

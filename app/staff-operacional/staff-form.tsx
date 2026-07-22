@@ -2,6 +2,7 @@
 
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
+import { CurrencyField } from "@/components/currency-field";
 import { StaffFuncaoField } from "@/components/staff-funcao-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
@@ -129,12 +130,9 @@ export function StaffForm({
               </option>
             ))}
           </SelectField>
-          <TextField
+          <CurrencyField
             label="Valor padrão de pagamento (R$)"
             name="valorPadraoPagamento"
-            type="number"
-            step="0.01"
-            min={0}
             defaultValue={values.valorPadraoPagamento}
             error={errors.valorPadraoPagamento}
           />
