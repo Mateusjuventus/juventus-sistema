@@ -190,8 +190,14 @@ function formatDataBr(iso: string | null): string {
 
 type LogoSrc = string | { data: Buffer; format: "png" | "jpg" } | null;
 
+/** Só os campos realmente usados no presskit — assim o mesmo tipo serve tanto pra `AtletaRow`
+ * (Profissional) quanto pra `AtletaBaseRow` (Futebol de Base), mesmo que os dois tenham divergido
+ * em outros campos (ex.: `tipo_contrato`, que nem é exibido aqui). */
 export interface AtletaPresskitItem {
-  atleta: AtletaRow;
+  atleta: Pick<
+    AtletaRow,
+    "id" | "numero_camisa" | "nome_completo" | "posicao" | "data_nascimento" | "cidade_natal" | "uf_natal"
+  >;
   fotoSrc: LogoSrc;
 }
 

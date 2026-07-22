@@ -2,17 +2,16 @@ import Link from "next/link";
 
 /**
  * Espelha `components/jogo-tabs.tsx` para o Futebol de Base — mesmas abas, mas com o prefixo de
- * rota `/base/jogos/[categoria]/[id]` (precisa da categoria pra montar os links de volta) e SEM as
- * abas "Credenciamento" e "Carga de Ingressos" (fora de escopo pro Futebol de Base, ver
- * docs/superpowers/specs/2026-07-20-futebol-de-base-design.md).
+ * rota `/base/jogos/[id]` e SEM as abas "Credenciamento" e "Carga de Ingressos" (fora de escopo pro
+ * Futebol de Base, ver docs/superpowers/specs/2026-07-20-futebol-de-base-design.md). A categoria do
+ * jogo (Sub20 a Sub11) não faz mais parte da URL — é só um campo do cadastro (ver JogoBaseForm) e
+ * um filtro na lista (`/base/jogos`), não uma rota separada.
  */
 export function JogoTabsBase({
   jogoId,
-  categoria,
   active,
 }: {
   jogoId: string;
-  categoria: string;
   active:
     | "dados"
     | "convocacao"
@@ -23,7 +22,7 @@ export function JogoTabsBase({
     | "recibo"
     | "financeiro";
 }) {
-  const base = `/base/jogos/${categoria}/${jogoId}`;
+  const base = `/base/jogos/${jogoId}`;
 
   const logisticaSubTabs = [
     { key: "rooming-list", label: "Rooming List", href: `${base}/rooming-list` },
@@ -54,7 +53,7 @@ export function JogoTabsBase({
 
   return (
     <div>
-      <Link href={`/base/jogos/${categoria}`} className="text-sm font-medium text-grena hover:underline">
+      <Link href="/base/jogos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Jogos
       </Link>
       <div className="mb-4 mt-3 flex flex-wrap gap-1 border-b border-neutral-200">

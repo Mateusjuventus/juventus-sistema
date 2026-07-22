@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaBaseFormState } from "./actions";
 
 const initialState: AtletaBaseFormState = {};
@@ -29,6 +31,7 @@ export function AtletaBaseForm({
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
+  const [tipoContrato, setTipoContrato] = useState(values.tipoContrato ?? "");
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -131,6 +134,34 @@ export function AtletaBaseForm({
             <option value="suspenso">Suspenso</option>
             <option value="departamento_medico">Departamento Médico</option>
           </SelectField>
+          <SelectField
+            label="Tipo de contrato"
+            name="tipoContrato"
+            defaultValue={values.tipoContrato}
+            error={errors.tipoContrato}
+            onChange={setTipoContrato}
+          >
+            <option value="">Não informado</option>
+            {ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => (
+              <option key={opcao.value} value={opcao.value}>
+                {opcao.label}
+              </option>
+            ))}
+          </SelectField>
+          {tipoContrato === "amador" ? (
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <input
+                id="possuiContratoFormacao"
+                name="possuiContratoFormacao"
+                type="checkbox"
+                defaultChecked={values.possuiContratoFormacao === "on"}
+                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              <label htmlFor="possuiContratoFormacao" className="text-sm font-medium text-neutral-700">
+                Possui contrato de formação
+              </label>
+            </div>
+          ) : null}
           <TextField
             label="Data de início no clube"
             name="dataInicioClube"

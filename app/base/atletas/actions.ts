@@ -40,10 +40,12 @@ function parseForm(formData: FormData) {
     empresarioNome: String(formData.get("empresarioNome") ?? ""),
     status: String(formData.get("status") ?? "liberado"),
     dataFimContrato: String(formData.get("dataFimContrato") ?? ""),
+    tipoContrato: String(formData.get("tipoContrato") ?? "") || undefined,
+    possuiContratoFormacao: formData.get("possuiContratoFormacao") === "on",
   };
 
   const result = atletaBaseSchema.safeParse(raw);
-  return { raw, result };
+  return { raw: { ...raw, possuiContratoFormacao: raw.possuiContratoFormacao ? "on" : "" }, result };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -114,6 +116,8 @@ export async function createAtletaBase(
     foto_path: fotoPath ?? null,
     status: data.status,
     data_fim_contrato: data.dataFimContrato || null,
+    tipo_contrato: data.tipoContrato ?? null,
+    possui_contrato_formacao: data.tipoContrato === "amador" ? data.possuiContratoFormacao : false,
   });
 
   if (error) {
@@ -163,6 +167,8 @@ export async function updateAtletaBase(
     empresario_nome: data.empresarioNome || null,
     status: data.status,
     data_fim_contrato: data.dataFimContrato || null,
+    tipo_contrato: data.tipoContrato ?? null,
+    possui_contrato_formacao: data.tipoContrato === "amador" ? data.possuiContratoFormacao : false,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 

@@ -8,6 +8,11 @@ export type PeDominante = "destro" | "canhoto" | "ambidestro";
 export type AtletaStatus = "liberado" | "suspenso" | "departamento_medico";
 export type TipoQuarto = "single" | "duplo";
 
+/** Tipo de contrato do atleta no Futebol Profissional — Amador libera o campo "possui contrato de
+ * formação" no formulário (ver `AtletaForm`). O Futebol de Base tem uma opção a mais (Iniciação),
+ * ver `AtletaBaseTipoContrato`. */
+export type AtletaTipoContrato = "definitivo" | "emprestimo" | "amador";
+
 export interface AtletaRow {
   id: string;
   nome_completo: string;
@@ -27,6 +32,8 @@ export interface AtletaRow {
   status: AtletaStatus;
   data_fim_contrato: string | null;
   apelido: string | null;
+  tipo_contrato: AtletaTipoContrato | null;
+  possui_contrato_formacao: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -34,6 +41,10 @@ export interface AtletaRow {
 
 /** Categorias de idade do Futebol de Base (Sub20 a Sub11) — ver `lib/auth/categorias-base.ts`. */
 export type CategoriaBase = "sub20" | "sub17" | "sub15" | "sub14" | "sub13" | "sub12" | "sub11";
+
+/** Tipo de contrato do atleta no Futebol de Base — mesmas opções de `AtletaTipoContrato`, mais
+ * "Iniciação" (categorias mais jovens, sem vínculo formal ainda). */
+export type AtletaBaseTipoContrato = "definitivo" | "emprestimo" | "amador" | "iniciacao";
 
 /** Espelha `AtletaRow`, mas para o departamento Futebol de Base — tabela `atletas_base`, totalmente
  * independente de `atletas` (ver docs/superpowers/specs/2026-07-20-futebol-de-base-design.md). */
@@ -57,6 +68,8 @@ export interface AtletaBaseRow {
   status: AtletaStatus;
   data_fim_contrato: string | null;
   apelido: string | null;
+  tipo_contrato: AtletaBaseTipoContrato | null;
+  possui_contrato_formacao: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;

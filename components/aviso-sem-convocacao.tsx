@@ -3,8 +3,8 @@ import Link from "next/link";
 /**
  * Aviso mostrado nas abas de Rooming List, Ônibus, Credenciamento e Recibo quando o jogo ainda não
  * tem convocação. `convocacaoHref` é opcional (default `/jogos/${jogoId}/convocacao`) — o Futebol
- * de Base passa o caminho com o prefixo `/base/jogos/[categoria]/[id]/convocacao`, já que essas
- * rotas não seguem o mesmo padrão do Profissional.
+ * de Base passa o caminho com o prefixo `/base/jogos/[id]/convocacao`, já que essas rotas não
+ * seguem o mesmo padrão do Profissional.
  */
 export function AvisoSemConvocacao({
   jogoId,

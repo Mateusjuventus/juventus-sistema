@@ -42,6 +42,8 @@ export default async function EditarAtletaBasePage({
     empresarioNome: atleta.empresario_nome ?? "",
     status: atleta.status,
     dataFimContrato: atleta.data_fim_contrato ?? "",
+    tipoContrato: atleta.tipo_contrato ?? "",
+    possuiContratoFormacao: atleta.possui_contrato_formacao ? "on" : "",
   };
 
   return (

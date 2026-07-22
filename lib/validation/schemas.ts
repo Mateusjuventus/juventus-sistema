@@ -35,6 +35,19 @@ const enderecoFields = {
   uf: z.string().optional().or(z.literal("")),
 };
 
+/** Tipo de contrato do Futebol Profissional — ver `AtletaTipoContrato` em `lib/supabase/types.ts`. */
+export const ATLETA_TIPO_CONTRATO_OPTIONS = [
+  { value: "definitivo", label: "Definitivo" },
+  { value: "emprestimo", label: "Empréstimo" },
+  { value: "amador", label: "Amador" },
+] as const;
+
+/** Tipo de contrato do Futebol de Base — mesmas opções do Profissional, mais Iniciação. */
+export const ATLETA_BASE_TIPO_CONTRATO_OPTIONS = [
+  ...ATLETA_TIPO_CONTRATO_OPTIONS,
+  { value: "iniciacao", label: "Iniciação" },
+] as const;
+
 export const atletaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
   apelido: z.string().optional().or(z.literal("")),
@@ -52,15 +65,19 @@ export const atletaSchema = z.object({
   empresarioNome: z.string().optional().or(z.literal("")),
   status: z.enum(["liberado", "suspenso", "departamento_medico"]).default("liberado"),
   dataFimContrato: z.string().optional().or(z.literal("")),
+  tipoContrato: z.enum(["definitivo", "emprestimo", "amador"]).optional().nullable(),
+  possuiContratoFormacao: z.boolean().default(false),
 });
 export type AtletaInput = z.infer<typeof atletaSchema>;
 
 /** Mesmo formulário de `atletaSchema`, mais a categoria de idade do Futebol de Base (Sub20 a
- * Sub11 — ver `lib/auth/categorias-base.ts`), obrigatória. */
+ * Sub11 — ver `lib/auth/categorias-base.ts`), obrigatória, e um tipo de contrato com uma opção a
+ * mais (Iniciação — ver `ATLETA_BASE_TIPO_CONTRATO_OPTIONS`). */
 export const atletaBaseSchema = atletaSchema.extend({
   categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
+  tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "iniciacao"]).optional().nullable(),
 });
 export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;
 
