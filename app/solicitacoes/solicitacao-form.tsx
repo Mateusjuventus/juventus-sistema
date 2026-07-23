@@ -258,6 +258,162 @@ function ItensPassagemFields() {
   );
 }
 
+/**
+ * Linhas de item do Transporte (Passageiro, Origem, Destino, Data e Horário, Valor, Observações) —
+ * mesmo formato de campos da Passagem Aérea, mas é um tipo de solicitação separado (ver
+ * salvarItensInline em ./actions.ts), com um campo de Valor somado automaticamente no total.
+ */
+function ItensTransporteFields() {
+  const [rows, setRows] = useState<string[]>(() => [crypto.randomUUID()]);
+
+  return (
+    <FormSection title="Transporte">
+      <p className="-mt-1 text-sm text-neutral-500">
+        Adicione um ou mais passageiros/trechos. Se precisar, dá pra incluir mais depois também.
+      </p>
+      <div className="space-y-4">
+        {rows.map((rowId, i) => (
+          <div key={rowId} className="rounded-md border border-neutral-200 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-neutral-600">Passageiro {i + 1}</p>
+              {rows.length > 1 ? (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-red-700 hover:underline"
+                  onClick={() => setRows((r) => r.filter((id) => id !== rowId))}
+                >
+                  Remover
+                </button>
+              ) : null}
+            </div>
+            <FieldGroup>
+              <TextField
+                label="Passageiro"
+                name="itemPassageiro"
+                id={`itemPassageiro-${rowId}`}
+                autoComplete="off"
+              />
+              <TextField label="Origem" name="itemOrigem" id={`itemOrigem-${rowId}`} autoComplete="off" />
+              <TextField label="Destino" name="itemDestino" id={`itemDestino-${rowId}`} autoComplete="off" />
+              <TextField
+                label="Data"
+                name="itemDataVoo"
+                id={`itemDataVoo-${rowId}`}
+                autoComplete="off"
+                type="date"
+              />
+              <TextField
+                label="Horário"
+                name="itemHorarioVoo"
+                id={`itemHorarioVoo-${rowId}`}
+                autoComplete="off"
+                type="time"
+              />
+              <CurrencyField label="Valor (R$)" name="itemValor" id={`itemValor-${rowId}`} />
+              <div className="sm:col-span-2">
+                <TextField
+                  label="Observação (opcional)"
+                  name="itemObservacao"
+                  id={`itemObservacao-${rowId}`}
+                  autoComplete="off"
+                />
+              </div>
+            </FieldGroup>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="btn-secondary mt-4"
+        onClick={() => setRows((r) => [...r, crypto.randomUUID()])}
+      >
+        + Adicionar
+      </button>
+    </FormSection>
+  );
+}
+
+/**
+ * Linhas de item da Hospedagem (Passageiro, Cidade, Hotel, Entrada/Saída, Tipo de acomodação,
+ * Valor, Observações).
+ */
+function ItensHospedagemFields() {
+  const [rows, setRows] = useState<string[]>(() => [crypto.randomUUID()]);
+
+  return (
+    <FormSection title="Hospedagem">
+      <p className="-mt-1 text-sm text-neutral-500">
+        Adicione um ou mais hóspedes/reservas. Se precisar, dá pra incluir mais depois também.
+      </p>
+      <div className="space-y-4">
+        {rows.map((rowId, i) => (
+          <div key={rowId} className="rounded-md border border-neutral-200 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-neutral-600">Hóspede {i + 1}</p>
+              {rows.length > 1 ? (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-red-700 hover:underline"
+                  onClick={() => setRows((r) => r.filter((id) => id !== rowId))}
+                >
+                  Remover
+                </button>
+              ) : null}
+            </div>
+            <FieldGroup>
+              <TextField
+                label="Passageiro"
+                name="itemPassageiro"
+                id={`itemPassageiro-${rowId}`}
+                autoComplete="off"
+              />
+              <TextField label="Cidade" name="itemCidade" id={`itemCidade-${rowId}`} autoComplete="off" />
+              <TextField label="Hotel" name="itemHotel" id={`itemHotel-${rowId}`} autoComplete="off" />
+              <TextField
+                label="Entrada"
+                name="itemDataEntrada"
+                id={`itemDataEntrada-${rowId}`}
+                autoComplete="off"
+                type="date"
+              />
+              <TextField
+                label="Saída"
+                name="itemDataSaida"
+                id={`itemDataSaida-${rowId}`}
+                autoComplete="off"
+                type="date"
+              />
+              <TextField
+                label="Tipo de acomodação"
+                name="itemTipoAcomodacao"
+                id={`itemTipoAcomodacao-${rowId}`}
+                autoComplete="off"
+                placeholder="Ex: Quarto duplo"
+              />
+              <CurrencyField label="Valor (R$)" name="itemValor" id={`itemValor-${rowId}`} />
+              <div className="sm:col-span-2">
+                <TextField
+                  label="Observação (opcional)"
+                  name="itemObservacao"
+                  id={`itemObservacao-${rowId}`}
+                  autoComplete="off"
+                />
+              </div>
+            </FieldGroup>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="btn-secondary mt-4"
+        onClick={() => setRows((r) => [...r, crypto.randomUUID()])}
+      >
+        + Adicionar
+      </button>
+    </FormSection>
+  );
+}
+
 export function SolicitacaoForm({
   action,
   entityId,
@@ -312,9 +468,13 @@ export function SolicitacaoForm({
           />
           <div className="sm:col-span-2">
             <TextAreaField
-              label={tipo === "passagem_aerea" ? "Observações" : "Descrição da necessidade"}
+              label={
+                ["passagem_aerea", "transporte", "hospedagem"].includes(tipo)
+                  ? "Observações"
+                  : "Descrição da necessidade"
+              }
               name="descricaoNecessidade"
-              required={tipo !== "passagem_aerea"}
+              required={!["passagem_aerea", "transporte", "hospedagem"].includes(tipo)}
               rows={4}
               defaultValue={values.descricaoNecessidade}
               error={errors.descricaoNecessidade}
@@ -395,6 +555,8 @@ export function SolicitacaoForm({
         <ItensPagamentoReembolsoFields key={`itens-${tipo}`} tipo={tipo} />
       ) : null}
       {!entityId && tipo === "passagem_aerea" ? <ItensPassagemFields key="passagem_aerea" /> : null}
+      {!entityId && tipo === "transporte" ? <ItensTransporteFields key="transporte" /> : null}
+      {!entityId && tipo === "hospedagem" ? <ItensHospedagemFields key="hospedagem" /> : null}
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>

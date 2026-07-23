@@ -12,7 +12,12 @@ export default async function NovoItemSolicitacaoPage({ params }: { params: { id
 
   if (!data) notFound();
   const solicitacao = data as SolicitacaoRow;
-  const titulo = solicitacao.tipo === "passagem_aerea" ? "Novo passageiro" : "Novo item";
+  const titulo =
+    solicitacao.tipo === "passagem_aerea" || solicitacao.tipo === "transporte"
+      ? "Novo passageiro"
+      : solicitacao.tipo === "hospedagem"
+        ? "Novo hóspede"
+        : "Novo item";
 
   return (
     <AppShell>

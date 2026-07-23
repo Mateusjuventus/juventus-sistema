@@ -248,6 +248,8 @@ export const SOLICITACAO_TIPOS = [
   { value: "reembolso", label: "03 · Reembolso" },
   { value: "passagem_aerea", label: "04 · Passagem Aérea" },
   { value: "exame_medico", label: "05 · Exame Médico" },
+  { value: "transporte", label: "06 · Transporte" },
+  { value: "hospedagem", label: "07 · Hospedagem" },
 ] as const;
 
 export const SOLICITACAO_STATUS = [
@@ -265,9 +267,12 @@ export const TIPO_CONTA_BANCARIA = [
 
 export const solicitacaoSchema = z
   .object({
-    tipo: z.enum(["compra", "pagamento", "exame_medico", "reembolso", "passagem_aerea"], {
-      errorMap: () => ({ message: "Tipo é obrigatório" }),
-    }),
+    tipo: z.enum(
+      ["compra", "pagamento", "exame_medico", "reembolso", "passagem_aerea", "transporte", "hospedagem"],
+      {
+        errorMap: () => ({ message: "Tipo é obrigatório" }),
+      },
+    ),
     dataSolicitacao: z.string().min(1, { message: "Data é obrigatória" }),
     solicitante: z.string().min(1, { message: "Solicitante é obrigatório" }),
     setor: z.string().min(1, { message: "Setor é obrigatório" }),
@@ -291,10 +296,15 @@ export const solicitacaoSchema = z
     message: "Chave PIX é obrigatória em Reembolso",
     path: ["chavePix"],
   })
-  .refine((data) => data.tipo === "passagem_aerea" || Boolean(data.descricaoNecessidade?.trim()), {
-    message: "Descrição da necessidade é obrigatória",
-    path: ["descricaoNecessidade"],
-  });
+  .refine(
+    (data) =>
+      ["passagem_aerea", "transporte", "hospedagem"].includes(data.tipo) ||
+      Boolean(data.descricaoNecessidade?.trim()),
+    {
+      message: "Descrição da necessidade é obrigatória",
+      path: ["descricaoNecessidade"],
+    },
+  );
 export type SolicitacaoInput = z.infer<typeof solicitacaoSchema>;
 
 export const solicitacaoStatusSchema = z.object({
@@ -327,6 +337,33 @@ export const solicitacaoItemPassagemSchema = z.object({
   observacao: z.string().optional().or(z.literal("")),
 });
 export type SolicitacaoItemPassagemInput = z.infer<typeof solicitacaoItemPassagemSchema>;
+
+/** Item (passageiro/viagem) de Transporte — mesmo formato de campos de Passagem Aérea (reaproveita
+ * as mesmas colunas: passageiro/origem/destino/data_voo/horario_voo), mais Valor, já que Transporte
+ * é um tipo de solicitação separado de Passagem Aérea. */
+export const solicitacaoItemTransporteSchema = z.object({
+  passageiro: z.string().min(1, { message: "Passageiro é obrigatório" }),
+  origem: z.string().optional().or(z.literal("")),
+  destino: z.string().optional().or(z.literal("")),
+  dataVoo: z.string().optional().or(z.literal("")),
+  horarioVoo: z.string().optional().or(z.literal("")),
+  valor: z.coerce.number().nonnegative().optional().nullable(),
+  observacao: z.string().optional().or(z.literal("")),
+});
+export type SolicitacaoItemTransporteInput = z.infer<typeof solicitacaoItemTransporteSchema>;
+
+/** Item (reserva) de Hospedagem — usado tanto pra adicionar quanto pra editar. */
+export const solicitacaoItemHospedagemSchema = z.object({
+  passageiro: z.string().min(1, { message: "Passageiro é obrigatório" }),
+  cidade: z.string().optional().or(z.literal("")),
+  hotel: z.string().optional().or(z.literal("")),
+  dataEntrada: z.string().optional().or(z.literal("")),
+  dataSaida: z.string().optional().or(z.literal("")),
+  tipoAcomodacao: z.string().optional().or(z.literal("")),
+  valor: z.coerce.number().nonnegative().optional().nullable(),
+  observacao: z.string().optional().or(z.literal("")),
+});
+export type SolicitacaoItemHospedagemInput = z.infer<typeof solicitacaoItemHospedagemSchema>;
 
 export const configuracaoFinanceiroSchema = z.object({
   assinatura1Nome: z.string().min(1, { message: "Nome é obrigatório" }),

@@ -51,7 +51,15 @@ export async function GET(request: NextRequest) {
 
   const solicitacaoPorId = new Map(solicitacoes.map((s) => [s.id, s]));
   const idsComItens = solicitacoes
-    .filter((s) => s.tipo === "compra" || s.tipo === "pagamento" || s.tipo === "reembolso" || s.tipo === "passagem_aerea")
+    .filter(
+      (s) =>
+        s.tipo === "compra" ||
+        s.tipo === "pagamento" ||
+        s.tipo === "reembolso" ||
+        s.tipo === "passagem_aerea" ||
+        s.tipo === "transporte" ||
+        s.tipo === "hospedagem",
+    )
     .map((s) => s.id);
 
   const { data: itensData } =
@@ -80,6 +88,11 @@ export async function GET(request: NextRequest) {
         Destino: item.destino ?? "",
         "Data do Voo": formatData(item.data_voo),
         "Horário do Voo": item.horario_voo ? item.horario_voo.slice(0, 5) : "",
+        Cidade: item.cidade ?? "",
+        Hotel: item.hotel ?? "",
+        Entrada: formatData(item.data_entrada),
+        Saída: formatData(item.data_saida),
+        "Tipo de Acomodação": item.tipo_acomodacao ?? "",
         Observação: item.observacao ?? "",
       };
     })

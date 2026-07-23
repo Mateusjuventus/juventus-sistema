@@ -34,10 +34,20 @@ export default async function EditarItemSolicitacaoPage({
     destino: item.destino ?? "",
     dataVoo: item.data_voo ?? "",
     horarioVoo: item.horario_voo ? item.horario_voo.slice(0, 5) : "",
+    cidade: item.cidade ?? "",
+    hotel: item.hotel ?? "",
+    dataEntrada: item.data_entrada ?? "",
+    dataSaida: item.data_saida ?? "",
+    tipoAcomodacao: item.tipo_acomodacao ?? "",
     observacao: item.observacao ?? "",
   };
 
-  const titulo = solicitacao.tipo === "passagem_aerea" ? "Editar passageiro" : "Editar item";
+  const titulo =
+    solicitacao.tipo === "passagem_aerea" || solicitacao.tipo === "transporte"
+      ? "Editar passageiro"
+      : solicitacao.tipo === "hospedagem"
+        ? "Editar hóspede"
+        : "Editar item";
 
   return (
     <AppShell>
