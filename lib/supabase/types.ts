@@ -602,7 +602,14 @@ export interface ConfiguracaoFinanceiroBaseRow {
   updated_at: string;
 }
 
-export type SolicitacaoTipo = "compra" | "pagamento" | "exame_medico" | "reembolso" | "passagem_aerea";
+export type SolicitacaoTipo =
+  | "compra"
+  | "pagamento"
+  | "exame_medico"
+  | "reembolso"
+  | "passagem_aerea"
+  | "transporte"
+  | "hospedagem";
 export type SolicitacaoStatus = "pendente" | "aprovada" | "recusada" | "concluida";
 export type SolicitacaoTipoConta = "corrente" | "poupanca";
 
@@ -648,6 +655,10 @@ export interface SolicitacaoRow {
  * - Compra: quantidade + item + foto_path
  * - Pagamento / Reembolso: descricao + observacao (opcional) + valor
  * - Passagem Aérea: passageiro + origem + destino + data_voo + horario_voo + observacao (opcional)
+ * - Transporte: mesmas colunas de Passagem Aérea (passageiro/origem/destino/data_voo/horario_voo),
+ *   mais valor — é um tipo de solicitação separado, mas reaproveita as colunas por terem o mesmo
+ *   formato de campos.
+ * - Hospedagem: passageiro + cidade + hotel + data_entrada + data_saida + tipo_acomodacao + valor
  * Exame Médico não usa itens. Todos os campos além de id/solicitacao_id/ordem/created_at são
  * opcionais, já que cada solicitação só preenche o conjunto relevante ao seu tipo.
  */
@@ -665,6 +676,11 @@ export interface SolicitacaoItemRow {
   destino: string | null;
   data_voo: string | null;
   horario_voo: string | null;
+  cidade: string | null;
+  hotel: string | null;
+  data_entrada: string | null;
+  data_saida: string | null;
+  tipo_acomodacao: string | null;
   ordem: number;
   created_at: string;
 }
@@ -854,6 +870,11 @@ export interface SolicitacaoItemBaseRow {
   destino: string | null;
   data_voo: string | null;
   horario_voo: string | null;
+  cidade: string | null;
+  hotel: string | null;
+  data_entrada: string | null;
+  data_saida: string | null;
+  tipo_acomodacao: string | null;
   ordem: number;
   created_at: string;
 }

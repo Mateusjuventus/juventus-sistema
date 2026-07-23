@@ -16,7 +16,14 @@ export interface SolicitacaoFormState {
 }
 
 /** Tipos de solicitação que têm lista de itens (Exame Médico não tem). */
-const TIPOS_COM_ITENS: SolicitacaoTipo[] = ["compra", "pagamento", "reembolso", "passagem_aerea"];
+const TIPOS_COM_ITENS: SolicitacaoTipo[] = [
+  "compra",
+  "pagamento",
+  "reembolso",
+  "passagem_aerea",
+  "transporte",
+  "hospedagem",
+];
 
 function parseForm(formData: FormData) {
   const raw = {
@@ -47,8 +54,11 @@ function parseForm(formData: FormData) {
  * - Compra: itemItem / itemQuantidade / itemFoto
  * - Pagamento / Reembolso: itemDescricao / itemObservacao / itemValor
  * - Passagem Aérea: itemPassageiro / itemOrigem / itemDestino / itemDataVoo / itemHorarioVoo / itemObservacao
+ * - Transporte: mesmos campos de Passagem Aérea, mais itemValor
+ * - Hospedagem: itemPassageiro / itemCidade / itemHotel / itemDataEntrada / itemDataSaida / itemTipoAcomodacao / itemValor / itemObservacao
  * Linhas em branco (sem o campo principal preenchido) são ignoradas. Depois de salvar os itens de
- * Pagamento/Reembolso, o valor total da solicitação é recalculado como a soma de todos os itens.
+ * Pagamento/Reembolso/Transporte/Hospedagem, o valor total da solicitação é recalculado como a
+ * soma de todos os itens.
  */
 async function salvarItensInline(
   supabase: ReturnType<typeof createClient>,
@@ -139,6 +149,78 @@ async function salvarItensInline(
       });
       if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
     }
+    return {};
+  }
+
+  if (tipo === "transporte") {
+    const passageiros = formData.getAll("itemPassageiro").map(String);
+    const origens = formData.getAll("itemOrigem").map(String);
+    const destinos = formData.getAll("itemDestino").map(String);
+    const datasVoo = formData.getAll("itemDataVoo").map(String);
+    const horariosVoo = formData.getAll("itemHorarioVoo").map(String);
+    const valores = formData.getAll("itemValor").map(String);
+    const observacoes = formData.getAll("itemObservacao").map(String);
+
+    let ordem = 0;
+    for (let i = 0; i < passageiros.length; i++) {
+      const passageiro = passageiros[i]?.trim();
+      if (!passageiro) continue;
+      const valorStr = valores[i]?.trim();
+      const valor = valorStr ? Number(valorStr) : null;
+
+      const { error } = await supabase.from("solicitacao_itens").insert({
+        id: randomUUID(),
+        solicitacao_id: solicitacaoId,
+        passageiro,
+        origem: origens[i]?.trim() || null,
+        destino: destinos[i]?.trim() || null,
+        data_voo: datasVoo[i]?.trim() || null,
+        horario_voo: horariosVoo[i]?.trim() || null,
+        valor,
+        observacao: observacoes[i]?.trim() || null,
+        ordem: ordem++,
+      });
+      if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
+    }
+
+    await recalcularValorTotal(supabase, solicitacaoId);
+    return {};
+  }
+
+  if (tipo === "hospedagem") {
+    const passageiros = formData.getAll("itemPassageiro").map(String);
+    const cidades = formData.getAll("itemCidade").map(String);
+    const hoteis = formData.getAll("itemHotel").map(String);
+    const datasEntrada = formData.getAll("itemDataEntrada").map(String);
+    const datasSaida = formData.getAll("itemDataSaida").map(String);
+    const tiposAcomodacao = formData.getAll("itemTipoAcomodacao").map(String);
+    const valores = formData.getAll("itemValor").map(String);
+    const observacoes = formData.getAll("itemObservacao").map(String);
+
+    let ordem = 0;
+    for (let i = 0; i < passageiros.length; i++) {
+      const passageiro = passageiros[i]?.trim();
+      if (!passageiro) continue;
+      const valorStr = valores[i]?.trim();
+      const valor = valorStr ? Number(valorStr) : null;
+
+      const { error } = await supabase.from("solicitacao_itens").insert({
+        id: randomUUID(),
+        solicitacao_id: solicitacaoId,
+        passageiro,
+        cidade: cidades[i]?.trim() || null,
+        hotel: hoteis[i]?.trim() || null,
+        data_entrada: datasEntrada[i]?.trim() || null,
+        data_saida: datasSaida[i]?.trim() || null,
+        tipo_acomodacao: tiposAcomodacao[i]?.trim() || null,
+        valor,
+        observacao: observacoes[i]?.trim() || null,
+        ordem: ordem++,
+      });
+      if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
+    }
+
+    await recalcularValorTotal(supabase, solicitacaoId);
     return {};
   }
 

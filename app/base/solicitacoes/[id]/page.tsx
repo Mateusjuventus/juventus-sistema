@@ -54,7 +54,17 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
     titularConta: s.titular_conta ?? "",
   };
 
-  const temItens = s.tipo === "compra" || s.tipo === "pagamento" || s.tipo === "reembolso" || s.tipo === "passagem_aerea";
+  const temItens =
+    s.tipo === "compra" ||
+    s.tipo === "pagamento" ||
+    s.tipo === "reembolso" ||
+    s.tipo === "passagem_aerea" ||
+    s.tipo === "transporte" ||
+    s.tipo === "hospedagem";
+
+  const ehPassageiro = s.tipo === "passagem_aerea" || s.tipo === "transporte";
+  const ehHospede = s.tipo === "hospedagem";
+  const labelSingular = ehPassageiro ? "passageiro" : ehHospede ? "hóspede" : "item";
 
   return (
     <AppShell departamento="futebol_base">
@@ -85,19 +95,23 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
         <div className="mt-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-grena-escuro">
-              {s.tipo === "passagem_aerea" ? "Passageiros" : "Itens solicitados"}
+              {ehPassageiro ? "Passageiros" : ehHospede ? "Hóspedes" : "Itens solicitados"}
             </h2>
-            {s.tipo === "pagamento" || s.tipo === "reembolso" ? (
+            {s.tipo === "pagamento" || s.tipo === "reembolso" || s.tipo === "transporte" || s.tipo === "hospedagem" ? (
               <p className="text-sm font-semibold text-neutral-600">Total: {formatMoeda(s.valor)}</p>
             ) : null}
             <Link href={`/base/solicitacoes/${s.id}/itens/novo`} className="btn-primary">
-              {s.tipo === "passagem_aerea" ? "+ Novo passageiro" : "+ Novo item"}
+              {ehPassageiro ? "+ Novo passageiro" : ehHospede ? "+ Novo hóspede" : "+ Novo item"}
             </Link>
           </div>
 
           {itens.length === 0 ? (
             <div className="card mt-3 p-8 text-center text-neutral-400">
-              {s.tipo === "passagem_aerea" ? "Nenhum passageiro adicionado ainda." : "Nenhum item adicionado ainda."}
+              {ehPassageiro
+                ? "Nenhum passageiro adicionado ainda."
+                : ehHospede
+                  ? "Nenhum hóspede adicionado ainda."
+                  : "Nenhum item adicionado ainda."}
             </div>
           ) : (
             <div className="mt-3 space-y-3">
@@ -135,7 +149,7 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
                     <p className="font-semibold text-neutral-700">{formatMoeda(item.valor)}</p>
                   ) : null}
 
-                  {s.tipo === "passagem_aerea" ? (
+                  {s.tipo === "passagem_aerea" || s.tipo === "transporte" ? (
                     <div className="min-w-[160px] flex-1">
                       <p className="font-medium text-neutral-800">{item.passageiro}</p>
                       <p className="text-sm text-neutral-500">
@@ -145,16 +159,31 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
                       {item.observacao ? <p className="text-sm text-neutral-500">{item.observacao}</p> : null}
                     </div>
                   ) : null}
+                  {s.tipo === "transporte" ? (
+                    <p className="font-semibold text-neutral-700">{formatMoeda(item.valor)}</p>
+                  ) : null}
+
+                  {s.tipo === "hospedagem" ? (
+                    <div className="min-w-[160px] flex-1">
+                      <p className="font-medium text-neutral-800">{item.passageiro}</p>
+                      <p className="text-sm text-neutral-500">
+                        {item.cidade}
+                        {item.hotel ? ` · ${item.hotel}` : ""} · {formatData(item.data_entrada)} →{" "}
+                        {formatData(item.data_saida)}
+                        {item.tipo_acomodacao ? ` · ${item.tipo_acomodacao}` : ""}
+                      </p>
+                      {item.observacao ? <p className="text-sm text-neutral-500">{item.observacao}</p> : null}
+                    </div>
+                  ) : null}
+                  {s.tipo === "hospedagem" ? (
+                    <p className="font-semibold text-neutral-700">{formatMoeda(item.valor)}</p>
+                  ) : null}
 
                   <div className="flex shrink-0 gap-2">
                     <Link href={`/base/solicitacoes/${s.id}/itens/${item.id}`} className="btn-secondary">
                       Editar
                     </Link>
-                    <DeleteButton
-                      action={deleteSolicitacaoItemBase}
-                      id={item.id}
-                      entityLabel={s.tipo === "passagem_aerea" ? "passageiro" : "item"}
-                    />
+                    <DeleteButton action={deleteSolicitacaoItemBase} id={item.id} entityLabel={labelSingular} />
                   </div>
                 </div>
               ))}

@@ -8,6 +8,8 @@ const TITULOS: Record<SolicitacaoTipo, string> = {
   exame_medico: "Solicitação de Exame Médico",
   reembolso: "Solicitação de Reembolso",
   passagem_aerea: "Solicitação de Passagem Aérea",
+  transporte: "Solicitação de Transporte",
+  hospedagem: "Solicitação de Hospedagem",
 };
 
 const DEPARTAMENTOS: Record<SolicitacaoTipo, string> = {
@@ -16,10 +18,19 @@ const DEPARTAMENTOS: Record<SolicitacaoTipo, string> = {
   exame_medico: "Departamento Médico",
   reembolso: "Departamento Financeiro",
   passagem_aerea: "Departamento de Viagens",
+  transporte: "Departamento de Viagens",
+  hospedagem: "Departamento de Viagens",
 };
 
 /** Tipos de solicitação que têm uma tabela de itens no PDF (Exame Médico não tem). */
-const TIPOS_COM_ITENS: SolicitacaoTipo[] = ["compra", "pagamento", "reembolso", "passagem_aerea"];
+const TIPOS_COM_ITENS: SolicitacaoTipo[] = [
+  "compra",
+  "pagamento",
+  "reembolso",
+  "passagem_aerea",
+  "transporte",
+  "hospedagem",
+];
 
 const styles = StyleSheet.create({
   logoBox: {
@@ -126,6 +137,16 @@ const styles = StyleSheet.create({
   colDestino: { width: 85, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   colDataVoo: { width: 90, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   colObservacaoVoo: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  // Colunas da tabela de Transporte — mesmo layout de Passagem Aérea, mas com uma coluna extra de
+  // Valor antes da Observação (que continua sendo a última, flex).
+  colObservacaoTransporte: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  // Colunas da tabela de Hospedagem.
+  colHospPassageiro: { width: 80, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colHospCidade: { width: 70, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colHospHotel: { width: 80, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colHospDatas: { width: 85, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colHospAcomodacao: { width: 75, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colHospObservacao: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   fecho: { height: 8, backgroundColor: CORES.grena, marginTop: 8 },
   // marginTop/marginBottom reduzidos (eram 56/48) pra sobrar espaço suficiente pro bloco de
   // assinaturas continuar cabendo na mesma página mesmo quando a lista de itens é longa — sem
@@ -155,6 +176,11 @@ export interface SolicitacaoPdfItem {
   destino: string | null;
   dataVoo: string | null;
   horarioVoo: string | null;
+  cidade: string | null;
+  hotel: string | null;
+  dataEntrada: string | null;
+  dataSaida: string | null;
+  tipoAcomodacao: string | null;
 }
 
 export interface SolicitacaoPdfData {
@@ -231,7 +257,9 @@ export function SolicitacaoDocument({
   }
   if (solicitacao.descricaoNecessidade) {
     linhas.push({
-      label: solicitacao.tipo === "passagem_aerea" ? "Observações" : "Descrição da Necessidade",
+      label: ["passagem_aerea", "transporte", "hospedagem"].includes(solicitacao.tipo)
+        ? "Observações"
+        : "Descrição da Necessidade",
       value: solicitacao.descricaoNecessidade,
     });
   }
@@ -266,7 +294,11 @@ export function SolicitacaoDocument({
           <>
             <View style={styles.itensBar}>
               <Text style={styles.itensBarTexto}>
-                {solicitacao.tipo === "passagem_aerea" ? "Passageiros:" : "Itens Solicitados:"}
+                {solicitacao.tipo === "passagem_aerea" || solicitacao.tipo === "transporte"
+                  ? "Passageiros:"
+                  : solicitacao.tipo === "hospedagem"
+                    ? "Hóspedes:"
+                    : "Itens Solicitados:"}
               </Text>
             </View>
             <View style={styles.itensTable}>
@@ -330,6 +362,79 @@ export function SolicitacaoDocument({
                           {item.horarioVoo ? ` às ${item.horarioVoo.slice(0, 5)}` : ""}
                         </Text>
                         <Text style={styles.colObservacaoVoo}>{item.observacao || "—"}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              ) : solicitacao.tipo === "transporte" ? (
+                <>
+                  <View style={styles.itensHeaderRow}>
+                    <Text style={[styles.colPassageiro, styles.colDivisor, sharedStyles.headerCell]}>
+                      Passageiro
+                    </Text>
+                    <Text style={[styles.colOrigem, styles.colDivisor, sharedStyles.headerCell]}>Origem</Text>
+                    <Text style={[styles.colDestino, styles.colDivisor, sharedStyles.headerCell]}>Destino</Text>
+                    <Text style={[styles.colDataVoo, styles.colDivisor, sharedStyles.headerCell]}>
+                      Data / Horário
+                    </Text>
+                    <Text style={[styles.colValor, styles.colDivisor, sharedStyles.headerCell]}>Valor</Text>
+                    <Text style={[styles.colObservacaoTransporte, sharedStyles.headerCell]}>Observações</Text>
+                  </View>
+                  {itens.length === 0 ? (
+                    <Text style={sharedStyles.emptyState}>Nenhum passageiro adicionado ainda.</Text>
+                  ) : (
+                    itens.map((item, i) => (
+                      <View style={[styles.itensRowBase, styles.itensRowSemFoto]} key={i} wrap={false}>
+                        <Text style={[styles.colPassageiro, styles.colDivisor]}>{item.passageiro}</Text>
+                        <Text style={[styles.colOrigem, styles.colDivisor]}>{item.origem}</Text>
+                        <Text style={[styles.colDestino, styles.colDivisor]}>{item.destino}</Text>
+                        <Text style={[styles.colDataVoo, styles.colDivisor]}>
+                          {formatDataBr(item.dataVoo)}
+                          {item.horarioVoo ? ` às ${item.horarioVoo.slice(0, 5)}` : ""}
+                        </Text>
+                        <Text style={[styles.colValor, styles.colDivisor]}>
+                          {item.valor !== null ? formatMoeda(item.valor) : "—"}
+                        </Text>
+                        <Text style={styles.colObservacaoTransporte}>{item.observacao || "—"}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              ) : solicitacao.tipo === "hospedagem" ? (
+                <>
+                  <View style={styles.itensHeaderRow}>
+                    <Text style={[styles.colHospPassageiro, styles.colDivisor, sharedStyles.headerCell]}>
+                      Passageiro
+                    </Text>
+                    <Text style={[styles.colHospCidade, styles.colDivisor, sharedStyles.headerCell]}>Cidade</Text>
+                    <Text style={[styles.colHospHotel, styles.colDivisor, sharedStyles.headerCell]}>Hotel</Text>
+                    <Text style={[styles.colHospDatas, styles.colDivisor, sharedStyles.headerCell]}>
+                      Entrada / Saída
+                    </Text>
+                    <Text style={[styles.colHospAcomodacao, styles.colDivisor, sharedStyles.headerCell]}>
+                      Acomodação
+                    </Text>
+                    <Text style={[styles.colValor, styles.colDivisor, sharedStyles.headerCell]}>Valor</Text>
+                    <Text style={[styles.colHospObservacao, sharedStyles.headerCell]}>Observação</Text>
+                  </View>
+                  {itens.length === 0 ? (
+                    <Text style={sharedStyles.emptyState}>Nenhum hóspede adicionado ainda.</Text>
+                  ) : (
+                    itens.map((item, i) => (
+                      <View style={[styles.itensRowBase, styles.itensRowSemFoto]} key={i} wrap={false}>
+                        <Text style={[styles.colHospPassageiro, styles.colDivisor]}>{item.passageiro}</Text>
+                        <Text style={[styles.colHospCidade, styles.colDivisor]}>{item.cidade || "—"}</Text>
+                        <Text style={[styles.colHospHotel, styles.colDivisor]}>{item.hotel || "—"}</Text>
+                        <Text style={[styles.colHospDatas, styles.colDivisor]}>
+                          {formatDataBr(item.dataEntrada)} → {formatDataBr(item.dataSaida)}
+                        </Text>
+                        <Text style={[styles.colHospAcomodacao, styles.colDivisor]}>
+                          {item.tipoAcomodacao || "—"}
+                        </Text>
+                        <Text style={[styles.colValor, styles.colDivisor]}>
+                          {item.valor !== null ? formatMoeda(item.valor) : "—"}
+                        </Text>
+                        <Text style={styles.colHospObservacao}>{item.observacao || "—"}</Text>
                       </View>
                     ))
                   )}

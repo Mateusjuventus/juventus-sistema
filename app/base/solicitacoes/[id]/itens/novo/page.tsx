@@ -12,7 +12,12 @@ export default async function NovoItemSolicitacaoBasePage({ params }: { params: 
 
   if (!data) notFound();
   const solicitacao = data as SolicitacaoBaseRow;
-  const titulo = solicitacao.tipo === "passagem_aerea" ? "Novo passageiro" : "Novo item";
+  const titulo =
+    solicitacao.tipo === "passagem_aerea" || solicitacao.tipo === "transporte"
+      ? "Novo passageiro"
+      : solicitacao.tipo === "hospedagem"
+        ? "Novo hóspede"
+        : "Novo item";
 
   return (
     <AppShell departamento="futebol_base">

@@ -138,6 +138,87 @@ export function SolicitacaoItemForm({
         </FieldGroup>
       ) : null}
 
+      {tipo === "transporte" ? (
+        <FieldGroup>
+          <TextField
+            label="Passageiro"
+            name="passageiro"
+            required
+            defaultValue={values.passageiro}
+            error={errors.passageiro}
+          />
+          <TextField label="Origem" name="origem" defaultValue={values.origem} error={errors.origem} />
+          <TextField label="Destino" name="destino" defaultValue={values.destino} error={errors.destino} />
+          <TextField
+            label="Data"
+            name="dataVoo"
+            type="date"
+            defaultValue={values.dataVoo}
+            error={errors.dataVoo}
+          />
+          <TextField
+            label="Horário"
+            name="horarioVoo"
+            type="time"
+            defaultValue={values.horarioVoo}
+            error={errors.horarioVoo}
+          />
+          <CurrencyField label="Valor (R$)" name="valor" defaultValue={values.valor} error={errors.valor} />
+          <div className="sm:col-span-2">
+            <TextField
+              label="Observações (opcional)"
+              name="observacao"
+              defaultValue={values.observacao}
+              error={errors.observacao}
+            />
+          </div>
+        </FieldGroup>
+      ) : null}
+
+      {tipo === "hospedagem" ? (
+        <FieldGroup>
+          <TextField
+            label="Passageiro"
+            name="passageiro"
+            required
+            defaultValue={values.passageiro}
+            error={errors.passageiro}
+          />
+          <TextField label="Cidade" name="cidade" defaultValue={values.cidade} error={errors.cidade} />
+          <TextField label="Hotel" name="hotel" defaultValue={values.hotel} error={errors.hotel} />
+          <TextField
+            label="Entrada"
+            name="dataEntrada"
+            type="date"
+            defaultValue={values.dataEntrada}
+            error={errors.dataEntrada}
+          />
+          <TextField
+            label="Saída"
+            name="dataSaida"
+            type="date"
+            defaultValue={values.dataSaida}
+            error={errors.dataSaida}
+          />
+          <TextField
+            label="Tipo de acomodação"
+            name="tipoAcomodacao"
+            placeholder="Ex: Quarto duplo"
+            defaultValue={values.tipoAcomodacao}
+            error={errors.tipoAcomodacao}
+          />
+          <CurrencyField label="Valor (R$)" name="valor" defaultValue={values.valor} error={errors.valor} />
+          <div className="sm:col-span-2">
+            <TextField
+              label="Observação (opcional)"
+              name="observacao"
+              defaultValue={values.observacao}
+              error={errors.observacao}
+            />
+          </div>
+        </FieldGroup>
+      ) : null}
+
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}

@@ -43,6 +43,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
       destino: item.destino,
       dataVoo: item.data_voo,
       horarioVoo: item.horario_voo,
+      cidade: item.cidade,
+      hotel: item.hotel,
+      dataEntrada: item.data_entrada,
+      dataSaida: item.data_saida,
+      tipoAcomodacao: item.tipo_acomodacao,
     })),
   );
 

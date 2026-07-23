@@ -10,6 +10,8 @@ import {
   solicitacaoItemSchema,
   solicitacaoItemPagamentoSchema,
   solicitacaoItemPassagemSchema,
+  solicitacaoItemTransporteSchema,
+  solicitacaoItemHospedagemSchema,
 } from "@/lib/validation/schemas";
 import type { SolicitacaoTipo } from "@/lib/supabase/types";
 
@@ -39,6 +41,31 @@ function parseItemForm(tipo: SolicitacaoTipo, formData: FormData) {
       observacao: String(formData.get("observacao") ?? ""),
     };
     return { raw, result: solicitacaoItemPassagemSchema.safeParse(raw) };
+  }
+  if (tipo === "transporte") {
+    const raw = {
+      passageiro: String(formData.get("passageiro") ?? ""),
+      origem: String(formData.get("origem") ?? ""),
+      destino: String(formData.get("destino") ?? ""),
+      dataVoo: String(formData.get("dataVoo") ?? ""),
+      horarioVoo: String(formData.get("horarioVoo") ?? ""),
+      valor: String(formData.get("valor") ?? ""),
+      observacao: String(formData.get("observacao") ?? ""),
+    };
+    return { raw, result: solicitacaoItemTransporteSchema.safeParse(raw) };
+  }
+  if (tipo === "hospedagem") {
+    const raw = {
+      passageiro: String(formData.get("passageiro") ?? ""),
+      cidade: String(formData.get("cidade") ?? ""),
+      hotel: String(formData.get("hotel") ?? ""),
+      dataEntrada: String(formData.get("dataEntrada") ?? ""),
+      dataSaida: String(formData.get("dataSaida") ?? ""),
+      tipoAcomodacao: String(formData.get("tipoAcomodacao") ?? ""),
+      valor: String(formData.get("valor") ?? ""),
+      observacao: String(formData.get("observacao") ?? ""),
+    };
+    return { raw, result: solicitacaoItemHospedagemSchema.safeParse(raw) };
   }
   const raw = {
     quantidade: String(formData.get("quantidade") ?? ""),
@@ -106,6 +133,56 @@ export async function createSolicitacaoItemBase(
       ordem: proximaOrdem,
     });
     if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+  } else if (tipo === "transporte") {
+    const data = result.data as {
+      passageiro: string;
+      origem?: string;
+      destino?: string;
+      dataVoo?: string;
+      horarioVoo?: string;
+      valor?: number | null;
+      observacao?: string;
+    };
+    const { error } = await supabase.from("solicitacao_itens_base").insert({
+      id,
+      solicitacao_id: solicitacaoId,
+      passageiro: data.passageiro,
+      origem: data.origem || null,
+      destino: data.destino || null,
+      data_voo: data.dataVoo || null,
+      horario_voo: data.horarioVoo || null,
+      valor: data.valor ?? null,
+      observacao: data.observacao || null,
+      ordem: proximaOrdem,
+    });
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+    await recalcularValorTotalBase(supabase, solicitacaoId);
+  } else if (tipo === "hospedagem") {
+    const data = result.data as {
+      passageiro: string;
+      cidade?: string;
+      hotel?: string;
+      dataEntrada?: string;
+      dataSaida?: string;
+      tipoAcomodacao?: string;
+      valor?: number | null;
+      observacao?: string;
+    };
+    const { error } = await supabase.from("solicitacao_itens_base").insert({
+      id,
+      solicitacao_id: solicitacaoId,
+      passageiro: data.passageiro,
+      cidade: data.cidade || null,
+      hotel: data.hotel || null,
+      data_entrada: data.dataEntrada || null,
+      data_saida: data.dataSaida || null,
+      tipo_acomodacao: data.tipoAcomodacao || null,
+      valor: data.valor ?? null,
+      observacao: data.observacao || null,
+      ordem: proximaOrdem,
+    });
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+    await recalcularValorTotalBase(supabase, solicitacaoId);
   } else {
     const data = result.data as { quantidade: string; item: string; observacao?: string };
     const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(
@@ -184,6 +261,56 @@ export async function updateSolicitacaoItemBase(
       })
       .eq("id", id);
     if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+  } else if (tipo === "transporte") {
+    const data = result.data as {
+      passageiro: string;
+      origem?: string;
+      destino?: string;
+      dataVoo?: string;
+      horarioVoo?: string;
+      valor?: number | null;
+      observacao?: string;
+    };
+    const { error } = await supabase
+      .from("solicitacao_itens_base")
+      .update({
+        passageiro: data.passageiro,
+        origem: data.origem || null,
+        destino: data.destino || null,
+        data_voo: data.dataVoo || null,
+        horario_voo: data.horarioVoo || null,
+        valor: data.valor ?? null,
+        observacao: data.observacao || null,
+      })
+      .eq("id", id);
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+    await recalcularValorTotalBase(supabase, solicitacaoId);
+  } else if (tipo === "hospedagem") {
+    const data = result.data as {
+      passageiro: string;
+      cidade?: string;
+      hotel?: string;
+      dataEntrada?: string;
+      dataSaida?: string;
+      tipoAcomodacao?: string;
+      valor?: number | null;
+      observacao?: string;
+    };
+    const { error } = await supabase
+      .from("solicitacao_itens_base")
+      .update({
+        passageiro: data.passageiro,
+        cidade: data.cidade || null,
+        hotel: data.hotel || null,
+        data_entrada: data.dataEntrada || null,
+        data_saida: data.dataSaida || null,
+        tipo_acomodacao: data.tipoAcomodacao || null,
+        valor: data.valor ?? null,
+        observacao: data.observacao || null,
+      })
+      .eq("id", id);
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
+    await recalcularValorTotalBase(supabase, solicitacaoId);
   } else {
     const data = result.data as { quantidade: string; item: string; observacao?: string };
     const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(
@@ -225,7 +352,12 @@ export async function deleteSolicitacaoItemBase(formData: FormData): Promise<voi
       .select("tipo")
       .eq("id", data.solicitacao_id)
       .single();
-    if (solicitacao?.tipo === "pagamento" || solicitacao?.tipo === "reembolso") {
+    if (
+      solicitacao?.tipo === "pagamento" ||
+      solicitacao?.tipo === "reembolso" ||
+      solicitacao?.tipo === "transporte" ||
+      solicitacao?.tipo === "hospedagem"
+    ) {
       await recalcularValorTotalBase(supabase, data.solicitacao_id);
     }
     revalidatePath(`/base/solicitacoes/${data.solicitacao_id}`);
