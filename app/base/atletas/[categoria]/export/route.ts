@@ -60,6 +60,8 @@ export async function GET(request: NextRequest, { params }: { params: { categori
     "Data de nascimento": formatData(a.data_nascimento),
     Posição: a.posicao,
     "Número da camisa": a.numero_camisa ?? "",
+    "Número CBF": a.numero_cbf ?? "",
+    "Número FPF": a.numero_fpf ?? "",
     "Pé dominante": a.pe_dominante ? PE_LABEL[a.pe_dominante] ?? a.pe_dominante : "",
     Telefone: a.telefone ?? "",
     "Cidade natal": a.cidade_natal ?? "",

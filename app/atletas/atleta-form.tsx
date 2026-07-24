@@ -94,6 +94,22 @@ export function AtletaForm({
             defaultValue={values.numeroCamisa}
             error={errors.numeroCamisa}
           />
+          <TextField
+            label="Número CBF"
+            name="numeroCbf"
+            type="number"
+            min={0}
+            defaultValue={values.numeroCbf}
+            error={errors.numeroCbf}
+          />
+          <TextField
+            label="Número FPF"
+            name="numeroFpf"
+            type="number"
+            min={0}
+            defaultValue={values.numeroFpf}
+            error={errors.numeroFpf}
+          />
           <SelectField
             label="Pé dominante"
             name="peDominante"

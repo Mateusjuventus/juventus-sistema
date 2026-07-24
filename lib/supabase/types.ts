@@ -21,6 +21,8 @@ export interface AtletaRow {
   data_nascimento: string;
   posicao: string;
   numero_camisa: number | null;
+  numero_cbf: number | null;
+  numero_fpf: number | null;
   pe_dominante: PeDominante | null;
   telefone: string | null;
   cidade_natal: string | null;
@@ -57,6 +59,8 @@ export interface AtletaBaseRow {
   data_nascimento: string;
   posicao: string;
   numero_camisa: number | null;
+  numero_cbf: number | null;
+  numero_fpf: number | null;
   pe_dominante: PeDominante | null;
   telefone: string | null;
   cidade_natal: string | null;

@@ -63,6 +63,8 @@ export const atletaSchema = z.object({
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
   posicao: z.string().min(1, { message: "Posição é obrigatória" }),
   numeroCamisa: z.coerce.number().int().positive().optional().nullable(),
+  numeroCbf: z.coerce.number().int().positive().optional().nullable(),
+  numeroFpf: z.coerce.number().int().positive().optional().nullable(),
   peDominante: z.enum(["destro", "canhoto", "ambidestro"]).optional().nullable(),
   telefone: telefoneField,
   cidadeNatal: z.string().optional().or(z.literal("")),

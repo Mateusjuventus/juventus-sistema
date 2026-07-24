@@ -25,6 +25,8 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
     dataNascimento: atleta.data_nascimento,
     posicao: atleta.posicao,
     numeroCamisa: atleta.numero_camisa?.toString() ?? "",
+    numeroCbf: atleta.numero_cbf?.toString() ?? "",
+    numeroFpf: atleta.numero_fpf?.toString() ?? "",
     peDominante: atleta.pe_dominante ?? "",
     telefone: atleta.telefone ?? "",
     cidadeNatal: atleta.cidade_natal ?? "",
