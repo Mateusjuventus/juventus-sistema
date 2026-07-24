@@ -127,6 +127,14 @@ export const staffOperacionalSchema = z
 export type StaffOperacionalInput = z.infer<typeof staffOperacionalSchema>;
 export { NOVA_FUNCAO_VALUE };
 
+/** Nome de uma função do catálogo `staff_funcoes_catalogo` — usado tanto pra cadastrar quanto pra
+ * renomear uma função em `app/staff-operacional/funcoes/` (tela de gerenciamento do catálogo,
+ * compartilhada entre Profissional e Base). */
+export const funcaoCatalogoSchema = z.object({
+  nome: z.string().min(1, { message: "Nome é obrigatório" }),
+});
+export type FuncaoCatalogoInput = z.infer<typeof funcaoCatalogoSchema>;
+
 /**
  * Cadastro público de Staff Operacional (link enviado pra pessoa preencher sozinha, sem login):
  * mesmo formulário, mas sem valor de pagamento (decisão interna) e sem opção de criar função nova

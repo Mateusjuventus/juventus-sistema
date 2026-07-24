@@ -104,6 +104,9 @@ export default async function StaffOperacionalBasePage({
         >
           Exportar para Excel
         </a>
+        <Link href="/staff-operacional/funcoes?voltar=base" className="btn-secondary">
+          Gerenciar funções
+        </Link>
         <Link href="/base/staff-operacional/novo" className="btn-primary">
           + Novo staff
         </Link>
