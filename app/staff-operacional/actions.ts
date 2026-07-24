@@ -127,6 +127,12 @@ export async function createStaff(
     return { fieldErrors, values: raw };
   }
 
+  const fotoFile = formData.get("foto");
+  const temFotoNova = fotoFile instanceof File && fotoFile.size > 0;
+  if (!temFotoNova) {
+    return { fieldErrors: { foto: "A foto é obrigatória." }, values: raw };
+  }
+
   const supabase = createClient();
   const data = result.data;
 
@@ -137,9 +143,9 @@ export async function createStaff(
     };
   }
 
-  const funcao = await resolveFuncaoId(supabase, data.funcaoId, data.novaFuncaoNome ?? "");
-  if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
-
+  // Terceirizada preenche só 1 campo de função na tela: reaproveitamos o mesmo id resolvido pro
+  // funcao_id "principal" (obrigatório no banco) e pro funcao_terceirizada_id.
+  let funcaoId: string;
   let funcaoTerceirizadaId: string | null = null;
   if (data.terceirizada) {
     const funcaoTerceirizada = await resolveFuncaoId(
@@ -151,6 +157,11 @@ export async function createStaff(
       return { error: funcaoTerceirizada.error, values: raw };
     }
     funcaoTerceirizadaId = funcaoTerceirizada.id;
+    funcaoId = funcaoTerceirizada.id;
+  } else {
+    const funcao = await resolveFuncaoId(supabase, data.funcaoId ?? "", data.novaFuncaoNome ?? "");
+    if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
+    funcaoId = funcao.id;
   }
 
   const id = randomUUID();
@@ -163,7 +174,7 @@ export async function createStaff(
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,
-    funcao_id: funcao.id,
+    funcao_id: funcaoId,
     telefone: data.telefone || null,
     email: data.email || null,
     cep: data.cep || null,
@@ -177,7 +188,7 @@ export async function createStaff(
     funcao_terceirizada_id: data.terceirizada ? funcaoTerceirizadaId : null,
     chave_pix: data.terceirizada ? null : data.chavePix || null,
     chave_pix_tipo: data.terceirizada ? null : data.chavePixTipo || null,
-    valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
+    valor_padrao_pagamento: data.terceirizada ? null : data.valorPadraoPagamento ?? null,
     foto_path: fotoPath ?? null,
   });
 
@@ -200,6 +211,13 @@ export async function updateStaff(
     return { fieldErrors, values: raw };
   }
 
+  const fotoFile = formData.get("foto");
+  const temFotoNova = fotoFile instanceof File && fotoFile.size > 0;
+  const fotoJaExiste = String(formData.get("fotoJaExiste") ?? "") === "1";
+  if (!temFotoNova && !fotoJaExiste) {
+    return { fieldErrors: { foto: "A foto é obrigatória." }, values: raw };
+  }
+
   const supabase = createClient();
   const data = result.data;
 
@@ -210,9 +228,7 @@ export async function updateStaff(
     };
   }
 
-  const funcao = await resolveFuncaoId(supabase, data.funcaoId, data.novaFuncaoNome ?? "");
-  if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
-
+  let funcaoId: string;
   let funcaoTerceirizadaId: string | null = null;
   if (data.terceirizada) {
     const funcaoTerceirizada = await resolveFuncaoId(
@@ -224,6 +240,11 @@ export async function updateStaff(
       return { error: funcaoTerceirizada.error, values: raw };
     }
     funcaoTerceirizadaId = funcaoTerceirizada.id;
+    funcaoId = funcaoTerceirizada.id;
+  } else {
+    const funcao = await resolveFuncaoId(supabase, data.funcaoId ?? "", data.novaFuncaoNome ?? "");
+    if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
+    funcaoId = funcao.id;
   }
 
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
@@ -234,7 +255,7 @@ export async function updateStaff(
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,
-    funcao_id: funcao.id,
+    funcao_id: funcaoId,
     telefone: data.telefone || null,
     email: data.email || null,
     cep: data.cep || null,
@@ -248,7 +269,7 @@ export async function updateStaff(
     funcao_terceirizada_id: data.terceirizada ? funcaoTerceirizadaId : null,
     chave_pix: data.terceirizada ? null : data.chavePix || null,
     chave_pix_tipo: data.terceirizada ? null : data.chavePixTipo || null,
-    valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
+    valor_padrao_pagamento: data.terceirizada ? null : data.valorPadraoPagamento ?? null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 

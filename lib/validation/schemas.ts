@@ -118,7 +118,9 @@ export const staffOperacionalSchema = z
     rg: rgField,
     cpf: cpfField,
     dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-    funcaoId: z.string().min(1, { message: "Função/setor é obrigatório" }),
+    // Obrigatório só quando NÃO for terceirizada — nesse caso a única função pedida é a da
+    // terceirizada (funcaoTerceirizadaId, abaixo), pra pessoa preencher só 1 campo de função.
+    funcaoId: z.string().optional().or(z.literal("")),
     novaFuncaoNome: z.string().optional().or(z.literal("")),
     telefone: telefoneField,
     email: emailField,
@@ -132,6 +134,10 @@ export const staffOperacionalSchema = z
     chavePix: z.string().optional().or(z.literal("")),
     chavePixTipo: chavePixTipoField,
     valorPadraoPagamento: z.coerce.number().nonnegative().optional().nullable(),
+  })
+  .refine((data) => data.terceirizada || Boolean(data.funcaoId), {
+    message: "Função/setor é obrigatório",
+    path: ["funcaoId"],
   })
   .refine((data) => data.funcaoId !== NOVA_FUNCAO_VALUE || Boolean(data.novaFuncaoNome?.trim()), {
     message: "Informe o nome da nova função",

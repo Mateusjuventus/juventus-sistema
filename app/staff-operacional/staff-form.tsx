@@ -77,7 +77,15 @@ export function StaffForm({
             error={errors.email}
           />
           <div className="sm:col-span-2">
-            <PhotoField label="Foto (opcional)" name="foto" currentUrl={fotoUrl} />
+            <PhotoField
+              label="Foto"
+              name="foto"
+              currentUrl={fotoUrl}
+              required
+              showDownload
+              error={errors.foto}
+            />
+            <input type="hidden" name="fotoJaExiste" value={fotoUrl ? "1" : ""} />
           </div>
         </FieldGroup>
       </FormSection>
@@ -107,12 +115,15 @@ export function StaffForm({
 
       <FormSection title="Função e pagamento">
         <FieldGroup>
-          <StaffFuncaoField
-            funcoes={funcoes}
-            defaultValue={values.funcaoId}
-            error={errors.funcaoId}
-            novaFuncaoError={errors.novaFuncaoNome}
-          />
+          {!terceirizada ? (
+            <StaffFuncaoField
+              funcoes={funcoes}
+              defaultValue={values.funcaoId}
+              error={errors.funcaoId}
+              novaFuncaoError={errors.novaFuncaoNome}
+            />
+          ) : null}
+
           <div className="sm:col-span-2">
             <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
               <input
@@ -125,8 +136,8 @@ export function StaffForm({
               É terceirizada?
             </label>
             <p className="mt-1 text-sm text-neutral-500">
-              Serviço prestado por empresa terceirizada — não pede Chave PIX, só a função da
-              terceirizada.
+              Serviço prestado por empresa terceirizada — não pede Chave PIX nem Valor padrão de
+              pagamento, só a função da terceirizada (único campo de função, nesse caso).
             </p>
           </div>
 
@@ -150,12 +161,14 @@ export function StaffForm({
             />
           )}
 
-          <CurrencyField
-            label="Valor padrão de pagamento (R$)"
-            name="valorPadraoPagamento"
-            defaultValue={values.valorPadraoPagamento}
-            error={errors.valorPadraoPagamento}
-          />
+          {!terceirizada ? (
+            <CurrencyField
+              label="Valor padrão de pagamento (R$)"
+              name="valorPadraoPagamento"
+              defaultValue={values.valorPadraoPagamento}
+              error={errors.valorPadraoPagamento}
+            />
+          ) : null}
         </FieldGroup>
       </FormSection>
 

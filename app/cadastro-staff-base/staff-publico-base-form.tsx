@@ -81,7 +81,7 @@ export function StaffPublicoBaseForm({
             error={errors.email}
           />
           <div className="sm:col-span-2">
-            <PhotoField label="Sua foto (opcional)" name="foto" />
+            <PhotoField label="Sua foto" name="foto" required error={errors.foto} />
           </div>
         </FieldGroup>
       </FormSection>

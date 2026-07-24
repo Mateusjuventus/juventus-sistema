@@ -98,6 +98,12 @@ export async function cadastrarStaffPublicoBase(
     };
   }
 
+  const fotoFile = formData.get("foto");
+  const temFotoNova = fotoFile instanceof File && fotoFile.size > 0;
+  if (!temFotoNova) {
+    return { fieldErrors: { foto: "A foto é obrigatória." }, values: raw };
+  }
+
   const data = result.data;
 
   const { data: nomeExistente } = await admin
