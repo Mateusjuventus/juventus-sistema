@@ -30,12 +30,14 @@ function parseForm(formData: FormData) {
     bairro: String(formData.get("bairro") ?? ""),
     cidade: String(formData.get("cidade") ?? ""),
     uf: String(formData.get("uf") ?? ""),
+    terceirizada: formData.get("terceirizada") === "on",
+    funcaoTerceirizadaId: String(formData.get("funcaoTerceirizadaId") ?? ""),
     chavePix: String(formData.get("chavePix") ?? ""),
     chavePixTipo: String(formData.get("chavePixTipo") ?? ""),
   };
 
   const result = cadastroPublicoStaffSchema.safeParse(raw);
-  return { raw, result };
+  return { raw: { ...raw, terceirizada: raw.terceirizada ? "on" : "" }, result };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -120,13 +122,21 @@ export async function cadastrarStaffPublico(
     };
   }
 
+  // Terceirizada preenche só 1 campo de função na tela: usamos o mesmo id tanto pro funcao_id
+  // "principal" (obrigatório no banco) quanto pro funcao_terceirizada_id.
+  const funcaoIdParaValidar = (data.terceirizada ? data.funcaoTerceirizadaId : data.funcaoId) ?? "";
+  const campoFuncaoComErro = data.terceirizada ? "funcaoTerceirizadaId" : "funcaoId";
+
   const { data: funcaoExistente } = await admin
     .from("staff_funcoes_catalogo")
     .select("id")
-    .eq("id", data.funcaoId)
+    .eq("id", funcaoIdParaValidar)
     .maybeSingle();
   if (!funcaoExistente) {
-    return { fieldErrors: { funcaoId: "Selecione uma função válida da lista." }, values: raw };
+    return {
+      fieldErrors: { [campoFuncaoComErro]: "Selecione uma função válida da lista." },
+      values: raw,
+    };
   }
 
   const id = randomUUID();
@@ -139,7 +149,7 @@ export async function cadastrarStaffPublico(
     rg: data.rg,
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,
-    funcao_id: data.funcaoId,
+    funcao_id: funcaoIdParaValidar,
     telefone: data.telefone || null,
     email: data.email || null,
     cep: data.cep || null,
@@ -149,8 +159,10 @@ export async function cadastrarStaffPublico(
     bairro: data.bairro || null,
     cidade: data.cidade || null,
     uf: data.uf || null,
-    chave_pix: data.chavePix || null,
-    chave_pix_tipo: data.chavePixTipo || null,
+    terceirizada: data.terceirizada,
+    funcao_terceirizada_id: data.terceirizada ? funcaoIdParaValidar : null,
+    chave_pix: data.terceirizada ? null : data.chavePix || null,
+    chave_pix_tipo: data.terceirizada ? null : data.chavePixTipo || null,
     foto_path: fotoPath ?? null,
   });
 

@@ -170,6 +170,10 @@ export type FuncaoCatalogoInput = z.infer<typeof funcaoCatalogoSchema>;
  * Cadastro público de Staff Operacional (link enviado pra pessoa preencher sozinha, sem login):
  * mesmo formulário, mas sem valor de pagamento (decisão interna) e sem opção de criar função nova
  * (só escolhe entre as já cadastradas) — ver docs/superpowers/specs para o design completo.
+ *
+ * Terceirizada: mesmo conceito do cadastro interno (ver staffOperacionalSchema) — quando marcada,
+ * pede só a função da terceirizada em vez de Função/setor + Chave PIX. Diferente do interno, a
+ * função da terceirizada aqui também só escolhe entre as já cadastradas (sem "+ nova função").
  */
 export const cadastroPublicoStaffSchema = z
   .object({
@@ -177,12 +181,22 @@ export const cadastroPublicoStaffSchema = z
     rg: rgField,
     cpf: cpfField,
     dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-    funcaoId: z.string().min(1, { message: "Função/setor é obrigatório" }),
+    funcaoId: z.string().optional().or(z.literal("")),
     telefone: telefoneField,
     email: emailField,
     ...enderecoFields,
+    terceirizada: z.boolean().default(false),
+    funcaoTerceirizadaId: z.string().optional().or(z.literal("")),
     chavePix: z.string().optional().or(z.literal("")),
     chavePixTipo: chavePixTipoField,
+  })
+  .refine((data) => data.terceirizada || Boolean(data.funcaoId), {
+    message: "Função/setor é obrigatório",
+    path: ["funcaoId"],
+  })
+  .refine((data) => !data.terceirizada || Boolean(data.funcaoTerceirizadaId), {
+    message: "Informe a função da terceirizada",
+    path: ["funcaoTerceirizadaId"],
   })
   .refine((data) => chavePixValida(data.chavePix, data.chavePixTipo), {
     message: "Chave PIX incompleta para o tipo selecionado",

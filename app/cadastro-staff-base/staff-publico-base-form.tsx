@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
+import { useState } from "react";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { ChavePixFields } from "@/components/chave-pix-field";
@@ -23,6 +24,9 @@ export function StaffPublicoBaseForm({
   funcoes: StaffFuncaoCatalogoRow[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
+  const values = state.values ?? {};
+  const errors = state.fieldErrors ?? {};
+  const [terceirizada, setTerceirizada] = useState(values.terceirizada === "on");
 
   if (state.success) {
     return (
@@ -35,9 +39,6 @@ export function StaffPublicoBaseForm({
       </div>
     );
   }
-
-  const values = state.values ?? {};
-  const errors = state.fieldErrors ?? {};
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -111,28 +112,67 @@ export function StaffPublicoBaseForm({
 
       <FormSection title="Função">
         <FieldGroup>
-          <SelectField
-            label="Função/setor"
-            name="funcaoId"
-            required
-            defaultValue={values.funcaoId}
-            error={errors.funcaoId}
-          >
-            <option value="" disabled>
-              Selecione uma função
-            </option>
-            {funcoes.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nome}
+          {!terceirizada ? (
+            <SelectField
+              label="Função/setor"
+              name="funcaoId"
+              required
+              defaultValue={values.funcaoId}
+              error={errors.funcaoId}
+            >
+              <option value="" disabled>
+                Selecione uma função
               </option>
-            ))}
-          </SelectField>
-          <ChavePixFields
-            tipoDefaultValue={values.chavePixTipo}
-            chaveDefaultValue={values.chavePix}
-            tipoError={errors.chavePixTipo}
-            chaveError={errors.chavePix}
-          />
+              {funcoes.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+            </SelectField>
+          ) : null}
+
+          <div className="sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+              <input
+                type="checkbox"
+                name="terceirizada"
+                defaultChecked={values.terceirizada === "on"}
+                onChange={(e) => setTerceirizada(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              É terceirizada?
+            </label>
+            <p className="mt-1 text-sm text-neutral-500">
+              Serviço prestado por empresa terceirizada — não pede Chave PIX, só a função da
+              terceirizada.
+            </p>
+          </div>
+
+          {terceirizada ? (
+            <SelectField
+              label="Função da terceirizada"
+              name="funcaoTerceirizadaId"
+              required
+              defaultValue={values.funcaoTerceirizadaId}
+              error={errors.funcaoTerceirizadaId}
+            >
+              <option value="" disabled>
+                Selecione uma função
+              </option>
+              {funcoes.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+            </SelectField>
+          ) : (
+            <ChavePixFields
+              tipoDefaultValue={values.chavePixTipo}
+              chaveDefaultValue={values.chavePix}
+              tipoError={errors.chavePixTipo}
+              chaveError={errors.chavePix}
+            />
+          )}
         </FieldGroup>
       </FormSection>
 
