@@ -3,9 +3,9 @@
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { EnderecoFields } from "@/components/endereco-fields";
+import { ChavePixFields } from "@/components/chave-pix-field";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
-import { STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
 import type { CadastroPublicoBaseFormState } from "./actions";
 
@@ -127,25 +127,12 @@ export function StaffPublicoBaseForm({
               </option>
             ))}
           </SelectField>
-          <TextField
-            label="Chave PIX"
-            name="chavePix"
-            defaultValue={values.chavePix}
-            error={errors.chavePix}
+          <ChavePixFields
+            tipoDefaultValue={values.chavePixTipo}
+            chaveDefaultValue={values.chavePix}
+            tipoError={errors.chavePixTipo}
+            chaveError={errors.chavePix}
           />
-          <SelectField
-            label="Tipo de chave PIX"
-            name="chavePixTipo"
-            defaultValue={values.chavePixTipo}
-            error={errors.chavePixTipo}
-          >
-            <option value="">Selecione</option>
-            {STAFF_CHAVE_PIX_TIPOS.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </SelectField>
         </FieldGroup>
       </FormSection>
 

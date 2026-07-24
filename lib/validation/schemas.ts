@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidCPF, normalizeCPF } from "./cpf";
+import { chavePixValida } from "./chave-pix";
 
 /** Regra de CPF compartilhada por todos os cadastros: 11 dígitos, dígito verificador válido. */
 const cpfField = z
@@ -14,15 +15,21 @@ const telefoneField = z.string().optional().or(z.literal(""));
 
 const emailField = z.string().email({ message: "E-mail inválido" }).optional().or(z.literal(""));
 
-/** Tipos de chave PIX oferecidos no cadastro de Staff Operacional (interno e público). */
+/** Tipos de chave PIX oferecidos no cadastro de Staff Operacional (interno e público), nas
+ * Solicitações de Pagamento/Reembolso e nos Recibos de Jogos — mesma lista em todo lugar que tem
+ * um par Tipo de chave PIX/Chave PIX (ver components/chave-pix-field.tsx). */
 export const STAFF_CHAVE_PIX_TIPOS = [
   { value: "cpf", label: "CPF" },
   { value: "cnpj", label: "CNPJ" },
   { value: "email", label: "E-mail" },
   { value: "telefone", label: "Telefone" },
+  { value: "aleatoria", label: "Aleatória" },
 ] as const;
 
-const chavePixTipoField = z.enum(["cpf", "cnpj", "email", "telefone"]).optional().or(z.literal(""));
+const chavePixTipoField = z
+  .enum(["cpf", "cnpj", "email", "telefone", "aleatoria"])
+  .optional()
+  .or(z.literal(""));
 
 /** Campos de endereço compartilhados entre o cadastro interno e o formulário público de Staff. */
 const enderecoFields = {
@@ -116,6 +123,12 @@ export const staffOperacionalSchema = z
     telefone: telefoneField,
     email: emailField,
     ...enderecoFields,
+    // Terceirizada: em vez de Chave PIX (o pagamento não é direto à pessoa), pede uma segunda
+    // função — a da terceirizada em si — vinda do mesmo catálogo staff_funcoes_catalogo. Ver
+    // resolveFuncaoId/resolveFuncaoTerceirizadaId em app/staff-operacional/actions.ts.
+    terceirizada: z.boolean().default(false),
+    funcaoTerceirizadaId: z.string().optional().or(z.literal("")),
+    novaFuncaoTerceirizadaNome: z.string().optional().or(z.literal("")),
     chavePix: z.string().optional().or(z.literal("")),
     chavePixTipo: chavePixTipoField,
     valorPadraoPagamento: z.coerce.number().nonnegative().optional().nullable(),
@@ -123,6 +136,18 @@ export const staffOperacionalSchema = z
   .refine((data) => data.funcaoId !== NOVA_FUNCAO_VALUE || Boolean(data.novaFuncaoNome?.trim()), {
     message: "Informe o nome da nova função",
     path: ["novaFuncaoNome"],
+  })
+  .refine((data) => !data.terceirizada || Boolean(data.funcaoTerceirizadaId), {
+    message: "Informe a função da terceirizada",
+    path: ["funcaoTerceirizadaId"],
+  })
+  .refine(
+    (data) => data.funcaoTerceirizadaId !== NOVA_FUNCAO_VALUE || Boolean(data.novaFuncaoTerceirizadaNome?.trim()),
+    { message: "Informe o nome da nova função", path: ["novaFuncaoTerceirizadaNome"] },
+  )
+  .refine((data) => chavePixValida(data.chavePix, data.chavePixTipo), {
+    message: "Chave PIX incompleta para o tipo selecionado",
+    path: ["chavePix"],
   });
 export type StaffOperacionalInput = z.infer<typeof staffOperacionalSchema>;
 export { NOVA_FUNCAO_VALUE };
@@ -140,18 +165,23 @@ export type FuncaoCatalogoInput = z.infer<typeof funcaoCatalogoSchema>;
  * mesmo formulário, mas sem valor de pagamento (decisão interna) e sem opção de criar função nova
  * (só escolhe entre as já cadastradas) — ver docs/superpowers/specs para o design completo.
  */
-export const cadastroPublicoStaffSchema = z.object({
-  nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
-  rg: rgField,
-  cpf: cpfField,
-  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-  funcaoId: z.string().min(1, { message: "Função/setor é obrigatório" }),
-  telefone: telefoneField,
-  email: emailField,
-  ...enderecoFields,
-  chavePix: z.string().optional().or(z.literal("")),
-  chavePixTipo: chavePixTipoField,
-});
+export const cadastroPublicoStaffSchema = z
+  .object({
+    nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
+    rg: rgField,
+    cpf: cpfField,
+    dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+    funcaoId: z.string().min(1, { message: "Função/setor é obrigatório" }),
+    telefone: telefoneField,
+    email: emailField,
+    ...enderecoFields,
+    chavePix: z.string().optional().or(z.literal("")),
+    chavePixTipo: chavePixTipoField,
+  })
+  .refine((data) => chavePixValida(data.chavePix, data.chavePixTipo), {
+    message: "Chave PIX incompleta para o tipo selecionado",
+    path: ["chavePix"],
+  });
 export type CadastroPublicoStaffInput = z.infer<typeof cadastroPublicoStaffSchema>;
 
 export const jogoSchema = z.object({
@@ -291,7 +321,7 @@ export const solicitacaoSchema = z
     // formulário, mas fica aqui pra não quebrar o parse.
     valor: z.coerce.number().nonnegative().optional().nullable(),
     chavePix: z.string().optional().or(z.literal("")),
-    chavePixTipo: z.enum(["cpf", "cnpj", "email", "telefone"]).optional().or(z.literal("")),
+    chavePixTipo: chavePixTipoField,
     // Dados bancários — sempre opcionais (em Pagamento/Reembolso, a pessoa preenche a Chave PIX
     // e/ou os dados bancários, o que for mais conveniente).
     banco: z.string().optional().or(z.literal("")),
@@ -312,7 +342,11 @@ export const solicitacaoSchema = z
       message: "Descrição da necessidade é obrigatória",
       path: ["descricaoNecessidade"],
     },
-  );
+  )
+  .refine((data) => chavePixValida(data.chavePix, data.chavePixTipo), {
+    message: "Chave PIX incompleta para o tipo selecionado",
+    path: ["chavePix"],
+  });
 export type SolicitacaoInput = z.infer<typeof solicitacaoSchema>;
 
 export const solicitacaoStatusSchema = z.object({

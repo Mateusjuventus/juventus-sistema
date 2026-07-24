@@ -14,28 +14,41 @@ export function StaffFuncaoField({
   defaultValue,
   error,
   novaFuncaoError,
+  name = "funcaoId",
+  novaFuncaoNomeField = "novaFuncaoNome",
+  label = "Função/setor",
+  required = true,
 }: {
   funcoes: StaffFuncaoCatalogoRow[];
   defaultValue?: string;
   error?: string;
   novaFuncaoError?: string;
+  /** Nome do campo do select no FormData — por padrão `funcaoId` (o campo original, obrigatório em
+   * todo staff). Uma segunda instância deste componente (ex: função da terceirizada) usa um nome
+   * diferente pra não colidir com essa. */
+  name?: string;
+  /** Idem, pro campo de texto de "+ Cadastrar nova função...". */
+  novaFuncaoNomeField?: string;
+  label?: string;
+  required?: boolean;
 }) {
   const [criandoNova, setCriandoNova] = useState(defaultValue === NOVA_FUNCAO_VALUE);
 
   return (
     <div>
-      <label htmlFor="funcaoId" className="field-label">
-        Função/setor<span className="text-red-700"> *</span>
+      <label htmlFor={name} className="field-label">
+        {label}
+        {required ? <span className="text-red-700"> *</span> : null}
       </label>
       <select
-        id="funcaoId"
-        name="funcaoId"
-        required
+        id={name}
+        name={name}
+        required={required}
         defaultValue={defaultValue ?? ""}
         className="field-input"
         onChange={(e) => setCriandoNova(e.target.value === NOVA_FUNCAO_VALUE)}
       >
-        <option value="" disabled>
+        <option value="" disabled={required}>
           Selecione uma função
         </option>
         {funcoes.map((f) => (
@@ -50,7 +63,7 @@ export function StaffFuncaoField({
       {criandoNova ? (
         <div className="mt-2">
           <input
-            name="novaFuncaoNome"
+            name={novaFuncaoNomeField}
             required
             placeholder="Nome da nova função"
             className="field-input"

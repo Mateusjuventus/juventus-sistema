@@ -41,7 +41,18 @@ function StaffRow({
         )}
       </td>
       <td className="px-4 py-3 font-medium text-neutral-800">{s.nome_completo}</td>
-      <td className="px-4 py-3">{s.funcao?.nome ?? "—"}</td>
+      <td className="px-4 py-3">
+        {s.terceirizada ? (
+          <>
+            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600">
+              Terceirizada
+            </span>{" "}
+            {s.funcao_terceirizada?.nome ?? "—"}
+          </>
+        ) : (
+          s.funcao?.nome ?? "—"
+        )}
+      </td>
       <td className="px-4 py-3">{formatCPF(s.cpf)}</td>
       <td className="px-4 py-3">{s.telefone ?? "—"}</td>
       <td className="px-4 py-3">{s.chave_pix ?? "—"}</td>
@@ -70,7 +81,7 @@ export default async function StaffOperacionalPage({
 
   let query = supabase
     .from("staff_operacional")
-    .select("*, funcao:staff_funcoes_catalogo(nome)")
+    .select("*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_funcao_terceirizada_id_fkey(nome)")
     .order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
   if (funcaoId) query = query.eq("funcao_id", funcaoId);

@@ -118,7 +118,7 @@ export interface StaffFuncaoCatalogoRow {
   created_at: string;
 }
 
-export type StaffChavePixTipo = "cpf" | "cnpj" | "email" | "telefone";
+export type StaffChavePixTipo = "cpf" | "cnpj" | "email" | "telefone" | "aleatoria";
 
 export interface StaffOperacionalRow {
   id: string;
@@ -128,6 +128,10 @@ export interface StaffOperacionalRow {
   data_nascimento: string;
   funcao_id: string;
   telefone: string | null;
+  /** Serviço prestado por empresa terceirizada — quando true, chave_pix/chave_pix_tipo ficam
+   * sempre nulos (o pagamento não é direto à pessoa) e funcao_terceirizada_id é obrigatório. */
+  terceirizada: boolean;
+  funcao_terceirizada_id: string | null;
   chave_pix: string | null;
   chave_pix_tipo: StaffChavePixTipo | null;
   valor_padrao_pagamento: number | null;
@@ -146,9 +150,11 @@ export interface StaffOperacionalRow {
   updated_at: string;
 }
 
-/** Linha de staff_operacional já com a função embutida via join (`funcao:staff_funcoes_catalogo(nome)`). */
+/** Linha de staff_operacional já com a função (e a função da terceirizada, quando houver) embutidas
+ * via join (`funcao:staff_funcoes_catalogo(nome)`, `funcao_terceirizada:staff_funcoes_catalogo(nome)`). */
 export interface StaffOperacionalComFuncaoRow extends StaffOperacionalRow {
   funcao: { nome: string } | null;
+  funcao_terceirizada: { nome: string } | null;
 }
 
 /** Espelha `StaffOperacionalRow`, mas para o Futebol de Base — tabela `staff_operacional_base`, sem
@@ -162,6 +168,8 @@ export interface StaffOperacionalBaseRow {
   data_nascimento: string;
   funcao_id: string;
   telefone: string | null;
+  terceirizada: boolean;
+  funcao_terceirizada_id: string | null;
   chave_pix: string | null;
   chave_pix_tipo: StaffChavePixTipo | null;
   valor_padrao_pagamento: number | null;
@@ -182,6 +190,7 @@ export interface StaffOperacionalBaseRow {
 
 export interface StaffOperacionalBaseComFuncaoRow extends StaffOperacionalBaseRow {
   funcao: { nome: string } | null;
+  funcao_terceirizada: { nome: string } | null;
 }
 
 export interface JogoRow {

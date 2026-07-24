@@ -1,13 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState } from "react-dom";
-import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
+import { FieldGroup, FormSection, TextField } from "@/components/fields";
 import { CurrencyField } from "@/components/currency-field";
 import { StaffFuncaoField } from "@/components/staff-funcao-field";
+import { ChavePixFields } from "@/components/chave-pix-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
-import { STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
 import type { StaffBaseFormState } from "./actions";
 
@@ -33,6 +34,7 @@ export function StaffBaseForm({
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
+  const [terceirizada, setTerceirizada] = useState(values.terceirizada === "on");
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -113,25 +115,43 @@ export function StaffBaseForm({
             error={errors.funcaoId}
             novaFuncaoError={errors.novaFuncaoNome}
           />
-          <TextField
-            label="Chave PIX"
-            name="chavePix"
-            defaultValue={values.chavePix}
-            error={errors.chavePix}
-          />
-          <SelectField
-            label="Tipo de chave PIX"
-            name="chavePixTipo"
-            defaultValue={values.chavePixTipo}
-            error={errors.chavePixTipo}
-          >
-            <option value="">Selecione</option>
-            {STAFF_CHAVE_PIX_TIPOS.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </SelectField>
+          <div className="sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+              <input
+                type="checkbox"
+                name="terceirizada"
+                defaultChecked={values.terceirizada === "on"}
+                onChange={(e) => setTerceirizada(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              É terceirizada?
+            </label>
+            <p className="mt-1 text-sm text-neutral-500">
+              Serviço prestado por empresa terceirizada — não pede Chave PIX, só a função da
+              terceirizada.
+            </p>
+          </div>
+
+          {terceirizada ? (
+            <StaffFuncaoField
+              funcoes={funcoes}
+              defaultValue={values.funcaoTerceirizadaId}
+              error={errors.funcaoTerceirizadaId}
+              novaFuncaoError={errors.novaFuncaoTerceirizadaNome}
+              name="funcaoTerceirizadaId"
+              novaFuncaoNomeField="novaFuncaoTerceirizadaNome"
+              label="Função da terceirizada"
+              required
+            />
+          ) : (
+            <ChavePixFields
+              tipoDefaultValue={values.chavePixTipo}
+              chaveDefaultValue={values.chavePix}
+              tipoError={errors.chavePixTipo}
+              chaveError={errors.chavePix}
+            />
+          )}
+
           <CurrencyField
             label="Valor padrão de pagamento (R$)"
             name="valorPadraoPagamento"

@@ -36,13 +36,16 @@ function parseForm(formData: FormData) {
     bairro: String(formData.get("bairro") ?? ""),
     cidade: String(formData.get("cidade") ?? ""),
     uf: String(formData.get("uf") ?? ""),
+    terceirizada: formData.get("terceirizada") === "on",
+    funcaoTerceirizadaId: String(formData.get("funcaoTerceirizadaId") ?? ""),
+    novaFuncaoTerceirizadaNome: String(formData.get("novaFuncaoTerceirizadaNome") ?? ""),
     chavePix: String(formData.get("chavePix") ?? ""),
     chavePixTipo: String(formData.get("chavePixTipo") ?? ""),
     valorPadraoPagamento: String(formData.get("valorPadraoPagamento") ?? "") || undefined,
   };
 
   const result = staffOperacionalSchema.safeParse(raw);
-  return { raw, result };
+  return { raw: { ...raw, terceirizada: raw.terceirizada ? "on" : "" }, result };
 }
 
 /** Mesma regra de `app/staff-operacional/actions.ts`: bloqueia dois cadastros com o mesmo nome
@@ -142,6 +145,19 @@ export async function createStaffBase(
   const funcao = await resolveFuncaoId(supabase, data.funcaoId, data.novaFuncaoNome ?? "");
   if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
 
+  let funcaoTerceirizadaId: string | null = null;
+  if (data.terceirizada) {
+    const funcaoTerceirizada = await resolveFuncaoId(
+      supabase,
+      data.funcaoTerceirizadaId ?? "",
+      data.novaFuncaoTerceirizadaNome ?? "",
+    );
+    if (funcaoTerceirizada.error || !funcaoTerceirizada.id) {
+      return { error: funcaoTerceirizada.error, values: raw };
+    }
+    funcaoTerceirizadaId = funcaoTerceirizada.id;
+  }
+
   const id = randomUUID();
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
@@ -162,8 +178,10 @@ export async function createStaffBase(
     bairro: data.bairro || null,
     cidade: data.cidade || null,
     uf: data.uf || null,
-    chave_pix: data.chavePix || null,
-    chave_pix_tipo: data.chavePixTipo || null,
+    terceirizada: data.terceirizada,
+    funcao_terceirizada_id: data.terceirizada ? funcaoTerceirizadaId : null,
+    chave_pix: data.terceirizada ? null : data.chavePix || null,
+    chave_pix_tipo: data.terceirizada ? null : data.chavePixTipo || null,
     valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
     foto_path: fotoPath ?? null,
   });
@@ -200,6 +218,19 @@ export async function updateStaffBase(
   const funcao = await resolveFuncaoId(supabase, data.funcaoId, data.novaFuncaoNome ?? "");
   if (funcao.error || !funcao.id) return { error: funcao.error, values: raw };
 
+  let funcaoTerceirizadaId: string | null = null;
+  if (data.terceirizada) {
+    const funcaoTerceirizada = await resolveFuncaoId(
+      supabase,
+      data.funcaoTerceirizadaId ?? "",
+      data.novaFuncaoTerceirizadaNome ?? "",
+    );
+    if (funcaoTerceirizada.error || !funcaoTerceirizada.id) {
+      return { error: funcaoTerceirizada.error, values: raw };
+    }
+    funcaoTerceirizadaId = funcaoTerceirizada.id;
+  }
+
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
@@ -218,8 +249,10 @@ export async function updateStaffBase(
     bairro: data.bairro || null,
     cidade: data.cidade || null,
     uf: data.uf || null,
-    chave_pix: data.chavePix || null,
-    chave_pix_tipo: data.chavePixTipo || null,
+    terceirizada: data.terceirizada,
+    funcao_terceirizada_id: data.terceirizada ? funcaoTerceirizadaId : null,
+    chave_pix: data.terceirizada ? null : data.chavePix || null,
+    chave_pix_tipo: data.terceirizada ? null : data.chavePixTipo || null,
     valor_padrao_pagamento: data.valorPadraoPagamento ?? null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;

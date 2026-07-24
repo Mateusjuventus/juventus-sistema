@@ -45,7 +45,7 @@ export async function getJogoBaseEConvocados(jogoId: string): Promise<Convocados
       .eq("convocacao_id", convocacao.id),
     supabase
       .from("convocacao_staff_base")
-      .select("*, pessoa:staff_operacional_base(*, funcao:staff_funcoes_catalogo(nome))")
+      .select("*, pessoa:staff_operacional_base(*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome))")
       .eq("convocacao_id", convocacao.id),
   ]);
 

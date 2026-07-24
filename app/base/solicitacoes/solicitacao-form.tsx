@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { CurrencyField } from "@/components/currency-field";
+import { ChavePixFields } from "@/components/chave-pix-field";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
-import { SOLICITACAO_TIPOS, STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
+import { SOLICITACAO_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import type { SolicitacaoFormState } from "./actions";
 
 const initialState: SolicitacaoFormState = {};
@@ -491,27 +492,13 @@ export function SolicitacaoForm({
               : "Preencha a Chave PIX e/ou os dados bancários — o que for mais conveniente pra esse pagamento."}
           </p>
           <FieldGroup>
-            <TextField
-              label="Chave PIX"
-              name="chavePix"
-              required={tipo === "reembolso"}
-              autoComplete="off"
-              defaultValue={values.chavePix}
-              error={errors.chavePix}
+            <ChavePixFields
+              tipoDefaultValue={values.chavePixTipo}
+              chaveDefaultValue={values.chavePix}
+              tipoError={errors.chavePixTipo}
+              chaveError={errors.chavePix}
+              chaveRequired={tipo === "reembolso"}
             />
-            <SelectField
-              label="Tipo de chave PIX"
-              name="chavePixTipo"
-              defaultValue={values.chavePixTipo}
-              error={errors.chavePixTipo}
-            >
-              <option value="">Selecione</option>
-              {STAFF_CHAVE_PIX_TIPOS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </SelectField>
             <TextField label="Banco" name="banco" autoComplete="off" defaultValue={values.banco} error={errors.banco} />
             <TextField
               label="Agência"

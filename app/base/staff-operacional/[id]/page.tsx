@@ -36,6 +36,8 @@ export default async function EditarStaffBasePage({ params }: { params: { id: st
     bairro: s.bairro ?? "",
     cidade: s.cidade ?? "",
     uf: s.uf ?? "",
+    terceirizada: s.terceirizada ? "on" : "",
+    funcaoTerceirizadaId: s.funcao_terceirizada_id ?? "",
     chavePix: s.chave_pix ?? "",
     chavePixTipo: s.chave_pix_tipo ?? "",
     valorPadraoPagamento: s.valor_padrao_pagamento?.toString() ?? "",

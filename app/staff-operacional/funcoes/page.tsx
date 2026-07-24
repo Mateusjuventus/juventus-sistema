@@ -27,15 +27,21 @@ export default async function FuncoesStaffPage({
 
   const [{ data: funcoesData }, { data: staffProfData }, { data: staffBaseData }] = await Promise.all([
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
-    supabase.from("staff_operacional").select("funcao_id"),
-    supabase.from("staff_operacional_base").select("funcao_id"),
+    supabase.from("staff_operacional").select("funcao_id, funcao_terceirizada_id"),
+    supabase.from("staff_operacional_base").select("funcao_id, funcao_terceirizada_id"),
   ]);
 
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
 
   const contagem = new Map<string, number>();
-  for (const row of [...(staffProfData ?? []), ...(staffBaseData ?? [])] as { funcao_id: string }[]) {
+  for (const row of [...(staffProfData ?? []), ...(staffBaseData ?? [])] as {
+    funcao_id: string;
+    funcao_terceirizada_id: string | null;
+  }[]) {
     contagem.set(row.funcao_id, (contagem.get(row.funcao_id) ?? 0) + 1);
+    if (row.funcao_terceirizada_id) {
+      contagem.set(row.funcao_terceirizada_id, (contagem.get(row.funcao_terceirizada_id) ?? 0) + 1);
+    }
   }
 
   const voltarHref = veioDoBase ? "/base/staff-operacional" : "/staff-operacional";

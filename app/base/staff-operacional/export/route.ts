@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("staff_operacional_base")
-    .select("*, funcao:staff_funcoes_catalogo(nome)")
+    .select(
+      "*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_base_funcao_terceirizada_id_fkey(nome)",
+    )
     .order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
   if (funcaoId) query = query.eq("funcao_id", funcaoId);
@@ -53,6 +55,8 @@ export async function GET(request: NextRequest) {
     Bairro: s.bairro ?? "",
     Cidade: s.cidade ?? "",
     UF: s.uf ?? "",
+    Terceirizada: s.terceirizada ? "Sim" : "Não",
+    "Função da terceirizada": s.funcao_terceirizada?.nome ?? "",
     "Chave PIX": s.chave_pix ?? "",
     "Tipo de chave PIX": s.chave_pix_tipo ? CHAVE_PIX_TIPO_LABEL[s.chave_pix_tipo] ?? "" : "",
     "Valor padrão de pagamento": formatMoeda(s.valor_padrao_pagamento),

@@ -45,7 +45,7 @@ export default async function ConvocacaoBasePage({
         .order("nome_completo", { ascending: true }),
       supabase
         .from("staff_operacional_base")
-        .select("*, funcao:staff_funcoes_catalogo(nome)")
+        .select("*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome)")
         .order("nome_completo", { ascending: true }),
       supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { chavePixValida } from "@/lib/validation/chave-pix";
 import type { TipoQuarto } from "@/lib/supabase/types";
 
 /**
@@ -301,10 +302,11 @@ export async function saveRecibo(
   const linhas: {
     pessoaTipo: "comissao" | "staff";
     pessoaId: string;
+    nome: string;
     funcaoJogo: string | null;
     valor: number | null;
     chavePix: string | null;
-    chavePixTipo: "celular" | "email" | "cpf" | "aleatoria" | null;
+    chavePixTipo: "cpf" | "cnpj" | "email" | "telefone" | "aleatoria" | null;
     pago: boolean;
   }[] = [];
 
@@ -318,19 +320,33 @@ export async function saveRecibo(
     const chavePix = String(formData.get(`chavePix_${pessoaTipo}_${pessoaId}`) ?? "").trim() || null;
     const chavePixTipoRaw = String(formData.get(`chavePixTipo_${pessoaTipo}_${pessoaId}`) ?? "");
     const chavePixTipo =
-      chavePixTipoRaw === "celular" || chavePixTipoRaw === "email" || chavePixTipoRaw === "cpf" || chavePixTipoRaw === "aleatoria"
+      chavePixTipoRaw === "cpf" ||
+      chavePixTipoRaw === "cnpj" ||
+      chavePixTipoRaw === "email" ||
+      chavePixTipoRaw === "telefone" ||
+      chavePixTipoRaw === "aleatoria"
         ? chavePixTipoRaw
         : null;
     const pago = formData.get(`pago_${pessoaTipo}_${pessoaId}`) === "on";
+    const nome = String(formData.get(`nome_${pessoaTipo}_${pessoaId}`) ?? "") || "essa pessoa";
     linhas.push({
       pessoaTipo,
       pessoaId,
+      nome,
       funcaoJogo,
       valor: Number.isNaN(valor) ? null : valor,
       chavePix,
       chavePixTipo,
       pago,
     });
+  }
+
+  for (const linha of linhas) {
+    if (!chavePixValida(linha.chavePix, linha.chavePixTipo)) {
+      return {
+        error: `Chave PIX incompleta para o tipo selecionado (${linha.nome}). Confira antes de salvar.`,
+      };
+    }
   }
 
   const supabase = createClient();
