@@ -200,6 +200,11 @@ export async function createStaffBase(
   if (error) return { error: friendlyDbError(error), values: raw };
 
   revalidatePath("/base/staff-operacional");
+  // Cadastrar/editar staff permite criar uma função nova na hora ("+ Cadastrar nova função..." em
+  // resolveFuncaoId) — revalida os links públicos de auto-cadastro também, já que o catálogo é
+  // compartilhado (staff_funcoes_catalogo) e a pessoa preenchendo o link precisa ver a função nova.
+  revalidatePath("/cadastro-staff");
+  revalidatePath("/cadastro-staff-base");
   redirect("/base/staff-operacional");
 }
 
@@ -283,6 +288,11 @@ export async function updateStaffBase(
   if (error) return { error: friendlyDbError(error), values: raw };
 
   revalidatePath("/base/staff-operacional");
+  // Cadastrar/editar staff permite criar uma função nova na hora ("+ Cadastrar nova função..." em
+  // resolveFuncaoId) — revalida os links públicos de auto-cadastro também, já que o catálogo é
+  // compartilhado (staff_funcoes_catalogo) e a pessoa preenchendo o link precisa ver a função nova.
+  revalidatePath("/cadastro-staff");
+  revalidatePath("/cadastro-staff-base");
   redirect("/base/staff-operacional");
 }
 

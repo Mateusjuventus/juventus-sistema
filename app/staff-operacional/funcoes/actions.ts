@@ -47,6 +47,8 @@ export async function createFuncaoCatalogo(
   revalidatePath("/staff-operacional/funcoes");
   revalidatePath("/staff-operacional");
   revalidatePath("/base/staff-operacional");
+  revalidatePath("/cadastro-staff");
+  revalidatePath("/cadastro-staff-base");
   return { values: {} };
 }
 
@@ -75,6 +77,8 @@ export async function updateFuncaoCatalogo(
   revalidatePath("/staff-operacional/funcoes");
   revalidatePath("/staff-operacional");
   revalidatePath("/base/staff-operacional");
+  revalidatePath("/cadastro-staff");
+  revalidatePath("/cadastro-staff-base");
   return { values: { nome: result.data.nome.trim() } };
 }
 
@@ -93,4 +97,6 @@ export async function deleteFuncaoCatalogo(formData: FormData): Promise<void> {
   revalidatePath("/staff-operacional/funcoes");
   revalidatePath("/staff-operacional");
   revalidatePath("/base/staff-operacional");
+  revalidatePath("/cadastro-staff");
+  revalidatePath("/cadastro-staff-base");
 }
