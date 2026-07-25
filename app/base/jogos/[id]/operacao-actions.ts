@@ -105,13 +105,16 @@ export async function saveRoomingListBase(
 
     const ocupantes = ocupacaoPorQuarto.get(i) ?? [];
     if (ocupantes.length > 0) {
-      await supabase.from("rooming_list_ocupantes_base").insert(
+      const { error: ocupantesError } = await supabase.from("rooming_list_ocupantes_base").insert(
         ocupantes.map((o) => ({
           quarto_id: quartoRow.id,
           pessoa_tipo: o.pessoaTipo,
           pessoa_id: o.pessoaId,
         })),
       );
+      if (ocupantesError) {
+        return { error: `Não foi possível salvar as pessoas do quarto ${i + 1}. Tente novamente.` };
+      }
     }
   }
 
@@ -193,13 +196,16 @@ export async function saveOnibusBase(
 
     const passageiros = passageirosPorOnibus.get(i) ?? [];
     if (passageiros.length > 0) {
-      await supabase.from("onibus_passageiros_base").insert(
+      const { error: passageirosError } = await supabase.from("onibus_passageiros_base").insert(
         passageiros.map((p) => ({
           onibus_lista_id: onibusRow.id,
           pessoa_tipo: p.pessoaTipo,
           pessoa_id: p.pessoaId,
         })),
       );
+      if (passageirosError) {
+        return { error: `Não foi possível salvar os passageiros do ônibus ${i + 1}. Tente novamente.` };
+      }
     }
   }
 
