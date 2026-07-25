@@ -77,7 +77,7 @@ export function OnibusDocument({
           onibus.map((o) => (
             <View style={styles.onibusBox} key={o.numero} wrap={false}>
               <Text style={styles.onibusTitulo}>
-                Ônibus {o.numero}
+                Lista de Passageiros
                 {o.horario ? ` — Saída ${o.horario}` : ""}
               </Text>
               {o.passageiros.length === 0 ? (

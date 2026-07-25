@@ -139,6 +139,7 @@ export interface OnibusFormState {
   success?: boolean;
 }
 
+/** Espelha `saveOnibus` de `app/jogos/[id]/operacao-actions.ts` para o Futebol de Base. */
 export async function saveOnibusBase(
   _prevState: OnibusFormState,
   formData: FormData,
@@ -146,74 +147,60 @@ export async function saveOnibusBase(
   const jogoId = String(formData.get("jogoId") ?? "");
   if (!jogoId) return { error: "Jogo não identificado. Recarregue a página e tente novamente." };
 
-  const onibusCount = Number(formData.get("onibusCount") ?? 0) || 0;
-  const onibusList: { numero: number; horario: string | null }[] = [];
-  for (let i = 0; i < onibusCount; i++) {
-    const numero = Number(formData.get(`onibus_${i}_numero`) ?? 0);
-    if (!numero) continue;
-    const horario = String(formData.get(`onibus_${i}_horario`) ?? "").trim() || null;
-    onibusList.push({ numero, horario });
-  }
+  const horario = String(formData.get("horario") ?? "").trim() || null;
 
-  const passageirosPorOnibus = new Map<
-    number,
-    { pessoaTipo: "atleta" | "comissao" | "staff"; pessoaId: string }[]
-  >();
+  const passageiros: { pessoaTipo: "atleta" | "comissao"; pessoaId: string }[] = [];
   for (const [key, value] of formData.entries()) {
-    const valueStr = String(value);
-    if (!valueStr) continue;
-    let pessoaTipo: "atleta" | "comissao" | "staff" | null = null;
-    if (key.startsWith("pessoa_atleta_")) pessoaTipo = "atleta";
-    else if (key.startsWith("pessoa_comissao_")) pessoaTipo = "comissao";
-    else if (key.startsWith("pessoa_staff_")) pessoaTipo = "staff";
+    if (String(value) !== "on") continue;
+    let pessoaTipo: "atleta" | "comissao" | null = null;
+    if (key.startsWith("vai_atleta_")) pessoaTipo = "atleta";
+    else if (key.startsWith("vai_comissao_")) pessoaTipo = "comissao";
     if (!pessoaTipo) continue;
-
-    const pessoaId = key.slice(`pessoa_${pessoaTipo}_`.length);
-    const onibusIndex = Number(valueStr);
-    if (Number.isNaN(onibusIndex) || onibusIndex < 0 || onibusIndex >= onibusList.length) continue;
-    const lista = passageirosPorOnibus.get(onibusIndex) ?? [];
-    lista.push({ pessoaTipo, pessoaId });
-    passageirosPorOnibus.set(onibusIndex, lista);
+    passageiros.push({ pessoaTipo, pessoaId: key.slice(`vai_${pessoaTipo}_`.length) });
   }
 
   const supabase = createClient();
 
-  const { data: onibusExistentes } = await supabase
+  const { data: onibusExistente } = await supabase
     .from("onibus_lista_base")
     .select("id")
-    .eq("jogo_id", jogoId);
-  const idsExistentes = (onibusExistentes ?? []).map((o) => o.id as string);
-  if (idsExistentes.length > 0) {
-    await supabase.from("onibus_lista_base").delete().in("id", idsExistentes);
-  }
+    .eq("jogo_id", jogoId)
+    .eq("onibus_numero", 1)
+    .maybeSingle();
 
-  for (let i = 0; i < onibusList.length; i++) {
-    const { data: onibusRow, error: onibusError } = await supabase
+  let onibusId = (onibusExistente as { id: string } | null)?.id;
+
+  if (onibusId) {
+    const { error } = await supabase
       .from("onibus_lista_base")
-      .insert({
-        jogo_id: jogoId,
-        onibus_numero: onibusList[i].numero,
-        horario_saida: onibusList[i].horario,
-      })
+      .update({ horario_saida: horario })
+      .eq("id", onibusId);
+    if (error) return { error: "Não foi possível salvar a lista de ônibus. Tente novamente." };
+    const { error: deleteError } = await supabase
+      .from("onibus_passageiros_base")
+      .delete()
+      .eq("onibus_lista_id", onibusId);
+    if (deleteError) return { error: "Não foi possível salvar a lista de ônibus. Tente novamente." };
+  } else {
+    const { data: onibusRow, error } = await supabase
+      .from("onibus_lista_base")
+      .insert({ jogo_id: jogoId, onibus_numero: 1, horario_saida: horario })
       .select("id")
       .single();
+    if (error || !onibusRow) return { error: "Não foi possível salvar a lista de ônibus. Tente novamente." };
+    onibusId = (onibusRow as { id: string }).id;
+  }
 
-    if (onibusError || !onibusRow) {
-      return { error: "Não foi possível salvar os ônibus. Tente novamente." };
-    }
-
-    const passageiros = passageirosPorOnibus.get(i) ?? [];
-    if (passageiros.length > 0) {
-      const { error: passageirosError } = await supabase.from("onibus_passageiros_base").insert(
-        passageiros.map((p) => ({
-          onibus_lista_id: onibusRow.id,
-          pessoa_tipo: p.pessoaTipo,
-          pessoa_id: p.pessoaId,
-        })),
-      );
-      if (passageirosError) {
-        return { error: `Não foi possível salvar os passageiros do ônibus ${i + 1}. Tente novamente.` };
-      }
+  if (passageiros.length > 0) {
+    const { error: passageirosError } = await supabase.from("onibus_passageiros_base").insert(
+      passageiros.map((p) => ({
+        onibus_lista_id: onibusId,
+        pessoa_tipo: p.pessoaTipo,
+        pessoa_id: p.pessoaId,
+      })),
+    );
+    if (passageirosError) {
+      return { error: "Não foi possível salvar os passageiros do ônibus. Tente novamente." };
     }
   }
 

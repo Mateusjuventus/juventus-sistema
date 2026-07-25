@@ -3,15 +3,19 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import type { OnibusListaRow, OnibusPassageiroRow } from "@/lib/supabase/types";
+import type { AtletaRow, ComissaoTecnicaRow, OnibusListaRow, OnibusPassageiroRow } from "@/lib/supabase/types";
 import { getJogoEConvocados } from "../operacao-data";
-import { OnibusForm, type OnibusInicial } from "./onibus-form";
+import { OnibusForm, type PessoaOnibus } from "./onibus-form";
 import { saveOnibus } from "../operacao-actions";
+
+function paraPessoa(a: { id: string; nome_completo: string }, extra: string): PessoaOnibus {
+  return { id: a.id, nome: a.nome_completo, extra };
+}
 
 export default async function OnibusPage({ params }: { params: { id: string } }) {
   const dados = await getJogoEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, atletas } = dados;
+  const { jogo, convocacao, atletas, comissao } = dados;
 
   if (!convocacao) {
     return (
@@ -23,30 +27,36 @@ export default async function OnibusPage({ params }: { params: { id: string } })
   }
 
   const supabase = createClient();
-  const { data: onibusData } = await supabase
-    .from("onibus_lista")
-    .select("*")
-    .eq("jogo_id", jogo.id)
-    .order("onibus_numero", { ascending: true });
-  const onibusRows = (onibusData ?? []) as OnibusListaRow[];
 
-  let onibusIniciais: OnibusInicial[] = [];
-  if (onibusRows.length > 0) {
-    const onibusIds = onibusRows.map((o) => o.id);
-    const { data: passageirosData } = await supabase
-      .from("onibus_passageiros")
-      .select("*")
-      .in("onibus_lista_id", onibusIds);
-    const passageiros = (passageirosData ?? []) as OnibusPassageiroRow[];
-    onibusIniciais = onibusRows.map((o) => ({
-      horario: o.horario_saida ? o.horario_saida.slice(0, 5) : "",
-      passageiros: passageiros
-        .filter((p) => p.onibus_lista_id === o.id)
-        .map((p) => ({ pessoaTipo: p.pessoa_tipo, pessoaId: p.pessoa_id })),
-    }));
+  const [{ data: todosAtletasData }, { data: todaComissaoData }, { data: onibusData }] = await Promise.all([
+    supabase.from("atletas").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
+    supabase.from("comissao_tecnica").select("id, nome_completo, funcao").order("nome_completo", { ascending: true }),
+    supabase.from("onibus_lista").select("*").eq("jogo_id", jogo.id).eq("onibus_numero", 1).maybeSingle(),
+  ]);
+
+  const todosAtletas = (todosAtletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "posicao">[];
+  const todaComissao = (todaComissaoData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo" | "funcao">[];
+  const onibus = onibusData as OnibusListaRow | null;
+
+  let passageiros: OnibusPassageiroRow[] = [];
+  if (onibus) {
+    const { data } = await supabase.from("onibus_passageiros").select("*").eq("onibus_lista_id", onibus.id);
+    passageiros = (data ?? []) as OnibusPassageiroRow[];
   }
 
-  const temOnibus = onibusIniciais.some((o) => o.passageiros.length > 0);
+  const convocadoAtletaIds = new Set(atletas.map((a) => a.id));
+  const convocadoComissaoIds = new Set(comissao.map((c) => c.id));
+
+  const extrasAtletaIds = new Set(
+    passageiros.filter((p) => p.pessoa_tipo === "atleta" && !convocadoAtletaIds.has(p.pessoa_id)).map((p) => p.pessoa_id),
+  );
+  const extrasComissaoIds = new Set(
+    passageiros
+      .filter((p) => p.pessoa_tipo === "comissao" && !convocadoComissaoIds.has(p.pessoa_id))
+      .map((p) => p.pessoa_id),
+  );
+
+  const incluidos = passageiros.map((p) => `${p.pessoa_tipo}:${p.pessoa_id}`);
 
   return (
     <AppShell>
@@ -54,7 +64,7 @@ export default async function OnibusPage({ params }: { params: { id: string } })
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Lista de Passageiros do Ônibus</h1>
-        {temOnibus ? (
+        {onibus && passageiros.length > 0 ? (
           <a
             href={`/jogos/${jogo.id}/onibus/pdf`}
             target="_blank"
@@ -64,17 +74,22 @@ export default async function OnibusPage({ params }: { params: { id: string } })
             Gerar PDF
           </a>
         ) : (
-          <span className="text-xs text-neutral-400">
-            Salve ao menos um ônibus com passageiros para liberar o PDF.
-          </span>
+          <span className="text-xs text-neutral-400">Salve a lista com ao menos um passageiro para liberar o PDF.</span>
         )}
       </div>
 
       <OnibusForm
         action={saveOnibus}
         jogoId={jogo.id}
-        atletas={atletas}
-        onibusIniciais={onibusIniciais}
+        atletasConvocados={atletas.map((a) => paraPessoa(a, a.posicao))}
+        comissaoConvocados={comissao.map((c) => paraPessoa(c, c.funcao))}
+        atletasTodos={todosAtletas.map((a) => paraPessoa(a, a.posicao))}
+        comissaoTodos={todaComissao.map((c) => paraPessoa(c, c.funcao))}
+        extrasAtletasIniciais={todosAtletas.filter((a) => extrasAtletaIds.has(a.id)).map((a) => paraPessoa(a, a.posicao))}
+        extrasComissaoIniciais={todaComissao.filter((c) => extrasComissaoIds.has(c.id)).map((c) => paraPessoa(c, c.funcao))}
+        existeRegistro={Boolean(onibus)}
+        incluidosIniciais={incluidos}
+        horarioInicial={onibus?.horario_saida ? onibus.horario_saida.slice(0, 5) : ""}
       />
     </AppShell>
   );

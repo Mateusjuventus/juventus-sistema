@@ -3,61 +3,207 @@
 import { useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import { TextField } from "@/components/fields";
 import type { OnibusFormState } from "../operacao-actions";
 
 const initialState: OnibusFormState = {};
 
-export interface OnibusInicial {
-  horario: string;
-  passageiros: { pessoaTipo: "atleta" | "comissao" | "staff"; pessoaId: string }[];
+export interface PessoaOnibus {
+  id: string;
+  nome: string;
+  extra: string;
 }
 
-/**
- * Espelha `app/jogos/[id]/onibus/onibus-form.tsx` para o Futebol de Base — só Atletas convocados
- * (Comissão Técnica e Staff Operacional não entram nessa lista).
- */
+function chave(tipo: "atleta" | "comissao", id: string): string {
+  return `${tipo}:${id}`;
+}
+
+/** Espelha a seção de `app/jogos/[id]/onibus/onibus-form.tsx` para o Futebol de Base. */
+function SecaoPessoas({
+  titulo,
+  tipo,
+  convocados,
+  extras,
+  todos,
+  incluidos,
+  onToggle,
+  onAdicionar,
+  onRemoverExtra,
+}: {
+  titulo: string;
+  tipo: "atleta" | "comissao";
+  convocados: PessoaOnibus[];
+  extras: PessoaOnibus[];
+  todos: PessoaOnibus[];
+  incluidos: Record<string, boolean>;
+  onToggle: (chave: string) => void;
+  onAdicionar: (pessoa: PessoaOnibus) => void;
+  onRemoverExtra: (id: string) => void;
+}) {
+  const presentesIds = new Set([...convocados, ...extras].map((p) => p.id));
+  const disponiveis = todos.filter((p) => !presentesIds.has(p.id));
+
+  return (
+    <div className="card space-y-3 p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-grena">{titulo}</h3>
+
+      {convocados.length === 0 && extras.length === 0 ? (
+        <p className="text-sm text-neutral-400">Ninguém convocado ainda.</p>
+      ) : (
+        <ul className="divide-y divide-neutral-100">
+          {convocados.map((p) => {
+            const k = chave(tipo, p.id);
+            return (
+              <li key={k} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={incluidos[k] ?? false}
+                    onChange={() => onToggle(k)}
+                    className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                  />
+                  <span className="text-neutral-800">
+                    {p.nome} <span className="text-neutral-400">— {p.extra}</span>
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+          {extras.map((p) => {
+            const k = chave(tipo, p.id);
+            return (
+              <li key={k} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={incluidos[k] ?? false}
+                    onChange={() => onToggle(k)}
+                    className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                  />
+                  <span className="text-neutral-800">
+                    {p.nome} <span className="text-neutral-400">— {p.extra}</span>
+                  </span>
+                  <span className="rounded-full bg-dourado/20 px-2 py-0.5 text-xs text-grena-escuro">
+                    Não convocado
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-red-600 hover:underline"
+                  onClick={() => onRemoverExtra(p.id)}
+                >
+                  Remover
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {disponiveis.length > 0 ? (
+        <select
+          className="field-input"
+          value=""
+          onChange={(e) => {
+            const pessoa = disponiveis.find((p) => p.id === e.target.value);
+            if (pessoa) onAdicionar(pessoa);
+          }}
+        >
+          <option value="">+ Adicionar {titulo.toLowerCase()} não convocado(a)...</option>
+          {disponiveis.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nome} — {p.extra}
+            </option>
+          ))}
+        </select>
+      ) : null}
+    </div>
+  );
+}
+
 export function OnibusFormBase({
   action,
   jogoId,
-  atletas,
-  onibusIniciais,
+  atletasConvocados,
+  comissaoConvocados,
+  atletasTodos,
+  comissaoTodos,
+  extrasAtletasIniciais,
+  extrasComissaoIniciais,
+  existeRegistro,
+  incluidosIniciais,
+  horarioInicial,
 }: {
   action: (prevState: OnibusFormState, formData: FormData) => Promise<OnibusFormState>;
   jogoId: string;
-  atletas: AtletaBaseRow[];
-  onibusIniciais: OnibusInicial[];
+  atletasConvocados: PessoaOnibus[];
+  comissaoConvocados: PessoaOnibus[];
+  atletasTodos: PessoaOnibus[];
+  comissaoTodos: PessoaOnibus[];
+  extrasAtletasIniciais: PessoaOnibus[];
+  extrasComissaoIniciais: PessoaOnibus[];
+  existeRegistro: boolean;
+  incluidosIniciais: string[];
+  horarioInicial: string;
 }) {
   const [state, formAction] = useFormState(action, initialState);
-  const [onibusList, setOnibusList] = useState<{ horario: string }[]>(
-    onibusIniciais.map((o) => ({ horario: o.horario })),
-  );
 
-  const defaultOnibusIndex = (pessoaTipo: "atleta" | "comissao" | "staff", pessoaId: string): string => {
-    const index = onibusIniciais.findIndex((o) =>
-      o.passageiros.some((p) => p.pessoaTipo === pessoaTipo && p.pessoaId === pessoaId),
-    );
-    return index >= 0 ? String(index) : "";
-  };
+  const [extrasAtletas, setExtrasAtletas] = useState<PessoaOnibus[]>(extrasAtletasIniciais);
+  const [extrasComissao, setExtrasComissao] = useState<PessoaOnibus[]>(extrasComissaoIniciais);
 
-  function atualizarHorario(index: number, horario: string) {
-    setOnibusList((atual) => atual.map((o, i) => (i === index ? { ...o, horario } : o)));
+  const [incluidos, setIncluidos] = useState<Record<string, boolean>>(() => {
+    const mapa: Record<string, boolean> = {};
+    for (const p of atletasConvocados) {
+      const k = chave("atleta", p.id);
+      mapa[k] = existeRegistro ? incluidosIniciais.includes(k) : true;
+    }
+    for (const p of comissaoConvocados) {
+      const k = chave("comissao", p.id);
+      mapa[k] = existeRegistro ? incluidosIniciais.includes(k) : true;
+    }
+    for (const p of extrasAtletasIniciais) mapa[chave("atleta", p.id)] = true;
+    for (const p of extrasComissaoIniciais) mapa[chave("comissao", p.id)] = true;
+    return mapa;
+  });
+
+  function toggle(k: string) {
+    setIncluidos((atual) => ({ ...atual, [k]: !atual[k] }));
   }
 
-  const pessoas = [
-    ...atletas.map((a) => ({ tipo: "atleta" as const, id: a.id, nome: a.nome_completo, extra: a.posicao })),
+  function adicionarAtleta(pessoa: PessoaOnibus) {
+    setExtrasAtletas((atual) => [...atual, pessoa]);
+    setIncluidos((atual) => ({ ...atual, [chave("atleta", pessoa.id)]: true }));
+  }
+
+  function removerExtraAtleta(id: string) {
+    setExtrasAtletas((atual) => atual.filter((p) => p.id !== id));
+  }
+
+  function adicionarComissao(pessoa: PessoaOnibus) {
+    setExtrasComissao((atual) => [...atual, pessoa]);
+    setIncluidos((atual) => ({ ...atual, [chave("comissao", pessoa.id)]: true }));
+  }
+
+  function removerExtraComissao(id: string) {
+    setExtrasComissao((atual) => atual.filter((p) => p.id !== id));
+  }
+
+  const todasPessoas = [
+    ...atletasConvocados.map((p) => ({ tipo: "atleta" as const, id: p.id })),
+    ...comissaoConvocados.map((p) => ({ tipo: "comissao" as const, id: p.id })),
+    ...extrasAtletas.map((p) => ({ tipo: "atleta" as const, id: p.id })),
+    ...extrasComissao.map((p) => ({ tipo: "comissao" as const, id: p.id })),
   ];
 
   return (
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="jogoId" value={jogoId} />
-      <input type="hidden" name="onibusCount" value={onibusList.length} />
-      {onibusList.map((o, i) => (
-        <span key={i}>
-          <input type="hidden" name={`onibus_${i}_numero`} value={i + 1} />
-          <input type="hidden" name={`onibus_${i}_horario`} value={o.horario} />
-        </span>
-      ))}
+      {todasPessoas.map((p) => {
+        const k = chave(p.tipo, p.id);
+        return incluidos[k] ? (
+          <input key={k} type="hidden" name={`vai_${p.tipo}_${p.id}`} value="on" />
+        ) : null;
+      })}
 
       {state.success ? (
         <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
@@ -66,89 +212,40 @@ export function OnibusFormBase({
       ) : null}
       {state.error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p> : null}
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-grena">Ônibus</h3>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setOnibusList((atual) => [...atual, { horario: "" }])}
-            >
-              + Adicionar ônibus
-            </button>
-            {onibusList.length > 0 ? (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setOnibusList((atual) => atual.slice(0, -1))}
-              >
-                Remover último
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {onibusList.length === 0 ? (
-          <p className="text-sm text-neutral-400">Nenhum ônibus adicionado ainda.</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {onibusList.map((o, i) => (
-              <div key={i} className="max-w-xs">
-                <label className="field-label">Ônibus {i + 1} — horário de saída</label>
-                <input
-                  type="time"
-                  value={o.horario}
-                  onChange={(e) => atualizarHorario(i, e.target.value)}
-                  className="field-input"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {pessoas.length === 0 ? (
-          <p className="text-sm text-neutral-400">
-            Ninguém foi convocado ainda para este jogo. Monte a convocação primeiro.
-          </p>
-        ) : onibusList.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px] text-left text-sm">
-              <thead className="text-neutral-500">
-                <tr>
-                  <th className="py-2 pr-3">Nome</th>
-                  <th className="py-2">Ônibus</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {pessoas.map((p) => (
-                  <tr key={`${p.tipo}-${p.id}`}>
-                    <td className="py-2 pr-3 font-medium text-neutral-800">
-                      {p.nome} <span className="text-neutral-400">— {p.extra}</span>
-                    </td>
-                    <td className="py-2">
-                      <select
-                        name={`pessoa_${p.tipo}_${p.id}`}
-                        defaultValue={defaultOnibusIndex(p.tipo, p.id)}
-                        className="field-input"
-                      >
-                        <option value="">Não vai de ônibus</option>
-                        {onibusList.map((_, i) => (
-                          <option key={i} value={i}>
-                            Ônibus {i + 1}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-neutral-400">Adicione ao menos um ônibus para poder distribuir os passageiros.</p>
-        )}
+      <div className="max-w-xs">
+        <TextField label="Horário de saída" name="horario" type="time" defaultValue={horarioInicial} />
       </div>
+
+      {atletasConvocados.length === 0 && comissaoConvocados.length === 0 ? (
+        <p className="text-sm text-neutral-400">
+          Ninguém foi convocado ainda para este jogo. Monte a convocação primeiro.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SecaoPessoas
+            titulo="Atletas"
+            tipo="atleta"
+            convocados={atletasConvocados}
+            extras={extrasAtletas}
+            todos={atletasTodos}
+            incluidos={incluidos}
+            onToggle={toggle}
+            onAdicionar={adicionarAtleta}
+            onRemoverExtra={removerExtraAtleta}
+          />
+          <SecaoPessoas
+            titulo="Comissão Técnica"
+            tipo="comissao"
+            convocados={comissaoConvocados}
+            extras={extrasComissao}
+            todos={comissaoTodos}
+            incluidos={incluidos}
+            onToggle={toggle}
+            onAdicionar={adicionarComissao}
+            onRemoverExtra={removerExtraComissao}
+          />
+        </div>
+      )}
 
       <SubmitButton label="Salvar lista de ônibus" />
     </form>
