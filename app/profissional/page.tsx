@@ -97,6 +97,16 @@ function IconEstoque({ className }: { className?: string }) {
   );
 }
 
+function IconRelatorio({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M8 3h6l4 4v13a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1Z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 12h6M9 15h6M9 18h3" />
+    </svg>
+  );
+}
+
 function IconUsuarios({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
@@ -283,6 +293,15 @@ export default async function ProfissionalPage() {
       corBg: "bg-teal-50",
       corIcone: "text-teal-600",
       moduloChave: "estoque",
+    },
+    {
+      href: "/relatorios/avulso",
+      titulo: "Relatório Avulso",
+      descricao: "Monte uma lista em PDF do seu jeito",
+      icone: IconRelatorio,
+      corBarra: "bg-cyan-700",
+      corBg: "bg-cyan-50",
+      corIcone: "text-cyan-700",
     },
   ];
 

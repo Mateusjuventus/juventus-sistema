@@ -82,6 +82,16 @@ function IconEstoque({ className }: { className?: string }) {
   );
 }
 
+function IconRelatorio({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M8 3h6l4 4v13a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1Z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 12h6M9 15h6M9 18h3" />
+    </svg>
+  );
+}
+
 export default async function BasePage() {
   const supabase = createClient();
   const modulosPermitidos = await getModulosBasePermitidos(supabase);
@@ -258,6 +268,21 @@ export default async function BasePage() {
             </p>
           </Link>
         ) : null}
+
+        <Link
+          href="/base/relatorios/avulso"
+          className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+        >
+          <span className="absolute inset-x-0 top-0 h-1 bg-cyan-700" />
+          <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+            →
+          </span>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
+            <IconRelatorio className="h-6 w-6" />
+          </div>
+          <h2 className="text-lg font-bold text-grena-escuro">Relatório Avulso</h2>
+          <p className="text-sm font-medium text-neutral-500">Monte uma lista em PDF do seu jeito</p>
+        </Link>
       </div>
 
       {emBreve.length > 0 ? (
