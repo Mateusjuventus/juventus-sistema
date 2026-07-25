@@ -6,7 +6,7 @@
 
 export type PeDominante = "destro" | "canhoto" | "ambidestro";
 export type AtletaStatus = "liberado" | "suspenso" | "departamento_medico";
-export type TipoQuarto = "single" | "duplo";
+export type TipoQuarto = "single" | "duplo" | "triplo";
 
 /** Tipo de contrato do atleta no Futebol Profissional — Amador libera o campo "possui contrato de
  * formação" no formulário (ver `AtletaForm`). O Futebol de Base tem uma opção a mais (Iniciação),

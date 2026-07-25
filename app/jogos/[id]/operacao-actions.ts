@@ -16,6 +16,9 @@ function revalidateAba(jogoId: string, aba: "rooming-list" | "onibus" | "credenc
   revalidatePath(`/jogos/${jogoId}/${aba}`);
 }
 
+const LIMITE_POR_TIPO_QUARTO: Record<TipoQuarto, number> = { single: 1, duplo: 2, triplo: 3 };
+const LABEL_TIPO_QUARTO: Record<TipoQuarto, string> = { single: "single", duplo: "duplo", triplo: "triplo" };
+
 // =========================================================
 // ROOMING LIST
 // =========================================================
@@ -41,7 +44,7 @@ export async function saveRoomingList(
   const quartos: { tipo: TipoQuarto }[] = [];
   for (let i = 0; i < quartosCount; i++) {
     const tipo = String(formData.get(`quarto_${i}_tipo`) ?? "");
-    if (tipo === "single" || tipo === "duplo") quartos.push({ tipo });
+    if (tipo === "single" || tipo === "duplo" || tipo === "triplo") quartos.push({ tipo });
   }
 
   const ocupacaoPorQuarto = new Map<number, { pessoaTipo: "atleta" | "comissao" | "staff"; pessoaId: string }[]>();
@@ -64,10 +67,10 @@ export async function saveRoomingList(
 
   for (let i = 0; i < quartos.length; i++) {
     const ocupantes = ocupacaoPorQuarto.get(i) ?? [];
-    const limite = quartos[i].tipo === "single" ? 1 : 2;
+    const limite = LIMITE_POR_TIPO_QUARTO[quartos[i].tipo];
     if (ocupantes.length > limite) {
       return {
-        error: `O quarto ${i + 1} (${quartos[i].tipo === "single" ? "single" : "duplo"}) tem mais gente do que o tipo de quarto permite. Ajuste antes de salvar.`,
+        error: `O quarto ${i + 1} (${LABEL_TIPO_QUARTO[quartos[i].tipo]}) tem mais gente do que o tipo de quarto permite. Ajuste antes de salvar.`,
       };
     }
   }

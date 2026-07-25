@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import type { JogoRow, PessoaTipoRooming } from "@/lib/supabase/types";
+import type { JogoRow, PessoaTipoRooming, TipoQuarto } from "@/lib/supabase/types";
 import { formatCPF } from "@/lib/validation/cpf";
 import { CORES, DocumentoFooter, DocumentoHeader, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
 
@@ -64,6 +64,8 @@ const TIPO_LABEL: Record<PessoaTipoRooming, string> = {
   staff: "Staff",
 };
 
+const TIPO_QUARTO_LABEL: Record<TipoQuarto, string> = { single: "Single", duplo: "Duplo", triplo: "Triplo" };
+
 export interface RoomingListPdfOcupante {
   nome: string;
   tipo: PessoaTipoRooming;
@@ -74,7 +76,7 @@ export interface RoomingListPdfOcupante {
 
 export interface RoomingListPdfQuarto {
   numero: number;
-  tipo: "single" | "duplo";
+  tipo: TipoQuarto;
   ocupantes: RoomingListPdfOcupante[];
 }
 
@@ -136,7 +138,7 @@ export function RoomingListDocument({
             return (
               <View style={styles.quartoBox} key={q.numero} wrap={false}>
                 <Text style={styles.quartoTitulo}>
-                  Quarto {q.numero} — {q.tipo === "single" ? "Single" : "Duplo"}
+                  Quarto {q.numero} — {TIPO_QUARTO_LABEL[q.tipo]}
                 </Text>
                 {ocupantesOrdenados.length === 0 ? (
                   <Text style={styles.emptyState}>Sem ocupantes.</Text>

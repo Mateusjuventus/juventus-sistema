@@ -9,6 +9,8 @@ import type { RoomingListFormState } from "../operacao-actions";
 
 const initialState: RoomingListFormState = {};
 
+const TIPO_QUARTO_LABEL: Record<TipoQuarto, string> = { single: "Single", duplo: "Duplo", triplo: "Triplo" };
+
 export interface QuartoInicial {
   tipo: TipoQuarto;
   ocupantes: { pessoaTipo: PessoaTipoRooming; pessoaId: string }[];
@@ -129,6 +131,13 @@ export function RoomingListForm({
             >
               + Quarto duplo
             </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setQuartos((atual) => [...atual, { tipo: "triplo" }])}
+            >
+              + Quarto triplo
+            </button>
             {quartos.length > 0 ? (
               <button
                 type="button"
@@ -181,7 +190,7 @@ export function RoomingListForm({
                                 <option value="">Sem quarto</option>
                                 {quartos.map((q, i) => (
                                   <option key={i} value={i}>
-                                    Quarto {i + 1} — {q.tipo === "single" ? "Single" : "Duplo"}
+                                    Quarto {i + 1} — {TIPO_QUARTO_LABEL[q.tipo]}
                                   </option>
                                 ))}
                               </select>
