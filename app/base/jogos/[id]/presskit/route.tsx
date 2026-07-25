@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { compararPorPosicao } from "@/lib/futebol/ordem-posicao";
 import { PresskitDocument, type AtletaPresskitItem } from "@/lib/pdf/presskit-document";
 import type {
   AtletaBaseRow,
@@ -50,15 +51,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   ]);
 
   const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
-  const porNumero = (a: AtletaBaseRow, b: AtletaBaseRow) => (a.numero_camisa ?? 999) - (b.numero_camisa ?? 999);
   const atletasTitulares = convocacaoAtletas
     .filter((c) => c.status === "titular")
     .map((c) => c.atleta)
-    .sort(porNumero);
+    .sort(compararPorPosicao);
   const atletasReservas = convocacaoAtletas
     .filter((c) => c.status === "reserva")
     .map((c) => c.atleta)
-    .sort(porNumero);
+    .sort(compararPorPosicao);
 
   const comFoto = async (atletas: AtletaBaseRow[]): Promise<AtletaPresskitItem[]> =>
     Promise.all(

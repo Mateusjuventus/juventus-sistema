@@ -239,6 +239,9 @@ export default async function AtletasBaseCategoriaPage({
               </div>
 
               <div className="flex justify-end gap-2 border-t border-neutral-100 pt-3">
+                <Link href={`/base/atletas/${categoria}/${atleta.id}/ver`} className="btn-secondary">
+                  Ver
+                </Link>
                 <Link href={`/base/atletas/${categoria}/${atleta.id}`} className="btn-secondary">
                   Editar
                 </Link>

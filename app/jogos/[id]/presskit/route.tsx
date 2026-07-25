@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { compararPorPosicao } from "@/lib/futebol/ordem-posicao";
 import { PresskitDocument, type AtletaPresskitItem } from "@/lib/pdf/presskit-document";
 import type {
   AtletaRow,
@@ -54,15 +55,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   ]);
 
   const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaRow & { atleta: AtletaRow })[];
-  const porNumero = (a: AtletaRow, b: AtletaRow) => (a.numero_camisa ?? 999) - (b.numero_camisa ?? 999);
   const atletasTitulares = convocacaoAtletas
     .filter((c) => c.status === "titular")
     .map((c) => c.atleta)
-    .sort(porNumero);
+    .sort(compararPorPosicao);
   const atletasReservas = convocacaoAtletas
     .filter((c) => c.status === "reserva")
     .map((c) => c.atleta)
-    .sort(porNumero);
+    .sort(compararPorPosicao);
 
   // Foto de cada atleta (signed URL temporária) pro cartão do presskit — mesma lógica usada na
   // listagem de Atletas (ver app/atletas/page.tsx).

@@ -243,6 +243,9 @@ export default async function AtletasPage({
               </div>
 
               <div className="flex justify-end gap-2 border-t border-neutral-100 pt-3">
+                <Link href={`/atletas/${atleta.id}/ver`} className="btn-secondary">
+                  Ver
+                </Link>
                 <Link href={`/atletas/${atleta.id}`} className="btn-secondary">
                   Editar
                 </Link>
