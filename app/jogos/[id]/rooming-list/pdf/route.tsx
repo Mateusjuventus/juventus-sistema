@@ -88,6 +88,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const quartosPdf: RoomingListPdfQuarto[] = quartos.map((q, i) => ({
     numero: i + 1,
+    numeroApartamento: q.numero_apartamento,
     ocupantes: ocupantes.filter((o) => o.quarto_id === q.id).map(pessoaDe),
   }));
 

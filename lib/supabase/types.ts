@@ -301,6 +301,7 @@ export interface RoomingListQuartoRow {
   rooming_list_id: string;
   tipo: TipoQuarto;
   ordem: number;
+  numero_apartamento: string | null;
 }
 
 export interface RoomingListOcupanteRow {
@@ -550,6 +551,7 @@ export interface RoomingListQuartoBaseRow {
   rooming_list_id: string;
   tipo: TipoQuarto;
   ordem: number;
+  numero_apartamento: string | null;
 }
 
 export interface RoomingListOcupanteBaseRow {

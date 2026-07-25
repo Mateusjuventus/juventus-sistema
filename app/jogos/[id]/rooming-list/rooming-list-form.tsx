@@ -15,6 +15,7 @@ const TIPO_PESSOA_LABEL: Record<PessoaTipoRooming, string> = { atleta: "Atleta",
 
 export interface QuartoInicial {
   tipo: TipoQuarto;
+  numeroApartamento?: string | null;
   ocupantes: { pessoaTipo: PessoaTipoRooming; pessoaId: string }[];
 }
 
@@ -191,6 +192,13 @@ export function RoomingListForm({
                         {ocupantes.length}/{capacidade}
                       </span>
                     </div>
+
+                    <TextField
+                      label="Apartamento"
+                      name={`quarto_${i}_numero_apartamento`}
+                      defaultValue={quartosIniciais[i]?.numeroApartamento ?? ""}
+                      placeholder="Preencher quando o hotel confirmar"
+                    />
 
                     {ocupantes.length === 0 ? (
                       <p className="text-xs text-neutral-400">Nenhuma pessoa neste quarto ainda.</p>

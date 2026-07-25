@@ -41,10 +41,13 @@ export async function saveRoomingList(
   const checkout = String(formData.get("checkout") ?? "").trim() || null;
   const quartosCount = Number(formData.get("quartosCount") ?? 0) || 0;
 
-  const quartos: { tipo: TipoQuarto }[] = [];
+  const quartos: { tipo: TipoQuarto; numeroApartamento: string | null }[] = [];
   for (let i = 0; i < quartosCount; i++) {
     const tipo = String(formData.get(`quarto_${i}_tipo`) ?? "");
-    if (tipo === "single" || tipo === "duplo" || tipo === "triplo") quartos.push({ tipo });
+    if (tipo === "single" || tipo === "duplo" || tipo === "triplo") {
+      const numeroApartamento = String(formData.get(`quarto_${i}_numero_apartamento`) ?? "").trim() || null;
+      quartos.push({ tipo, numeroApartamento });
+    }
   }
 
   const ocupacaoPorQuarto = new Map<number, { pessoaTipo: "atleta" | "comissao" | "staff"; pessoaId: string }[]>();
@@ -97,7 +100,12 @@ export async function saveRoomingList(
   for (let i = 0; i < quartos.length; i++) {
     const { data: quartoRow, error: quartoError } = await supabase
       .from("rooming_list_quartos")
-      .insert({ rooming_list_id: roomingListId, tipo: quartos[i].tipo, ordem: i + 1 })
+      .insert({
+        rooming_list_id: roomingListId,
+        tipo: quartos[i].tipo,
+        ordem: i + 1,
+        numero_apartamento: quartos[i].numeroApartamento,
+      })
       .select("id")
       .single();
 

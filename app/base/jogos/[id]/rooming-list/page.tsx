@@ -54,6 +54,7 @@ export default async function RoomingListBasePage({
     }
     quartosIniciais = quartos.map((q) => ({
       tipo: q.tipo,
+      numeroApartamento: q.numero_apartamento,
       ocupantes: ocupantes
         .filter((o) => o.quarto_id === q.id)
         .map((o) => ({ pessoaTipo: o.pessoa_tipo, pessoaId: o.pessoa_id })),
