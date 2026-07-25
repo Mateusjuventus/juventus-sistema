@@ -1,29 +1,56 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
-import type { AtletaBaseRow, ComissaoTecnicaBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
-import { RelatorioAvulsoFormBase, type PessoaSelecionavel } from "./relatorio-avulso-form-base";
+import type {
+  AtletaBaseRow,
+  ComissaoTecnicaBaseRow,
+  JogoBaseRow,
+  StaffOperacionalBaseComFuncaoRow,
+} from "@/lib/supabase/types";
+import { RelatorioAvulsoFormBase, type JogoOpcao, type PessoaSelecionavel } from "./relatorio-avulso-form-base";
 
 /** Espelha `app/relatorios/avulso/page.tsx` para o Futebol de Base. */
 export default async function RelatorioAvulsoBasePage() {
   const supabase = createClient();
 
-  const [{ data: atletasData }, { data: comissaoData }, { data: staffData }] = await Promise.all([
-    supabase.from("atletas_base").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
-    supabase
-      .from("comissao_tecnica_base")
-      .select("id, nome_completo, funcao")
-      .order("nome_completo", { ascending: true }),
-    supabase
-      .from("staff_operacional_base")
-      .select("*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome)")
-      .eq("ativo", true)
-      .order("nome_completo", { ascending: true }),
-  ]);
+  const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, { data: jogosData }] =
+    await Promise.all([
+      supabase.from("atletas_base").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
+      supabase
+        .from("comissao_tecnica_base")
+        .select("id, nome_completo, funcao")
+        .order("nome_completo", { ascending: true }),
+      supabase
+        .from("staff_operacional_base")
+        .select("*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome)")
+        .eq("ativo", true)
+        .order("nome_completo", { ascending: true }),
+      supabase
+        .from("jogos_base")
+        .select("id, adversario_nome, competicao, data_jogo, horario, local_estadio")
+        .order("data_jogo", { ascending: false }),
+    ]);
 
   const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "posicao">[];
   const comissao = (comissaoData ?? []) as Pick<ComissaoTecnicaBaseRow, "id" | "nome_completo" | "funcao">[];
   const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
+  const jogos = (jogosData ?? []) as Pick<
+    JogoBaseRow,
+    "id" | "adversario_nome" | "competicao" | "data_jogo" | "horario" | "local_estadio"
+  >[];
+
+  const jogosCadastrados: JogoOpcao[] = jogos.map((j) => {
+    const [ano, mes, dia] = j.data_jogo.split("-");
+    return {
+      id: j.id,
+      label: `${j.adversario_nome} — ${dia}/${mes}/${ano}`,
+      adversario: j.adversario_nome,
+      competicao: j.competicao,
+      data: j.data_jogo,
+      horario: j.horario ?? "",
+      local: j.local_estadio ?? "",
+    };
+  });
 
   const atletasSelecionaveis: PessoaSelecionavel[] = atletas.map((a) => ({
     id: a.id,
@@ -55,6 +82,7 @@ export default async function RelatorioAvulsoBasePage() {
       <div className="mt-4">
         <RelatorioAvulsoFormBase
           actionUrl="/base/relatorios/avulso/pdf"
+          jogosCadastrados={jogosCadastrados}
           atletas={atletasSelecionaveis}
           comissao={comissaoSelecionavel}
           staff={staffSelecionavel}
