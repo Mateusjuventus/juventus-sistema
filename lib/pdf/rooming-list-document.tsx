@@ -12,6 +12,14 @@ const styles = StyleSheet.create({
   },
   hotelLinha: { fontSize: 9.5, color: "#404040", marginBottom: 2 },
   hotelLabel: { fontWeight: 700, color: CORES.grenaEscuro },
+  secaoTitulo: {
+    fontSize: 9.5,
+    fontWeight: 700,
+    color: CORES.grenaEscuro,
+    textTransform: "uppercase",
+    marginBottom: 4,
+    marginTop: 12,
+  },
   tabela: {
     borderWidth: 0.5,
     borderColor: "#c7c7c7",
@@ -35,7 +43,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 0.5,
     borderRightColor: "#c7c7c7",
   },
-  colAtletas: { flex: 1 },
+  colNomes: { flex: 1 },
   grupoQuarto: {
     flexDirection: "row",
     borderTopWidth: 0.5,
@@ -48,7 +56,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 0.5,
     borderRightColor: "#c7c7c7",
   },
-  colAtletasCorpo: { flex: 1, paddingVertical: 2 },
+  colNomesCorpo: { flex: 1, paddingVertical: 2 },
   nomeLinha: {
     fontSize: 8.5,
     color: "#262626",
@@ -60,7 +68,6 @@ const styles = StyleSheet.create({
 });
 
 const EXTRA_LABEL: Partial<Record<PessoaTipoRooming, string>> = {
-  comissao: "Comissão Técnica",
   staff: "Staff",
 };
 
@@ -75,6 +82,54 @@ export interface RoomingListPdfOcupante {
 export interface RoomingListPdfQuarto {
   numero: number;
   ocupantes: RoomingListPdfOcupante[];
+}
+
+/** Uma seção de quartos filtrada por grupo de pessoa (Atletas, ou Comissão Técnica/Staff) — cada
+ * quarto que tiver pelo menos uma pessoa desse grupo vira uma linha, com a coluna do apartamento
+ * em branco de propósito (o número real só chega depois que o hotel confirma, e aí é preenchido à
+ * mão nesse espaço). */
+function TabelaQuartos({
+  titulo,
+  quartos,
+  mensagemVazia,
+}: {
+  titulo: string;
+  quartos: RoomingListPdfQuarto[];
+  mensagemVazia: string;
+}) {
+  return (
+    <View wrap={false}>
+      <Text style={styles.secaoTitulo}>{titulo}</Text>
+      {quartos.length === 0 ? (
+        <Text style={sharedStyles.emptyState}>{mensagemVazia}</Text>
+      ) : (
+        <View style={styles.tabela}>
+          <View style={styles.linhaCabecalho}>
+            <Text style={[styles.colApartamento, styles.headerCell]}>Apartamento</Text>
+            <Text style={[styles.colNomes, styles.headerCell]}>{titulo}</Text>
+          </View>
+
+          {quartos.map((q, i) => (
+            <View
+              key={q.numero}
+              style={[styles.grupoQuarto, i % 2 === 0 ? styles.grupoPar : styles.grupoImpar]}
+              wrap={false}
+            >
+              <View style={styles.colApartamentoCorpo} />
+              <View style={styles.colNomesCorpo}>
+                {q.ocupantes.map((o, j) => (
+                  <Text key={j} style={styles.nomeLinha}>
+                    {o.nome}
+                    {EXTRA_LABEL[o.tipo] ? <Text style={styles.nomeExtra}> — {EXTRA_LABEL[o.tipo]}</Text> : null}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
 }
 
 export function RoomingListDocument({
@@ -96,6 +151,14 @@ export function RoomingListDocument({
   checkout: string | null;
   quartos: RoomingListPdfQuarto[];
 }) {
+  const quartosAtletas = quartos
+    .map((q) => ({ numero: q.numero, ocupantes: q.ocupantes.filter((o) => o.tipo === "atleta") }))
+    .filter((q) => q.ocupantes.length > 0);
+
+  const quartosComissao = quartos
+    .map((q) => ({ numero: q.numero, ocupantes: q.ocupantes.filter((o) => o.tipo !== "atleta") }))
+    .filter((q) => q.ocupantes.length > 0);
+
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
@@ -125,44 +188,18 @@ export function RoomingListDocument({
         {quartos.length === 0 ? (
           <Text style={sharedStyles.emptyState}>Nenhum quarto registrado.</Text>
         ) : (
-          <View style={styles.tabela}>
-            <View style={styles.linhaCabecalho}>
-              <Text style={[styles.colApartamento, styles.headerCell]}>Apartamento</Text>
-              <Text style={[styles.colAtletas, styles.headerCell]}>Atletas</Text>
-            </View>
-
-            {quartos.map((q, i) => {
-              // Atletas primeiro, depois Comissão Técnica, depois Staff — separa visualmente quem é
-              // quem dentro do mesmo quarto.
-              const ordem: PessoaTipoRooming[] = ["atleta", "comissao", "staff"];
-              const ocupantesOrdenados = [...q.ocupantes].sort(
-                (a, b) => ordem.indexOf(a.tipo) - ordem.indexOf(b.tipo),
-              );
-              return (
-                <View
-                  key={q.numero}
-                  style={[styles.grupoQuarto, i % 2 === 0 ? styles.grupoPar : styles.grupoImpar]}
-                  wrap={false}
-                >
-                  {/* Coluna do apartamento fica em branco de propósito — o número real só chega
-                      depois que o hotel confirma, e aí é preenchido à mão neste espaço. */}
-                  <View style={styles.colApartamentoCorpo} />
-                  <View style={styles.colAtletasCorpo}>
-                    {ocupantesOrdenados.length === 0 ? (
-                      <Text style={styles.emptyState}>Sem ocupantes.</Text>
-                    ) : (
-                      ocupantesOrdenados.map((o, j) => (
-                        <Text key={j} style={styles.nomeLinha}>
-                          {o.nome}
-                          {EXTRA_LABEL[o.tipo] ? <Text style={styles.nomeExtra}> — {EXTRA_LABEL[o.tipo]}</Text> : null}
-                        </Text>
-                      ))
-                    )}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+          <>
+            <TabelaQuartos
+              titulo="Atletas"
+              quartos={quartosAtletas}
+              mensagemVazia="Nenhum atleta com quarto atribuído."
+            />
+            <TabelaQuartos
+              titulo="Comissão Técnica"
+              quartos={quartosComissao}
+              mensagemVazia="Nenhum integrante da comissão técnica com quarto atribuído."
+            />
+          </>
         )}
 
         <DocumentoFooter />
