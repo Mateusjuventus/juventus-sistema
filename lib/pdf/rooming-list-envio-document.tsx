@@ -5,28 +5,31 @@ import { CORES, DocumentoFooter, DocumentoHeader, formatDataBr, sharedStyles, ty
 /**
  * Versão da Rooming List para ENVIAR aos atletas e comissão técnica — sem nenhum dado pessoal
  * (sem Nascimento/CPF/RG, que só interessam à operação interna do clube). Mostra só a distribuição
- * dos quartos com o número do apartamento que o hotel confirmou. Tipografia maior e mais espaçada
- * que a versão interna (lib/pdf/rooming-list-document.tsx) — como tem só duas colunas, sobra espaço
- * pra deixar mais legível pra quem só vai bater o olho rápido.
+ * dos quartos com o número do apartamento que o hotel confirmou. Atletas e Comissão Técnica ficam
+ * lado a lado (duas colunas) pra caber tudo numa página só, junto com as informações do jogo — com
+ * elenco grande numa coluna só (formato anterior) a lista de atletas sozinha já passava de uma
+ * página e a Comissão Técnica acabava indo pra página 2.
  */
 
 const styles = StyleSheet.create({
   hotelBox: {
     marginTop: 4,
-    marginBottom: 14,
-    padding: 12,
+    marginBottom: 12,
+    padding: 10,
     backgroundColor: "#f5f5f5",
     borderRadius: 5,
   },
-  hotelLinha: { fontSize: 10.5, color: "#404040", marginBottom: 3 },
+  hotelLinha: { fontSize: 9.5, color: "#404040", marginBottom: 2 },
   hotelLabel: { fontWeight: 700, color: CORES.grenaEscuro },
+  colunas: { flexDirection: "row" },
+  coluna: { flex: 1 },
+  colunaEsquerda: { marginRight: 14 },
   secaoTitulo: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 700,
     color: CORES.grenaEscuro,
     textTransform: "uppercase",
-    marginBottom: 6,
-    marginTop: 16,
+    marginBottom: 5,
     letterSpacing: 0.5,
   },
   tabela: {
@@ -40,14 +43,14 @@ const styles = StyleSheet.create({
     backgroundColor: CORES.grenaEscuro,
   },
   headerCell: {
-    fontSize: 8.5,
+    fontSize: 7.5,
     fontWeight: 700,
     color: "#ffffff",
     textTransform: "uppercase",
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
   },
-  colApartamento: { width: 100, borderRightWidth: 0.5, borderRightColor: "#c7c7c7" },
+  colApartamento: { width: 56, borderRightWidth: 0.5, borderRightColor: "#c7c7c7" },
   colNome: { flex: 1 },
   grupoQuarto: {
     flexDirection: "row",
@@ -57,21 +60,21 @@ const styles = StyleSheet.create({
   grupoPar: { backgroundColor: "#ffffff" },
   grupoImpar: { backgroundColor: "#f7f2f5" },
   colApartamentoCorpo: {
-    width: 100,
+    width: 56,
     borderRightWidth: 0.5,
     borderRightColor: "#c7c7c7",
     justifyContent: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
-  aptoTexto: { fontSize: 13, fontWeight: 700, color: CORES.grena },
-  colNomesCorpo: { flex: 1, paddingVertical: 5 },
+  aptoTexto: { fontSize: 10.5, fontWeight: 700, color: CORES.grena },
+  colNomesCorpo: { flex: 1, paddingVertical: 3 },
   nomeLinha: {
-    fontSize: 11,
+    fontSize: 9,
     color: "#262626",
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: 2.5,
+    paddingHorizontal: 8,
   },
-  emptyState: { fontSize: 9.5, color: "#a3a3a3", paddingVertical: 8, paddingHorizontal: 10 },
+  emptyState: { fontSize: 8.5, color: "#a3a3a3", paddingVertical: 6, paddingHorizontal: 8 },
 });
 
 export interface RoomingListEnvioOcupante {
@@ -95,14 +98,14 @@ function TabelaQuartos({
   mensagemVazia: string;
 }) {
   return (
-    <View wrap={false}>
+    <View>
       <Text style={styles.secaoTitulo}>{titulo}</Text>
       {quartos.length === 0 ? (
         <Text style={styles.emptyState}>{mensagemVazia}</Text>
       ) : (
         <View style={styles.tabela}>
           <View style={styles.linhaCabecalho}>
-            <Text style={[styles.colApartamento, styles.headerCell]}>Apartamento</Text>
+            <Text style={[styles.colApartamento, styles.headerCell]}>Apto</Text>
             <Text style={[styles.colNome, styles.headerCell]}>Nome</Text>
           </View>
 
@@ -186,18 +189,22 @@ export function RoomingListEnvioDocument({
         {quartos.length === 0 ? (
           <Text style={styles.emptyState}>Nenhum quarto registrado.</Text>
         ) : (
-          <>
-            <TabelaQuartos
-              titulo="Atletas"
-              quartos={quartosAtletas}
-              mensagemVazia="Nenhum atleta com quarto atribuído."
-            />
-            <TabelaQuartos
-              titulo="Comissão Técnica"
-              quartos={quartosComissao}
-              mensagemVazia="Nenhum integrante da comissão técnica com quarto atribuído."
-            />
-          </>
+          <View style={styles.colunas}>
+            <View style={[styles.coluna, styles.colunaEsquerda]}>
+              <TabelaQuartos
+                titulo="Atletas"
+                quartos={quartosAtletas}
+                mensagemVazia="Nenhum atleta com quarto atribuído."
+              />
+            </View>
+            <View style={styles.coluna}>
+              <TabelaQuartos
+                titulo="Comissão Técnica"
+                quartos={quartosComissao}
+                mensagemVazia="Nenhum integrante da comissão técnica com quarto atribuído."
+              />
+            </View>
+          </View>
         )}
 
         <DocumentoFooter />
