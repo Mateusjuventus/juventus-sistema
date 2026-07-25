@@ -302,6 +302,7 @@ export default async function ProfissionalPage() {
       corBarra: "bg-cyan-700",
       corBg: "bg-cyan-50",
       corIcone: "text-cyan-700",
+      moduloChave: "relatorios_avulso",
     },
   ];
 

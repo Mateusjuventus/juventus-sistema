@@ -16,6 +16,7 @@ const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = [
   "solicitacoes",
   "estoque",
   "financeiro",
+  "relatorios_avulso",
 ];
 
 function IconAtletas({ className }: { className?: string }) {
@@ -269,20 +270,22 @@ export default async function BasePage() {
           </Link>
         ) : null}
 
-        <Link
-          href="/base/relatorios/avulso"
-          className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-        >
-          <span className="absolute inset-x-0 top-0 h-1 bg-cyan-700" />
-          <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
-            →
-          </span>
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
-            <IconRelatorio className="h-6 w-6" />
-          </div>
-          <h2 className="text-lg font-bold text-grena-escuro">Relatório Avulso</h2>
-          <p className="text-sm font-medium text-neutral-500">Monte uma lista em PDF do seu jeito</p>
-        </Link>
+        {temModulo("relatorios_avulso") ? (
+          <Link
+            href="/base/relatorios/avulso"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-cyan-700" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
+              <IconRelatorio className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Relatório Avulso</h2>
+            <p className="text-sm font-medium text-neutral-500">Monte uma lista em PDF do seu jeito</p>
+          </Link>
+        ) : null}
       </div>
 
       {emBreve.length > 0 ? (

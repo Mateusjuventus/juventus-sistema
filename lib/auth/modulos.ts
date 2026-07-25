@@ -17,7 +17,8 @@ export type ModuloChave =
   | "jogos"
   | "solicitacoes"
   | "estoque"
-  | "financeiro";
+  | "financeiro"
+  | "relatorios_avulso";
 
 export interface ModuloInfo {
   chave: ModuloChave;
@@ -33,6 +34,7 @@ export const MODULOS: ModuloInfo[] = [
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/estoque" },
   { chave: "financeiro", label: "Prestação de Contas", prefixo: "/financeiro" },
+  { chave: "relatorios_avulso", label: "Relatório Avulso", prefixo: "/relatorios/avulso" },
 ];
 
 /** Todas as chaves de módulo — usado como padrão de quem ainda não tem `modulos_permitidos`
