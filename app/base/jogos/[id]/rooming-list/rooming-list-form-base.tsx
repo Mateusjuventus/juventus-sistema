@@ -10,6 +10,8 @@ import type { RoomingListFormState } from "../operacao-actions";
 const initialState: RoomingListFormState = {};
 
 const TIPO_QUARTO_LABEL: Record<TipoQuarto, string> = { single: "Single", duplo: "Duplo", triplo: "Triplo" };
+const LIMITE_POR_TIPO_QUARTO: Record<TipoQuarto, number> = { single: 1, duplo: 2, triplo: 3 };
+const TIPO_PESSOA_LABEL: Record<PessoaTipoRooming, string> = { atleta: "Atleta", comissao: "Comissão", staff: "Staff" };
 
 export interface QuartoInicial {
   tipo: TipoQuarto;
@@ -23,7 +25,15 @@ interface PessoaOpcao {
   extra: string;
 }
 
-/** Espelha `app/jogos/[id]/rooming-list/rooming-list-form.tsx` para o Futebol de Base. */
+function chavePessoa(tipo: PessoaTipoRooming, id: string): string {
+  return `${tipo}:${id}`;
+}
+
+/**
+ * Espelha `app/jogos/[id]/rooming-list/rooming-list-form.tsx` para o Futebol de Base — organizado
+ * por QUARTO (cada quarto é um cartão com quem já está nele e um jeito de adicionar/remover
+ * pessoas direto ali), em vez de uma tabela só com todo mundo e um menu "Quarto" por pessoa.
+ */
 export function RoomingListFormBase({
   action,
   jogoId,
@@ -52,29 +62,43 @@ export function RoomingListFormBase({
     quartosIniciais.map((q) => ({ tipo: q.tipo })),
   );
 
-  const defaultQuartoIndex = (pessoaTipo: PessoaTipoRooming, pessoaId: string): string => {
-    const index = quartosIniciais.findIndex((q) =>
-      q.ocupantes.some((o) => o.pessoaTipo === pessoaTipo && o.pessoaId === pessoaId),
-    );
-    return index >= 0 ? String(index) : "";
-  };
-
-  const gruposPessoas: { titulo: string; pessoas: PessoaOpcao[] }[] = [
-    {
-      titulo: "Atletas",
-      pessoas: atletas.map((a) => ({ tipo: "atleta" as const, id: a.id, nome: a.nome_completo, extra: a.posicao })),
-    },
-    {
-      titulo: "Comissão Técnica",
-      pessoas: comissao.map((c) => ({
-        tipo: "comissao" as const,
-        id: c.id,
-        nome: c.nome_completo,
-        extra: c.funcao,
-      })),
-    },
+  const pessoas: PessoaOpcao[] = [
+    ...atletas.map((a) => ({ tipo: "atleta" as const, id: a.id, nome: a.nome_completo, extra: a.posicao })),
+    ...comissao.map((c) => ({ tipo: "comissao" as const, id: c.id, nome: c.nome_completo, extra: c.funcao })),
   ];
-  const totalPessoas = gruposPessoas.reduce((soma, g) => soma + g.pessoas.length, 0);
+
+  const [atribuicoes, setAtribuicoes] = useState<Record<string, number | null>>(() => {
+    const mapa: Record<string, number | null> = {};
+    for (const p of pessoas) {
+      const index = quartosIniciais.findIndex((q) =>
+        q.ocupantes.some((o) => o.pessoaTipo === p.tipo && o.pessoaId === p.id),
+      );
+      mapa[chavePessoa(p.tipo, p.id)] = index >= 0 ? index : null;
+    }
+    return mapa;
+  });
+
+  function atribuir(chave: string, quartoIndex: number | null) {
+    setAtribuicoes((atual) => ({ ...atual, [chave]: quartoIndex }));
+  }
+
+  function adicionarQuarto(tipo: TipoQuarto) {
+    setQuartos((atual) => [...atual, { tipo }]);
+  }
+
+  function removerUltimoQuarto() {
+    const removidoIndex = quartos.length - 1;
+    setQuartos((atual) => atual.slice(0, -1));
+    setAtribuicoes((atual) => {
+      const copia = { ...atual };
+      for (const chave of Object.keys(copia)) {
+        if (copia[chave] === removidoIndex) copia[chave] = null;
+      }
+      return copia;
+    });
+  }
+
+  const semQuarto = pessoas.filter((p) => atribuicoes[chavePessoa(p.tipo, p.id)] == null);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -83,6 +107,17 @@ export function RoomingListFormBase({
       {quartos.map((q, i) => (
         <input key={i} type="hidden" name={`quarto_${i}_tipo`} value={q.tipo} />
       ))}
+      {pessoas.map((p) => {
+        const chave = chavePessoa(p.tipo, p.id);
+        return (
+          <input
+            key={chave}
+            type="hidden"
+            name={`pessoa_${p.tipo}_${p.id}`}
+            value={atribuicoes[chave] ?? ""}
+          />
+        );
+      })}
 
       {!mandante ? (
         <p className="rounded-md bg-dourado/10 px-3 py-2 text-xs text-grena-escuro">
@@ -113,33 +148,17 @@ export function RoomingListFormBase({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-grena">Quartos</h3>
           <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setQuartos((atual) => [...atual, { tipo: "single" }])}
-            >
+            <button type="button" className="btn-secondary" onClick={() => adicionarQuarto("single")}>
               + Quarto single
             </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setQuartos((atual) => [...atual, { tipo: "duplo" }])}
-            >
+            <button type="button" className="btn-secondary" onClick={() => adicionarQuarto("duplo")}>
               + Quarto duplo
             </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setQuartos((atual) => [...atual, { tipo: "triplo" }])}
-            >
+            <button type="button" className="btn-secondary" onClick={() => adicionarQuarto("triplo")}>
               + Quarto triplo
             </button>
             {quartos.length > 0 ? (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setQuartos((atual) => atual.slice(0, -1))}
-              >
+              <button type="button" className="btn-secondary" onClick={removerUltimoQuarto}>
                 Remover último
               </button>
             ) : null}
@@ -148,59 +167,93 @@ export function RoomingListFormBase({
 
         {quartos.length === 0 ? (
           <p className="text-sm text-neutral-400">Nenhum quarto adicionado ainda.</p>
-        ) : null}
-
-        {totalPessoas === 0 ? (
+        ) : pessoas.length === 0 ? (
           <p className="text-sm text-neutral-400">
             Ninguém foi convocado ainda para este jogo. Monte a convocação primeiro.
           </p>
-        ) : quartos.length > 0 ? (
-          <div className="space-y-5">
-            {gruposPessoas
-              .filter((g) => g.pessoas.length > 0)
-              .map((g) => (
-                <div key={g.titulo}>
-                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    {g.titulo}
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[420px] text-left text-sm">
-                      <thead className="text-neutral-500">
-                        <tr>
-                          <th className="py-2 pr-3">Nome</th>
-                          <th className="py-2">Quarto</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-100">
-                        {g.pessoas.map((p) => (
-                          <tr key={`${p.tipo}-${p.id}`}>
-                            <td className="py-2 pr-3 font-medium text-neutral-800">
-                              {p.nome} <span className="text-neutral-400">— {p.extra}</span>
-                            </td>
-                            <td className="py-2">
-                              <select
-                                name={`pessoa_${p.tipo}_${p.id}`}
-                                defaultValue={defaultQuartoIndex(p.tipo, p.id)}
-                                className="field-input"
-                              >
-                                <option value="">Sem quarto</option>
-                                {quartos.map((q, i) => (
-                                  <option key={i} value={i}>
-                                    Quarto {i + 1} — {TIPO_QUARTO_LABEL[q.tipo]}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
-          </div>
         ) : (
-          <p className="text-sm text-neutral-400">Adicione ao menos um quarto para poder distribuir as pessoas.</p>
+          <>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {quartos.map((q, i) => {
+                const capacidade = LIMITE_POR_TIPO_QUARTO[q.tipo];
+                const ocupantes = pessoas.filter((p) => atribuicoes[chavePessoa(p.tipo, p.id)] === i);
+                const cheio = ocupantes.length >= capacidade;
+                return (
+                  <div key={i} className="card space-y-2 p-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-grena-escuro">
+                        Quarto {i + 1} — {TIPO_QUARTO_LABEL[q.tipo]}
+                      </h4>
+                      <span className={`text-xs ${cheio ? "font-semibold text-grena" : "text-neutral-400"}`}>
+                        {ocupantes.length}/{capacidade}
+                      </span>
+                    </div>
+
+                    {ocupantes.length === 0 ? (
+                      <p className="text-xs text-neutral-400">Nenhuma pessoa neste quarto ainda.</p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {ocupantes.map((p) => (
+                          <li
+                            key={chavePessoa(p.tipo, p.id)}
+                            className="flex items-center justify-between gap-2 rounded-md bg-neutral-50 px-2 py-1 text-sm"
+                          >
+                            <span className="text-neutral-800">
+                              {p.nome} <span className="text-neutral-400">— {TIPO_PESSOA_LABEL[p.tipo]}</span>
+                            </span>
+                            <button
+                              type="button"
+                              className="text-xs font-semibold text-red-600 hover:underline"
+                              onClick={() => atribuir(chavePessoa(p.tipo, p.id), null)}
+                            >
+                              Remover
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {!cheio && semQuarto.length > 0 ? (
+                      <select
+                        className="field-input"
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) atribuir(e.target.value, i);
+                        }}
+                      >
+                        <option value="">+ Adicionar pessoa...</option>
+                        {semQuarto.map((p) => (
+                          <option key={chavePessoa(p.tipo, p.id)} value={chavePessoa(p.tipo, p.id)}>
+                            {p.nome} — {TIPO_PESSOA_LABEL[p.tipo]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Sem quarto ({semQuarto.length})
+              </h4>
+              {semQuarto.length === 0 ? (
+                <p className="text-xs text-neutral-400">Todo mundo já tem quarto.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {semQuarto.map((p) => (
+                    <span
+                      key={chavePessoa(p.tipo, p.id)}
+                      className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-600"
+                    >
+                      {p.nome} <span className="text-neutral-400">— {TIPO_PESSOA_LABEL[p.tipo]}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
