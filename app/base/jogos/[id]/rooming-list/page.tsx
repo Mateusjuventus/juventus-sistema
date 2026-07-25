@@ -7,6 +7,7 @@ import type { RoomingListBaseRow, RoomingListOcupanteBaseRow, RoomingListQuartoB
 import { getJogoBaseEConvocados } from "../operacao-data";
 import { RoomingListFormBase, type QuartoInicial } from "./rooming-list-form-base";
 import { saveRoomingListBase } from "../operacao-actions";
+import { RoomingListPdfLinks } from "@/components/rooming-list-pdf-links";
 
 /** Espelha `app/jogos/[id]/rooming-list/page.tsx` para o Futebol de Base. */
 export default async function RoomingListBasePage({
@@ -70,24 +71,10 @@ export default async function RoomingListBasePage({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Rooming List</h1>
         {temRoomingList ? (
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`/base/jogos/${jogo.id}/rooming-list/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary"
-            >
-              PDF completo (uso interno)
-            </a>
-            <a
-              href={`/base/jogos/${jogo.id}/rooming-list/pdf-envio`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary"
-            >
-              PDF para atletas/comissão
-            </a>
-          </div>
+          <RoomingListPdfLinks
+            pdfHref={`/base/jogos/${jogo.id}/rooming-list/pdf`}
+            pdfEnvioHref={`/base/jogos/${jogo.id}/rooming-list/pdf-envio`}
+          />
         ) : (
           <span className="text-xs text-neutral-400">Salve ao menos um quarto para liberar o PDF.</span>
         )}

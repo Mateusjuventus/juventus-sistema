@@ -7,6 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { RoomingListDocument, type RoomingListPdfOcupante, type RoomingListPdfQuarto } from "@/lib/pdf/rooming-list-document";
+import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
@@ -18,7 +19,9 @@ import type {
 } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/rooming-list/pdf/route.tsx` para o Futebol de Base. */
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const ordemAtletas = parseOrdemApartamento(new URL(request.url).searchParams.get("ordemAtletas"));
+
   const supabase = createClient();
 
   const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
@@ -106,6 +109,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       checkin={roomingList.checkin}
       checkout={roomingList.checkout}
       quartos={quartosPdf}
+      ordemAtletas={ordemAtletas}
     />,
   );
 

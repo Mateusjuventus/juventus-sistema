@@ -86,6 +86,53 @@ export function formatDataBr(iso: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+/** Opção de ordenação dos quartos de Atletas na Rooming List, pelo número do apartamento — ver
+ * `ordenarQuartosPorApartamento` abaixo. Comissão Técnica nunca usa isso: fica sempre na ordem
+ * livre em que os quartos foram criados/organizados. */
+export type OrdemApartamento = "apto_asc" | "apto_desc";
+
+/** Extrai o primeiro número encontrado no texto do apartamento (ex: "12B" → 12, "Bloco 2 - 304" →
+ * 2) pra permitir ordenação numérica mesmo quando o campo mistura letras e números. `null` se não
+ * houver nenhum dígito (ou o campo estiver vazio). */
+function extrairNumeroApartamento(numeroApartamento: string | null): number | null {
+  if (!numeroApartamento) return null;
+  const match = numeroApartamento.match(/\d+/);
+  if (!match) return null;
+  return parseInt(match[0], 10);
+}
+
+/**
+ * Ordena uma lista de quartos pelo número do apartamento, ascendente ou descendente. Quartos sem
+ * número de apartamento reconhecível sempre vão pro final, independente da direção — não faz
+ * sentido misturá-los no meio de uma ordenação numérica. Se `ordem` for `undefined`, retorna a
+ * lista original sem nenhuma alteração (usado pra Comissão Técnica, que fica sempre na ordem livre
+ * de cadastro).
+ */
+export function ordenarQuartosPorApartamento<T extends { numeroApartamento: string | null }>(
+  quartos: T[],
+  ordem: OrdemApartamento | undefined,
+): T[] {
+  if (!ordem) return quartos;
+
+  const comNumero: { item: T; numero: number }[] = [];
+  const semNumero: T[] = [];
+  for (const item of quartos) {
+    const numero = extrairNumeroApartamento(item.numeroApartamento);
+    if (numero === null) semNumero.push(item);
+    else comNumero.push({ item, numero });
+  }
+  comNumero.sort((a, b) => (ordem === "apto_asc" ? a.numero - b.numero : b.numero - a.numero));
+
+  return [...comNumero.map((c) => c.item), ...semNumero];
+}
+
+/** Lê o parâmetro `ordemAtletas` de uma URL de PDF de Rooming List e valida contra os valores
+ * aceitos — qualquer outra coisa (ausente, vazio, valor inesperado) vira `undefined`, ou seja, sem
+ * ordenação forçada (ordem de cadastro). */
+export function parseOrdemApartamento(valor: string | null): OrdemApartamento | undefined {
+  return valor === "apto_asc" || valor === "apto_desc" ? valor : undefined;
+}
+
 export type LogoSrc = string | { data: Buffer; format: "png" | "jpg" } | null;
 
 export function DocumentoHeader({

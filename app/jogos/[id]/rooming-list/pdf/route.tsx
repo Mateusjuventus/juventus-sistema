@@ -7,6 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { RoomingListDocument, type RoomingListPdfOcupante, type RoomingListPdfQuarto } from "@/lib/pdf/rooming-list-document";
+import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
@@ -17,7 +18,9 @@ import type {
   StaffOperacionalRow,
 } from "@/lib/supabase/types";
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const ordemAtletas = parseOrdemApartamento(new URL(request.url).searchParams.get("ordemAtletas"));
+
   const supabase = createClient();
 
   const { data: jogoData } = await supabase.from("jogos").select("*").eq("id", params.id).single();
@@ -105,6 +108,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       checkin={roomingList.checkin}
       checkout={roomingList.checkout}
       quartos={quartosPdf}
+      ordemAtletas={ordemAtletas}
     />,
   );
 

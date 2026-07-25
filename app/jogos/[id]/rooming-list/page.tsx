@@ -7,6 +7,7 @@ import type { RoomingListOcupanteRow, RoomingListQuartoRow, RoomingListRow } fro
 import { getJogoEConvocados } from "../operacao-data";
 import { RoomingListForm, type QuartoInicial } from "./rooming-list-form";
 import { saveRoomingList } from "../operacao-actions";
+import { RoomingListPdfLinks } from "@/components/rooming-list-pdf-links";
 
 export default async function RoomingListPage({ params }: { params: { id: string } }) {
   const dados = await getJogoEConvocados(params.id);
@@ -65,24 +66,10 @@ export default async function RoomingListPage({ params }: { params: { id: string
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Rooming List</h1>
         {temRoomingList ? (
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`/jogos/${jogo.id}/rooming-list/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary"
-            >
-              PDF completo (uso interno)
-            </a>
-            <a
-              href={`/jogos/${jogo.id}/rooming-list/pdf-envio`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary"
-            >
-              PDF para atletas/comissão
-            </a>
-          </div>
+          <RoomingListPdfLinks
+            pdfHref={`/jogos/${jogo.id}/rooming-list/pdf`}
+            pdfEnvioHref={`/jogos/${jogo.id}/rooming-list/pdf-envio`}
+          />
         ) : (
           <span className="text-xs text-neutral-400">Salve ao menos um quarto para liberar o PDF.</span>
         )}

@@ -1,6 +1,15 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { JogoRow, PessoaTipoRooming } from "@/lib/supabase/types";
-import { CORES, DocumentoFooter, DocumentoHeader, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import {
+  CORES,
+  DocumentoFooter,
+  DocumentoHeader,
+  formatDataBr,
+  ordenarQuartosPorApartamento,
+  sharedStyles,
+  type LogoSrc,
+  type OrdemApartamento,
+} from "./logistica-shared";
 
 const styles = StyleSheet.create({
   hotelBox: {
@@ -157,6 +166,7 @@ export function RoomingListDocument({
   checkin,
   checkout,
   quartos,
+  ordemAtletas,
 }: {
   jogo: JogoRow;
   juventusLogoSrc: LogoSrc;
@@ -166,10 +176,16 @@ export function RoomingListDocument({
   checkin: string | null;
   checkout: string | null;
   quartos: RoomingListPdfQuarto[];
+  /** Ordena a tabela de Atletas pelo número do apartamento (ver `ordenarQuartosPorApartamento`).
+   * Comissão Técnica nunca é afetada — fica sempre na ordem livre de cadastro. */
+  ordemAtletas?: OrdemApartamento;
 }) {
-  const quartosAtletas = quartos
-    .map((q) => ({ numero: q.numero, numeroApartamento: q.numeroApartamento, ocupantes: q.ocupantes.filter((o) => o.tipo === "atleta") }))
-    .filter((q) => q.ocupantes.length > 0);
+  const quartosAtletas = ordenarQuartosPorApartamento(
+    quartos
+      .map((q) => ({ numero: q.numero, numeroApartamento: q.numeroApartamento, ocupantes: q.ocupantes.filter((o) => o.tipo === "atleta") }))
+      .filter((q) => q.ocupantes.length > 0),
+    ordemAtletas,
+  );
 
   const quartosComissao = quartos
     .map((q) => ({ numero: q.numero, numeroApartamento: q.numeroApartamento, ocupantes: q.ocupantes.filter((o) => o.tipo !== "atleta") }))

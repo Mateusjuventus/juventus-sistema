@@ -11,6 +11,7 @@ import {
   type RoomingListEnvioOcupante,
   type RoomingListEnvioQuarto,
 } from "@/lib/pdf/rooming-list-envio-document";
+import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
@@ -23,7 +24,9 @@ import type {
 
 /** Versão para enviar a atletas/comissão técnica — mesmos dados de `pdf/route.tsx`, mas sem CPF,
  * RG e data de nascimento (só interessam à operação interna do clube). */
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const ordemAtletas = parseOrdemApartamento(new URL(request.url).searchParams.get("ordemAtletas"));
+
   const supabase = createClient();
 
   const { data: jogoData } = await supabase.from("jogos").select("*").eq("id", params.id).single();
@@ -113,6 +116,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       checkin={roomingList.checkin}
       checkout={roomingList.checkout}
       quartos={quartosPdf}
+      ordemAtletas={ordemAtletas}
     />,
   );
 
