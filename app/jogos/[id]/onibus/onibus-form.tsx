@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
-import type { AtletaRow, ComissaoTecnicaRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 import type { OnibusFormState } from "../operacao-actions";
 
 const initialState: OnibusFormState = {};
@@ -14,22 +14,19 @@ export interface OnibusInicial {
 }
 
 /**
- * Formulário de Lista de Passageiros de Ônibus. Assim como na rooming list, só é possível
- * adicionar ônibus ou remover o último — evita reindexar as atribuições já feitas.
+ * Formulário de Lista de Passageiros de Ônibus — só Atletas convocados (Comissão Técnica e Staff
+ * Operacional não entram nessa lista). Assim como na rooming list, só é possível adicionar ônibus
+ * ou remover o último — evita reindexar as atribuições já feitas.
  */
 export function OnibusForm({
   action,
   jogoId,
   atletas,
-  comissao,
-  staff,
   onibusIniciais,
 }: {
   action: (prevState: OnibusFormState, formData: FormData) => Promise<OnibusFormState>;
   jogoId: string;
   atletas: AtletaRow[];
-  comissao: ComissaoTecnicaRow[];
-  staff: StaffOperacionalComFuncaoRow[];
   onibusIniciais: OnibusInicial[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
@@ -50,13 +47,6 @@ export function OnibusForm({
 
   const pessoas = [
     ...atletas.map((a) => ({ tipo: "atleta" as const, id: a.id, nome: a.nome_completo, extra: a.posicao })),
-    ...comissao.map((c) => ({ tipo: "comissao" as const, id: c.id, nome: c.nome_completo, extra: c.funcao })),
-    ...staff.map((s) => ({
-      tipo: "staff" as const,
-      id: s.id,
-      nome: s.nome_completo,
-      extra: s.funcao?.nome ?? "—",
-    })),
   ];
 
   return (

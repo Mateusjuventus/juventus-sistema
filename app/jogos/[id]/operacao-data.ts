@@ -5,23 +5,21 @@ import type {
   ConvocacaoAtletaRow,
   ConvocacaoComissaoRow,
   ConvocacaoRow,
-  ConvocacaoStaffRow,
   JogoRow,
-  StaffOperacionalComFuncaoRow,
 } from "@/lib/supabase/types";
 
 /**
- * Helper compartilhado pelas abas de Rooming List, Ônibus, Credenciamento e Recibo de Pagamento
- * (o que antes era "Logística de Jogo" + "Operação de Jogo", agora unificado como abas dentro do
- * próprio jogo). Todas essas abas partem de quem foi convocado — ver
- * docs/superpowers/specs/2026-07-09-convocacao-presskit-logistica-design.md.
+ * Helper compartilhado pelas abas de Rooming List e Ônibus (o que antes era "Logística de Jogo",
+ * agora unificado como abas dentro do próprio jogo). Essas duas abas partem de quem foi convocado
+ * — ver docs/superpowers/specs/2026-07-09-convocacao-presskit-logistica-design.md. Staff
+ * Operacional não participa da convocação (não aparece aqui) — Credenciamento e Recibo buscam o
+ * staff ativo direto do cadastro, sem depender de convocação.
  */
 export interface ConvocadosJogo {
   jogo: JogoRow;
   convocacao: ConvocacaoRow | null;
   atletas: AtletaRow[];
   comissao: ComissaoTecnicaRow[];
-  staff: StaffOperacionalComFuncaoRow[];
 }
 
 export async function getJogoEConvocados(jogoId: string): Promise<ConvocadosJogo | null> {
@@ -36,17 +34,13 @@ export async function getJogoEConvocados(jogoId: string): Promise<ConvocadosJogo
   const jogo = jogoData as JogoRow;
   const convocacao = convocacaoData as ConvocacaoRow | null;
 
-  if (!convocacao) return { jogo, convocacao: null, atletas: [], comissao: [], staff: [] };
+  if (!convocacao) return { jogo, convocacao: null, atletas: [], comissao: [] };
 
-  const [{ data: caData }, { data: ccData }, { data: csData }] = await Promise.all([
+  const [{ data: caData }, { data: ccData }] = await Promise.all([
     supabase.from("convocacao_atletas").select("*").eq("convocacao_id", convocacao.id),
     supabase
       .from("convocacao_comissao")
       .select("*, pessoa:comissao_tecnica(*)")
-      .eq("convocacao_id", convocacao.id),
-    supabase
-      .from("convocacao_staff")
-      .select("*, pessoa:staff_operacional(*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome))")
       .eq("convocacao_id", convocacao.id),
   ]);
 
@@ -54,9 +48,6 @@ export async function getJogoEConvocados(jogoId: string): Promise<ConvocadosJogo
   const comissao = ((ccData ?? []) as (ConvocacaoComissaoRow & { pessoa: ComissaoTecnicaRow | null })[])
     .map((c) => c.pessoa)
     .filter((p): p is ComissaoTecnicaRow => Boolean(p));
-  const staff = ((csData ?? []) as (ConvocacaoStaffRow & { pessoa: StaffOperacionalComFuncaoRow | null })[])
-    .map((c) => c.pessoa)
-    .filter((p): p is StaffOperacionalComFuncaoRow => Boolean(p));
 
   let atletas: AtletaRow[] = [];
   if (convocacaoAtletaIds.length > 0) {
@@ -64,5 +55,5 @@ export async function getJogoEConvocados(jogoId: string): Promise<ConvocadosJogo
     atletas = (atletasData ?? []) as AtletaRow[];
   }
 
-  return { jogo, convocacao, atletas, comissao, staff };
+  return { jogo, convocacao, atletas, comissao };
 }

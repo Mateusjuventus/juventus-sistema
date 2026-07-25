@@ -2,60 +2,29 @@
 
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
-import type { AtletaRow, ComissaoTecnicaRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
+import type { AtletaRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
 import type { ConvocacaoFormState } from "./actions";
 
 const initialState: ConvocacaoFormState = {};
 
-function StaffCheckbox({
-  staff,
-  checked,
-}: {
-  staff: StaffOperacionalComFuncaoRow;
-  checked: boolean;
-}) {
-  return (
-    <label className="flex items-center gap-2 text-sm">
-      <input
-        type="checkbox"
-        name={`staff_${staff.id}`}
-        defaultChecked={checked}
-        className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
-      />
-      <span>
-        {staff.nome_completo} <span className="text-neutral-400">— {staff.funcao?.nome ?? "—"}</span>
-      </span>
-    </label>
-  );
-}
-
 export function ConvocacaoForm({
   action,
   jogoId,
-  mandante,
   atletas,
   comissao,
-  staff,
   atletaStatusMap,
   comissaoSelecionados,
-  staffSelecionados,
   capitaoAtletaId,
 }: {
   action: (prevState: ConvocacaoFormState, formData: FormData) => Promise<ConvocacaoFormState>;
   jogoId: string;
-  mandante: boolean;
   atletas: AtletaRow[];
   comissao: ComissaoTecnicaRow[];
-  staff: StaffOperacionalComFuncaoRow[];
   atletaStatusMap: Record<string, "titular" | "reserva">;
   comissaoSelecionados: Set<string>;
-  staffSelecionados: Set<string>;
   capitaoAtletaId: string | null;
 }) {
   const [state, formAction] = useFormState(action, initialState);
-
-  const staffSeguranca = staff.filter((s) => s.funcao?.nome === "Segurança");
-  const staffOutros = staff.filter((s) => s.funcao?.nome !== "Segurança");
 
   return (
     <form action={formAction} className="space-y-6">
@@ -155,50 +124,6 @@ export function ConvocacaoForm({
             <p className="text-sm text-neutral-400">Nenhum cadastro encontrado.</p>
           ) : null}
         </div>
-      </div>
-
-      <div className="card space-y-3 p-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">Staff Operacional</h2>
-
-        {mandante ? (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {staff.map((s) => (
-              <StaffCheckbox key={s.id} staff={s} checked={staffSelecionados.has(s.id)} />
-            ))}
-            {staff.length === 0 ? (
-              <p className="text-sm text-neutral-400">Nenhum cadastro encontrado.</p>
-            ) : null}
-          </div>
-        ) : (
-          <>
-            <p className="text-xs text-neutral-500">
-              Jogo fora: por padrão mostramos só quem tem função Segurança.
-            </p>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {staffSeguranca.map((s) => (
-                <StaffCheckbox key={s.id} staff={s} checked={staffSelecionados.has(s.id)} />
-              ))}
-              {staffSeguranca.length === 0 ? (
-                <p className="text-sm text-neutral-400">Nenhum staff com função Segurança cadastrado.</p>
-              ) : null}
-            </div>
-            {staffOutros.length > 0 ? (
-              <details
-                className="mt-2 rounded-md border border-neutral-200 p-3"
-                open={staffOutros.some((s) => staffSelecionados.has(s.id))}
-              >
-                <summary className="cursor-pointer text-sm font-medium text-grena">
-                  + Mostrar mais funções
-                </summary>
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {staffOutros.map((s) => (
-                    <StaffCheckbox key={s.id} staff={s} checked={staffSelecionados.has(s.id)} />
-                  ))}
-                </div>
-              </details>
-            ) : null}
-          </>
-        )}
       </div>
 
       <div className="flex gap-3">

@@ -19,7 +19,6 @@ export async function saveConvocacao(
 
   const atletaStatus: { atletaId: string; status: "titular" | "reserva" }[] = [];
   const comissaoIds: string[] = [];
-  const staffIds: string[] = [];
 
   for (const [key, value] of formData.entries()) {
     if (key.startsWith("atleta_")) {
@@ -28,8 +27,6 @@ export async function saveConvocacao(
       }
     } else if (key.startsWith("comissao_")) {
       comissaoIds.push(key.slice("comissao_".length));
-    } else if (key.startsWith("staff_")) {
-      staffIds.push(key.slice("staff_".length));
     }
   }
 
@@ -54,7 +51,6 @@ export async function saveConvocacao(
   await Promise.all([
     supabase.from("convocacao_atletas").delete().eq("convocacao_id", convocacaoId),
     supabase.from("convocacao_comissao").delete().eq("convocacao_id", convocacaoId),
-    supabase.from("convocacao_staff").delete().eq("convocacao_id", convocacaoId),
   ]);
 
   const inserts: Promise<unknown>[] = [];
@@ -76,15 +72,6 @@ export async function saveConvocacao(
       Promise.resolve(
         supabase.from("convocacao_comissao").insert(
           comissaoIds.map((id) => ({ convocacao_id: convocacaoId, comissao_id: id })),
-        ),
-      ),
-    );
-  }
-  if (staffIds.length > 0) {
-    inserts.push(
-      Promise.resolve(
-        supabase.from("convocacao_staff").insert(
-          staffIds.map((id) => ({ convocacao_id: convocacaoId, staff_id: id })),
         ),
       ),
     );

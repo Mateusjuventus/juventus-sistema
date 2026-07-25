@@ -11,7 +11,7 @@ import { saveOnibus } from "../operacao-actions";
 export default async function OnibusPage({ params }: { params: { id: string } }) {
   const dados = await getJogoEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, atletas, comissao, staff } = dados;
+  const { jogo, convocacao, atletas } = dados;
 
   if (!convocacao) {
     return (
@@ -74,8 +74,6 @@ export default async function OnibusPage({ params }: { params: { id: string } })
         action={saveOnibus}
         jogoId={jogo.id}
         atletas={atletas}
-        comissao={comissao}
-        staff={staff}
         onibusIniciais={onibusIniciais}
       />
     </AppShell>

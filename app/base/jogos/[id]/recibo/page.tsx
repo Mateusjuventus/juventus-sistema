@@ -3,12 +3,16 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import type { ReciboJogoBaseRow } from "@/lib/supabase/types";
+import type { ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
 import { getJogoBaseEConvocados } from "../operacao-data";
 import { ReciboFormBase } from "./recibo-form-base";
 import { saveReciboBase } from "../operacao-actions";
 
-/** Espelha `app/jogos/[id]/recibo/page.tsx` para o Futebol de Base. */
+/**
+ * Espelha `app/jogos/[id]/recibo/page.tsx` para o Futebol de Base. Comissão Técnica continua
+ * vindo da convocação do jogo, mas Staff Operacional não precisa mais ser convocado — aqui
+ * buscamos todo o staff ativo direto do cadastro.
+ */
 export default async function ReciboBasePage({
   params,
 }: {
@@ -16,7 +20,7 @@ export default async function ReciboBasePage({
 }) {
   const dados = await getJogoBaseEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, comissao, staff } = dados;
+  const { jogo, convocacao, comissao } = dados;
 
   if (!convocacao) {
     return (
@@ -28,8 +32,16 @@ export default async function ReciboBasePage({
   }
 
   const supabase = createClient();
-  const { data: recibosData } = await supabase.from("recibos_jogo_base").select("*").eq("jogo_id", jogo.id);
+  const [{ data: recibosData }, { data: staffData }] = await Promise.all([
+    supabase.from("recibos_jogo_base").select("*").eq("jogo_id", jogo.id),
+    supabase
+      .from("staff_operacional_base")
+      .select("*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome)")
+      .eq("ativo", true)
+      .order("nome_completo", { ascending: true }),
+  ]);
   const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
+  const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
   const temRecibos = recibos.some((r) => r.valor !== null);
 
   return (

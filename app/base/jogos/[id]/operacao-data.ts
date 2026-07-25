@@ -5,22 +5,20 @@ import type {
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
   ConvocacaoComissaoBaseRow,
-  ConvocacaoStaffBaseRow,
   JogoBaseRow,
-  StaffOperacionalBaseComFuncaoRow,
 } from "@/lib/supabase/types";
 
 /**
  * Espelha `app/jogos/[id]/operacao-data.ts` para o Futebol de Base — helper compartilhado pelas
- * abas de Rooming List, Ônibus e Recibo de Pagamento (Credenciamento fica fora de escopo pro
- * Futebol de Base, ver a spec).
+ * abas de Rooming List e Ônibus (Credenciamento fica fora de escopo pro Futebol de Base, ver a
+ * spec). Staff Operacional não participa da convocação — Recibo busca o staff ativo direto do
+ * cadastro, sem depender de convocação.
  */
 export interface ConvocadosJogoBase {
   jogo: JogoBaseRow;
   convocacao: ConvocacaoBaseRow | null;
   atletas: AtletaBaseRow[];
   comissao: ComissaoTecnicaBaseRow[];
-  staff: StaffOperacionalBaseComFuncaoRow[];
 }
 
 export async function getJogoBaseEConvocados(jogoId: string): Promise<ConvocadosJogoBase | null> {
@@ -35,17 +33,13 @@ export async function getJogoBaseEConvocados(jogoId: string): Promise<Convocados
   const jogo = jogoData as JogoBaseRow;
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
 
-  if (!convocacao) return { jogo, convocacao: null, atletas: [], comissao: [], staff: [] };
+  if (!convocacao) return { jogo, convocacao: null, atletas: [], comissao: [] };
 
-  const [{ data: caData }, { data: ccData }, { data: csData }] = await Promise.all([
+  const [{ data: caData }, { data: ccData }] = await Promise.all([
     supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
     supabase
       .from("convocacao_comissao_base")
       .select("*, pessoa:comissao_tecnica_base(*)")
-      .eq("convocacao_id", convocacao.id),
-    supabase
-      .from("convocacao_staff_base")
-      .select("*, pessoa:staff_operacional_base(*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome))")
       .eq("convocacao_id", convocacao.id),
   ]);
 
@@ -53,9 +47,6 @@ export async function getJogoBaseEConvocados(jogoId: string): Promise<Convocados
   const comissao = ((ccData ?? []) as (ConvocacaoComissaoBaseRow & { pessoa: ComissaoTecnicaBaseRow | null })[])
     .map((c) => c.pessoa)
     .filter((p): p is ComissaoTecnicaBaseRow => Boolean(p));
-  const staff = ((csData ?? []) as (ConvocacaoStaffBaseRow & { pessoa: StaffOperacionalBaseComFuncaoRow | null })[])
-    .map((c) => c.pessoa)
-    .filter((p): p is StaffOperacionalBaseComFuncaoRow => Boolean(p));
 
   let atletas: AtletaBaseRow[] = [];
   if (convocacaoAtletaIds.length > 0) {
@@ -63,5 +54,5 @@ export async function getJogoBaseEConvocados(jogoId: string): Promise<Convocados
     atletas = (atletasData ?? []) as AtletaBaseRow[];
   }
 
-  return { jogo, convocacao, atletas, comissao, staff };
+  return { jogo, convocacao, atletas, comissao };
 }

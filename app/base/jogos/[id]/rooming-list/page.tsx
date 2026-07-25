@@ -16,7 +16,7 @@ export default async function RoomingListBasePage({
 }) {
   const dados = await getJogoBaseEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, atletas, comissao, staff } = dados;
+  const { jogo, convocacao, atletas, comissao } = dados;
 
   if (!convocacao) {
     return (
@@ -88,7 +88,6 @@ export default async function RoomingListBasePage({
         mandante={jogo.mandante}
         atletas={atletas}
         comissao={comissao}
-        staff={staff}
         hotelNomeInicial={roomingList?.hotel_nome ?? ""}
         hotelEnderecoInicial={roomingList?.hotel_endereco ?? ""}
         checkinInicial={roomingList?.checkin ?? ""}

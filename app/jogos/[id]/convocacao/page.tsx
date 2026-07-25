@@ -8,9 +8,7 @@ import type {
   ConvocacaoAtletaRow,
   ConvocacaoComissaoRow,
   ConvocacaoRow,
-  ConvocacaoStaffRow,
   JogoRow,
-  StaffOperacionalComFuncaoRow,
 } from "@/lib/supabase/types";
 import { ConvocacaoForm } from "./convocacao-form";
 import { saveConvocacao } from "./actions";
@@ -18,15 +16,11 @@ import { saveConvocacao } from "./actions";
 export default async function ConvocacaoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: atletasData }, { data: comissaoData }, { data: staffData }, { data: convocacaoData }] =
+  const [{ data: jogoData }, { data: atletasData }, { data: comissaoData }, { data: convocacaoData }] =
     await Promise.all([
       supabase.from("jogos").select("*").eq("id", params.id).single(),
       supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
       supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
-      supabase
-        .from("staff_operacional")
-        .select("*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome)")
-        .order("nome_completo", { ascending: true }),
       supabase.from("convocacoes").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);
 
@@ -35,25 +29,21 @@ export default async function ConvocacaoPage({ params }: { params: { id: string 
   const jogo = jogoData as JogoRow;
   const atletas = (atletasData ?? []) as AtletaRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaRow[];
-  const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
   const convocacao = convocacaoData as ConvocacaoRow | null;
 
   const atletaStatusMap: Record<string, "titular" | "reserva"> = {};
   const comissaoSelecionados = new Set<string>();
-  const staffSelecionados = new Set<string>();
 
   if (convocacao) {
-    const [{ data: caData }, { data: ccData }, { data: csData }] = await Promise.all([
+    const [{ data: caData }, { data: ccData }] = await Promise.all([
       supabase.from("convocacao_atletas").select("*").eq("convocacao_id", convocacao.id),
       supabase.from("convocacao_comissao").select("*").eq("convocacao_id", convocacao.id),
-      supabase.from("convocacao_staff").select("*").eq("convocacao_id", convocacao.id),
     ]);
 
     ((caData ?? []) as ConvocacaoAtletaRow[]).forEach((row) => {
       atletaStatusMap[row.atleta_id] = row.status;
     });
     ((ccData ?? []) as ConvocacaoComissaoRow[]).forEach((row) => comissaoSelecionados.add(row.comissao_id));
-    ((csData ?? []) as ConvocacaoStaffRow[]).forEach((row) => staffSelecionados.add(row.staff_id));
   }
 
   return (
@@ -111,13 +101,10 @@ export default async function ConvocacaoPage({ params }: { params: { id: string 
       <ConvocacaoForm
         action={saveConvocacao}
         jogoId={jogo.id}
-        mandante={jogo.mandante}
         atletas={atletas}
         comissao={comissao}
-        staff={staff}
         atletaStatusMap={atletaStatusMap}
         comissaoSelecionados={comissaoSelecionados}
-        staffSelecionados={staffSelecionados}
         capitaoAtletaId={convocacao?.capitao_atleta_id ?? null}
       />
     </AppShell>

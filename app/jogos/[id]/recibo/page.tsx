@@ -3,15 +3,20 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import type { ReciboJogoRow } from "@/lib/supabase/types";
+import type { ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 import { getJogoEConvocados } from "../operacao-data";
 import { ReciboForm } from "./recibo-form";
 import { saveRecibo } from "../operacao-actions";
 
+/**
+ * Comissão Técnica continua vindo da convocação do jogo, mas Staff Operacional não precisa mais
+ * ser convocado — aqui buscamos todo o staff ativo direto do cadastro (ver observação do Mateus:
+ * staff só aparece pra Credenciamento e Recibo, sem depender de convocação).
+ */
 export default async function ReciboPage({ params }: { params: { id: string } }) {
   const dados = await getJogoEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, comissao, staff } = dados;
+  const { jogo, convocacao, comissao } = dados;
 
   if (!convocacao) {
     return (
@@ -23,8 +28,16 @@ export default async function ReciboPage({ params }: { params: { id: string } })
   }
 
   const supabase = createClient();
-  const { data: recibosData } = await supabase.from("recibos_jogo").select("*").eq("jogo_id", jogo.id);
+  const [{ data: recibosData }, { data: staffData }] = await Promise.all([
+    supabase.from("recibos_jogo").select("*").eq("jogo_id", jogo.id),
+    supabase
+      .from("staff_operacional")
+      .select("*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome)")
+      .eq("ativo", true)
+      .order("nome_completo", { ascending: true }),
+  ]);
   const recibos = (recibosData ?? []) as ReciboJogoRow[];
+  const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
   const temRecibos = recibos.some((r) => r.valor !== null);
 
   return (

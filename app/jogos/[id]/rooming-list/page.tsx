@@ -11,7 +11,7 @@ import { saveRoomingList } from "../operacao-actions";
 export default async function RoomingListPage({ params }: { params: { id: string } }) {
   const dados = await getJogoEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, atletas, comissao, staff } = dados;
+  const { jogo, convocacao, atletas, comissao } = dados;
 
   if (!convocacao) {
     return (
@@ -83,7 +83,6 @@ export default async function RoomingListPage({ params }: { params: { id: string
         mandante={jogo.mandante}
         atletas={atletas}
         comissao={comissao}
-        staff={staff}
         hotelNomeInicial={roomingList?.hotel_nome ?? ""}
         hotelEnderecoInicial={roomingList?.hotel_endereco ?? ""}
         checkinInicial={roomingList?.checkin ?? ""}

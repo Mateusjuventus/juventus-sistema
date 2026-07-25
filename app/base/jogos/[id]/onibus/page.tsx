@@ -16,7 +16,7 @@ export default async function OnibusBasePage({
 }) {
   const dados = await getJogoBaseEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, atletas, comissao, staff } = dados;
+  const { jogo, convocacao, atletas } = dados;
 
   if (!convocacao) {
     return (
@@ -79,8 +79,6 @@ export default async function OnibusBasePage({
         action={saveOnibusBase}
         jogoId={jogo.id}
         atletas={atletas}
-        comissao={comissao}
-        staff={staff}
         onibusIniciais={onibusIniciais}
       />
     </AppShell>

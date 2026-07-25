@@ -3,15 +3,24 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import type { CredenciamentoCatalogoRow, CredenciamentoJogoRow } from "@/lib/supabase/types";
+import type {
+  CredenciamentoCatalogoRow,
+  CredenciamentoJogoRow,
+  StaffOperacionalComFuncaoRow,
+} from "@/lib/supabase/types";
 import { getJogoEConvocados } from "../operacao-data";
 import { CredenciamentoForm, type CredenciamentoAtual } from "./credenciamento-form";
 import { saveCredenciamento } from "../operacao-actions";
 
+/**
+ * Comissão Técnica continua vindo da convocação do jogo, mas Staff Operacional não precisa mais
+ * ser convocado — aqui buscamos todo o staff ativo direto do cadastro (ver observação do Mateus:
+ * staff só aparece pra Credenciamento e Recibo, sem depender de convocação).
+ */
 export default async function CredenciamentoPage({ params }: { params: { id: string } }) {
   const dados = await getJogoEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, comissao, staff } = dados;
+  const { jogo, convocacao, comissao } = dados;
 
   if (!convocacao) {
     return (
@@ -23,10 +32,16 @@ export default async function CredenciamentoPage({ params }: { params: { id: str
   }
 
   const supabase = createClient();
-  const [{ data: catalogoData }, { data: credenciamentoData }] = await Promise.all([
+  const [{ data: catalogoData }, { data: credenciamentoData }, { data: staffData }] = await Promise.all([
     supabase.from("credenciamento_catalogo").select("*").order("zona", { ascending: true }),
     supabase.from("credenciamento_jogo").select("*").eq("jogo_id", jogo.id),
+    supabase
+      .from("staff_operacional")
+      .select("*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome)")
+      .eq("ativo", true)
+      .order("nome_completo", { ascending: true }),
   ]);
+  const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
 
   const catalogo = (catalogoData ?? []) as CredenciamentoCatalogoRow[];
   const credenciamentoRows = (credenciamentoData ?? []) as CredenciamentoJogoRow[];

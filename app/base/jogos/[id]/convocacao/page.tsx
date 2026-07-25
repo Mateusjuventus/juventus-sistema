@@ -8,9 +8,7 @@ import type {
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
   ConvocacaoComissaoBaseRow,
-  ConvocacaoStaffBaseRow,
   JogoBaseRow,
-  StaffOperacionalBaseComFuncaoRow,
 } from "@/lib/supabase/types";
 import { ConvocacaoFormBase } from "./convocacao-form-base";
 import { saveConvocacaoBase } from "./actions";
@@ -20,8 +18,9 @@ import { saveConvocacaoBase } from "./actions";
  * importante: aqui os atletas e a comissão técnica candidatos à convocação são filtrados pela
  * MESMA categoria do jogo (`.eq("categoria", jogo.categoria)`), já que faz sentido convocar só
  * quem está naquela categoria de idade — ao contrário do Profissional, onde a lista inteira de
- * atletas/comissão está sempre disponível (ver a spec). Staff Operacional continua sem categoria
- * (lista única, compartilhada entre todas as categorias de base).
+ * atletas/comissão está sempre disponível (ver a spec). Staff Operacional não participa da
+ * convocação (não precisa ser "convocado" — só entra em Credenciamento e Recibo, direto do
+ * cadastro ativo, sem depender desta tela).
  */
 export default async function ConvocacaoBasePage({
   params,
@@ -35,7 +34,7 @@ export default async function ConvocacaoBasePage({
   const jogo = jogoData as JogoBaseRow;
   const categoria = jogo.categoria;
 
-  const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, { data: convocacaoData }] =
+  const [{ data: atletasData }, { data: comissaoData }, { data: convocacaoData }] =
     await Promise.all([
       supabase.from("atletas_base").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
       supabase
@@ -43,34 +42,26 @@ export default async function ConvocacaoBasePage({
         .select("*")
         .eq("categoria", categoria)
         .order("nome_completo", { ascending: true }),
-      supabase
-        .from("staff_operacional_base")
-        .select("*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome)")
-        .order("nome_completo", { ascending: true }),
       supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);
 
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
-  const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
 
   const atletaStatusMap: Record<string, "titular" | "reserva"> = {};
   const comissaoSelecionados = new Set<string>();
-  const staffSelecionados = new Set<string>();
 
   if (convocacao) {
-    const [{ data: caData }, { data: ccData }, { data: csData }] = await Promise.all([
+    const [{ data: caData }, { data: ccData }] = await Promise.all([
       supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
       supabase.from("convocacao_comissao_base").select("*").eq("convocacao_id", convocacao.id),
-      supabase.from("convocacao_staff_base").select("*").eq("convocacao_id", convocacao.id),
     ]);
 
     ((caData ?? []) as ConvocacaoAtletaBaseRow[]).forEach((row) => {
       atletaStatusMap[row.atleta_id] = row.status;
     });
     ((ccData ?? []) as ConvocacaoComissaoBaseRow[]).forEach((row) => comissaoSelecionados.add(row.comissao_id));
-    ((csData ?? []) as ConvocacaoStaffBaseRow[]).forEach((row) => staffSelecionados.add(row.staff_id));
   }
 
   return (
@@ -128,13 +119,10 @@ export default async function ConvocacaoBasePage({
       <ConvocacaoFormBase
         action={saveConvocacaoBase}
         jogoId={jogo.id}
-        mandante={jogo.mandante}
         atletas={atletas}
         comissao={comissao}
-        staff={staff}
         atletaStatusMap={atletaStatusMap}
         comissaoSelecionados={comissaoSelecionados}
-        staffSelecionados={staffSelecionados}
         capitaoAtletaId={convocacao?.capitao_atleta_id ?? null}
       />
     </AppShell>

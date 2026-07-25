@@ -4,13 +4,7 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
 import { TextField } from "@/components/fields";
-import type {
-  AtletaRow,
-  ComissaoTecnicaRow,
-  PessoaTipoRooming,
-  StaffOperacionalComFuncaoRow,
-  TipoQuarto,
-} from "@/lib/supabase/types";
+import type { AtletaRow, ComissaoTecnicaRow, PessoaTipoRooming, TipoQuarto } from "@/lib/supabase/types";
 import type { RoomingListFormState } from "../operacao-actions";
 
 const initialState: RoomingListFormState = {};
@@ -38,7 +32,6 @@ export function RoomingListForm({
   mandante,
   atletas,
   comissao,
-  staff,
   hotelNomeInicial,
   hotelEnderecoInicial,
   checkinInicial,
@@ -50,7 +43,6 @@ export function RoomingListForm({
   mandante: boolean;
   atletas: AtletaRow[];
   comissao: ComissaoTecnicaRow[];
-  staff: StaffOperacionalComFuncaoRow[];
   hotelNomeInicial: string;
   hotelEnderecoInicial: string;
   checkinInicial: string;
@@ -81,15 +73,6 @@ export function RoomingListForm({
         id: c.id,
         nome: c.nome_completo,
         extra: c.funcao,
-      })),
-    },
-    {
-      titulo: "Staff Operacional",
-      pessoas: staff.map((s) => ({
-        tipo: "staff" as const,
-        id: s.id,
-        nome: s.nome_completo,
-        extra: s.funcao?.nome ?? "—",
       })),
     },
   ];
