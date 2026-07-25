@@ -242,7 +242,7 @@ export default async function AtletasBaseCategoriaPage({
                 <Link href={`/base/atletas/${categoria}/${atleta.id}`} className="btn-secondary">
                   Editar
                 </Link>
-                <DeleteButton action={deleteAtletaBase} id={atleta.id} entityLabel="atleta" />
+                <DeleteButton errorAction={deleteAtletaBase} id={atleta.id} entityLabel="atleta" />
               </div>
             </div>
           );

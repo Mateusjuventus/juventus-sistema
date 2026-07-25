@@ -178,9 +178,27 @@ export async function updateAtleta(
   redirect("/atletas");
 }
 
-export async function deleteAtleta(formData: FormData): Promise<void> {
+export interface DeleteAtletaState {
+  error?: string;
+}
+
+export async function deleteAtleta(
+  _prevState: DeleteAtletaState,
+  formData: FormData,
+): Promise<DeleteAtletaState> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
-  await supabase.from("atletas").delete().eq("id", id);
+  const { error } = await supabase.from("atletas").delete().eq("id", id);
+
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        error: "Não é possível excluir: este atleta ainda está vinculado a outro registro do sistema.",
+      };
+    }
+    return { error: "Não foi possível excluir. Tente novamente." };
+  }
+
   revalidatePath("/atletas");
+  return {};
 }

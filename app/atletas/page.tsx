@@ -246,7 +246,7 @@ export default async function AtletasPage({
                 <Link href={`/atletas/${atleta.id}`} className="btn-secondary">
                   Editar
                 </Link>
-                <DeleteButton action={deleteAtleta} id={atleta.id} entityLabel="atleta" />
+                <DeleteButton errorAction={deleteAtleta} id={atleta.id} entityLabel="atleta" />
               </div>
             </div>
           );

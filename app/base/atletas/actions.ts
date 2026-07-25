@@ -190,15 +190,32 @@ export async function updateAtletaBase(
 
 /** Antes de excluir, lê a categoria da linha pra revalidar a lista certa (a rota de excluir é
  * chamada a partir da lista de uma categoria, mas o `DeleteButton` só manda o `id`). */
-export async function deleteAtletaBase(formData: FormData): Promise<void> {
+export interface DeleteAtletaBaseState {
+  error?: string;
+}
+
+export async function deleteAtletaBase(
+  _prevState: DeleteAtletaBaseState,
+  formData: FormData,
+): Promise<DeleteAtletaBaseState> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
 
   const { data } = await supabase.from("atletas_base").select("categoria").eq("id", id).maybeSingle();
   const categoria = (data as { categoria?: string } | null)?.categoria;
 
-  await supabase.from("atletas_base").delete().eq("id", id);
+  const { error } = await supabase.from("atletas_base").delete().eq("id", id);
+
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        error: "Não é possível excluir: este atleta ainda está vinculado a outro registro do sistema.",
+      };
+    }
+    return { error: "Não foi possível excluir. Tente novamente." };
+  }
 
   revalidatePath("/base/atletas");
   if (categoria) revalidatePath(`/base/atletas/${categoria}`);
+  return {};
 }
