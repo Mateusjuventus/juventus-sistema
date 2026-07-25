@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
+import { calcularMediaIngressosPorPessoa, formatarMediaIngressos } from "@/lib/futebol/ingressos";
 import type { IngressoCargaRow, IngressoSolicitacaoRow, JogoRow } from "@/lib/supabase/types";
 import { createCarga, createSolicitacao, deleteCarga, deleteSolicitacao } from "./actions";
 import { CargaInlineForm } from "./carga-inline-form";
@@ -41,6 +42,7 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
   const totalRecebido = cargas.reduce((soma, c) => soma + c.quantidade, 0);
   const totalAtendido = solicitacoes.reduce((soma, s) => soma + s.quantidade_atendida, 0);
   const saldoDisponivel = totalRecebido - totalAtendido;
+  const mediaPorPessoa = calcularMediaIngressosPorPessoa(totalAtendido, solicitacoes.length);
 
   return (
     <AppShell>
@@ -66,7 +68,7 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
         ) : null}
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card px-4 py-3">
           <p className="text-xs uppercase text-neutral-500">Total recebido</p>
           <p className="text-2xl font-bold text-grena-escuro">{totalRecebido}</p>
@@ -80,6 +82,10 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
           <p className={`text-2xl font-bold ${saldoDisponivel <= 0 ? "text-red-700" : "text-grena-escuro"}`}>
             {saldoDisponivel}
           </p>
+        </div>
+        <div className="card px-4 py-3">
+          <p className="text-xs uppercase text-neutral-500">Média por pessoa</p>
+          <p className="text-2xl font-bold text-grena-escuro">{formatarMediaIngressos(mediaPorPessoa)}</p>
         </div>
       </div>
 

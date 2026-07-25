@@ -1,6 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { JogoRow } from "@/lib/supabase/types";
+import { calcularMediaIngressosPorPessoa, formatarMediaIngressos } from "@/lib/futebol/ingressos";
 import { CORES, DocumentoFooter, DocumentoHeader, sharedStyles, type LogoSrc } from "./logistica-shared";
 
 // Nota: os estilos abaixo usam `fontFamily: "Helvetica-Bold"` (em vez de `fontWeight: 700`) para
@@ -63,6 +64,7 @@ export function IngressosDocument({
   const totalRecebido = cargas.reduce((soma, c) => soma + c.quantidade, 0);
   const totalAtendido = solicitacoes.reduce((soma, s) => soma + s.quantidadeAtendida, 0);
   const saldoDisponivel = totalRecebido - totalAtendido;
+  const mediaPorPessoa = calcularMediaIngressosPorPessoa(totalAtendido, solicitacoes.length);
 
   return (
     <Document>
@@ -94,6 +96,10 @@ export function IngressosDocument({
             >
               {saldoDisponivel}
             </Text>
+          </View>
+          <View style={styles.resumoBox}>
+            <Text style={styles.resumoLabel}>Média por pessoa</Text>
+            <Text style={styles.resumoValor}>{formatarMediaIngressos(mediaPorPessoa)}</Text>
           </View>
         </View>
 

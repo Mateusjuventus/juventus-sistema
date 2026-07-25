@@ -26,6 +26,16 @@ interface PessoaOpcao {
   extra: string;
 }
 
+/** Um quarto no estado do formulário. `id` é estável (não muda quando o quarto é reordenado),
+ * diferente da posição no array — usado como `key` do card pra o React mover o cartão inteiro
+ * (inclusive o texto já digitado no campo de apartamento) junto com a reordenação, em vez de deixar
+ * o valor "para trás" na posição antiga. */
+interface QuartoState {
+  id: string;
+  tipo: TipoQuarto;
+  numeroApartamento: string;
+}
+
 function chavePessoa(tipo: PessoaTipoRooming, id: string): string {
   return `${tipo}:${id}`;
 }
@@ -33,7 +43,10 @@ function chavePessoa(tipo: PessoaTipoRooming, id: string): string {
 /**
  * Espelha `app/jogos/[id]/rooming-list/rooming-list-form.tsx` para o Futebol de Base — organizado
  * por QUARTO (cada quarto é um cartão com quem já está nele e um jeito de adicionar/remover
- * pessoas direto ali), em vez de uma tabela só com todo mundo e um menu "Quarto" por pessoa.
+ * pessoas direto ali), em vez de uma tabela só com todo mundo e um menu "Quarto" por pessoa. As
+ * setas ▲▼ em cada card permitem reordenar os quartos manualmente (ex.: por hierarquia de função
+ * na Comissão Técnica) — essa ordem é a que sai no PDF pra Comissão Técnica, que não tem nenhuma
+ * ordenação automática.
  */
 export function RoomingListFormBase({
   action,
@@ -59,8 +72,12 @@ export function RoomingListFormBase({
   quartosIniciais: QuartoInicial[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
-  const [quartos, setQuartos] = useState<{ tipo: TipoQuarto }[]>(
-    quartosIniciais.map((q) => ({ tipo: q.tipo })),
+  const [quartos, setQuartos] = useState<QuartoState[]>(() =>
+    quartosIniciais.map((q, i) => ({
+      id: `inicial-${i}`,
+      tipo: q.tipo,
+      numeroApartamento: q.numeroApartamento ?? "",
+    })),
   );
 
   const pessoas: PessoaOpcao[] = [
@@ -84,7 +101,7 @@ export function RoomingListFormBase({
   }
 
   function adicionarQuarto(tipo: TipoQuarto) {
-    setQuartos((atual) => [...atual, { tipo }]);
+    setQuartos((atual) => [...atual, { id: crypto.randomUUID(), tipo, numeroApartamento: "" }]);
   }
 
   function removerUltimoQuarto() {
@@ -99,6 +116,32 @@ export function RoomingListFormBase({
     });
   }
 
+  function atualizarApartamento(index: number, valor: string) {
+    setQuartos((atual) => atual.map((q, i) => (i === index ? { ...q, numeroApartamento: valor } : q)));
+  }
+
+  /** Move um quarto uma posição pra cima (-1) ou pra baixo (+1) — troca de lugar com o vizinho.
+   * A ordem dos quartos é o que decide a ordem "livre" da Comissão Técnica no PDF, então isso é a
+   * forma de organizar manualmente essa ordem (ex.: por hierarquia de função). Atletas continuam
+   * podendo ser ordenados por apartamento direto na hora de gerar o PDF, independente disso. */
+  function moverQuarto(index: number, direcao: -1 | 1) {
+    const alvo = index + direcao;
+    if (alvo < 0 || alvo >= quartos.length) return;
+    setQuartos((atual) => {
+      const copia = [...atual];
+      [copia[index], copia[alvo]] = [copia[alvo], copia[index]];
+      return copia;
+    });
+    setAtribuicoes((atual) => {
+      const copia = { ...atual };
+      for (const chave of Object.keys(copia)) {
+        if (copia[chave] === index) copia[chave] = alvo;
+        else if (copia[chave] === alvo) copia[chave] = index;
+      }
+      return copia;
+    });
+  }
+
   const semQuarto = pessoas.filter((p) => atribuicoes[chavePessoa(p.tipo, p.id)] == null);
 
   return (
@@ -106,7 +149,7 @@ export function RoomingListFormBase({
       <input type="hidden" name="jogoId" value={jogoId} />
       <input type="hidden" name="quartosCount" value={quartos.length} />
       {quartos.map((q, i) => (
-        <input key={i} type="hidden" name={`quarto_${i}_tipo`} value={q.tipo} />
+        <input key={q.id} type="hidden" name={`quarto_${i}_tipo`} value={q.tipo} />
       ))}
       {pessoas.map((p) => {
         const chave = chavePessoa(p.tipo, p.id);
@@ -180,22 +223,53 @@ export function RoomingListFormBase({
                 const ocupantes = pessoas.filter((p) => atribuicoes[chavePessoa(p.tipo, p.id)] === i);
                 const cheio = ocupantes.length >= capacidade;
                 return (
-                  <div key={i} className="card space-y-2 p-4">
-                    <div className="flex items-center justify-between">
+                  <div key={q.id} className="card space-y-2 p-4">
+                    <div className="flex items-center justify-between gap-2">
                       <h4 className="text-sm font-semibold text-grena-escuro">
                         Quarto {i + 1} — {TIPO_QUARTO_LABEL[q.tipo]}
                       </h4>
-                      <span className={`text-xs ${cheio ? "font-semibold text-grena" : "text-neutral-400"}`}>
-                        {ocupantes.length}/{capacidade}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs ${cheio ? "font-semibold text-grena" : "text-neutral-400"}`}>
+                          {ocupantes.length}/{capacidade}
+                        </span>
+                        <div className="flex gap-0.5">
+                          <button
+                            type="button"
+                            disabled={i === 0}
+                            onClick={() => moverQuarto(i, -1)}
+                            aria-label="Mover quarto para cima"
+                            title="Mover para cima"
+                            className="rounded border border-neutral-200 px-1.5 py-0.5 text-xs text-neutral-500 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            disabled={i === quartos.length - 1}
+                            onClick={() => moverQuarto(i, 1)}
+                            aria-label="Mover quarto para baixo"
+                            title="Mover para baixo"
+                            className="rounded border border-neutral-200 px-1.5 py-0.5 text-xs text-neutral-500 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
-                    <TextField
-                      label="Apartamento"
-                      name={`quarto_${i}_numero_apartamento`}
-                      defaultValue={quartosIniciais[i]?.numeroApartamento ?? ""}
-                      placeholder="Preencher quando o hotel confirmar"
-                    />
+                    <div>
+                      <label htmlFor={`quarto_${i}_numero_apartamento`} className="field-label">
+                        Apartamento
+                      </label>
+                      <input
+                        id={`quarto_${i}_numero_apartamento`}
+                        name={`quarto_${i}_numero_apartamento`}
+                        value={q.numeroApartamento}
+                        onChange={(e) => atualizarApartamento(i, e.target.value)}
+                        placeholder="Preencher quando o hotel confirmar"
+                        className="field-input"
+                      />
+                    </div>
 
                     {ocupantes.length === 0 ? (
                       <p className="text-xs text-neutral-400">Nenhuma pessoa neste quarto ainda.</p>
