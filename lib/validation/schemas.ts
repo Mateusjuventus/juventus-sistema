@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isValidCPF, normalizeCPF } from "./cpf";
 import { chavePixValida } from "./chave-pix";
+import { normalizarNomeProprio } from "./nome";
 
 /** Regra de CPF compartilhada por todos os cadastros: 11 dígitos, dígito verificador válido. */
 const cpfField = z
@@ -56,7 +57,10 @@ export const ATLETA_BASE_TIPO_CONTRATO_OPTIONS = [
 ] as const;
 
 export const atletaSchema = z.object({
-  nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
+  nomeCompleto: z
+    .string()
+    .min(1, { message: "Nome completo é obrigatório" })
+    .transform(normalizarNomeProprio),
   apelido: z.string().optional().or(z.literal("")),
   rg: rgField,
   cpf: cpfField,

@@ -65,14 +65,24 @@ export default async function RoomingListPage({ params }: { params: { id: string
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Rooming List</h1>
         {temRoomingList ? (
-          <a
-            href={`/jogos/${jogo.id}/rooming-list/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-          >
-            Gerar PDF
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={`/jogos/${jogo.id}/rooming-list/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              PDF completo (uso interno)
+            </a>
+            <a
+              href={`/jogos/${jogo.id}/rooming-list/pdf-envio`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              PDF para atletas/comissão
+            </a>
+          </div>
         ) : (
           <span className="text-xs text-neutral-400">Salve ao menos um quarto para liberar o PDF.</span>
         )}
