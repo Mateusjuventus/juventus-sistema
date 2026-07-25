@@ -1,70 +1,68 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import type { JogoRow, PessoaTipoRooming, TipoQuarto } from "@/lib/supabase/types";
-import { formatCPF } from "@/lib/validation/cpf";
+import type { JogoRow, PessoaTipoRooming } from "@/lib/supabase/types";
 import { CORES, DocumentoFooter, DocumentoHeader, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
 
 const styles = StyleSheet.create({
   hotelBox: {
     marginTop: 4,
-    marginBottom: 14,
+    marginBottom: 10,
     padding: 10,
     backgroundColor: "#f5f5f5",
     borderRadius: 4,
   },
   hotelLinha: { fontSize: 9.5, color: "#404040", marginBottom: 2 },
   hotelLabel: { fontWeight: 700, color: CORES.grenaEscuro },
-  quartoBox: {
-    marginTop: 8,
-    padding: 8,
+  tabela: {
     borderWidth: 0.5,
-    borderColor: "#e5e5e5",
-    borderRadius: 4,
+    borderColor: "#c7c7c7",
+    borderRadius: 3,
+    overflow: "hidden",
   },
-  quartoTitulo: { fontSize: 9.5, fontWeight: 700, color: CORES.grenaEscuro, marginBottom: 6 },
-  tabela: { marginTop: 2 },
   linhaCabecalho: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#d4d4d4",
-    paddingBottom: 4,
-    marginBottom: 3,
+    backgroundColor: CORES.grenaEscuro,
   },
-  linha: {
-    flexDirection: "row",
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#e5e5e5",
-    paddingVertical: 4,
-    alignItems: "center",
-  },
-  colTipo: { width: 60 },
-  colNome: { flex: 1.4 },
-  colNascimento: { width: 60 },
-  colCpf: { width: 78 },
-  colRg: { width: 70 },
-  headerCell: { fontSize: 6.5, fontWeight: 700, color: "#737373", textTransform: "uppercase" },
-  cell: { fontSize: 8, color: "#262626" },
-  cellNome: { fontSize: 8, fontWeight: 700, color: "#1f1f1f" },
-  tipoTag: {
-    fontSize: 6,
+  headerCell: {
+    fontSize: 7.5,
     fontWeight: 700,
-    color: CORES.grena,
-    backgroundColor: "#f0ebee",
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 2,
+    color: "#ffffff",
     textTransform: "uppercase",
-    alignSelf: "flex-start",
+    paddingVertical: 5,
+    paddingHorizontal: 8,
   },
-  emptyState: { fontSize: 8, color: "#a3a3a3", paddingVertical: 4 },
+  colApartamento: {
+    width: 100,
+    borderRightWidth: 0.5,
+    borderRightColor: "#c7c7c7",
+  },
+  colAtletas: { flex: 1 },
+  grupoQuarto: {
+    flexDirection: "row",
+    borderTopWidth: 0.5,
+    borderTopColor: "#c7c7c7",
+  },
+  grupoPar: { backgroundColor: "#ffffff" },
+  grupoImpar: { backgroundColor: "#f2f2f2" },
+  colApartamentoCorpo: {
+    width: 100,
+    borderRightWidth: 0.5,
+    borderRightColor: "#c7c7c7",
+  },
+  colAtletasCorpo: { flex: 1, paddingVertical: 2 },
+  nomeLinha: {
+    fontSize: 8.5,
+    color: "#262626",
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  nomeExtra: { color: "#8a8a8a", fontSize: 7.5 },
+  emptyState: { fontSize: 8, color: "#a3a3a3", paddingVertical: 6, paddingHorizontal: 8 },
 });
 
-const TIPO_LABEL: Record<PessoaTipoRooming, string> = {
-  atleta: "Atleta",
-  comissao: "Comissão",
+const EXTRA_LABEL: Partial<Record<PessoaTipoRooming, string>> = {
+  comissao: "Comissão Técnica",
   staff: "Staff",
 };
-
-const TIPO_QUARTO_LABEL: Record<TipoQuarto, string> = { single: "Single", duplo: "Duplo", triplo: "Triplo" };
 
 export interface RoomingListPdfOcupante {
   nome: string;
@@ -76,7 +74,6 @@ export interface RoomingListPdfOcupante {
 
 export interface RoomingListPdfQuarto {
   numero: number;
-  tipo: TipoQuarto;
   ocupantes: RoomingListPdfOcupante[];
 }
 
@@ -128,45 +125,44 @@ export function RoomingListDocument({
         {quartos.length === 0 ? (
           <Text style={sharedStyles.emptyState}>Nenhum quarto registrado.</Text>
         ) : (
-          quartos.map((q) => {
-            // Atletas primeiro, depois Comissão Técnica, depois Staff — separa visualmente quem é
-            // quem dentro do mesmo quarto.
-            const ordem: PessoaTipoRooming[] = ["atleta", "comissao", "staff"];
-            const ocupantesOrdenados = [...q.ocupantes].sort(
-              (a, b) => ordem.indexOf(a.tipo) - ordem.indexOf(b.tipo),
-            );
-            return (
-              <View style={styles.quartoBox} key={q.numero} wrap={false}>
-                <Text style={styles.quartoTitulo}>
-                  Quarto {q.numero} — {TIPO_QUARTO_LABEL[q.tipo]}
-                </Text>
-                {ocupantesOrdenados.length === 0 ? (
-                  <Text style={styles.emptyState}>Sem ocupantes.</Text>
-                ) : (
-                  <View style={styles.tabela}>
-                    <View style={styles.linhaCabecalho}>
-                      <Text style={[styles.colTipo, styles.headerCell]}>Tipo</Text>
-                      <Text style={[styles.colNome, styles.headerCell]}>Nome Completo</Text>
-                      <Text style={[styles.colNascimento, styles.headerCell]}>Nascimento</Text>
-                      <Text style={[styles.colCpf, styles.headerCell]}>CPF</Text>
-                      <Text style={[styles.colRg, styles.headerCell]}>RG</Text>
-                    </View>
-                    {ocupantesOrdenados.map((o, i) => (
-                      <View style={styles.linha} key={i}>
-                        <View style={styles.colTipo}>
-                          <Text style={styles.tipoTag}>{TIPO_LABEL[o.tipo]}</Text>
-                        </View>
-                        <Text style={[styles.colNome, styles.cellNome]}>{o.nome}</Text>
-                        <Text style={[styles.colNascimento, styles.cell]}>{formatDataBr(o.dataNascimento)}</Text>
-                        <Text style={[styles.colCpf, styles.cell]}>{o.cpf ? formatCPF(o.cpf) : "—"}</Text>
-                        <Text style={[styles.colRg, styles.cell]}>{o.rg ?? "—"}</Text>
-                      </View>
-                    ))}
+          <View style={styles.tabela}>
+            <View style={styles.linhaCabecalho}>
+              <Text style={[styles.colApartamento, styles.headerCell]}>Apartamento</Text>
+              <Text style={[styles.colAtletas, styles.headerCell]}>Atletas</Text>
+            </View>
+
+            {quartos.map((q, i) => {
+              // Atletas primeiro, depois Comissão Técnica, depois Staff — separa visualmente quem é
+              // quem dentro do mesmo quarto.
+              const ordem: PessoaTipoRooming[] = ["atleta", "comissao", "staff"];
+              const ocupantesOrdenados = [...q.ocupantes].sort(
+                (a, b) => ordem.indexOf(a.tipo) - ordem.indexOf(b.tipo),
+              );
+              return (
+                <View
+                  key={q.numero}
+                  style={[styles.grupoQuarto, i % 2 === 0 ? styles.grupoPar : styles.grupoImpar]}
+                  wrap={false}
+                >
+                  {/* Coluna do apartamento fica em branco de propósito — o número real só chega
+                      depois que o hotel confirma, e aí é preenchido à mão neste espaço. */}
+                  <View style={styles.colApartamentoCorpo} />
+                  <View style={styles.colAtletasCorpo}>
+                    {ocupantesOrdenados.length === 0 ? (
+                      <Text style={styles.emptyState}>Sem ocupantes.</Text>
+                    ) : (
+                      ocupantesOrdenados.map((o, j) => (
+                        <Text key={j} style={styles.nomeLinha}>
+                          {o.nome}
+                          {EXTRA_LABEL[o.tipo] ? <Text style={styles.nomeExtra}> — {EXTRA_LABEL[o.tipo]}</Text> : null}
+                        </Text>
+                      ))
+                    )}
                   </View>
-                )}
-              </View>
-            );
-          })
+                </View>
+              );
+            })}
+          </View>
         )}
 
         <DocumentoFooter />
