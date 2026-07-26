@@ -217,6 +217,8 @@ export interface ReciboFormState {
   success?: boolean;
 }
 
+/** Espelha `saveRecibo` (app/jogos/[id]/operacao-actions.ts) — Recibo de Pagamento é só pra Staff
+ * Operacional, Comissão Técnica não entra aqui. */
 export async function saveReciboBase(
   _prevState: ReciboFormState,
   formData: FormData,
@@ -225,7 +227,7 @@ export async function saveReciboBase(
   if (!jogoId) return { error: "Jogo não identificado. Recarregue a página e tente novamente." };
 
   const linhas: {
-    pessoaTipo: "comissao" | "staff";
+    pessoaTipo: "staff";
     pessoaId: string;
     nome: string;
     funcaoJogo: string | null;
@@ -236,8 +238,8 @@ export async function saveReciboBase(
   }[] = [];
 
   for (const [key, value] of formData.entries()) {
-    if (!key.startsWith("funcao_comissao_") && !key.startsWith("funcao_staff_")) continue;
-    const pessoaTipo = key.startsWith("funcao_comissao_") ? "comissao" : "staff";
+    if (!key.startsWith("funcao_staff_")) continue;
+    const pessoaTipo = "staff";
     const pessoaId = key.slice(`funcao_${pessoaTipo}_`.length);
     const funcaoJogo = String(value ?? "").trim() || null;
     const valorRaw = String(formData.get(`valor_${pessoaTipo}_${pessoaId}`) ?? "").trim();

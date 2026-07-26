@@ -9,14 +9,16 @@ import { ReciboForm } from "./recibo-form";
 import { saveRecibo } from "../operacao-actions";
 
 /**
- * Comissão Técnica continua vindo da convocação do jogo, mas Staff Operacional não precisa mais
- * ser convocado — aqui buscamos todo o staff ativo direto do cadastro (ver observação do Mateus:
- * staff só aparece pra Credenciamento e Recibo, sem depender de convocação).
+ * Recibo de Pagamento é só pra Staff Operacional — Comissão Técnica não recebe pagamento por esse
+ * fluxo, então nem entra aqui (ver histórico: chegou a incluir Comissão Técnica, removido a pedido
+ * do Mateus). Staff Operacional não precisa ser convocado — buscamos todo o staff ativo direto do
+ * cadastro (mesma observação de sempre: staff só aparece pra Credenciamento e Recibo, sem depender
+ * de convocação).
  */
 export default async function ReciboPage({ params }: { params: { id: string } }) {
   const dados = await getJogoEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, comissao } = dados;
+  const { jogo, convocacao } = dados;
 
   if (!convocacao) {
     return (
@@ -32,7 +34,9 @@ export default async function ReciboPage({ params }: { params: { id: string } })
     supabase.from("recibos_jogo").select("*").eq("jogo_id", jogo.id),
     supabase
       .from("staff_operacional")
-      .select("*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome)")
+      .select(
+        "*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_funcao_terceirizada_id_fkey(nome)",
+      )
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
   ]);
@@ -75,7 +79,7 @@ export default async function ReciboPage({ params }: { params: { id: string } })
         preenchido com o padrão cadastrado no Staff Operacional, mas pode ser ajustado aqui.
       </p>
 
-      <ReciboForm action={saveRecibo} jogoId={jogo.id} comissao={comissao} staff={staff} recibos={recibos} />
+      <ReciboForm action={saveRecibo} jogoId={jogo.id} staff={staff} recibos={recibos} />
     </AppShell>
   );
 }

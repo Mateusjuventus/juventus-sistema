@@ -3,47 +3,41 @@
 import { useFormState } from "react-dom";
 import { ReciboLinha } from "@/components/recibo-linha";
 import { SubmitButton } from "@/components/submit-button";
-import type { ComissaoTecnicaRow, ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
+import { funcaoCadastroStaff } from "@/lib/futebol/funcao-staff";
+import type { ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 import type { ReciboFormState } from "../operacao-actions";
 
 const initialState: ReciboFormState = {};
 
+/** Recibo de Pagamento é só pra Staff Operacional — Comissão Técnica não entra aqui. */
 export function ReciboForm({
   action,
   jogoId,
-  comissao,
   staff,
   recibos,
 }: {
   action: (prevState: ReciboFormState, formData: FormData) => Promise<ReciboFormState>;
   jogoId: string;
-  comissao: ComissaoTecnicaRow[];
   staff: StaffOperacionalComFuncaoRow[];
   recibos: ReciboJogoRow[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
 
-  const reciboDe = (pessoaTipo: "comissao" | "staff", pessoaId: string) =>
+  const reciboDe = (pessoaTipo: "staff", pessoaId: string) =>
     recibos.find((r) => r.pessoa_tipo === pessoaTipo && r.pessoa_id === pessoaId);
 
-  const pessoas = [
-    ...comissao.map((c) => ({
-      tipo: "comissao" as const,
-      id: c.id,
-      nome: c.nome_completo,
-      extra: c.funcao,
-      valorPadrao: null as number | null,
-      chavePixPadrao: null as string | null,
-    })),
-    ...staff.map((s) => ({
-      tipo: "staff" as const,
-      id: s.id,
-      nome: s.nome_completo,
-      extra: s.funcao?.nome ?? "—",
-      valorPadrao: s.valor_padrao_pagamento,
-      chavePixPadrao: s.chave_pix,
-    })),
-  ];
+  const pessoas = staff.map((s) => ({
+    tipo: "staff" as const,
+    id: s.id,
+    nome: s.nome_completo,
+    extra: s.funcao?.nome ?? "—",
+    valorPadrao: s.valor_padrao_pagamento,
+    chavePixPadrao: s.chave_pix,
+    chavePixTipoPadrao: s.chave_pix_tipo,
+    // Fallback de "Função no jogo" quando o campo específico do jogo não foi preenchido — em vez
+    // de deixar em branco, usa a função já cadastrada (interna ou da terceirizada).
+    funcaoCadastro: funcaoCadastroStaff(s) ?? "",
+  }));
 
   return (
     <form action={formAction} className="space-y-5">
@@ -83,10 +77,10 @@ export function ReciboForm({
                     pessoaId={p.id}
                     nome={p.nome}
                     extra={p.extra}
-                    funcaoJogoDefault={atual?.funcao_jogo ?? ""}
+                    funcaoJogoDefault={atual?.funcao_jogo ?? p.funcaoCadastro}
                     valorDefault={valorInicial}
                     chavePixDefault={chavePixInicial ?? ""}
-                    chavePixTipoDefault={atual?.chave_pix_tipo ?? ""}
+                    chavePixTipoDefault={atual?.chave_pix_tipo ?? p.chavePixTipoPadrao ?? ""}
                     pagoDefault={atual?.pago ?? false}
                   />
                 );

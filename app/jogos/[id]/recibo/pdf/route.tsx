@@ -6,8 +6,12 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { ReciboIndividualDocument, type ReciboPdfItem } from "@/lib/pdf/recibo-document";
-import type { ComissaoTecnicaRow, JogoRow, ReciboJogoRow, StaffOperacionalRow } from "@/lib/supabase/types";
+import { funcaoCadastroStaff } from "@/lib/futebol/funcao-staff";
+import type { JogoRow, ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 
+/** Recibo de Pagamento é só pra Staff Operacional — o filtro `pessoa_tipo=staff` também protege
+ * contra registros antigos de Comissão Técnica que possam ter ficado no banco de antes dessa
+ * mudança (são apagados só na próxima vez que o formulário for salvo). */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
 
@@ -19,36 +23,37 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     .from("recibos_jogo")
     .select("*")
     .eq("jogo_id", params.id)
+    .eq("pessoa_tipo", "staff")
     .not("valor", "is", null);
   const recibos = (recibosData ?? []) as ReciboJogoRow[];
   if (recibos.length === 0) {
     return new NextResponse("Ainda não há recibos com valor preenchido para este jogo.", { status: 400 });
   }
 
-  const comissaoIds = recibos.filter((r) => r.pessoa_tipo === "comissao").map((r) => r.pessoa_id);
-  const staffIds = recibos.filter((r) => r.pessoa_tipo === "staff").map((r) => r.pessoa_id);
+  const staffIds = recibos.map((r) => r.pessoa_id);
 
-  const [{ data: comissaoData }, { data: staffData }] = await Promise.all([
-    comissaoIds.length > 0
-      ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
-      : Promise.resolve({ data: [] }),
+  const { data: staffData } =
     staffIds.length > 0
-      ? supabase.from("staff_operacional").select("*").in("id", staffIds)
-      : Promise.resolve({ data: [] }),
-  ]);
+      ? await supabase
+          .from("staff_operacional")
+          .select(
+            "*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_funcao_terceirizada_id_fkey(nome)",
+          )
+          .in("id", staffIds)
+      : { data: [] };
 
-  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c]));
-  const staffMap = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s]));
+  const staffMap = new Map(((staffData ?? []) as StaffOperacionalComFuncaoRow[]).map((s) => [s.id, s]));
 
   const itens: ReciboPdfItem[] = recibos.map((r) => {
-    const pessoa = r.pessoa_tipo === "comissao" ? comissaoMap.get(r.pessoa_id) : staffMap.get(r.pessoa_id);
+    const pessoa = staffMap.get(r.pessoa_id);
     return {
       nome: pessoa?.nome_completo ?? "—",
-      tipo: r.pessoa_tipo === "comissao" ? "Comissão Técnica" : "Staff Operacional",
+      tipo: "Staff Operacional",
       dataNascimento: pessoa?.data_nascimento ?? "",
       cpf: pessoa?.cpf ?? "",
       rg: pessoa?.rg ?? "",
-      funcaoJogo: r.funcao_jogo,
+      // Se a função no jogo não foi preenchida, usa a função já cadastrada em vez de deixar em branco.
+      funcaoJogo: r.funcao_jogo ?? (pessoa ? funcaoCadastroStaff(pessoa) : null),
       valor: r.valor,
       chavePix: r.chave_pix,
       chavePixTipo: r.chave_pix_tipo,

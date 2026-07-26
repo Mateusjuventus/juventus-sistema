@@ -296,6 +296,8 @@ export interface ReciboFormState {
   success?: boolean;
 }
 
+/** Recibo de Pagamento é só pra Staff Operacional — Comissão Técnica não entra aqui (ver
+ * `recibo-form.tsx`, que só renderiza linhas de staff). */
 export async function saveRecibo(
   _prevState: ReciboFormState,
   formData: FormData,
@@ -304,7 +306,7 @@ export async function saveRecibo(
   if (!jogoId) return { error: "Jogo não identificado. Recarregue a página e tente novamente." };
 
   const linhas: {
-    pessoaTipo: "comissao" | "staff";
+    pessoaTipo: "staff";
     pessoaId: string;
     nome: string;
     funcaoJogo: string | null;
@@ -315,8 +317,8 @@ export async function saveRecibo(
   }[] = [];
 
   for (const [key, value] of formData.entries()) {
-    if (!key.startsWith("funcao_comissao_") && !key.startsWith("funcao_staff_")) continue;
-    const pessoaTipo = key.startsWith("funcao_comissao_") ? "comissao" : "staff";
+    if (!key.startsWith("funcao_staff_")) continue;
+    const pessoaTipo = "staff";
     const pessoaId = key.slice(`funcao_${pessoaTipo}_`.length);
     const funcaoJogo = String(value ?? "").trim() || null;
     const valorRaw = String(formData.get(`valor_${pessoaTipo}_${pessoaId}`) ?? "").trim();

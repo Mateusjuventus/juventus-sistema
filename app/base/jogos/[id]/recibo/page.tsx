@@ -9,9 +9,9 @@ import { ReciboFormBase } from "./recibo-form-base";
 import { saveReciboBase } from "../operacao-actions";
 
 /**
- * Espelha `app/jogos/[id]/recibo/page.tsx` para o Futebol de Base. Comissão Técnica continua
- * vindo da convocação do jogo, mas Staff Operacional não precisa mais ser convocado — aqui
- * buscamos todo o staff ativo direto do cadastro.
+ * Espelha `app/jogos/[id]/recibo/page.tsx` para o Futebol de Base. Recibo de Pagamento é só pra
+ * Staff Operacional — Comissão Técnica não entra aqui. Staff Operacional não precisa ser convocado
+ * — buscamos todo o staff ativo direto do cadastro.
  */
 export default async function ReciboBasePage({
   params,
@@ -20,7 +20,7 @@ export default async function ReciboBasePage({
 }) {
   const dados = await getJogoBaseEConvocados(params.id);
   if (!dados) notFound();
-  const { jogo, convocacao, comissao } = dados;
+  const { jogo, convocacao } = dados;
 
   if (!convocacao) {
     return (
@@ -36,7 +36,9 @@ export default async function ReciboBasePage({
     supabase.from("recibos_jogo_base").select("*").eq("jogo_id", jogo.id),
     supabase
       .from("staff_operacional_base")
-      .select("*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome)")
+      .select(
+        "*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_base_funcao_terceirizada_id_fkey(nome)",
+      )
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
   ]);
@@ -79,7 +81,7 @@ export default async function ReciboBasePage({
         preenchido com o padrão cadastrado no Staff Operacional, mas pode ser ajustado aqui.
       </p>
 
-      <ReciboFormBase action={saveReciboBase} jogoId={jogo.id} comissao={comissao} staff={staff} recibos={recibos} />
+      <ReciboFormBase action={saveReciboBase} jogoId={jogo.id} staff={staff} recibos={recibos} />
     </AppShell>
   );
 }

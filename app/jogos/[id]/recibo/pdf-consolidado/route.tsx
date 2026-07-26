@@ -7,8 +7,12 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { ReciboConsolidadoDocument, type ReciboPdfItem } from "@/lib/pdf/recibo-document";
-import type { ComissaoTecnicaRow, JogoRow, ReciboJogoRow, StaffOperacionalRow } from "@/lib/supabase/types";
+import { funcaoCadastroStaff } from "@/lib/futebol/funcao-staff";
+import type { JogoRow, ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 
+/** Recibo de Pagamento é só pra Staff Operacional — o filtro `pessoa_tipo=staff` também protege
+ * contra registros antigos de Comissão Técnica que possam ter ficado no banco de antes dessa
+ * mudança (são apagados só na próxima vez que o formulário for salvo). */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
 
@@ -20,36 +24,40 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     .from("recibos_jogo")
     .select("*")
     .eq("jogo_id", params.id)
+    .eq("pessoa_tipo", "staff")
     .not("valor", "is", null);
   const recibos = (recibosData ?? []) as ReciboJogoRow[];
   if (recibos.length === 0) {
     return new NextResponse("Ainda não há recibos com valor preenchido para este jogo.", { status: 400 });
   }
 
-  const comissaoIds = recibos.filter((r) => r.pessoa_tipo === "comissao").map((r) => r.pessoa_id);
-  const staffIds = recibos.filter((r) => r.pessoa_tipo === "staff").map((r) => r.pessoa_id);
+  const staffIds = recibos.map((r) => r.pessoa_id);
 
-  const [{ data: comissaoData }, { data: staffData }, adversarioLogoUrl] = await Promise.all([
-    comissaoIds.length > 0
-      ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
-      : Promise.resolve({ data: [] }),
+  const [{ data: staffData }, adversarioLogoUrl] = await Promise.all([
     staffIds.length > 0
-      ? supabase.from("staff_operacional").select("*").in("id", staffIds)
+      ? supabase
+          .from("staff_operacional")
+          .select(
+            "*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_funcao_terceirizada_id_fkey(nome)",
+          )
+          .in("id", staffIds)
       : Promise.resolve({ data: [] }),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c.nome_completo]));
-  const staffMap = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s.nome_completo]));
+  const staffMap = new Map(((staffData ?? []) as StaffOperacionalComFuncaoRow[]).map((s) => [s.id, s]));
 
-  const itens: ReciboPdfItem[] = recibos.map((r) => ({
-    nome: (r.pessoa_tipo === "comissao" ? comissaoMap.get(r.pessoa_id) : staffMap.get(r.pessoa_id)) ?? "—",
-    tipo: r.pessoa_tipo === "comissao" ? "Comissão Técnica" : "Staff Operacional",
-    funcaoJogo: r.funcao_jogo,
-    valor: r.valor,
-    chavePix: null,
-    pago: r.pago,
-  }));
+  const itens: ReciboPdfItem[] = recibos.map((r) => {
+    const pessoa = staffMap.get(r.pessoa_id);
+    return {
+      nome: pessoa?.nome_completo ?? "—",
+      tipo: "Staff Operacional",
+      funcaoJogo: r.funcao_jogo ?? (pessoa ? funcaoCadastroStaff(pessoa) : null),
+      valor: r.valor,
+      chavePix: null,
+      pago: r.pago,
+    };
+  });
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };

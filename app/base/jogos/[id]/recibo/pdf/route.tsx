@@ -6,9 +6,12 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { ReciboIndividualDocument, type ReciboPdfItem } from "@/lib/pdf/recibo-document";
-import type { ComissaoTecnicaBaseRow, JogoBaseRow, ReciboJogoBaseRow, StaffOperacionalBaseRow } from "@/lib/supabase/types";
+import { funcaoCadastroStaff } from "@/lib/futebol/funcao-staff";
+import type { JogoBaseRow, ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
 
-/** Espelha `app/jogos/[id]/recibo/pdf/route.tsx` para o Futebol de Base. */
+/** Espelha `app/jogos/[id]/recibo/pdf/route.tsx` para o Futebol de Base. Recibo de Pagamento é só
+ * pra Staff Operacional — o filtro `pessoa_tipo=staff` também protege contra registros antigos de
+ * Comissão Técnica que possam ter ficado no banco de antes dessa mudança. */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
 
@@ -20,36 +23,36 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     .from("recibos_jogo_base")
     .select("*")
     .eq("jogo_id", params.id)
+    .eq("pessoa_tipo", "staff")
     .not("valor", "is", null);
   const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
   if (recibos.length === 0) {
     return new NextResponse("Ainda não há recibos com valor preenchido para este jogo.", { status: 400 });
   }
 
-  const comissaoIds = recibos.filter((r) => r.pessoa_tipo === "comissao").map((r) => r.pessoa_id);
-  const staffIds = recibos.filter((r) => r.pessoa_tipo === "staff").map((r) => r.pessoa_id);
+  const staffIds = recibos.map((r) => r.pessoa_id);
 
-  const [{ data: comissaoData }, { data: staffData }] = await Promise.all([
-    comissaoIds.length > 0
-      ? supabase.from("comissao_tecnica_base").select("*").in("id", comissaoIds)
-      : Promise.resolve({ data: [] }),
+  const { data: staffData } =
     staffIds.length > 0
-      ? supabase.from("staff_operacional_base").select("*").in("id", staffIds)
-      : Promise.resolve({ data: [] }),
-  ]);
+      ? await supabase
+          .from("staff_operacional_base")
+          .select(
+            "*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_base_funcao_terceirizada_id_fkey(nome)",
+          )
+          .in("id", staffIds)
+      : { data: [] };
 
-  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaBaseRow[]).map((c) => [c.id, c]));
-  const staffMap = new Map(((staffData ?? []) as StaffOperacionalBaseRow[]).map((s) => [s.id, s]));
+  const staffMap = new Map(((staffData ?? []) as StaffOperacionalBaseComFuncaoRow[]).map((s) => [s.id, s]));
 
   const itens: ReciboPdfItem[] = recibos.map((r) => {
-    const pessoa = r.pessoa_tipo === "comissao" ? comissaoMap.get(r.pessoa_id) : staffMap.get(r.pessoa_id);
+    const pessoa = staffMap.get(r.pessoa_id);
     return {
       nome: pessoa?.nome_completo ?? "—",
-      tipo: r.pessoa_tipo === "comissao" ? "Comissão Técnica" : "Staff Operacional",
+      tipo: "Staff Operacional",
       dataNascimento: pessoa?.data_nascimento ?? "",
       cpf: pessoa?.cpf ?? "",
       rg: pessoa?.rg ?? "",
-      funcaoJogo: r.funcao_jogo,
+      funcaoJogo: r.funcao_jogo ?? (pessoa ? funcaoCadastroStaff(pessoa) : null),
       valor: r.valor,
       chavePix: r.chave_pix,
       chavePixTipo: r.chave_pix_tipo,
