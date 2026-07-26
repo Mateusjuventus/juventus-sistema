@@ -348,7 +348,6 @@ export interface CredenciamentoJogoRow {
 }
 
 export type PessoaTipoRecibo = "comissao" | "staff";
-export type ChavePixTipo = "celular" | "email" | "cpf" | "aleatoria";
 
 export interface ReciboJogoRow {
   id: string;
@@ -358,7 +357,11 @@ export interface ReciboJogoRow {
   funcao_jogo: string | null;
   valor: number | null;
   chave_pix: string | null;
-  chave_pix_tipo: ChavePixTipo | null;
+  // Mesmo conjunto de tipos de Staff Operacional (ver StaffChavePixTipo) desde a migração 0039, que
+  // unificou os tipos de chave PIX de Recibos de Jogos com os de Staff Operacional/Solicitações
+  // (antes aceitava só 'celular'/'email'/'cpf'/'aleatoria', sem CNPJ e com "celular" em vez de
+  // "telefone").
+  chave_pix_tipo: StaffChavePixTipo | null;
   pago: boolean;
   created_by: string | null;
   created_at: string;
@@ -583,7 +586,7 @@ export interface ReciboJogoBaseRow {
   funcao_jogo: string | null;
   valor: number | null;
   chave_pix: string | null;
-  chave_pix_tipo: ChavePixTipo | null;
+  chave_pix_tipo: StaffChavePixTipo | null;
   pago: boolean;
   created_by: string | null;
   created_at: string;

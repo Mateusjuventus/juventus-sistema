@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
-import type { ChavePixTipo, JogoRow } from "@/lib/supabase/types";
+import type { JogoRow, StaffChavePixTipo } from "@/lib/supabase/types";
 import { formatCPF } from "@/lib/validation/cpf";
 import { valorPorExtenso } from "./valor-extenso";
 import {
@@ -16,10 +16,11 @@ import {
 /** Cidade onde o clube está sediado — usada na linha de local/data do recibo. */
 const JUVENTUS_CIDADE_ASSINATURA = "São Paulo – SP";
 
-const CHAVE_PIX_TIPO_LABEL: Record<ChavePixTipo, string> = {
-  celular: "celular",
-  email: "e-mail",
+const CHAVE_PIX_TIPO_LABEL: Record<StaffChavePixTipo, string> = {
   cpf: "CPF",
+  cnpj: "CNPJ",
+  email: "e-mail",
+  telefone: "telefone",
   aleatoria: "aleatória",
 };
 
@@ -104,7 +105,7 @@ export interface ReciboPdfItem {
   funcaoJogo: string | null;
   valor: number | null;
   chavePix: string | null;
-  chavePixTipo?: ChavePixTipo | null;
+  chavePixTipo?: StaffChavePixTipo | null;
   pago: boolean;
 }
 

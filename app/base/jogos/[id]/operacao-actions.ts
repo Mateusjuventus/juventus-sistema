@@ -293,7 +293,18 @@ export async function saveReciboBase(
         pago: l.pago,
       })),
     );
-    if (insertError) return { error: "Não foi possível salvar os recibos. Tente novamente." };
+    if (insertError) {
+      console.error("saveReciboBase: falha ao inserir em recibos_jogo_base", insertError);
+      // 23514 = violação de check constraint — ver o mesmo tratamento em saveRecibo
+      // (app/jogos/[id]/operacao-actions.ts) para detalhes da migração 0039.
+      if (insertError.code === "23514") {
+        return {
+          error:
+            "Não foi possível salvar: o tipo de chave PIX de alguém aqui (Telefone, CNPJ ou Aleatória) ainda não é aceito pelo banco de dados. É preciso rodar a migração 0039_chave_pix_aleatoria_e_unificacao_recibo.sql no Supabase antes de salvar recibos com esse tipo.",
+        };
+      }
+      return { error: "Não foi possível salvar os recibos. Tente novamente." };
+    }
   }
 
   revalidarAbaBase(jogoId, "recibo");
