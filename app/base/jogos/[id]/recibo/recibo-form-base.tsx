@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { ReciboLinha } from "@/components/recibo-linha";
 import { SubmitButton } from "@/components/submit-button";
@@ -38,6 +39,27 @@ export function ReciboFormBase({
     funcaoCadastro: funcaoCadastroStaff(s) ?? "",
   }));
 
+  const chave = (tipo: "staff", id: string) => `${tipo}-${id}`;
+
+  const [incluidos, setIncluidos] = useState<Record<string, boolean>>(() => {
+    const inicial: Record<string, boolean> = {};
+    for (const p of pessoas) inicial[chave(p.tipo, p.id)] = Boolean(reciboDe(p.tipo, p.id));
+    return inicial;
+  });
+
+  const todosIncluidos = pessoas.length > 0 && pessoas.every((p) => incluidos[chave(p.tipo, p.id)]);
+
+  function alternarTodos() {
+    const novoValor = !todosIncluidos;
+    const novo: Record<string, boolean> = {};
+    for (const p of pessoas) novo[chave(p.tipo, p.id)] = novoValor;
+    setIncluidos(novo);
+  }
+
+  function alternarUm(k: string) {
+    setIncluidos((atual) => ({ ...atual, [k]: !atual[k] }));
+  }
+
   return (
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="jogoId" value={jogoId} />
@@ -53,9 +75,15 @@ export function ReciboFormBase({
         </p>
       ) : (
         <div className="overflow-x-auto">
+          <div className="mb-2 flex justify-end">
+            <button type="button" onClick={alternarTodos} className="text-sm font-medium text-grena hover:underline">
+              {todosIncluidos ? "Desmarcar todos" : "Selecionar todos"}
+            </button>
+          </div>
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="text-neutral-500">
               <tr>
+                <th className="py-2 pr-3">Incluir</th>
                 <th className="py-2 pr-3">Nome</th>
                 <th className="py-2 pr-3">Função no jogo</th>
                 <th className="py-2 pr-3">Valor (R$)</th>
@@ -69,9 +97,10 @@ export function ReciboFormBase({
                 const atual = reciboDe(p.tipo, p.id);
                 const valorInicial = atual?.valor ?? p.valorPadrao ?? "";
                 const chavePixInicial = atual?.chave_pix ?? p.chavePixPadrao ?? "";
+                const k = chave(p.tipo, p.id);
                 return (
                   <ReciboLinha
-                    key={`${p.tipo}-${p.id}`}
+                    key={k}
                     pessoaTipo={p.tipo}
                     pessoaId={p.id}
                     nome={p.nome}
@@ -81,6 +110,8 @@ export function ReciboFormBase({
                     chavePixDefault={chavePixInicial ?? ""}
                     chavePixTipoDefault={atual?.chave_pix_tipo ?? p.chavePixTipoPadrao ?? ""}
                     pagoDefault={atual?.pago ?? false}
+                    incluido={Boolean(incluidos[k])}
+                    onToggleIncluido={() => alternarUm(k)}
                   />
                 );
               })}

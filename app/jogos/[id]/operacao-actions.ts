@@ -316,11 +316,14 @@ export async function saveRecibo(
     pago: boolean;
   }[] = [];
 
-  for (const [key, value] of formData.entries()) {
-    if (!key.startsWith("funcao_staff_")) continue;
+  // O checkbox "Incluir" é quem decide quem participa desse jogo — só pessoas marcadas viram
+  // linha em recibos_jogo (e por consequência entram nos PDFs). Checkbox desmarcado não é
+  // enviado no FormData, então o loop já pula naturalmente quem foi desmarcado.
+  for (const [key] of formData.entries()) {
+    if (!key.startsWith("incluir_staff_")) continue;
     const pessoaTipo = "staff";
-    const pessoaId = key.slice(`funcao_${pessoaTipo}_`.length);
-    const funcaoJogo = String(value ?? "").trim() || null;
+    const pessoaId = key.slice(`incluir_${pessoaTipo}_`.length);
+    const funcaoJogo = String(formData.get(`funcao_${pessoaTipo}_${pessoaId}`) ?? "").trim() || null;
     const valorRaw = String(formData.get(`valor_${pessoaTipo}_${pessoaId}`) ?? "").trim();
     const valor = valorRaw ? Number(valorRaw) : null;
     const chavePix = String(formData.get(`chavePix_${pessoaTipo}_${pessoaId}`) ?? "").trim() || null;

@@ -42,7 +42,7 @@ export default async function ReciboPage({ params }: { params: { id: string } })
   ]);
   const recibos = (recibosData ?? []) as ReciboJogoRow[];
   const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
-  const temRecibos = recibos.some((r) => r.valor !== null);
+  const temRecibos = recibos.length > 0;
 
   return (
     <AppShell>
@@ -70,13 +70,14 @@ export default async function ReciboPage({ params }: { params: { id: string } })
             </a>
           </div>
         ) : (
-          <span className="text-xs text-neutral-400">Preencha ao menos um valor para liberar os PDFs.</span>
+          <span className="text-xs text-neutral-400">Marque e salve ao menos uma pessoa para liberar os PDFs.</span>
         )}
       </div>
 
       <p className="mb-4 text-sm text-neutral-500">
-        Função e valor de pagamento de cada pessoa convocada nesse jogo específico — o valor já vem
-        preenchido com o padrão cadastrado no Staff Operacional, mas pode ser ajustado aqui.
+        Marque &quot;Incluir&quot; para quem realmente participou desse jogo — só quem for marcado
+        entra nos PDFs. O valor já vem preenchido com o padrão cadastrado no Staff Operacional, mas
+        pode ser ajustado aqui.
       </p>
 
       <ReciboForm action={saveRecibo} jogoId={jogo.id} staff={staff} recibos={recibos} />

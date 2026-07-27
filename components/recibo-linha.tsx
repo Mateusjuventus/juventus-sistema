@@ -23,6 +23,8 @@ export function ReciboLinha({
   chavePixDefault,
   chavePixTipoDefault,
   pagoDefault,
+  incluido,
+  onToggleIncluido,
 }: {
   pessoaTipo: string;
   pessoaId: string;
@@ -33,12 +35,24 @@ export function ReciboLinha({
   chavePixDefault: string;
   chavePixTipoDefault: string;
   pagoDefault: boolean;
+  /** Se a pessoa participa desse jogo — controla se a linha é salva e entra nos PDFs. */
+  incluido: boolean;
+  onToggleIncluido: () => void;
 }) {
   const [tipo, setTipo] = useState(chavePixTipoDefault);
   const [chave, setChave] = useState(() => formatarChavePix(chavePixDefault, chavePixTipoDefault));
 
   return (
-    <tr>
+    <tr className={incluido ? undefined : "opacity-50"}>
+      <td className="py-2 pr-3">
+        <input
+          type="checkbox"
+          name={`incluir_${pessoaTipo}_${pessoaId}`}
+          checked={incluido}
+          onChange={onToggleIncluido}
+          className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+        />
+      </td>
       <td className="py-2 pr-3 font-medium text-neutral-800">
         <input type="hidden" name={`nome_${pessoaTipo}_${pessoaId}`} value={nome} />
         {nome} <span className="text-neutral-400">— {extra}</span>

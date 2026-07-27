@@ -24,11 +24,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     .from("recibos_jogo_base")
     .select("*")
     .eq("jogo_id", params.id)
-    .eq("pessoa_tipo", "staff")
-    .not("valor", "is", null);
+    .eq("pessoa_tipo", "staff");
   const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
   if (recibos.length === 0) {
-    return new NextResponse("Ainda não há recibos com valor preenchido para este jogo.", { status: 400 });
+    return new NextResponse("Ainda não há ninguém marcado como incluído neste jogo.", { status: 400 });
   }
 
   const staffIds = recibos.map((r) => r.pessoa_id);
