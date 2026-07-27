@@ -396,6 +396,7 @@ export interface GastoJogoRow {
   descricao: string | null;
   valor_previsto: number;
   valor_efetuado: number | null;
+  data: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -600,6 +601,7 @@ export interface GastoJogoBaseRow {
   descricao: string | null;
   valor_previsto: number;
   valor_efetuado: number | null;
+  data: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

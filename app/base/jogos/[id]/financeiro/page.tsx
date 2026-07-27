@@ -12,6 +12,12 @@ function formatMoeda(valor: number | null): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function formatData(data: string | null): string {
+  if (!data) return "—";
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
 /** Espelha `app/jogos/[id]/financeiro/page.tsx` para o Futebol de Base. */
 export default async function FinanceiroJogoBasePage({
   params,
@@ -37,6 +43,7 @@ export default async function FinanceiroJogoBasePage({
   const totalPrevisto = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
   const totalEfetuado = gastos.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);
   const totalDiferenca = totalPrevisto - totalEfetuado;
+  const temEfetuado = gastos.some((g) => g.valor_efetuado !== null);
 
   const base = `/base/jogos/${jogo.id}`;
 
@@ -57,6 +64,16 @@ export default async function FinanceiroJogoBasePage({
               Gerar PDF do Orçamento Previsto
             </a>
           ) : null}
+          {temEfetuado ? (
+            <a
+              href={`${base}/financeiro/despesas/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              Gerar PDF do Relatório de Despesas
+            </a>
+          ) : null}
           <Link href={`${base}/financeiro/novo`} className="btn-primary">
             + Novo gasto
           </Link>
@@ -72,6 +89,7 @@ export default async function FinanceiroJogoBasePage({
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
+              <th className="px-4 py-3">Data</th>
               <th className="px-4 py-3">Categoria</th>
               <th className="px-4 py-3">Descrição</th>
               <th className="px-4 py-3">Previsto</th>
@@ -85,6 +103,7 @@ export default async function FinanceiroJogoBasePage({
               const diferenca = g.valor_efetuado === null ? null : g.valor_previsto - g.valor_efetuado;
               return (
                 <tr key={g.id}>
+                  <td className="px-4 py-3 text-neutral-600">{formatData(g.data)}</td>
                   <td className="px-4 py-3 font-medium text-neutral-800">{g.categoria?.nome ?? "—"}</td>
                   <td className="px-4 py-3">{g.descricao ?? "—"}</td>
                   <td className="px-4 py-3">{formatMoeda(g.valor_previsto)}</td>
@@ -109,7 +128,7 @@ export default async function FinanceiroJogoBasePage({
             })}
             {gastos.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-neutral-400">
                   Nenhum gasto lançado ainda.
                 </td>
               </tr>
@@ -118,7 +137,7 @@ export default async function FinanceiroJogoBasePage({
           {gastos.length > 0 ? (
             <tfoot>
               <tr className="border-t-2 border-neutral-200 bg-neutral-50 font-semibold text-neutral-800">
-                <td className="px-4 py-3" colSpan={2}>
+                <td className="px-4 py-3" colSpan={3}>
                   Total
                 </td>
                 <td className="px-4 py-3">{formatMoeda(totalPrevisto)}</td>

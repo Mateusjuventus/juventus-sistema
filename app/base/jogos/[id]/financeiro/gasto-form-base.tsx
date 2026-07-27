@@ -36,6 +36,13 @@ export function GastoFormBase({
       {gastoId ? <input type="hidden" name="id" value={gastoId} /> : null}
       <FormSection title="Dados do gasto">
         <FieldGroup>
+          <TextField
+            label="Data"
+            name="data"
+            type="date"
+            defaultValue={values.data}
+            error={errors.data}
+          />
           <CategoriaGastoField
             categorias={categorias}
             defaultValue={values.categoriaId}

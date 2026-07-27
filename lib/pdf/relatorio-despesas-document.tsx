@@ -8,6 +8,7 @@ import {
   DepartamentoEyebrow,
   DocumentoFooter,
   DocumentoHeader,
+  formatDataBr,
   sharedStyles,
   type LogoSrc,
 } from "./logistica-shared";
@@ -36,9 +37,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2.5,
     alignItems: "center",
   },
+  colData: { width: 56 },
   colDescricao: { flex: 1 },
   colValor: { width: 90, textAlign: "right" },
-  headerCell: { fontSize: 6.5, fontWeight: 700, color: "#737373", textTransform: "uppercase" },
   cell: { fontSize: 8, color: "#262626" },
   totalGeralBox: {
     marginTop: 10,
@@ -57,22 +58,24 @@ function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export interface OrcamentoPdfGasto {
+export interface RelatorioDespesasPdfGasto {
+  data: string | null;
   descricao: string | null;
-  valorPrevisto: number;
+  valorEfetuado: number;
 }
 
-export interface OrcamentoPdfCategoria {
+export interface RelatorioDespesasPdfCategoria {
   nome: string;
-  gastos: OrcamentoPdfGasto[];
+  gastos: RelatorioDespesasPdfGasto[];
 }
 
 /**
- * PDF do orçamento previsto de um jogo (só o previsto — não é comparativo com o efetuado), para
- * uso como documento de apoio antes do jogo. Ver
+ * Relatório de Despesas: a prestação de contas de verdade de um jogo — só entram os gastos que
+ * já têm valor efetuado lançado (o que de fato foi gasto), com a data de cada um. Distinto do
+ * Orçamento Previsto (que mostra só o planejado, antes do jogo, para aprovação). Ver
  * docs/superpowers/specs/2026-07-14-prestacao-contas-financeiro-design.md.
  */
-export function OrcamentoDocument({
+export function RelatorioDespesasDocument({
   jogo,
   juventusLogoSrc,
   adversarioLogoSrc,
@@ -85,7 +88,7 @@ export function OrcamentoDocument({
   jogo: JogoRow;
   juventusLogoSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
-  categorias: OrcamentoPdfCategoria[];
+  categorias: RelatorioDespesasPdfCategoria[];
   totalGeral: number;
   geradoEm: Date;
   assinatura1: AssinaturaInfo;
@@ -100,14 +103,14 @@ export function OrcamentoDocument({
           jogo={jogo}
           juventusLogoSrc={juventusLogoSrc}
           adversarioLogoSrc={adversarioLogoSrc}
-          titulo="Orçamento Previsto"
+          titulo="Relatório de Despesas"
         />
 
         {categorias.length === 0 ? (
-          <Text style={sharedStyles.emptyState}>Nenhum gasto lançado para este jogo.</Text>
+          <Text style={sharedStyles.emptyState}>Nenhuma despesa efetuada lançada para este jogo.</Text>
         ) : (
           categorias.map((c) => {
-            const subtotal = c.gastos.reduce((soma, g) => soma + g.valorPrevisto, 0);
+            const subtotal = c.gastos.reduce((soma, g) => soma + g.valorEfetuado, 0);
             return (
               <View style={styles.categoriaBox} key={c.nome} wrap={false}>
                 <View style={styles.categoriaHeaderRow}>
@@ -117,8 +120,9 @@ export function OrcamentoDocument({
                 <View style={styles.tabela}>
                   {c.gastos.map((g, i) => (
                     <View style={styles.linha} key={i}>
+                      <Text style={[styles.colData, styles.cell]}>{formatDataBr(g.data)}</Text>
                       <Text style={[styles.colDescricao, styles.cell]}>{g.descricao ?? "—"}</Text>
-                      <Text style={[styles.colValor, styles.cell]}>{formatMoeda(g.valorPrevisto)}</Text>
+                      <Text style={[styles.colValor, styles.cell]}>{formatMoeda(g.valorEfetuado)}</Text>
                     </View>
                   ))}
                 </View>
@@ -129,7 +133,7 @@ export function OrcamentoDocument({
 
         {categorias.length > 0 ? (
           <View style={styles.totalGeralBox}>
-            <Text style={styles.totalGeralLabel}>Total Previsto</Text>
+            <Text style={styles.totalGeralLabel}>Total Efetuado</Text>
             <Text style={styles.totalGeralValor}>{formatMoeda(totalGeral)}</Text>
           </View>
         ) : null}

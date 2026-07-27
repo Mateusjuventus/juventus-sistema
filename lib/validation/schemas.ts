@@ -296,6 +296,7 @@ export const gastoJogoSchema = z
     descricao: z.string().optional().or(z.literal("")),
     valorPrevisto: z.coerce.number().nonnegative({ message: "Valor previsto não pode ser negativo" }),
     valorEfetuado: z.coerce.number().nonnegative().optional().nullable(),
+    data: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.categoriaId !== NOVA_CATEGORIA_GASTO_VALUE || Boolean(data.novaCategoriaNome?.trim()), {
     message: "Informe o nome da nova categoria",
