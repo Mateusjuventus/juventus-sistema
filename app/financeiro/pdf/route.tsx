@@ -78,6 +78,7 @@ export async function GET() {
       jogos={jogosPdf}
       assinatura1={assinatura1}
       assinatura2={assinatura2}
+      departamento="profissional"
     />,
   );
 

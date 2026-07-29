@@ -92,6 +92,7 @@ export function RelatorioFinanceiroDocument({
   jogos,
   assinatura1,
   assinatura2,
+  departamento,
 }: {
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
@@ -101,6 +102,7 @@ export function RelatorioFinanceiroDocument({
   jogos: RelatorioPdfJogo[];
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
+  departamento: "profissional" | "base";
 }) {
   const totalDiferenca = totalPrevisto - totalEfetuado;
 
@@ -108,7 +110,7 @@ export function RelatorioFinanceiroDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <CarimboGeracao geradoEm={geradoEm} />
-        <DepartamentoEyebrow />
+        <DepartamentoEyebrow departamento={departamento} />
         {juventusLogoSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
           <Image style={styles.headerLogo} src={juventusLogoSrc as string} />

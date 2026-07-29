@@ -81,6 +81,7 @@ export function OrcamentoDocument({
   geradoEm,
   assinatura1,
   assinatura2,
+  departamento,
 }: {
   jogo: JogoRow;
   juventusLogoSrc: LogoSrc;
@@ -90,17 +91,18 @@ export function OrcamentoDocument({
   geradoEm: Date;
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
+  departamento: "profissional" | "base";
 }) {
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <CarimboGeracao geradoEm={geradoEm} />
-        <DepartamentoEyebrow />
+        <DepartamentoEyebrow departamento={departamento} />
         <DocumentoHeader
           jogo={jogo}
           juventusLogoSrc={juventusLogoSrc}
           adversarioLogoSrc={adversarioLogoSrc}
-          titulo="Orçamento Previsto"
+          titulo="Orçamento Previsto (Pré Jogo)"
         />
 
         {categorias.length === 0 ? (

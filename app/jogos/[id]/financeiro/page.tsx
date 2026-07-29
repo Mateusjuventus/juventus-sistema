@@ -54,7 +54,7 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
               rel="noopener noreferrer"
               className="btn-secondary"
             >
-              Gerar PDF do Orçamento Previsto
+              Gerar PDF do Orçamento Previsto (Pré Jogo)
             </a>
           ) : null}
           {temEfetuado ? (
@@ -64,7 +64,7 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
               rel="noopener noreferrer"
               className="btn-secondary"
             >
-              Gerar PDF do Relatório de Despesas
+              Gerar PDF do Relatório de Despesas (Pós Jogo)
             </a>
           ) : null}
           <Link href={`/jogos/${jogo.id}/financeiro/novo`} className="btn-primary">

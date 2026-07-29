@@ -243,7 +243,10 @@ export const financeiroStyles = StyleSheet.create({
   assinaturaCargo: { fontSize: 8, color: "#525252", textAlign: "center", marginTop: 1 },
 });
 
-export const DEPARTAMENTO_LABEL = "Departamento de Futebol Profissional";
+const DEPARTAMENTO_LABELS = {
+  profissional: "Departamento de Futebol Profissional",
+  base: "Departamento de Futebol de Base",
+} as const;
 
 export function formatCarimbo(geradoEm: Date): string {
   const dia = String(geradoEm.getDate()).padStart(2, "0");
@@ -254,9 +257,11 @@ export function formatCarimbo(geradoEm: Date): string {
   return `${dia}/${mes}/${ano} às ${hora}:${minuto}`;
 }
 
-/** Rótulo do departamento — aparece no topo dos documentos do Financeiro, acima dos escudos/título. */
-export function DepartamentoEyebrow() {
-  return <Text style={financeiroStyles.departamentoEyebrow}>{DEPARTAMENTO_LABEL}</Text>;
+/** Rótulo do departamento — aparece no topo dos documentos do Financeiro, acima dos escudos/título.
+ * Antes vinha sempre fixo em "Profissional", inclusive nos PDFs gerados pelo Futebol de Base — bug
+ * corrigido a pedido do Mateus (ver o `departamento` que cada rota agora passa). */
+export function DepartamentoEyebrow({ departamento }: { departamento: "profissional" | "base" }) {
+  return <Text style={financeiroStyles.departamentoEyebrow}>{DEPARTAMENTO_LABELS[departamento]}</Text>;
 }
 
 /** Carimbo com data/hora de geração do documento, no canto superior direito da página. */

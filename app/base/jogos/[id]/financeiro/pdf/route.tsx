@@ -58,6 +58,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       geradoEm={new Date()}
       assinatura1={assinatura1}
       assinatura2={assinatura2}
+      departamento="base"
     />,
   );
 
