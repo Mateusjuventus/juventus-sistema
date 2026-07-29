@@ -4,10 +4,26 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotalBase } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
-import type { SolicitacaoTipo } from "@/lib/supabase/types";
+import type { SolicitacaoBaseRow, SolicitacaoItemBaseRow, SolicitacaoTipo } from "@/lib/supabase/types";
+
+/** Tipos que recalculam o valor total a partir da soma dos itens (ver recalcularValorTotalBase). */
+const TIPOS_COM_VALOR_CALCULADO: SolicitacaoTipo[] = ["pagamento", "reembolso", "transporte", "hospedagem"];
+
+/** Espelha `proximoNumero` (app/solicitacoes/actions.ts) — sequência própria e independente pro
+ * Futebol de Base. */
+async function proximoNumero(supabase: ReturnType<typeof createClient>): Promise<number> {
+  const { data } = await supabase
+    .from("solicitacoes_base")
+    .select("numero")
+    .order("numero", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.numero ?? 0) + 1;
+}
 
 /** Espelha `app/solicitacoes/actions.ts` para o Futebol de Base — mesmos tipos/fluxo, contra
  * `solicitacoes_base`/`solicitacao_itens_base`. Solicitações do Base não têm dimensão `categoria`. */
@@ -229,10 +245,12 @@ export async function createSolicitacaoBase(
 
   const supabase = createClient();
   const data = result.data;
+  const numero = await proximoNumero(supabase);
 
   const { data: criada, error } = await supabase
     .from("solicitacoes_base")
     .insert({
+      numero,
       tipo: data.tipo,
       data_solicitacao: data.dataSolicitacao,
       solicitante: data.solicitante,
@@ -323,6 +341,86 @@ export async function deleteSolicitacaoBase(formData: FormData): Promise<void> {
   const supabase = createClient();
   await supabase.from("solicitacoes_base").delete().eq("id", id);
   revalidatePath("/base/solicitacoes");
+}
+
+/** Espelha `duplicarSolicitacao` (app/solicitacoes/actions.ts) para o Futebol de Base. */
+export async function duplicarSolicitacaoBase(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = createClient();
+  const { data: originalData } = await supabase.from("solicitacoes_base").select("*").eq("id", id).single();
+  if (!originalData) return;
+  const original = originalData as SolicitacaoBaseRow;
+
+  const numero = await proximoNumero(supabase);
+
+  const { data: nova, error } = await supabase
+    .from("solicitacoes_base")
+    .insert({
+      numero,
+      tipo: original.tipo,
+      data_solicitacao: hojeBrasilia(),
+      solicitante: original.solicitante,
+      setor: original.setor,
+      descricao_necessidade: original.descricao_necessidade,
+      prazo_sugerido: original.prazo_sugerido,
+      valor: null,
+      chave_pix: original.chave_pix,
+      chave_pix_tipo: original.chave_pix_tipo,
+      banco: original.banco,
+      agencia: original.agencia,
+      conta: original.conta,
+      tipo_conta: original.tipo_conta,
+      titular_conta: original.titular_conta,
+      status: "pendente",
+    })
+    .select("id")
+    .single();
+
+  if (error || !nova) return;
+
+  if (TIPOS_COM_ITENS.includes(original.tipo)) {
+    const { data: itensData } = await supabase
+      .from("solicitacao_itens_base")
+      .select("*")
+      .eq("solicitacao_id", id)
+      .order("ordem", { ascending: true });
+    const itens = (itensData ?? []) as SolicitacaoItemBaseRow[];
+
+    if (itens.length > 0) {
+      await supabase.from("solicitacao_itens_base").insert(
+        itens.map((item) => ({
+          id: randomUUID(),
+          solicitacao_id: nova.id,
+          quantidade: item.quantidade,
+          item: item.item,
+          foto_path: item.foto_path,
+          descricao: item.descricao,
+          observacao: item.observacao,
+          valor: item.valor,
+          passageiro: item.passageiro,
+          origem: item.origem,
+          destino: item.destino,
+          data_voo: item.data_voo,
+          horario_voo: item.horario_voo,
+          cidade: item.cidade,
+          hotel: item.hotel,
+          data_entrada: item.data_entrada,
+          data_saida: item.data_saida,
+          tipo_acomodacao: item.tipo_acomodacao,
+          ordem: item.ordem,
+        })),
+      );
+    }
+
+    if (TIPOS_COM_VALOR_CALCULADO.includes(original.tipo)) {
+      await recalcularValorTotalBase(supabase, nova.id);
+    }
+  }
+
+  revalidatePath("/base/solicitacoes");
+  redirect(`/base/solicitacoes/${nova.id}`);
 }
 
 export async function updateSolicitacaoStatusBase(formData: FormData): Promise<void> {

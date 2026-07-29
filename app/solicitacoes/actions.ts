@@ -4,10 +4,26 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotal } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
-import type { SolicitacaoTipo } from "@/lib/supabase/types";
+import type { SolicitacaoItemRow, SolicitacaoRow, SolicitacaoTipo } from "@/lib/supabase/types";
+
+/** Tipos que recalculam o valor total a partir da soma dos itens (ver recalcularValorTotal). */
+const TIPOS_COM_VALOR_CALCULADO: SolicitacaoTipo[] = ["pagamento", "reembolso", "transporte", "hospedagem"];
+
+/** Próximo número sequencial da fila de Solicitações do Futebol Profissional — cada departamento
+ * tem sua própria sequência independente (ver solicitacoes_base para o Futebol de Base). */
+async function proximoNumero(supabase: ReturnType<typeof createClient>): Promise<number> {
+  const { data } = await supabase
+    .from("solicitacoes")
+    .select("numero")
+    .order("numero", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.numero ?? 0) + 1;
+}
 
 export interface SolicitacaoFormState {
   error?: string;
@@ -241,10 +257,12 @@ export async function createSolicitacao(
 
   const supabase = createClient();
   const data = result.data;
+  const numero = await proximoNumero(supabase);
 
   const { data: criada, error } = await supabase
     .from("solicitacoes")
     .insert({
+      numero,
       tipo: data.tipo,
       data_solicitacao: data.dataSolicitacao,
       solicitante: data.solicitante,
@@ -335,6 +353,91 @@ export async function deleteSolicitacao(formData: FormData): Promise<void> {
   const supabase = createClient();
   await supabase.from("solicitacoes").delete().eq("id", id);
   revalidatePath("/solicitacoes");
+}
+
+/**
+ * Duplica uma solicitação inteira — dados da solicitação (tipo, solicitante, setor, chave PIX,
+ * dados bancários etc.) e todos os seus itens (compra, pagamento, passageiros...). A cópia recebe
+ * um número novo, status "Pendente" e a data de hoje (é um pedido novo), pra você poder ajustar só
+ * o que for diferente em vez de preencher tudo de novo do zero.
+ */
+export async function duplicarSolicitacao(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = createClient();
+  const { data: originalData } = await supabase.from("solicitacoes").select("*").eq("id", id).single();
+  if (!originalData) return;
+  const original = originalData as SolicitacaoRow;
+
+  const numero = await proximoNumero(supabase);
+
+  const { data: nova, error } = await supabase
+    .from("solicitacoes")
+    .insert({
+      numero,
+      tipo: original.tipo,
+      data_solicitacao: hojeBrasilia(),
+      solicitante: original.solicitante,
+      setor: original.setor,
+      descricao_necessidade: original.descricao_necessidade,
+      prazo_sugerido: original.prazo_sugerido,
+      valor: null,
+      chave_pix: original.chave_pix,
+      chave_pix_tipo: original.chave_pix_tipo,
+      banco: original.banco,
+      agencia: original.agencia,
+      conta: original.conta,
+      tipo_conta: original.tipo_conta,
+      titular_conta: original.titular_conta,
+      status: "pendente",
+    })
+    .select("id")
+    .single();
+
+  if (error || !nova) return;
+
+  if (TIPOS_COM_ITENS.includes(original.tipo)) {
+    const { data: itensData } = await supabase
+      .from("solicitacao_itens")
+      .select("*")
+      .eq("solicitacao_id", id)
+      .order("ordem", { ascending: true });
+    const itens = (itensData ?? []) as SolicitacaoItemRow[];
+
+    if (itens.length > 0) {
+      await supabase.from("solicitacao_itens").insert(
+        itens.map((item) => ({
+          id: randomUUID(),
+          solicitacao_id: nova.id,
+          quantidade: item.quantidade,
+          item: item.item,
+          foto_path: item.foto_path,
+          descricao: item.descricao,
+          observacao: item.observacao,
+          valor: item.valor,
+          passageiro: item.passageiro,
+          origem: item.origem,
+          destino: item.destino,
+          data_voo: item.data_voo,
+          horario_voo: item.horario_voo,
+          cidade: item.cidade,
+          hotel: item.hotel,
+          data_entrada: item.data_entrada,
+          data_saida: item.data_saida,
+          tipo_acomodacao: item.tipo_acomodacao,
+          ordem: item.ordem,
+        })),
+      );
+    }
+
+    if (TIPOS_COM_VALOR_CALCULADO.includes(original.tipo)) {
+      await recalcularValorTotal(supabase, nova.id);
+    }
+  }
+
+  revalidatePath("/solicitacoes");
+  redirect(`/solicitacoes/${nova.id}`);
 }
 
 /** Troca rápida de status direto na listagem, sem precisar abrir a solicitação para editar. */

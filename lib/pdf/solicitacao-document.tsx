@@ -184,6 +184,7 @@ export interface SolicitacaoPdfItem {
 }
 
 export interface SolicitacaoPdfData {
+  numero: number;
   tipo: SolicitacaoTipo;
   dataSolicitacao: string;
   solicitante: string;
@@ -226,6 +227,7 @@ export function SolicitacaoDocument({
   // não deve ter borda inferior, já que a tabela toda já tem uma borda ao redor) é sempre a linha
   // certa, sem precisar decidir isso "na mão" em cada combinação possível de tipo.
   const linhas: { label: string; value: string }[] = [
+    { label: "Nº", value: String(solicitacao.numero).padStart(3, "0") },
     { label: "Data", value: formatDataBr(solicitacao.dataSolicitacao) },
     { label: "Solicitante", value: solicitacao.solicitante },
     { label: "Setor / C.C", value: solicitacao.setor },

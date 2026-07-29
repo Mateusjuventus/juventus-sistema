@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
   const solicitacoes = (data ?? []) as SolicitacaoRow[];
 
   const linhas = solicitacoes.map((s) => ({
+    "Nº": String(s.numero).padStart(3, "0"),
     Tipo: TIPO_LABEL[s.tipo] ?? s.tipo,
     Data: formatData(s.data_solicitacao),
     Solicitante: s.solicitante,
@@ -82,6 +83,7 @@ export async function GET(request: NextRequest) {
       const s = solicitacaoPorId.get(item.solicitacao_id);
       if (!s) return null;
       return {
+        "Nº": String(s.numero).padStart(3, "0"),
         Tipo: TIPO_LABEL[s.tipo] ?? s.tipo,
         Data: formatData(s.data_solicitacao),
         Solicitante: s.solicitante,

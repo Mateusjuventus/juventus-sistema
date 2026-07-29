@@ -6,7 +6,7 @@ import { SolicitacaoStatusSelect } from "@/components/solicitacao-status";
 import { createClient } from "@/lib/supabase/server";
 import { SOLICITACAO_TIPOS, SOLICITACAO_STATUS } from "@/lib/validation/schemas";
 import type { SolicitacaoBaseRow, SolicitacaoTipo, SolicitacaoStatus } from "@/lib/supabase/types";
-import { deleteSolicitacaoBase, updateSolicitacaoStatusBase } from "./actions";
+import { deleteSolicitacaoBase, duplicarSolicitacaoBase, updateSolicitacaoStatusBase } from "./actions";
 
 function formatData(data: string): string {
   const [ano, mes, dia] = data.split("-");
@@ -117,6 +117,7 @@ export default async function SolicitacoesBasePage({
                     <div key={s.id} className="card flex flex-wrap items-center gap-3 p-4">
                       <div className="min-w-[220px] flex-1">
                         <p className="font-medium text-neutral-800">
+                          <span className="text-neutral-400">Nº {String(s.numero).padStart(3, "0")}</span> ·{" "}
                           {tipoLabel} · {s.solicitante}
                         </p>
                         {subtitulo ? (
@@ -141,6 +142,12 @@ export default async function SolicitacoesBasePage({
                         >
                           PDF
                         </a>
+                        <form action={duplicarSolicitacaoBase}>
+                          <input type="hidden" name="id" value={s.id} />
+                          <button type="submit" className="btn-secondary">
+                            Duplicar
+                          </button>
+                        </form>
                         <DeleteButton action={deleteSolicitacaoBase} id={s.id} entityLabel="solicitação" />
                       </div>
                     </div>

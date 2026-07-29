@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { SolicitacaoItemRow, SolicitacaoRow } from "@/lib/supabase/types";
 import { SolicitacaoForm } from "../solicitacao-form";
-import { updateSolicitacao } from "../actions";
+import { duplicarSolicitacao, updateSolicitacao } from "../actions";
 import { deleteSolicitacaoItem } from "./itens/actions";
 
 function formatData(data: string | null): string {
@@ -71,15 +71,25 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
         ← Voltar
       </Link>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-grena-escuro">Editar solicitação</h1>
-        <a
-          href={`/solicitacoes/${s.id}/pdf`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-secondary"
-        >
-          Gerar PDF
-        </a>
+        <h1 className="text-2xl font-bold text-grena-escuro">
+          Editar solicitação <span className="text-neutral-400">Nº {String(s.numero).padStart(3, "0")}</span>
+        </h1>
+        <div className="flex gap-2">
+          <a
+            href={`/solicitacoes/${s.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+          >
+            Gerar PDF
+          </a>
+          <form action={duplicarSolicitacao}>
+            <input type="hidden" name="id" value={s.id} />
+            <button type="submit" className="btn-secondary">
+              Duplicar
+            </button>
+          </form>
+        </div>
       </div>
       <div className="mt-4">
         <SolicitacaoForm

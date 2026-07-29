@@ -645,6 +645,7 @@ export type SolicitacaoTipoConta = "corrente" | "poupanca";
  */
 export interface SolicitacaoRow {
   id: string;
+  numero: number;
   tipo: SolicitacaoTipo;
   data_solicitacao: string;
   solicitante: string;
@@ -851,6 +852,7 @@ export interface EstoqueEntradaItemBaseRow {
 
 export interface SolicitacaoBaseRow {
   id: string;
+  numero: number;
   tipo: SolicitacaoTipo;
   data_solicitacao: string;
   solicitante: string;

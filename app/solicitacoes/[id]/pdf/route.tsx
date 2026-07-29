@@ -64,6 +64,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     <SolicitacaoDocument
       juventusLogoSrc={juventusLogoSrc}
       solicitacao={{
+        numero: s.numero,
         tipo: s.tipo,
         dataSolicitacao: s.data_solicitacao,
         solicitante: s.solicitante,
