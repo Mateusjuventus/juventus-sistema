@@ -19,16 +19,23 @@ function formatMoeda(valor: number | null): string {
 }
 
 /** Espelha `app/solicitacoes/page.tsx` para o Futebol de Base — lista única, sem categoria. */
+const COLUNA_ORDENACAO: Record<string, string> = { numero: "numero", data: "data_solicitacao" };
+
 export default async function SolicitacoesBasePage({
   searchParams,
 }: {
-  searchParams: { tipo?: string; status?: string };
+  searchParams: { tipo?: string; status?: string; ordenarPor?: string; direcao?: string };
 }) {
   const tipoFiltro = SOLICITACAO_TIPOS.some((t) => t.value === searchParams.tipo) ? searchParams.tipo! : "";
   const statusFiltro = SOLICITACAO_STATUS.some((s) => s.value === searchParams.status) ? searchParams.status! : "";
+  const ordenarPor = searchParams.ordenarPor === "numero" ? "numero" : "data";
+  const direcao = searchParams.direcao === "asc" ? "asc" : "desc";
 
   const supabase = createClient();
-  let query = supabase.from("solicitacoes_base").select("*").order("data_solicitacao", { ascending: false });
+  let query = supabase
+    .from("solicitacoes_base")
+    .select("*")
+    .order(COLUNA_ORDENACAO[ordenarPor], { ascending: direcao === "asc" });
   if (tipoFiltro) query = query.eq("tipo", tipoFiltro as SolicitacaoTipo);
   if (statusFiltro) query = query.eq("status", statusFiltro as SolicitacaoStatus);
 
@@ -81,8 +88,26 @@ export default async function SolicitacoesBasePage({
             ))}
           </select>
         </div>
+        <div className="min-w-[160px]">
+          <label htmlFor="ordenarPor" className="field-label">
+            Ordenar por
+          </label>
+          <select id="ordenarPor" name="ordenarPor" defaultValue={ordenarPor} className="field-input">
+            <option value="data">Data</option>
+            <option value="numero">Número</option>
+          </select>
+        </div>
+        <div className="min-w-[160px]">
+          <label htmlFor="direcao" className="field-label">
+            Direção
+          </label>
+          <select id="direcao" name="direcao" defaultValue={direcao} className="field-input">
+            <option value="desc">Decrescente</option>
+            <option value="asc">Crescente</option>
+          </select>
+        </div>
         <button type="submit" className="btn-secondary">
-          Filtrar
+          Aplicar
         </button>
       </form>
 

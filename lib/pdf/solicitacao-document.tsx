@@ -151,9 +151,10 @@ const styles = StyleSheet.create({
   // marginTop/marginBottom reduzidos (eram 56/48) pra sobrar espaço suficiente pro bloco de
   // assinaturas continuar cabendo na mesma página mesmo quando a lista de itens é longa — sem
   // isso, qualquer solicitação com muitos itens empurrava as assinaturas sozinhas pra uma segunda
-  // folha em branco.
-  assinaturasGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 26 },
-  assinaturaCol: { width: "46%", alignItems: "center", marginBottom: 26 },
+  // folha em branco. Ainda assim, um pouco mais folgados que o mínimo (36/34) pra dar mais espaço
+  // real pra assinar por cima da linha.
+  assinaturasGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 36 },
+  assinaturaCol: { width: "46%", alignItems: "center", marginBottom: 34 },
   assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
   assinaturaLabel: { fontSize: 8.5, color: "#525252", textAlign: "center" },
   notaRodape: { fontSize: 7.5, color: "#737373", marginTop: 3, lineHeight: 1.3 },
@@ -184,7 +185,6 @@ export interface SolicitacaoPdfItem {
 }
 
 export interface SolicitacaoPdfData {
-  numero: number;
   tipo: SolicitacaoTipo;
   dataSolicitacao: string;
   solicitante: string;
@@ -227,7 +227,6 @@ export function SolicitacaoDocument({
   // não deve ter borda inferior, já que a tabela toda já tem uma borda ao redor) é sempre a linha
   // certa, sem precisar decidir isso "na mão" em cada combinação possível de tipo.
   const linhas: { label: string; value: string }[] = [
-    { label: "Nº", value: String(solicitacao.numero).padStart(3, "0") },
     { label: "Data", value: formatDataBr(solicitacao.dataSolicitacao) },
     { label: "Solicitante", value: solicitacao.solicitante },
     { label: "Setor / C.C", value: solicitacao.setor },
