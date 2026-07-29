@@ -3,7 +3,6 @@ import type { JogoRow } from "@/lib/supabase/types";
 import {
   AssinaturasBlock,
   type AssinaturaInfo,
-  CarimboGeracao,
   CORES,
   DepartamentoEyebrow,
   DocumentoFooter,
@@ -96,7 +95,6 @@ export function OrcamentoDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        <CarimboGeracao geradoEm={geradoEm} />
         <DepartamentoEyebrow departamento={departamento} />
         <DocumentoHeader
           jogo={jogo}
@@ -138,7 +136,7 @@ export function OrcamentoDocument({
 
         <AssinaturasBlock assinatura1={assinatura1} assinatura2={assinatura2} />
 
-        <DocumentoFooter />
+        <DocumentoFooter geradoEm={geradoEm} />
       </Page>
     </Document>
   );

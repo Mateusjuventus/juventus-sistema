@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ordenarQuartosPorApartamento } from "./logistica-shared";
+import { formatCarimbo, ordenarQuartosPorApartamento } from "./logistica-shared";
 
 interface QuartoTeste {
   id: string;
@@ -41,5 +41,18 @@ describe("ordenarQuartosPorApartamento", () => {
 
   it("lista vazia retorna lista vazia", () => {
     expect(ordenarQuartosPorApartamento([], "apto_asc")).toEqual([]);
+  });
+});
+
+describe("formatCarimbo", () => {
+  it("converte um instante UTC pro horário de Brasília (UTC-3), não pro fuso local do processo", () => {
+    // 15:30 UTC = 12:30 em São Paulo (sem horário de verão desde 2019)
+    expect(formatCarimbo(new Date("2026-07-27T15:30:00.000Z"))).toBe("27/07/2026 às 12:30");
+  });
+
+  it("rebate corretamente pro dia anterior quando o horário de Brasília cruza a meia-noite", () => {
+    // 01:15 UTC do dia 28 = 22:15 do dia 27 em São Paulo — é exatamente o tipo de caso que saía
+    // errado antes da correção (bug reportado pelo Mateus: "sempre gera errado").
+    expect(formatCarimbo(new Date("2026-07-28T01:15:00.000Z"))).toBe("27/07/2026 às 22:15");
   });
 });

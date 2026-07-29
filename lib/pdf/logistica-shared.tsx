@@ -78,6 +78,13 @@ export const sharedStyles = StyleSheet.create({
     paddingTop: 6,
   },
   footerTexto: { fontSize: 7, color: "#a3a3a3", textAlign: "center" },
+  footerCarimbo: {
+    fontSize: 7,
+    fontWeight: 700,
+    color: "#737373",
+    textAlign: "center",
+    marginBottom: 3,
+  },
 });
 
 export function formatDataBr(iso: string | null): string {
@@ -188,11 +195,17 @@ export function DocumentoHeader({
 /**
  * Rodapé com a identidade oficial do clube (razão social, CNPJ e endereço), repetido em toda
  * página — usado em todos os documentos oficiais gerados pelo sistema (presskit, rooming list,
- * ônibus, credenciamento e recibo de pagamento).
+ * ônibus, credenciamento e recibo de pagamento). Quando `geradoEm` é passado (documentos do
+ * módulo Financeiro), a data/hora de geração entra como uma linha a mais aqui embaixo — antes
+ * ficava num selo separado no canto superior direito, mas o Mateus pediu pra vir na parte
+ * inferior do documento.
  */
-export function DocumentoFooter() {
+export function DocumentoFooter({ geradoEm }: { geradoEm?: Date } = {}) {
   return (
     <View style={sharedStyles.footer} fixed>
+      {geradoEm ? (
+        <Text style={sharedStyles.footerCarimbo}>Gerado em {formatCarimbo(geradoEm)}</Text>
+      ) : null}
       <Text style={sharedStyles.footerTexto}>
         {JUVENTUS_RAZAO_SOCIAL} · CNPJ {JUVENTUS_CNPJ}
       </Text>
@@ -203,9 +216,9 @@ export function DocumentoFooter() {
 
 /**
  * Peças usadas só nos documentos do módulo Financeiro (Orçamento Previsto e Relatório Geral da
- * Prestação de Contas) — rótulo do departamento, carimbo de geração e bloco de assinaturas. Não
- * fazem parte do DocumentoHeader/DocumentoFooter compartilhado por não se aplicarem aos outros
- * documentos oficiais (rooming list, ônibus, credenciamento, recibo, presskit).
+ * Prestação de Contas) — rótulo do departamento e bloco de assinaturas. Não fazem parte do
+ * DocumentoHeader/DocumentoFooter compartilhado por não se aplicarem aos outros documentos
+ * oficiais (rooming list, ônibus, credenciamento, recibo, presskit).
  */
 export const financeiroStyles = StyleSheet.create({
   departamentoEyebrow: {
@@ -217,25 +230,6 @@ export const financeiroStyles = StyleSheet.create({
     letterSpacing: 1.2,
     marginBottom: 6,
   },
-  carimbo: {
-    position: "absolute",
-    top: 32,
-    right: 32,
-    borderWidth: 0.75,
-    borderColor: "#a3a3a3",
-    borderRadius: 3,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  carimboLabel: {
-    fontSize: 6,
-    fontWeight: 700,
-    color: "#737373",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    textAlign: "center",
-  },
-  carimboValor: { fontSize: 7.5, fontWeight: 700, color: "#525252", textAlign: "center", marginTop: 1 },
   assinaturasRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 36 },
   assinaturaCol: { width: "42%", alignItems: "center" },
   assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
@@ -248,13 +242,30 @@ const DEPARTAMENTO_LABELS = {
   base: "Departamento de Futebol de Base",
 } as const;
 
+/**
+ * Formata data/hora de geração sempre no horário de Brasília, independente do fuso horário do
+ * servidor onde o PDF é gerado — antes usava `geradoEm.getHours()`/`getDate()`, que lêem o
+ * relógio LOCAL do processo (na Vercel, isso é UTC), então o horário saía sistematicamente
+ * errado pra quem está no Brasil (3h adiantado). Usar `Intl.DateTimeFormat` com timeZone fixo
+ * resolve isso de vez, não importa onde a função rode.
+ */
 export function formatCarimbo(geradoEm: Date): string {
-  const dia = String(geradoEm.getDate()).padStart(2, "0");
-  const mes = String(geradoEm.getMonth() + 1).padStart(2, "0");
-  const ano = geradoEm.getFullYear();
-  const hora = String(geradoEm.getHours()).padStart(2, "0");
-  const minuto = String(geradoEm.getMinutes()).padStart(2, "0");
-  return `${dia}/${mes}/${ano} às ${hora}:${minuto}`;
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(geradoEm)
+      .map((p) => [p.type, p.value]),
+  );
+  // Algumas versões do ICU devolvem "24" em vez de "00" pra meia-noite mesmo com hour12: false.
+  const hora = partes.hour === "24" ? "00" : partes.hour;
+  return `${partes.day}/${partes.month}/${partes.year} às ${hora}:${partes.minute}`;
 }
 
 /** Rótulo do departamento — aparece no topo dos documentos do Financeiro, acima dos escudos/título.
@@ -262,16 +273,6 @@ export function formatCarimbo(geradoEm: Date): string {
  * corrigido a pedido do Mateus (ver o `departamento` que cada rota agora passa). */
 export function DepartamentoEyebrow({ departamento }: { departamento: "profissional" | "base" }) {
   return <Text style={financeiroStyles.departamentoEyebrow}>{DEPARTAMENTO_LABELS[departamento]}</Text>;
-}
-
-/** Carimbo com data/hora de geração do documento, no canto superior direito da página. */
-export function CarimboGeracao({ geradoEm }: { geradoEm: Date }) {
-  return (
-    <View style={financeiroStyles.carimbo} fixed>
-      <Text style={financeiroStyles.carimboLabel}>Gerado em</Text>
-      <Text style={financeiroStyles.carimboValor}>{formatCarimbo(geradoEm)}</Text>
-    </View>
-  );
 }
 
 export interface AssinaturaInfo {

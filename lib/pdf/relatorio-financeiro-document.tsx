@@ -2,7 +2,6 @@ import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/render
 import {
   AssinaturasBlock,
   type AssinaturaInfo,
-  CarimboGeracao,
   CORES,
   DepartamentoEyebrow,
   DocumentoFooter,
@@ -109,7 +108,6 @@ export function RelatorioFinanceiroDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        <CarimboGeracao geradoEm={geradoEm} />
         <DepartamentoEyebrow departamento={departamento} />
         {juventusLogoSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
@@ -201,7 +199,7 @@ export function RelatorioFinanceiroDocument({
 
         <AssinaturasBlock assinatura1={assinatura1} assinatura2={assinatura2} />
 
-        <DocumentoFooter />
+        <DocumentoFooter geradoEm={geradoEm} />
       </Page>
     </Document>
   );
