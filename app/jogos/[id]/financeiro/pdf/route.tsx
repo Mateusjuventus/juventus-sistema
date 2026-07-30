@@ -36,7 +36,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   for (const g of gastos) {
     const nomeCategoria = g.categoria?.nome ?? "Outros";
     const grupo = categoriasMap.get(nomeCategoria) ?? { nome: nomeCategoria, gastos: [] };
-    grupo.gastos.push({ descricao: g.descricao, valorPrevisto: g.valor_previsto });
+    grupo.gastos.push({ data: g.data, descricao: g.descricao, valorPrevisto: g.valor_previsto });
     categoriasMap.set(nomeCategoria, grupo);
   }
   const categorias = Array.from(categoriasMap.values()).sort((a, b) =>

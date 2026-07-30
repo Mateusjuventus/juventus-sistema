@@ -7,6 +7,7 @@ import {
   DepartamentoEyebrow,
   DocumentoFooter,
   DocumentoHeader,
+  formatDataBr,
   sharedStyles,
   type LogoSrc,
 } from "./logistica-shared";
@@ -28,6 +29,13 @@ const styles = StyleSheet.create({
   categoriaTitulo: { fontSize: 10.5, fontWeight: 700, color: CORES.grenaEscuro },
   categoriaSubtotal: { fontSize: 9, fontWeight: 700, color: CORES.grena },
   tabela: { marginTop: 0 },
+  headerRow: {
+    flexDirection: "row",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#d4d4d4",
+    paddingBottom: 2,
+    marginBottom: 1,
+  },
   linha: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
@@ -35,6 +43,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2.5,
     alignItems: "center",
   },
+  colData: { width: 82 },
   colDescricao: { flex: 1 },
   colValor: { width: 90, textAlign: "right" },
   headerCell: { fontSize: 6.5, fontWeight: 700, color: "#737373", textTransform: "uppercase" },
@@ -57,6 +66,7 @@ function formatMoeda(valor: number): string {
 }
 
 export interface OrcamentoPdfGasto {
+  data: string | null;
   descricao: string | null;
   valorPrevisto: number;
 }
@@ -115,8 +125,14 @@ export function OrcamentoDocument({
                   <Text style={styles.categoriaSubtotal}>{formatMoeda(subtotal)}</Text>
                 </View>
                 <View style={styles.tabela}>
+                  <View style={styles.headerRow}>
+                    <Text style={[styles.colData, styles.headerCell]}>Data de Pagamento</Text>
+                    <Text style={[styles.colDescricao, styles.headerCell]}>Descrição</Text>
+                    <Text style={[styles.colValor, styles.headerCell]}>Valor Previsto</Text>
+                  </View>
                   {c.gastos.map((g, i) => (
                     <View style={styles.linha} key={i}>
+                      <Text style={[styles.colData, styles.cell]}>{formatDataBr(g.data)}</Text>
                       <Text style={[styles.colDescricao, styles.cell]}>{g.descricao ?? "—"}</Text>
                       <Text style={[styles.colValor, styles.cell]}>{formatMoeda(g.valorPrevisto)}</Text>
                     </View>
