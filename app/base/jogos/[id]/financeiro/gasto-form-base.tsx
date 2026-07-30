@@ -37,7 +37,7 @@ export function GastoFormBase({
       <FormSection title="Dados do gasto">
         <FieldGroup>
           <TextField
-            label="Data"
+            label="Data de Pagamento"
             name="data"
             type="date"
             defaultValue={values.data}

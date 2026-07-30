@@ -82,7 +82,7 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
-              <th className="px-4 py-3">Data</th>
+              <th className="px-4 py-3">Data de Pagamento</th>
               <th className="px-4 py-3">Categoria</th>
               <th className="px-4 py-3">Descrição</th>
               <th className="px-4 py-3">Previsto</th>
