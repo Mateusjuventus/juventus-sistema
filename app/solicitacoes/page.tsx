@@ -18,8 +18,8 @@ function formatMoeda(valor: number | null): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-/** Espelha `app/base/solicitacoes/page.tsx`. Ordenação padrão (sem parâmetro na URL): data mais
- * recente primeiro — mesmo comportamento de antes de existir o controle de ordenar. */
+/** Espelha `app/base/solicitacoes/page.tsx`. Ordenação padrão (sem parâmetro na URL): número mais
+ * alto primeiro (a solicitação mais recente, já que numera em ordem de criação). */
 const COLUNA_ORDENACAO: Record<string, string> = { numero: "numero", data: "data_solicitacao" };
 
 export default async function SolicitacoesPage({
@@ -29,7 +29,7 @@ export default async function SolicitacoesPage({
 }) {
   const tipoFiltro = SOLICITACAO_TIPOS.some((t) => t.value === searchParams.tipo) ? searchParams.tipo! : "";
   const statusFiltro = SOLICITACAO_STATUS.some((s) => s.value === searchParams.status) ? searchParams.status! : "";
-  const ordenarPor = searchParams.ordenarPor === "numero" ? "numero" : "data";
+  const ordenarPor = searchParams.ordenarPor === "data" ? "data" : "numero";
   const direcao = searchParams.direcao === "asc" ? "asc" : "desc";
 
   const supabase = createClient();

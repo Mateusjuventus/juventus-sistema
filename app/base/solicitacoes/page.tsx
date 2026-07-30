@@ -28,7 +28,7 @@ export default async function SolicitacoesBasePage({
 }) {
   const tipoFiltro = SOLICITACAO_TIPOS.some((t) => t.value === searchParams.tipo) ? searchParams.tipo! : "";
   const statusFiltro = SOLICITACAO_STATUS.some((s) => s.value === searchParams.status) ? searchParams.status! : "";
-  const ordenarPor = searchParams.ordenarPor === "numero" ? "numero" : "data";
+  const ordenarPor = searchParams.ordenarPor === "data" ? "data" : "numero";
   const direcao = searchParams.direcao === "asc" ? "asc" : "desc";
 
   const supabase = createClient();
