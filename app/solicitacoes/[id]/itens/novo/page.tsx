@@ -17,7 +17,9 @@ export default async function NovoItemSolicitacaoPage({ params }: { params: { id
       ? "Novo passageiro"
       : solicitacao.tipo === "hospedagem"
         ? "Novo hóspede"
-        : "Novo item";
+        : solicitacao.tipo === "exame_medico"
+          ? "Novo exame"
+          : "Novo item";
 
   return (
     <AppShell>

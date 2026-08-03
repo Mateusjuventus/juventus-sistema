@@ -434,6 +434,30 @@ export const solicitacaoItemHospedagemSchema = z.object({
 });
 export type SolicitacaoItemHospedagemInput = z.infer<typeof solicitacaoItemHospedagemSchema>;
 
+/** Item (paciente/exame) de Exame Médico — reaproveita passageiro/item/observacao (Nome do
+ * Paciente/Exame/Observação) e origem/destino/dataVoo/horarioVoo pro trecho de IDA do transporte
+ * (mesmas colunas de Passagem Aérea/Transporte, não usadas por Exame Médico pra outra coisa); o
+ * trecho de VOLTA tem campos próprios. `houveTransporte` chega como "sim"/"nao" de um toggle no
+ * formulário — só quando "sim" a caixa de ida/volta é exigida no formulário (a validação em si
+ * não obriga nenhum desses campos, pra não travar quem preencher parcialmente). */
+export const solicitacaoItemExameMedicoSchema = z.object({
+  passageiro: z.string().min(1, { message: "Nome é obrigatório" }),
+  item: z.string().min(1, { message: "Exame é obrigatório" }),
+  dataExame: z.string().optional().or(z.literal("")),
+  localExame: z.string().optional().or(z.literal("")),
+  observacao: z.string().optional().or(z.literal("")),
+  houveTransporte: z.enum(["sim", "nao"]).optional().or(z.literal("")),
+  origem: z.string().optional().or(z.literal("")),
+  destino: z.string().optional().or(z.literal("")),
+  dataVoo: z.string().optional().or(z.literal("")),
+  horarioVoo: z.string().optional().or(z.literal("")),
+  origemVolta: z.string().optional().or(z.literal("")),
+  destinoVolta: z.string().optional().or(z.literal("")),
+  dataVolta: z.string().optional().or(z.literal("")),
+  horarioVolta: z.string().optional().or(z.literal("")),
+});
+export type SolicitacaoItemExameMedicoInput = z.infer<typeof solicitacaoItemExameMedicoSchema>;
+
 export const configuracaoFinanceiroSchema = z.object({
   assinatura1Nome: z.string().min(1, { message: "Nome é obrigatório" }),
   assinatura1Cargo: z.string().min(1, { message: "Cargo é obrigatório" }),

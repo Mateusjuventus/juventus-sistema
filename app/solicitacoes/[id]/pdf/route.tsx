@@ -47,6 +47,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
       dataEntrada: item.data_entrada,
       dataSaida: item.data_saida,
       tipoAcomodacao: item.tipo_acomodacao,
+      dataExame: item.data_exame,
+      localExame: item.local_exame,
+      houveTransporte: item.houve_transporte,
+      origemVolta: item.origem_volta,
+      destinoVolta: item.destino_volta,
+      dataVolta: item.data_volta,
+      horarioVolta: item.horario_volta,
     })),
   );
 

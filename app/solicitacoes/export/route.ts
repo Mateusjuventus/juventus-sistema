@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
         s.tipo === "pagamento" ||
         s.tipo === "reembolso" ||
         s.tipo === "passagem_aerea" ||
+        s.tipo === "exame_medico" ||
         s.tipo === "transporte" ||
         s.tipo === "hospedagem",
     )
@@ -99,6 +100,13 @@ export async function GET(request: NextRequest) {
         Entrada: formatData(item.data_entrada),
         Saída: formatData(item.data_saida),
         "Tipo de Acomodação": item.tipo_acomodacao ?? "",
+        "Data do Exame": formatData(item.data_exame),
+        "Local do Exame": item.local_exame ?? "",
+        "Houve Transporte": s.tipo === "exame_medico" ? (item.houve_transporte ? "Sim" : "Não") : "",
+        "Origem (Volta)": item.origem_volta ?? "",
+        "Destino (Volta)": item.destino_volta ?? "",
+        "Data (Volta)": formatData(item.data_volta),
+        "Horário (Volta)": item.horario_volta ? item.horario_volta.slice(0, 5) : "",
         Observação: item.observacao ?? "",
       };
     })

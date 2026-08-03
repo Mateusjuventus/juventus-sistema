@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, TextField } from "@/components/fields";
 import { CurrencyField } from "@/components/currency-field";
@@ -15,7 +16,8 @@ const initialState: SolicitacaoItemFormState = {};
  * editar (`/itens/[itemId]`) um item já existente, dependendo se `itemId`/`defaultValues` vêm
  * preenchidos. Os campos mostrados mudam conforme `tipo` (mesmo conjunto de campos por tipo que
  * `app/solicitacoes/solicitacao-form.tsx` usa na criação em lote): Compra é Item/Quantidade/Foto;
- * Pagamento/Reembolso é Descrição/Valor; Passagem Aérea é Passageiro/Origem/Destino/Data/Horário.
+ * Pagamento/Reembolso é Descrição/Valor; Passagem Aérea é Passageiro/Origem/Destino/Data/Horário;
+ * Exame Médico é Nome/Exame/Data do exame/Local, com um toggle Houve Transporte que revela ida/volta.
  */
 export function SolicitacaoItemForm({
   action,
@@ -36,6 +38,7 @@ export function SolicitacaoItemForm({
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
+  const [houveTransporte, setHouveTransporte] = useState(values.houveTransporte === "sim");
 
   return (
     <form action={formAction} className="card space-y-4 p-5" encType="multipart/form-data">
@@ -224,6 +227,123 @@ export function SolicitacaoItemForm({
             />
           </div>
         </FieldGroup>
+      ) : null}
+
+      {tipo === "exame_medico" ? (
+        <>
+          <FieldGroup>
+            <TextField label="Nome" name="passageiro" required defaultValue={values.passageiro} error={errors.passageiro} />
+            <TextField
+              label="Exame"
+              name="item"
+              required
+              placeholder="Ex: Ressonância magnética do joelho"
+              defaultValue={values.item}
+              error={errors.item}
+            />
+            <TextField
+              label="Data do exame"
+              name="dataExame"
+              type="date"
+              defaultValue={values.dataExame}
+              error={errors.dataExame}
+            />
+            <TextField
+              label="Local / Clínica"
+              name="localExame"
+              defaultValue={values.localExame}
+              error={errors.localExame}
+            />
+            <div className="sm:col-span-2">
+              <TextField
+                label="Observação (opcional)"
+                name="observacao"
+                defaultValue={values.observacao}
+                error={errors.observacao}
+              />
+            </div>
+          </FieldGroup>
+
+          <div className="mt-4">
+            <input type="hidden" name="houveTransporte" value={houveTransporte ? "sim" : "nao"} />
+            <label className="field-label">Houve transporte?</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setHouveTransporte(true)}
+                className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                  houveTransporte
+                    ? "border-grena bg-grena text-white"
+                    : "border-neutral-300 bg-white text-neutral-700 hover:border-grena hover:text-grena"
+                }`}
+              >
+                Sim
+              </button>
+              <button
+                type="button"
+                onClick={() => setHouveTransporte(false)}
+                className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                  !houveTransporte
+                    ? "border-grena bg-grena text-white"
+                    : "border-neutral-300 bg-white text-neutral-700 hover:border-grena hover:text-grena"
+                }`}
+              >
+                Não
+              </button>
+            </div>
+          </div>
+
+          <div className={houveTransporte ? "mt-4 rounded-md bg-neutral-50 p-4" : "hidden"}>
+            <p className="mb-3 text-sm font-semibold text-neutral-600">Ida</p>
+            <FieldGroup>
+              <TextField label="Origem" name="origem" defaultValue={values.origem} error={errors.origem} />
+              <TextField label="Destino" name="destino" defaultValue={values.destino} error={errors.destino} />
+              <TextField
+                label="Data"
+                name="dataVoo"
+                type="date"
+                defaultValue={values.dataVoo}
+                error={errors.dataVoo}
+              />
+              <TextField
+                label="Horário"
+                name="horarioVoo"
+                type="time"
+                defaultValue={values.horarioVoo}
+                error={errors.horarioVoo}
+              />
+            </FieldGroup>
+            <p className="mb-3 mt-4 text-sm font-semibold text-neutral-600">Volta</p>
+            <FieldGroup>
+              <TextField
+                label="Origem"
+                name="origemVolta"
+                defaultValue={values.origemVolta}
+                error={errors.origemVolta}
+              />
+              <TextField
+                label="Destino"
+                name="destinoVolta"
+                defaultValue={values.destinoVolta}
+                error={errors.destinoVolta}
+              />
+              <TextField
+                label="Data"
+                name="dataVolta"
+                type="date"
+                defaultValue={values.dataVolta}
+                error={errors.dataVolta}
+              />
+              <TextField
+                label="Horário"
+                name="horarioVolta"
+                type="time"
+                defaultValue={values.horarioVolta}
+                error={errors.horarioVolta}
+              />
+            </FieldGroup>
+          </div>
+        </>
       ) : null}
 
       {state.error ? (

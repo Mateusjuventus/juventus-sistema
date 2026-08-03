@@ -38,6 +38,7 @@ const TIPOS_COM_ITENS: SolicitacaoTipo[] = [
   "pagamento",
   "reembolso",
   "passagem_aerea",
+  "exame_medico",
   "transporte",
   "hospedagem",
 ];
@@ -228,6 +229,52 @@ async function salvarItensInlineBase(
     return {};
   }
 
+  if (tipo === "exame_medico") {
+    const nomes = formData.getAll("itemPassageiro").map(String);
+    const exames = formData.getAll("itemItem").map(String);
+    const datasExame = formData.getAll("itemDataExame").map(String);
+    const locais = formData.getAll("itemLocalExame").map(String);
+    const observacoes = formData.getAll("itemObservacao").map(String);
+    const houveTransportes = formData.getAll("itemHouveTransporte").map(String);
+    const origens = formData.getAll("itemOrigem").map(String);
+    const destinos = formData.getAll("itemDestino").map(String);
+    const datasIda = formData.getAll("itemDataVoo").map(String);
+    const horariosIda = formData.getAll("itemHorarioVoo").map(String);
+    const origensVolta = formData.getAll("itemOrigemVolta").map(String);
+    const destinosVolta = formData.getAll("itemDestinoVolta").map(String);
+    const datasVolta = formData.getAll("itemDataVolta").map(String);
+    const horariosVolta = formData.getAll("itemHorarioVolta").map(String);
+
+    let ordem = 0;
+    for (let i = 0; i < nomes.length; i++) {
+      const nome = nomes[i]?.trim();
+      if (!nome) continue;
+      const houveTransporte = houveTransportes[i] === "sim";
+
+      const { error } = await supabase.from("solicitacao_itens_base").insert({
+        id: randomUUID(),
+        solicitacao_id: solicitacaoId,
+        passageiro: nome,
+        item: exames[i]?.trim() || null,
+        data_exame: datasExame[i]?.trim() || null,
+        local_exame: locais[i]?.trim() || null,
+        observacao: observacoes[i]?.trim() || null,
+        houve_transporte: houveTransporte,
+        origem: houveTransporte ? origens[i]?.trim() || null : null,
+        destino: houveTransporte ? destinos[i]?.trim() || null : null,
+        data_voo: houveTransporte ? datasIda[i]?.trim() || null : null,
+        horario_voo: houveTransporte ? horariosIda[i]?.trim() || null : null,
+        origem_volta: houveTransporte ? origensVolta[i]?.trim() || null : null,
+        destino_volta: houveTransporte ? destinosVolta[i]?.trim() || null : null,
+        data_volta: houveTransporte ? datasVolta[i]?.trim() || null : null,
+        horario_volta: houveTransporte ? horariosVolta[i]?.trim() || null : null,
+        ordem: ordem++,
+      });
+      if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
+    }
+    return {};
+  }
+
   return {};
 }
 
@@ -409,6 +456,13 @@ export async function duplicarSolicitacaoBase(formData: FormData): Promise<void>
           data_entrada: item.data_entrada,
           data_saida: item.data_saida,
           tipo_acomodacao: item.tipo_acomodacao,
+          data_exame: item.data_exame,
+          local_exame: item.local_exame,
+          houve_transporte: item.houve_transporte,
+          origem_volta: item.origem_volta,
+          destino_volta: item.destino_volta,
+          data_volta: item.data_volta,
+          horario_volta: item.horario_volta,
           ordem: item.ordem,
         })),
       );

@@ -415,6 +415,167 @@ function ItensHospedagemFields() {
   );
 }
 
+/**
+ * Linhas de item do Exame Médico (Nome, Exame, Data do exame, Local/Clínica, Observação), com um
+ * toggle "Houve transporte?" por linha — ao marcar "Sim", revela uma caixa com os dados de ida e
+ * volta (Origem/Destino/Data/Horário de cada trecho). Reaproveita os mesmos nomes de campo de
+ * Passagem Aérea/Transporte pro trecho de IDA (itemOrigem/itemDestino/itemDataVoo/itemHorarioVoo)
+ * — ver salvarItensInlineBase em ./actions.ts. A caixa de ida/volta fica sempre no DOM (só
+ * escondida via CSS quando "Não"), pra não desalinhar os índices dos campos entre linhas na hora
+ * de ler `formData.getAll(...)` no servidor.
+ */
+function ItensExameMedicoFields() {
+  const [rows, setRows] = useState<string[]>(() => [crypto.randomUUID()]);
+  const [transporte, setTransporte] = useState<Record<string, boolean>>({});
+
+  return (
+    <FormSection title="Exames">
+      <p className="-mt-1 text-sm text-neutral-500">
+        Adicione um ou mais exames/pacientes. Se precisar, dá pra incluir mais depois também.
+      </p>
+      <div className="space-y-4">
+        {rows.map((rowId, i) => {
+          const houveTransporte = transporte[rowId] ?? false;
+          return (
+            <div key={rowId} className="rounded-md border border-neutral-200 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-neutral-600">Exame {i + 1}</p>
+                {rows.length > 1 ? (
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-red-700 hover:underline"
+                    onClick={() => setRows((r) => r.filter((id) => id !== rowId))}
+                  >
+                    Remover
+                  </button>
+                ) : null}
+              </div>
+              <FieldGroup>
+                <TextField label="Nome" name="itemPassageiro" id={`itemPassageiro-${rowId}`} autoComplete="off" />
+                <TextField
+                  label="Exame"
+                  name="itemItem"
+                  id={`itemItem-${rowId}`}
+                  autoComplete="off"
+                  placeholder="Ex: Ressonância magnética do joelho"
+                />
+                <TextField
+                  label="Data do exame"
+                  name="itemDataExame"
+                  id={`itemDataExame-${rowId}`}
+                  autoComplete="off"
+                  type="date"
+                />
+                <TextField
+                  label="Local / Clínica"
+                  name="itemLocalExame"
+                  id={`itemLocalExame-${rowId}`}
+                  autoComplete="off"
+                />
+                <div className="sm:col-span-2">
+                  <TextField
+                    label="Observação (opcional)"
+                    name="itemObservacao"
+                    id={`itemObservacao-${rowId}`}
+                    autoComplete="off"
+                  />
+                </div>
+              </FieldGroup>
+
+              <div className="mt-4">
+                <input type="hidden" name="itemHouveTransporte" value={houveTransporte ? "sim" : "nao"} />
+                <label className="field-label">Houve transporte?</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTransporte((t) => ({ ...t, [rowId]: true }))}
+                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      houveTransporte
+                        ? "border-grena bg-grena text-white"
+                        : "border-neutral-300 bg-white text-neutral-700 hover:border-grena hover:text-grena"
+                    }`}
+                  >
+                    Sim
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransporte((t) => ({ ...t, [rowId]: false }))}
+                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      !houveTransporte
+                        ? "border-grena bg-grena text-white"
+                        : "border-neutral-300 bg-white text-neutral-700 hover:border-grena hover:text-grena"
+                    }`}
+                  >
+                    Não
+                  </button>
+                </div>
+              </div>
+
+              <div className={houveTransporte ? "mt-4 rounded-md bg-neutral-50 p-4" : "hidden"}>
+                <p className="mb-3 text-sm font-semibold text-neutral-600">Ida</p>
+                <FieldGroup>
+                  <TextField label="Origem" name="itemOrigem" id={`itemOrigem-${rowId}`} autoComplete="off" />
+                  <TextField label="Destino" name="itemDestino" id={`itemDestino-${rowId}`} autoComplete="off" />
+                  <TextField
+                    label="Data"
+                    name="itemDataVoo"
+                    id={`itemDataVoo-${rowId}`}
+                    autoComplete="off"
+                    type="date"
+                  />
+                  <TextField
+                    label="Horário"
+                    name="itemHorarioVoo"
+                    id={`itemHorarioVoo-${rowId}`}
+                    autoComplete="off"
+                    type="time"
+                  />
+                </FieldGroup>
+                <p className="mb-3 mt-4 text-sm font-semibold text-neutral-600">Volta</p>
+                <FieldGroup>
+                  <TextField
+                    label="Origem"
+                    name="itemOrigemVolta"
+                    id={`itemOrigemVolta-${rowId}`}
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Destino"
+                    name="itemDestinoVolta"
+                    id={`itemDestinoVolta-${rowId}`}
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Data"
+                    name="itemDataVolta"
+                    id={`itemDataVolta-${rowId}`}
+                    autoComplete="off"
+                    type="date"
+                  />
+                  <TextField
+                    label="Horário"
+                    name="itemHorarioVolta"
+                    id={`itemHorarioVolta-${rowId}`}
+                    autoComplete="off"
+                    type="time"
+                  />
+                </FieldGroup>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        className="btn-secondary mt-4"
+        onClick={() => setRows((r) => [...r, crypto.randomUUID()])}
+      >
+        + Adicionar exame
+      </button>
+    </FormSection>
+  );
+}
+
 export function SolicitacaoForm({
   action,
   entityId,
@@ -470,12 +631,12 @@ export function SolicitacaoForm({
           <div className="sm:col-span-2">
             <TextAreaField
               label={
-                ["passagem_aerea", "transporte", "hospedagem"].includes(tipo)
+                ["passagem_aerea", "transporte", "hospedagem", "exame_medico"].includes(tipo)
                   ? "Observações"
                   : "Descrição da necessidade"
               }
               name="descricaoNecessidade"
-              required={!["passagem_aerea", "transporte", "hospedagem"].includes(tipo)}
+              required={!["passagem_aerea", "transporte", "hospedagem", "exame_medico"].includes(tipo)}
               rows={4}
               defaultValue={values.descricaoNecessidade}
               error={errors.descricaoNecessidade}
@@ -542,6 +703,7 @@ export function SolicitacaoForm({
         <ItensPagamentoReembolsoFields key={`itens-${tipo}`} tipo={tipo} />
       ) : null}
       {!entityId && tipo === "passagem_aerea" ? <ItensPassagemFields key="passagem_aerea" /> : null}
+      {!entityId && tipo === "exame_medico" ? <ItensExameMedicoFields key="exame_medico" /> : null}
       {!entityId && tipo === "transporte" ? <ItensTransporteFields key="transporte" /> : null}
       {!entityId && tipo === "hospedagem" ? <ItensHospedagemFields key="hospedagem" /> : null}
 

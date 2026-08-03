@@ -702,6 +702,15 @@ export interface SolicitacaoItemRow {
   data_entrada: string | null;
   data_saida: string | null;
   tipo_acomodacao: string | null;
+  // Exclusivos de Exame Médico — origem/destino/data_voo/horario_voo (acima) são reaproveitados
+  // pro trecho de IDA do transporte; estes cobrem o exame em si e o trecho de VOLTA.
+  data_exame: string | null;
+  local_exame: string | null;
+  houve_transporte: boolean;
+  origem_volta: string | null;
+  destino_volta: string | null;
+  data_volta: string | null;
+  horario_volta: string | null;
   ordem: number;
   created_at: string;
 }
@@ -897,6 +906,15 @@ export interface SolicitacaoItemBaseRow {
   data_entrada: string | null;
   data_saida: string | null;
   tipo_acomodacao: string | null;
+  // Exclusivos de Exame Médico — origem/destino/data_voo/horario_voo (acima) são reaproveitados
+  // pro trecho de IDA do transporte; estes cobrem o exame em si e o trecho de VOLTA.
+  data_exame: string | null;
+  local_exame: string | null;
+  houve_transporte: boolean;
+  origem_volta: string | null;
+  destino_volta: string | null;
+  data_volta: string | null;
+  horario_volta: string | null;
   ordem: number;
   created_at: string;
 }

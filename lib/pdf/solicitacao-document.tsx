@@ -22,12 +22,13 @@ const DEPARTAMENTOS: Record<SolicitacaoTipo, string> = {
   hospedagem: "Departamento de Viagens",
 };
 
-/** Tipos de solicitação que têm uma tabela de itens no PDF (Exame Médico não tem). */
+/** Tipos de solicitação que têm uma tabela de itens no PDF. */
 const TIPOS_COM_ITENS: SolicitacaoTipo[] = [
   "compra",
   "pagamento",
   "reembolso",
   "passagem_aerea",
+  "exame_medico",
   "transporte",
   "hospedagem",
 ];
@@ -147,6 +148,14 @@ const styles = StyleSheet.create({
   colHospDatas: { width: 85, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   colHospAcomodacao: { width: 75, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   colHospObservacao: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  // Colunas da tabela de Exame Médico — Transporte resume ida/volta em duas linhas dentro da mesma
+  // célula (ou "Não houve transporte"), Observação por último (flex).
+  colExameNome: { width: 65, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colExameExame: { width: 95, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colExameData: { width: 50, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colExameLocal: { width: 75, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
+  colExameTransporte: { width: 140, textAlign: "center", fontSize: 7.5, paddingVertical: 3, paddingHorizontal: 4 },
+  colExameObservacao: { flex: 1, textAlign: "center", fontSize: 8, paddingVertical: 3, paddingHorizontal: 4 },
   fecho: { height: 8, backgroundColor: CORES.grena, marginTop: 8 },
   // marginTop/marginBottom reduzidos (eram 56/48) pra sobrar espaço suficiente pro bloco de
   // assinaturas continuar cabendo na mesma página mesmo quando a lista de itens é longa — sem
@@ -182,6 +191,15 @@ export interface SolicitacaoPdfItem {
   dataEntrada: string | null;
   dataSaida: string | null;
   tipoAcomodacao: string | null;
+  // Exclusivos de Exame Médico — origem/destino/dataVoo/horarioVoo (acima) são reaproveitados pro
+  // trecho de IDA do transporte.
+  dataExame: string | null;
+  localExame: string | null;
+  houveTransporte: boolean;
+  origemVolta: string | null;
+  destinoVolta: string | null;
+  dataVolta: string | null;
+  horarioVolta: string | null;
 }
 
 export interface SolicitacaoPdfData {
@@ -208,8 +226,8 @@ function formatMoeda(valor: number): string {
 /**
  * Documento de Solicitação (Compra, Pagamento, Exame Médico, Reembolso ou Passagem Aérea) — segue
  * o modelo de formulário impresso já usado pelo clube: logo centralizado no topo, faixa com o
- * título, tabela de dados (rótulo em vinho, valor em preto), tabela de itens centralizada (Exame
- * Médico não tem), e bloco de 4 assinaturas em branco pra imprimir e assinar.
+ * título, tabela de dados (rótulo em vinho, valor em preto), tabela de itens centralizada, e bloco
+ * de 4 assinaturas em branco pra imprimir e assinar.
  */
 export function SolicitacaoDocument({
   juventusLogoSrc,
@@ -299,7 +317,9 @@ export function SolicitacaoDocument({
                   ? "Passageiros:"
                   : solicitacao.tipo === "hospedagem"
                     ? "Hóspedes:"
-                    : "Itens Solicitados:"}
+                    : solicitacao.tipo === "exame_medico"
+                      ? "Exames:"
+                      : "Itens Solicitados:"}
               </Text>
             </View>
             <View style={styles.itensTable}>
@@ -436,6 +456,37 @@ export function SolicitacaoDocument({
                           {item.valor !== null ? formatMoeda(item.valor) : "—"}
                         </Text>
                         <Text style={styles.colHospObservacao}>{item.observacao || "—"}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              ) : solicitacao.tipo === "exame_medico" ? (
+                <>
+                  <View style={styles.itensHeaderRow}>
+                    <Text style={[styles.colExameNome, styles.colDivisor, sharedStyles.headerCell]}>Nome</Text>
+                    <Text style={[styles.colExameExame, styles.colDivisor, sharedStyles.headerCell]}>Exame</Text>
+                    <Text style={[styles.colExameData, styles.colDivisor, sharedStyles.headerCell]}>Data</Text>
+                    <Text style={[styles.colExameLocal, styles.colDivisor, sharedStyles.headerCell]}>Local</Text>
+                    <Text style={[styles.colExameTransporte, styles.colDivisor, sharedStyles.headerCell]}>
+                      Transporte
+                    </Text>
+                    <Text style={[styles.colExameObservacao, sharedStyles.headerCell]}>Observação</Text>
+                  </View>
+                  {itens.length === 0 ? (
+                    <Text style={sharedStyles.emptyState}>Nenhum exame adicionado ainda.</Text>
+                  ) : (
+                    itens.map((item, i) => (
+                      <View style={[styles.itensRowBase, styles.itensRowSemFoto]} key={i} wrap={false}>
+                        <Text style={[styles.colExameNome, styles.colDivisor]}>{item.passageiro}</Text>
+                        <Text style={[styles.colExameExame, styles.colDivisor]}>{item.item}</Text>
+                        <Text style={[styles.colExameData, styles.colDivisor]}>{formatDataBr(item.dataExame)}</Text>
+                        <Text style={[styles.colExameLocal, styles.colDivisor]}>{item.localExame || "—"}</Text>
+                        <Text style={[styles.colExameTransporte, styles.colDivisor]}>
+                          {item.houveTransporte
+                            ? `Ida: ${item.origem || "—"} - ${item.destino || "—"}\n${formatDataBr(item.dataVoo)}${item.horarioVoo ? ` às ${item.horarioVoo.slice(0, 5)}` : ""}\nVolta: ${item.origemVolta || "—"} - ${item.destinoVolta || "—"}\n${formatDataBr(item.dataVolta)}${item.horarioVolta ? ` às ${item.horarioVolta.slice(0, 5)}` : ""}`
+                            : "Não houve transporte"}
+                        </Text>
+                        <Text style={styles.colExameObservacao}>{item.observacao || "—"}</Text>
                       </View>
                     ))
                   )}

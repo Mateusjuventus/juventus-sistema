@@ -40,6 +40,13 @@ export default async function EditarItemSolicitacaoPage({
     dataSaida: item.data_saida ?? "",
     tipoAcomodacao: item.tipo_acomodacao ?? "",
     observacao: item.observacao ?? "",
+    dataExame: item.data_exame ?? "",
+    localExame: item.local_exame ?? "",
+    houveTransporte: item.houve_transporte ? "sim" : "nao",
+    origemVolta: item.origem_volta ?? "",
+    destinoVolta: item.destino_volta ?? "",
+    dataVolta: item.data_volta ?? "",
+    horarioVolta: item.horario_volta ? item.horario_volta.slice(0, 5) : "",
   };
 
   const titulo =
@@ -47,7 +54,9 @@ export default async function EditarItemSolicitacaoPage({
       ? "Editar passageiro"
       : solicitacao.tipo === "hospedagem"
         ? "Editar hóspede"
-        : "Editar item";
+        : solicitacao.tipo === "exame_medico"
+          ? "Editar exame"
+          : "Editar item";
 
   return (
     <AppShell>

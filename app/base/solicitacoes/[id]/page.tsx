@@ -59,12 +59,14 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
     s.tipo === "pagamento" ||
     s.tipo === "reembolso" ||
     s.tipo === "passagem_aerea" ||
+    s.tipo === "exame_medico" ||
     s.tipo === "transporte" ||
     s.tipo === "hospedagem";
 
   const ehPassageiro = s.tipo === "passagem_aerea" || s.tipo === "transporte";
   const ehHospede = s.tipo === "hospedagem";
-  const labelSingular = ehPassageiro ? "passageiro" : ehHospede ? "hóspede" : "item";
+  const ehExame = s.tipo === "exame_medico";
+  const labelSingular = ehPassageiro ? "passageiro" : ehHospede ? "hóspede" : ehExame ? "exame" : "item";
 
   return (
     <AppShell departamento="futebol_base">
@@ -105,13 +107,13 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
         <div className="mt-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-grena-escuro">
-              {ehPassageiro ? "Passageiros" : ehHospede ? "Hóspedes" : "Itens solicitados"}
+              {ehPassageiro ? "Passageiros" : ehHospede ? "Hóspedes" : ehExame ? "Exames" : "Itens solicitados"}
             </h2>
             {s.tipo === "pagamento" || s.tipo === "reembolso" || s.tipo === "transporte" || s.tipo === "hospedagem" ? (
               <p className="text-sm font-semibold text-neutral-600">Total: {formatMoeda(s.valor)}</p>
             ) : null}
             <Link href={`/base/solicitacoes/${s.id}/itens/novo`} className="btn-primary">
-              {ehPassageiro ? "+ Novo passageiro" : ehHospede ? "+ Novo hóspede" : "+ Novo item"}
+              {ehPassageiro ? "+ Novo passageiro" : ehHospede ? "+ Novo hóspede" : ehExame ? "+ Novo exame" : "+ Novo item"}
             </Link>
           </div>
 
@@ -121,7 +123,9 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
                 ? "Nenhum passageiro adicionado ainda."
                 : ehHospede
                   ? "Nenhum hóspede adicionado ainda."
-                  : "Nenhum item adicionado ainda."}
+                  : ehExame
+                    ? "Nenhum exame adicionado ainda."
+                    : "Nenhum item adicionado ainda."}
             </div>
           ) : (
             <div className="mt-3 space-y-3">
@@ -187,6 +191,29 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
                   ) : null}
                   {s.tipo === "hospedagem" ? (
                     <p className="font-semibold text-neutral-700">{formatMoeda(item.valor)}</p>
+                  ) : null}
+
+                  {s.tipo === "exame_medico" ? (
+                    <div className="min-w-[160px] flex-1">
+                      <p className="font-medium text-neutral-800">{item.passageiro}</p>
+                      <p className="text-sm text-neutral-500">
+                        {item.item}
+                        {item.data_exame ? ` · ${formatData(item.data_exame)}` : ""}
+                        {item.local_exame ? ` · ${item.local_exame}` : ""}
+                      </p>
+                      {item.observacao ? <p className="text-sm text-neutral-500">{item.observacao}</p> : null}
+                      {item.houve_transporte ? (
+                        <p className="mt-1 text-sm text-neutral-500">
+                          Transporte — Ida: {item.origem || "—"} → {item.destino || "—"} ·{" "}
+                          {formatData(item.data_voo)}
+                          {item.horario_voo ? ` às ${item.horario_voo.slice(0, 5)}` : ""} · Volta:{" "}
+                          {item.origem_volta || "—"} → {item.destino_volta || "—"} · {formatData(item.data_volta)}
+                          {item.horario_volta ? ` às ${item.horario_volta.slice(0, 5)}` : ""}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-sm text-neutral-400">Sem transporte</p>
+                      )}
+                    </div>
                   ) : null}
 
                   <div className="flex shrink-0 gap-2">

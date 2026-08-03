@@ -12,6 +12,7 @@ import {
   solicitacaoItemPassagemSchema,
   solicitacaoItemTransporteSchema,
   solicitacaoItemHospedagemSchema,
+  solicitacaoItemExameMedicoSchema,
 } from "@/lib/validation/schemas";
 import type { SolicitacaoTipo } from "@/lib/supabase/types";
 
@@ -66,6 +67,25 @@ function parseItemForm(tipo: SolicitacaoTipo, formData: FormData) {
       observacao: String(formData.get("observacao") ?? ""),
     };
     return { raw, result: solicitacaoItemHospedagemSchema.safeParse(raw) };
+  }
+  if (tipo === "exame_medico") {
+    const raw = {
+      passageiro: String(formData.get("passageiro") ?? ""),
+      item: String(formData.get("item") ?? ""),
+      dataExame: String(formData.get("dataExame") ?? ""),
+      localExame: String(formData.get("localExame") ?? ""),
+      observacao: String(formData.get("observacao") ?? ""),
+      houveTransporte: String(formData.get("houveTransporte") ?? ""),
+      origem: String(formData.get("origem") ?? ""),
+      destino: String(formData.get("destino") ?? ""),
+      dataVoo: String(formData.get("dataVoo") ?? ""),
+      horarioVoo: String(formData.get("horarioVoo") ?? ""),
+      origemVolta: String(formData.get("origemVolta") ?? ""),
+      destinoVolta: String(formData.get("destinoVolta") ?? ""),
+      dataVolta: String(formData.get("dataVolta") ?? ""),
+      horarioVolta: String(formData.get("horarioVolta") ?? ""),
+    };
+    return { raw, result: solicitacaoItemExameMedicoSchema.safeParse(raw) };
   }
   const raw = {
     quantidade: String(formData.get("quantidade") ?? ""),
@@ -183,6 +203,44 @@ export async function createSolicitacaoItemBase(
     });
     if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
     await recalcularValorTotalBase(supabase, solicitacaoId);
+  } else if (tipo === "exame_medico") {
+    const data = result.data as {
+      passageiro: string;
+      item: string;
+      dataExame?: string;
+      localExame?: string;
+      observacao?: string;
+      houveTransporte?: string;
+      origem?: string;
+      destino?: string;
+      dataVoo?: string;
+      horarioVoo?: string;
+      origemVolta?: string;
+      destinoVolta?: string;
+      dataVolta?: string;
+      horarioVolta?: string;
+    };
+    const houveTransporte = data.houveTransporte === "sim";
+    const { error } = await supabase.from("solicitacao_itens_base").insert({
+      id,
+      solicitacao_id: solicitacaoId,
+      passageiro: data.passageiro,
+      item: data.item,
+      data_exame: data.dataExame || null,
+      local_exame: data.localExame || null,
+      observacao: data.observacao || null,
+      houve_transporte: houveTransporte,
+      origem: houveTransporte ? data.origem || null : null,
+      destino: houveTransporte ? data.destino || null : null,
+      data_voo: houveTransporte ? data.dataVoo || null : null,
+      horario_voo: houveTransporte ? data.horarioVoo || null : null,
+      origem_volta: houveTransporte ? data.origemVolta || null : null,
+      destino_volta: houveTransporte ? data.destinoVolta || null : null,
+      data_volta: houveTransporte ? data.dataVolta || null : null,
+      horario_volta: houveTransporte ? data.horarioVolta || null : null,
+      ordem: proximaOrdem,
+    });
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
   } else {
     const data = result.data as { quantidade: string; item: string; observacao?: string };
     const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(
@@ -311,6 +369,44 @@ export async function updateSolicitacaoItemBase(
       .eq("id", id);
     if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
     await recalcularValorTotalBase(supabase, solicitacaoId);
+  } else if (tipo === "exame_medico") {
+    const data = result.data as {
+      passageiro: string;
+      item: string;
+      dataExame?: string;
+      localExame?: string;
+      observacao?: string;
+      houveTransporte?: string;
+      origem?: string;
+      destino?: string;
+      dataVoo?: string;
+      horarioVoo?: string;
+      origemVolta?: string;
+      destinoVolta?: string;
+      dataVolta?: string;
+      horarioVolta?: string;
+    };
+    const houveTransporte = data.houveTransporte === "sim";
+    const { error } = await supabase
+      .from("solicitacao_itens_base")
+      .update({
+        passageiro: data.passageiro,
+        item: data.item,
+        data_exame: data.dataExame || null,
+        local_exame: data.localExame || null,
+        observacao: data.observacao || null,
+        houve_transporte: houveTransporte,
+        origem: houveTransporte ? data.origem || null : null,
+        destino: houveTransporte ? data.destino || null : null,
+        data_voo: houveTransporte ? data.dataVoo || null : null,
+        horario_voo: houveTransporte ? data.horarioVoo || null : null,
+        origem_volta: houveTransporte ? data.origemVolta || null : null,
+        destino_volta: houveTransporte ? data.destinoVolta || null : null,
+        data_volta: houveTransporte ? data.dataVolta || null : null,
+        horario_volta: houveTransporte ? data.horarioVolta || null : null,
+      })
+      .eq("id", id);
+    if (error) return { error: "Não foi possível salvar o item. Tente novamente.", values: raw };
   } else {
     const data = result.data as { quantidade: string; item: string; observacao?: string };
     const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(
