@@ -16,6 +16,9 @@
  */
 
 const BASE_URL = "https://futebolpaulista.com.br/Handlers/Competicoes";
+const PAGINA_REFERER = "https://futebolpaulista.com.br/Competicoes/Tabela.aspx";
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 export class FpfApiError extends Error {
   constructor(
@@ -36,6 +39,36 @@ interface FpfEnvelope<T> {
   Total: number;
 }
 
+/**
+ * Só o header Referer/User-Agent não bastou pra passar do 403 em produção (a partir de um
+ * servidor, sem sessão de navegador nenhuma) — a próxima tentativa é carregar a página normal
+ * primeiro (como um navegador faria) pra ganhar um cookie de sessão, e reaproveitar esse cookie
+ * nas chamadas .ashx seguintes. Cacheado por alguns minutos pra não buscar a página de novo a
+ * cada chamada dentro da mesma sincronização.
+ */
+let sessaoCache: { cookie: string; obtidoEm: number } | null = null;
+const SESSAO_TTL_MS = 5 * 60 * 1000;
+
+async function obterCookieSessao(): Promise<string | null> {
+  if (sessaoCache && Date.now() - sessaoCache.obtidoEm < SESSAO_TTL_MS) {
+    return sessaoCache.cookie;
+  }
+  try {
+    const resposta = await fetch(PAGINA_REFERER, {
+      signal: AbortSignal.timeout(15_000),
+      headers: { "User-Agent": USER_AGENT },
+    });
+    const cookiesRecebidos =
+      typeof resposta.headers.getSetCookie === "function" ? resposta.headers.getSetCookie() : [];
+    if (cookiesRecebidos.length === 0) return null;
+    const cookie = cookiesRecebidos.map((c) => c.split(";")[0]).join("; ");
+    sessaoCache = { cookie, obtidoEm: Date.now() };
+    return cookie;
+  } catch {
+    return null;
+  }
+}
+
 /** GET com timeout curto e parse do envelope — toda chamada à FPF passa por aqui. */
 async function fpfGet<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
   const url = new URL(`${BASE_URL}/${endpoint}`);
@@ -45,21 +78,23 @@ async function fpfGet<T>(endpoint: string, params: Record<string, string | numbe
   // cache-busting, igual o próprio site da FPF faz nas chamadas dele
   url.searchParams.set("_", String(Date.now()));
 
+  const cookieSessao = await obterCookieSessao();
+
   let resposta: Response;
   try {
     resposta = await fetch(url, {
       signal: AbortSignal.timeout(15_000),
       headers: {
         "X-Requested-With": "XMLHttpRequest",
-        // O site da FPF respondeu 403 sem esses dois cabeçalhos (visto em produção, ver
-        // docs/superpowers/specs/2026-08-04-integracao-fpf-design.md) — sem eles, a chamada não
-        // parece um AJAX de verdade partindo da própria página deles (proteção comum em handlers
-        // .ashx do ASP.NET contra chamada direta/hotlink). `Referer` aponta pra própria página de
-        // Competições, e o `User-Agent` imita um navegador comum (o padrão do runtime Node/Vercel
-        // costuma ser bloqueado).
-        Referer: "https://futebolpaulista.com.br/Competicoes/Tabela.aspx",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        // O site da FPF respondeu 403 mesmo com Referer/User-Agent de navegador comum (visto em
+        // produção, ver docs/superpowers/specs/2026-08-04-integracao-fpf-design.md) — a tentativa
+        // seguinte foi simular a sessão: carregar a página normal antes (`obterCookieSessao`) e
+        // mandar o cookie recebido junto. Se a FPF bloquear por IP/datacenter em vez de sessão,
+        // isso sozinho não resolve — nesse caso o próprio erro guardado em `fpf_sync_log` vai
+        // mostrar HTTP 403 de novo, e o próximo passo seria investigar outra via.
+        Referer: PAGINA_REFERER,
+        "User-Agent": USER_AGENT,
+        ...(cookieSessao ? { Cookie: cookieSessao } : {}),
       },
     });
   } catch (erro) {
