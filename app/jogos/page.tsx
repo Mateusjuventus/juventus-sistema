@@ -217,6 +217,9 @@ export default async function JogosPage({
                 <Link href={`/jogos/${j.id}/convocacao`} className="btn-secondary">
                   Entrar
                 </Link>
+                <Link href={`/jogos/${j.id}/sumula`} className="btn-secondary">
+                  Súmula
+                </Link>
                 <Link href={`/jogos/${j.id}/checklist`} className="btn-secondary">
                   Checklist
                 </Link>
