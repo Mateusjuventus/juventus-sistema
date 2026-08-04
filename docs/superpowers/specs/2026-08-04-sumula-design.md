@@ -51,8 +51,8 @@ Divididos visualmente em "Primeiro Tempo" e "Segundo Tempo". Cada evento tem:
   reservas). Pra Substituição, dois selects — "Saiu" (qualquer convocado) e "Entrou" (reserva
   convocado) — sem validação rígida de "quem está em campo agora" nesta etapa (fica mais simples;
   a Súmula registra o que aconteceu, não impõe uma máquina de estados de escalação ao vivo).
-
-Sem campo de assistência no evento de Gol (decidido: fora de escopo).
+- Assistência (só no Gol): select opcional com os demais convocados — "Nenhuma / não informar" é a
+  opção padrão, fica livre marcar ou deixar em branco.
 
 Cada evento adicionado salva imediatamente (server action própria por evento, com `revalidatePath`)
 e aparece na lista na hora, com um X pra remover — sem um botão "Salvar" geral pra lista de
@@ -83,17 +83,17 @@ tempo text check (tempo in ('primeiro', 'segundo'))
 minuto integer not null
 atleta_id uuid references atletas(id) — quem fez o gol / recebeu o cartão / saiu (substituição)
 atleta_entrou_id uuid references atletas(id), nullable — só usado quando tipo = 'substituicao'
+atleta_assistencia_id uuid references atletas(id), nullable — só usado quando tipo = 'gol', opcional
 ordem integer not null — ordem de lançamento, pra desempate visual quando dois eventos têm o
   mesmo tempo/minuto
 created_by, created_at
 ```
 
-Reaproveita o padrão de colunas genéricas já usado em Solicitações (`atleta_id`/`atleta_entrou_id`
-cobrem os 4 tipos de evento sem precisar de uma tabela por tipo).
+Reaproveita o padrão de colunas genéricas já usado em Solicitações (`atleta_id`/`atleta_entrou_id`/
+`atleta_assistencia_id` cobrem os 4 tipos de evento sem precisar de uma tabela por tipo).
 
 ## Fora de escopo
 
-- Assistência no gol (decidido: não registrar).
 - Dados de GPS (já descartado antes).
 - Cálculo de minutagem, participações e outros agregados — fica pro spec de Estatísticas do
   Atleta, que consome `sumula_eventos`.
