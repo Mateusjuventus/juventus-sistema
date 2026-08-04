@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { AtletaTabsBase } from "@/components/atleta-tabs-base";
+import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
@@ -47,46 +48,21 @@ export default async function VerAtletaBasePage({
 
   const atleta = data as AtletaBaseRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
+  const subtitulo = `${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
   return (
     <AppShell departamento="futebol_base">
-      <Link href={`/base/atletas/${params.categoria}`} className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
+      <AtletaTabsBase categoria={params.categoria} atletaId={atleta.id} active="dados-pessoais" />
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-grena-escuro">{atleta.nome_completo}</h1>
-        <Link href={`/base/atletas/${params.categoria}/${atleta.id}`} className="btn-primary">
-          Editar
-        </Link>
-      </div>
+      <AtletaPerfilHeader
+        nome={atleta.nome_completo}
+        apelido={atleta.apelido}
+        subtitulo={subtitulo}
+        fotoUrl={fotoUrl}
+        editarHref={`/base/atletas/${params.categoria}/${atleta.id}`}
+      />
 
-      <div className="mt-4 space-y-6">
-        <div className="card flex items-center gap-4 p-5">
-          {fotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={fotoUrl}
-              alt={atleta.nome_completo}
-              className="h-24 w-24 flex-shrink-0 rounded-full object-cover ring-2 ring-neutral-100"
-            />
-          ) : (
-            <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-2xl font-bold text-neutral-400">
-              {atleta.nome_completo.slice(0, 1).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <p className="text-lg font-semibold text-neutral-800">{atleta.nome_completo}</p>
-            {atleta.apelido ? (
-              <p className="text-sm text-neutral-500">&ldquo;{atleta.apelido}&rdquo;</p>
-            ) : null}
-            <p className="mt-1 text-sm text-neutral-500">
-              {categoriaBaseLabel(atleta.categoria)} · {atleta.posicao}
-              {atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}
-            </p>
-          </div>
-        </div>
-
+      <div className="mt-6 space-y-6">
         <FormSection title="Dados pessoais">
           <FieldGroup>
             <DetailField label="Nome completo" value={atleta.nome_completo} />

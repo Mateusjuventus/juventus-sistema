@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { AtletaTabs } from "@/components/atleta-tabs";
+import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
@@ -32,8 +33,10 @@ function formatData(data: string | null): string {
 }
 
 /**
- * Visualização somente leitura do cadastro de um atleta — pra consultar os dados rapidamente sem
- * precisar abrir o formulário de edição (ver `/atletas/[id]` para editar).
+ * Aba "Dados Pessoais" do perfil do atleta — visualização somente leitura do cadastro (dados
+ * pessoais, esportivos, naturalidade/endereço), pra consultar rápido sem abrir o formulário de
+ * edição. Ver `/atletas/[id]` para editar, e `AtletaTabs` para as outras abas (Documentação,
+ * Dados de Jogo).
  */
 export default async function VerAtletaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -43,46 +46,21 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
 
   const atleta = data as AtletaRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
+  const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
   return (
     <AppShell>
-      <Link href="/atletas" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
+      <AtletaTabs atletaId={atleta.id} active="dados-pessoais" />
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-grena-escuro">{atleta.nome_completo}</h1>
-        <Link href={`/atletas/${atleta.id}`} className="btn-primary">
-          Editar
-        </Link>
-      </div>
+      <AtletaPerfilHeader
+        nome={atleta.nome_completo}
+        apelido={atleta.apelido}
+        subtitulo={subtitulo}
+        fotoUrl={fotoUrl}
+        editarHref={`/atletas/${atleta.id}`}
+      />
 
-      <div className="mt-4 space-y-6">
-        <div className="card flex items-center gap-4 p-5">
-          {fotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={fotoUrl}
-              alt={atleta.nome_completo}
-              className="h-24 w-24 flex-shrink-0 rounded-full object-cover ring-2 ring-neutral-100"
-            />
-          ) : (
-            <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-2xl font-bold text-neutral-400">
-              {atleta.nome_completo.slice(0, 1).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <p className="text-lg font-semibold text-neutral-800">{atleta.nome_completo}</p>
-            {atleta.apelido ? (
-              <p className="text-sm text-neutral-500">&ldquo;{atleta.apelido}&rdquo;</p>
-            ) : null}
-            <p className="mt-1 text-sm text-neutral-500">
-              {atleta.posicao}
-              {atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}
-            </p>
-          </div>
-        </div>
-
+      <div className="mt-6 space-y-6">
         <FormSection title="Dados pessoais">
           <FieldGroup>
             <DetailField label="Nome completo" value={atleta.nome_completo} />

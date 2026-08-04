@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const ENTITY_PHOTOS_BUCKET = "entity-photos";
 
+/** Bucket privado separado do `entity-photos` — cada documento é um arquivo independente (não
+ * substitui o anterior por upsert de nome fixo, ao contrário das fotos), ver aba "Documentação" do
+ * perfil do atleta (docs/superpowers/specs/2026-08-04-estatisticas-atleta-design.md). */
+export const ATLETA_DOCUMENTOS_BUCKET = "atleta-documentos";
+
 /**
  * Gera uma signed URL temporária (1h) para uma foto/logo guardado no bucket
  * privado. Nunca usamos URL pública — o bucket é privado por padrão
@@ -19,6 +24,32 @@ export async function getSignedPhotoUrl(
 
   if (error || !data) return null;
   return data.signedUrl;
+}
+
+/**
+ * Gera uma signed URL temporária (1h) pra um documento de atleta guardado no bucket
+ * `atleta-documentos`. Mesmo espírito de `getSignedPhotoUrl`, bucket separado.
+ */
+export async function getSignedDocumentoUrl(
+  supabase: SupabaseClient,
+  path: string | null,
+): Promise<string | null> {
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(ATLETA_DOCUMENTOS_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
+/** Monta o path de storage de um documento de atleta — cada documento tem seu próprio `id`
+ * (gerado antes do upload), então o path é sempre novo, sem colidir com outros documentos. */
+export function buildDocumentoPath(documentoId: string, fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "pdf";
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "pdf";
+  return `atleta-documentos/${documentoId}/arquivo.${safeExt}`;
 }
 
 /**

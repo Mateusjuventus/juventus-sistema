@@ -48,6 +48,18 @@ export interface AtletaRow {
   updated_at: string;
 }
 
+/** Documento anexado ao atleta (aba "Documentação" do perfil) — só nome livre + arquivo, sem
+ * categoria fixa nem data de validade (ver docs/superpowers/specs/2026-08-04-estatisticas-atleta-design.md).
+ * Pra corrigir um documento errado, exclui e reenvia — não tem edição de nome depois de enviado. */
+export interface AtletaDocumentoRow {
+  id: string;
+  atleta_id: string;
+  nome: string;
+  arquivo_path: string;
+  created_by: string | null;
+  created_at: string;
+}
+
 /** Categorias de idade do Futebol de Base (Sub20 a Sub11) — ver `lib/auth/categorias-base.ts`. */
 export type CategoriaBase = "sub20" | "sub17" | "sub15" | "sub14" | "sub13" | "sub12" | "sub11";
 
@@ -85,6 +97,16 @@ export interface AtletaBaseRow {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Espelha `AtletaDocumentoRow`, mas para o Futebol de Base — tabela `atleta_documentos_base`. */
+export interface AtletaDocumentoBaseRow {
+  id: string;
+  atleta_id: string;
+  nome: string;
+  arquivo_path: string;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface ComissaoTecnicaRow {
