@@ -66,6 +66,9 @@ export const atletaSchema = z.object({
   cpf: cpfField,
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
   posicao: z.string().min(1, { message: "Posição é obrigatória" }),
+  categoriaPosicao: z.enum(["goleiro", "zagueiro", "lateral", "meia", "atacante"], {
+    errorMap: () => ({ message: "Categoria de posição é obrigatória" }),
+  }),
   numeroCamisa: z.coerce.number().int().positive().optional().nullable(),
   numeroCbf: z.coerce.number().int().positive().optional().nullable(),
   numeroFpf: z.coerce.number().int().positive().optional().nullable(),

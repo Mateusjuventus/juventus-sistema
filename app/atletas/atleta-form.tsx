@@ -6,6 +6,7 @@ import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fi
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { CATEGORIA_POSICAO_OPTIONS } from "@/lib/futebol/categoria-posicao";
 import type { AtletaFormState } from "./actions";
 
 const initialState: AtletaFormState = {};
@@ -86,6 +87,20 @@ export function AtletaForm({
             error={errors.posicao}
             placeholder="Ex: Goleiro, Zagueiro, Atacante"
           />
+          <SelectField
+            label="Categoria de posição"
+            name="categoriaPosicao"
+            required
+            defaultValue={values.categoriaPosicao}
+            error={errors.categoriaPosicao}
+          >
+            <option value="">Selecione</option>
+            {CATEGORIA_POSICAO_OPTIONS.map((opcao) => (
+              <option key={opcao.value} value={opcao.value}>
+                {opcao.label}
+              </option>
+            ))}
+          </SelectField>
           <TextField
             label="Número da camisa"
             name="numeroCamisa"

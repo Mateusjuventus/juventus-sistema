@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
+import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type {
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
@@ -48,6 +49,9 @@ export default async function ConvocacaoBasePage({
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
+
+  const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));
+  const atletasComFoto = atletas.map((a, i) => ({ ...a, fotoUrl: fotoUrls[i] }));
 
   const atletaStatusMap: Record<string, "titular" | "reserva"> = {};
   const comissaoSelecionados = new Set<string>();
@@ -119,7 +123,7 @@ export default async function ConvocacaoBasePage({
       <ConvocacaoFormBase
         action={saveConvocacaoBase}
         jogoId={jogo.id}
-        atletas={atletas}
+        atletas={atletasComFoto}
         comissao={comissao}
         atletaStatusMap={atletaStatusMap}
         comissaoSelecionados={comissaoSelecionados}

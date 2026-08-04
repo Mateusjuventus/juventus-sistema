@@ -8,6 +8,12 @@ export type PeDominante = "destro" | "canhoto" | "ambidestro";
 export type AtletaStatus = "liberado" | "suspenso" | "departamento_medico";
 export type TipoQuarto = "single" | "duplo" | "triplo";
 
+/** Classificação fixa de posição, usada pra gerar a tag colorida (GOL/ZAG/LAT/MEI/ATA) na grade de
+ * Convocação — ver `lib/futebol/categoria-posicao.ts`. Diferente do campo de texto livre
+ * "posicao" (mais descritivo), que continua existindo como está. `null` quando o cadastro é
+ * antigo e a migração de backfill não conseguiu classificar por palavra-chave. */
+export type CategoriaPosicao = "goleiro" | "zagueiro" | "lateral" | "meia" | "atacante";
+
 /** Tipo de contrato do atleta no Futebol Profissional — Amador libera o campo "possui contrato de
  * formação" no formulário (ver `AtletaForm`). O Futebol de Base tem uma opção a mais (Iniciação),
  * ver `AtletaBaseTipoContrato`. */
@@ -20,6 +26,7 @@ export interface AtletaRow {
   cpf: string;
   data_nascimento: string;
   posicao: string;
+  categoria_posicao: CategoriaPosicao | null;
   numero_camisa: number | null;
   numero_cbf: number | null;
   numero_fpf: number | null;
@@ -58,6 +65,7 @@ export interface AtletaBaseRow {
   cpf: string;
   data_nascimento: string;
   posicao: string;
+  categoria_posicao: CategoriaPosicao | null;
   numero_camisa: number | null;
   numero_cbf: number | null;
   numero_fpf: number | null;
