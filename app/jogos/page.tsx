@@ -6,8 +6,12 @@ import { DeleteButton } from "@/components/delete-button";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import type { JogoRow } from "@/lib/supabase/types";
-import { deleteJogo } from "./actions";
+import type { FpfSyncLogRow, JogoRow } from "@/lib/supabase/types";
+import { atualizarFpf, deleteJogo } from "./actions";
+
+function formatDataHoraBr(iso: string): string {
+  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
+}
 
 function formatData(data: string): string {
   const [ano, mes, dia] = data.split("-");
@@ -36,11 +40,18 @@ export default async function JogosPage({
   if (mandanteFiltro === "casa") query = query.eq("mandante", true);
   if (mandanteFiltro === "fora") query = query.eq("mandante", false);
 
-  const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }] = await Promise.all([
-    query,
-    supabase.from("jogos").select("id, data_jogo"),
-    supabase.from("convocacoes").select("jogo_id"),
-  ]);
+  // Não busca os jogos pendentes da FPF aqui (exigiria varrer a competição inteira rodada por
+  // rodada, na FPF, toda vez que alguém abre a lista de Jogos — lento e frágil demais pra rodar em
+  // toda visita a essa tela). A contagem de pendentes fica só na própria tela
+  // `/jogos/fpf/pendentes`, que já é o lugar certo de ir ver isso.
+  const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }, { data: ultimoSyncData }] =
+    await Promise.all([
+      query,
+      supabase.from("jogos").select("id, data_jogo"),
+      supabase.from("convocacoes").select("jogo_id"),
+      supabase.from("fpf_sync_log").select("*").order("executado_em", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+  const ultimoSync = (ultimoSyncData as FpfSyncLogRow | null) ?? null;
   const hojeStr = new Date().toISOString().slice(0, 10);
   const hojeTime = new Date(hojeStr).getTime();
 
@@ -74,6 +85,19 @@ export default async function JogosPage({
         ← Voltar
       </Link>
       <PageHeader title="Jogos / Competições" pendencia={pendenciaJogos} />
+
+      {ultimoSync ? (
+        <p className="mt-1 text-center text-xs text-neutral-400">
+          {ultimoSync.sucesso ? (
+            <>Última sincronização com a FPF: {formatDataHoraBr(ultimoSync.executado_em)}</>
+          ) : (
+            <span className="font-medium text-red-600">
+              A última sincronização com a FPF falhou ({formatDataHoraBr(ultimoSync.executado_em)}):{" "}
+              {ultimoSync.mensagem_erro ?? "erro desconhecido"}
+            </span>
+          )}
+        </p>
+      ) : null}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <Link
           href={`/jogos?q=${encodeURIComponent(q)}&mandante=${encodeURIComponent(mandanteFiltro)}&ordem=${
@@ -92,6 +116,20 @@ export default async function JogosPage({
         <Link href="/jogos/dashboard" className="btn-secondary">
           Ver dashboard
         </Link>
+        <Link href="/jogos/fpf/pendentes" className="btn-secondary">
+          Jogos da FPF pendentes
+        </Link>
+        <Link href="/jogos/fpf/competicao" className="btn-secondary">
+          Copa Paulista Rivalo (FPF)
+        </Link>
+        <Link href="/jogos/fpf/configurar" className="btn-secondary">
+          Configurar FPF
+        </Link>
+        <form action={atualizarFpf}>
+          <button type="submit" className="btn-secondary">
+            Atualizar da FPF
+          </button>
+        </form>
         <Link href="/jogos/novo" className="btn-primary">
           + Novo jogo
         </Link>

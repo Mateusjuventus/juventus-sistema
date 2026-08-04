@@ -43,6 +43,11 @@ export interface AtletaRow {
   apelido: string | null;
   tipo_contrato: AtletaTipoContrato | null;
   possui_contrato_formacao: boolean;
+  /** IdAtleta interno da FPF, gravado quando o vínculo é confirmado na tela "Elenco na FPF" — ver
+   * docs/superpowers/specs/2026-08-04-integracao-fpf-design.md. Diferente de `numero_fpf`, que é
+   * o número de registro/contrato (usado como sinal de sugestão automática de vínculo). Só
+   * Futebol Profissional — `AtletaBaseRow` não tem esse campo. */
+  fpf_id_atleta: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -243,9 +248,55 @@ export interface JogoRow {
   concentracao_data: string | null;
   concentracao_regras: string;
   dia_jogo_liberacao: string | null;
+  /** Ver docs/superpowers/specs/2026-08-04-integracao-fpf-design.md. Só Futebol Profissional —
+   * `JogoBaseRow` não tem esses campos. Opcionais (em vez de sempre presentes) só pra continuar
+   * compatível com os componentes de PDF compartilhados (`lib/pdf/*`), que tipam `jogo` como
+   * `JogoRow` mesmo quando recebem um `JogoBaseRow` de verdade (mesmo formato estrutural, ver
+   * comentário desses arquivos) — nenhum desses componentes lê esses 3 campos novos. */
+  fpf_id_jogo?: number | null;
+  fpf_link_sumula?: string | null;
+  fpf_sincronizado_em?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Jogo da FPF marcado como "ignorar" na revisão de jogos pendentes. */
+export interface FpfJogoIgnoradoRow {
+  fpf_id_jogo: number;
+  descricao: string;
+  ignorado_por: string | null;
+  ignorado_em: string;
+}
+
+/** Atleta da FPF marcado como "não corresponde a ninguém daqui" na tela de vínculo de elenco. */
+export interface FpfAtletaIgnoradoRow {
+  fpf_id_atleta: number;
+  nome: string;
+  ignorado_por: string | null;
+  ignorado_em: string;
+}
+
+/** Configuração da integração com a FPF — linha única. */
+export interface FpfConfigRow {
+  id: boolean;
+  id_campeonato: number;
+  id_categoria: number;
+  id_clube: number;
+  nome_exibicao: string;
+  ano: number;
+  updated_at: string;
+}
+
+/** Histórico de execuções da sincronização com a FPF (manual ou automática). */
+export interface FpfSyncLogRow {
+  id: string;
+  executado_em: string;
+  origem: "manual" | "automatica";
+  sucesso: boolean;
+  jogos_novos: number;
+  jogos_atualizados: number;
+  mensagem_erro: string | null;
 }
 
 export type ProgramacaoTipo = "concentracao" | "dia_jogo";

@@ -144,3 +144,13 @@ export async function deleteJogo(formData: FormData): Promise<void> {
   await supabase.from("jogos").delete().eq("id", id);
   revalidatePath("/jogos");
 }
+
+/** Botão "Atualizar da FPF" da lista de Jogos — mesma função usada pela rota diária (ver
+ * lib/fpf/sincronizar.ts e app/api/fpf/sincronizar/route.ts). */
+export async function atualizarFpf(): Promise<void> {
+  const { sincronizarJogosFpf } = await import("@/lib/fpf/sincronizar");
+  const supabase = createClient();
+  await sincronizarJogosFpf(supabase, "manual");
+  revalidatePath("/jogos");
+  revalidatePath("/jogos/fpf/pendentes");
+}

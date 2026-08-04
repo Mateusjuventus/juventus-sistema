@@ -17,6 +17,7 @@ export function JogoTabs({
     | "dados"
     | "convocacao"
     | "sumula"
+    | "fpf"
     | "programacao"
     | "rooming-list"
     | "onibus"
@@ -37,6 +38,7 @@ export function JogoTabs({
     { key: "dados", label: "Dados do jogo", href: `/jogos/${jogoId}` },
     { key: "convocacao", label: "Convocação", href: `/jogos/${jogoId}/convocacao` },
     { key: "sumula", label: "Súmula", href: `/jogos/${jogoId}/sumula` },
+    { key: "fpf", label: "FPF", href: `/jogos/${jogoId}/fpf` },
     { key: "programacao", label: "Programação", href: `/jogos/${jogoId}/programacao` },
     { key: "logistica", label: "Logística", href: `/jogos/${jogoId}/rooming-list`, active: emLogistica },
     {
