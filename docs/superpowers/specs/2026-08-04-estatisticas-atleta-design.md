@@ -101,6 +101,23 @@ Convertendo sempre pro "relógio" do jogo inteiro (1º tempo vai de 0 até
    não entra nos contadores de >60/>90min — mas o jogo continua contando normalmente no gráfico de
    participação (que só depende da Convocação, não da Súmula).
 
+### Exportar em PDF
+
+Botão "Gerar PDF" dentro da aba Dados de Jogo, ao lado do filtro de período, com um checkbox
+"Incluir dados pessoais" do lado:
+
+- O PDF sempre traz o cabeçalho (foto, nome, posição, número da camisa) e o conteúdo da aba Dados
+  de Jogo — gráfico/contagem de participação, contadores de gols/assistências/cartões e minutagem
+  — usando exatamente o período (datas/competição) que estiver selecionado no filtro da tela no
+  momento do clique.
+- Com o checkbox marcado, o PDF inclui também um bloco com os Dados Pessoais (o mesmo conteúdo da
+  aba "Dados Pessoais": RG, CPF, contrato, naturalidade etc.). Desmarcado, o PDF sai só com o
+  desempenho.
+- Não inclui a lista de documentos da aba Documentação (são arquivos à parte, não dados pra
+  imprimir num relatório).
+- Segue o mesmo padrão visual dos outros PDFs do sistema (cabeçalho do clube, rodapé com "Gerado
+  em", ver `lib/pdf/`).
+
 ## Banco de dados
 
 Uma tabela nova por departamento, só pra Documentação (estatísticas não precisam de tabela — são
