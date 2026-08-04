@@ -9,6 +9,10 @@ import type { ConvocacaoFormState } from "./actions";
 
 const initialState: ConvocacaoFormState = {};
 
+// Limites de uma convocação de jogo — 11 titulares (formação completa) e 12 reservas no banco.
+const TITULARES_MAX = 11;
+const RESERVAS_MAX = 12;
+
 type AtletaComFoto = AtletaBaseRow & { fotoUrl: string | null };
 
 /** Duas letras pra usar como avatar quando o atleta não tem foto cadastrada — mesmo espírito do
@@ -50,55 +54,63 @@ function TagPosicao({ atleta }: { atleta: AtletaComFoto }) {
 }
 
 /**
- * Cartão de um atleta na grade de "Atletas Disponíveis" — clicar convoca (adiciona à lista de
- * Convocados abaixo, como reserva por padrão).
+ * Cartão de um atleta na grade de "Atletas Disponíveis" — os dois botões já mandam o atleta direto
+ * pra lista escolhida (Titular ou Reserva), sem passo intermediário. Cada botão fica desabilitado
+ * quando aquela lista já está no limite.
  */
-function CartaoAtletaDisponivel({ atleta, onClick }: { atleta: AtletaComFoto; onClick: () => void }) {
+function CartaoAtletaDisponivel({
+  atleta,
+  titularCheio,
+  reservaCheia,
+  onAddTitular,
+  onAddReserva,
+}: {
+  atleta: AtletaComFoto;
+  titularCheio: boolean;
+  reservaCheia: boolean;
+  onAddTitular: () => void;
+  onAddReserva: () => void;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="card flex items-center gap-2 p-2.5 text-left transition-colors hover:border-grena hover:bg-grena/5"
-    >
+    <div className="card flex items-center gap-2 p-2.5">
       <Avatar atleta={atleta} className="h-9 w-9" />
       <TagPosicao atleta={atleta} />
-      <span className="truncate text-sm font-medium text-neutral-800">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-800">
         {atleta.apelido || atleta.nome_completo}
       </span>
-    </button>
+      <div className="flex shrink-0 gap-1">
+        <button
+          type="button"
+          onClick={onAddTitular}
+          disabled={titularCheio}
+          title={titularCheio ? `Titular completo (${TITULARES_MAX}/${TITULARES_MAX})` : undefined}
+          className="rounded-md bg-grena px-2 py-1 text-[11px] font-medium text-white transition-colors hover:bg-grena-escuro disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+        >
+          Titular
+        </button>
+        <button
+          type="button"
+          onClick={onAddReserva}
+          disabled={reservaCheia}
+          title={reservaCheia ? `Reservas completo (${RESERVAS_MAX}/${RESERVAS_MAX})` : undefined}
+          className="rounded-md border border-neutral-300 px-2 py-1 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
+        >
+          Reserva
+        </button>
+      </div>
+    </div>
   );
 }
 
-/** Linha de um atleta já convocado — checkbox de titular e X pra remover. */
-function LinhaConvocado({
-  atleta,
-  titular,
-  onToggleTitular,
-  onRemover,
-}: {
-  atleta: AtletaComFoto;
-  titular: boolean;
-  onToggleTitular: () => void;
-  onRemover: () => void;
-}) {
+/** Linha de um atleta já convocado (titular ou reserva) — X remove e devolve pra Disponíveis. */
+function LinhaConvocado({ atleta, onRemover }: { atleta: AtletaComFoto; onRemover: () => void }) {
   return (
-    <div className="flex items-center gap-3 rounded-md border border-neutral-200 p-2.5">
-      <Avatar atleta={atleta} />
+    <div className="flex items-center gap-2 rounded-md border border-neutral-200 p-2">
+      <Avatar atleta={atleta} className="h-8 w-8" />
       <TagPosicao atleta={atleta} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-neutral-800">
-          {atleta.apelido || atleta.nome_completo}
-        </p>
-        <label className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
-          <input
-            type="checkbox"
-            checked={titular}
-            onChange={onToggleTitular}
-            className="h-3.5 w-3.5 rounded border-neutral-300 text-grena focus:ring-grena"
-          />
-          atleta titular
-        </label>
-      </div>
+      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-800">
+        {atleta.apelido || atleta.nome_completo}
+      </span>
       <span className="shrink-0 text-xs font-medium text-neutral-400">
         {atleta.numero_camisa ? `Nº ${atleta.numero_camisa}` : "Sem número"}
       </span>
@@ -137,7 +149,7 @@ export function ConvocacaoFormBase({
   const [aba, setAba] = useState<"atletas" | "staff">("atletas");
   const [verLesionados, setVerLesionados] = useState(false);
   // Mapa atletaId -> titular (true) / reserva (false). A ORDEM de inserção das chaves é a ordem de
-  // exibição na lista de Convocados — Map preserva ordem de inserção em JS.
+  // exibição nas listas — Map preserva ordem de inserção em JS.
   const [convocados, setConvocados] = useState<Map<string, boolean>>(
     () => new Map(Object.entries(atletaStatusMap).map(([id, status]) => [id, status === "titular"])),
   );
@@ -146,12 +158,22 @@ export function ConvocacaoFormBase({
 
   const atletasPorId = useMemo(() => new Map(atletas.map((a) => [a.id, a])), [atletas]);
 
-  function convocar(atletaId: string) {
-    setConvocados((atual) => {
-      const proximo = new Map(atual);
-      proximo.set(atletaId, false);
-      return proximo;
-    });
+  const titularesList = Array.from(convocados.entries())
+    .filter(([, titular]) => titular)
+    .map(([id]) => atletasPorId.get(id))
+    .filter((a): a is AtletaComFoto => Boolean(a));
+  const reservasList = Array.from(convocados.entries())
+    .filter(([, titular]) => !titular)
+    .map(([id]) => atletasPorId.get(id))
+    .filter((a): a is AtletaComFoto => Boolean(a));
+
+  const titularCheio = titularesList.length >= TITULARES_MAX;
+  const reservaCheia = reservasList.length >= RESERVAS_MAX;
+
+  function adicionar(atletaId: string, titular: boolean) {
+    if (titular && titularCheio) return;
+    if (!titular && reservaCheia) return;
+    setConvocados((atual) => new Map(atual).set(atletaId, titular));
   }
 
   function removerConvocado(atletaId: string) {
@@ -163,14 +185,6 @@ export function ConvocacaoFormBase({
     if (capitaoId === atletaId) setCapitaoId("");
   }
 
-  function alternarTitular(atletaId: string) {
-    setConvocados((atual) => {
-      const proximo = new Map(atual);
-      proximo.set(atletaId, !proximo.get(atletaId));
-      return proximo;
-    });
-  }
-
   // Disponíveis = não convocados ainda. Departamento Médico fica escondido por padrão (revelado
   // por "Ver Lesionados"); Liberado e Suspenso aparecem direto — suspensão não impede convocar,
   // só o Departamento Médico é tratado como "fora de combate" nesta grade.
@@ -179,22 +193,18 @@ export function ConvocacaoFormBase({
     (a) => !convocados.has(a.id) && a.status === "departamento_medico",
   );
 
-  const convocadosList = Array.from(convocados.entries())
-    .map(([id, titular]) => ({ atleta: atletasPorId.get(id), titular }))
-    .filter((item): item is { atleta: AtletaComFoto; titular: boolean } => Boolean(item.atleta));
+  const convocadosCandidatosCapitao = [...titularesList, ...reservasList];
 
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="jogoId" value={jogoId} />
       {/* Hidden inputs gerados a partir do estado — mantém o mesmo contrato que `saveConvocacaoBase`
           já espera (atleta_<id>=titular|reserva, comissao_<id>), sem precisar mexer em actions.ts. */}
-      {convocadosList.map(({ atleta, titular }) => (
-        <input
-          key={atleta.id}
-          type="hidden"
-          name={`atleta_${atleta.id}`}
-          value={titular ? "titular" : "reserva"}
-        />
+      {titularesList.map((a) => (
+        <input key={a.id} type="hidden" name={`atleta_${a.id}`} value="titular" />
+      ))}
+      {reservasList.map((a) => (
+        <input key={a.id} type="hidden" name={`atleta_${a.id}`} value="reserva" />
       ))}
       {Array.from(comissaoIds).map((id) => (
         <input key={id} type="hidden" name={`comissao_${id}`} value="on" />
@@ -236,9 +246,16 @@ export function ConvocacaoFormBase({
             <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">
               Atletas disponíveis <span className="text-neutral-400">({disponiveis.length})</span>
             </h2>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {disponiveis.map((a) => (
-                <CartaoAtletaDisponivel key={a.id} atleta={a} onClick={() => convocar(a.id)} />
+                <CartaoAtletaDisponivel
+                  key={a.id}
+                  atleta={a}
+                  titularCheio={titularCheio}
+                  reservaCheia={reservaCheia}
+                  onAddTitular={() => adicionar(a.id, true)}
+                  onAddReserva={() => adicionar(a.id, false)}
+                />
               ))}
               {disponiveis.length === 0 ? (
                 <p className="col-span-full py-4 text-center text-sm text-neutral-400">
@@ -257,9 +274,16 @@ export function ConvocacaoFormBase({
                   {verLesionados ? "Ocultar lesionados" : `Ver lesionados (${lesionadosDisponiveis.length})`}
                 </button>
                 {verLesionados ? (
-                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {lesionadosDisponiveis.map((a) => (
-                      <CartaoAtletaDisponivel key={a.id} atleta={a} onClick={() => convocar(a.id)} />
+                      <CartaoAtletaDisponivel
+                        key={a.id}
+                        atleta={a}
+                        titularCheio={titularCheio}
+                        reservaCheia={reservaCheia}
+                        onAddTitular={() => adicionar(a.id, true)}
+                        onAddReserva={() => adicionar(a.id, false)}
+                      />
                     ))}
                   </div>
                 ) : null}
@@ -267,47 +291,65 @@ export function ConvocacaoFormBase({
             ) : null}
           </div>
 
-          <div className="card space-y-3 p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">
-              Convocados <span className="text-neutral-400">({convocadosList.length})</span>
-            </h2>
-            <div className="space-y-2">
-              {convocadosList.map(({ atleta, titular }) => (
-                <LinhaConvocado
-                  key={atleta.id}
-                  atleta={atleta}
-                  titular={titular}
-                  onToggleTitular={() => alternarTitular(atleta.id)}
-                  onRemover={() => removerConvocado(atleta.id)}
-                />
-              ))}
-              {convocadosList.length === 0 ? (
-                <p className="py-4 text-center text-sm text-neutral-400">
-                  Nenhum atleta convocado ainda — clique num atleta disponível acima.
-                </p>
-              ) : null}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="card space-y-2 p-5">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">
+                Titular{" "}
+                <span className={titularCheio ? "text-dourado" : "text-neutral-400"}>
+                  ({titularesList.length}/{TITULARES_MAX})
+                </span>
+              </h2>
+              <div className="space-y-2">
+                {titularesList.map((a) => (
+                  <LinhaConvocado key={a.id} atleta={a} onRemover={() => removerConvocado(a.id)} />
+                ))}
+                {titularesList.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-neutral-400">
+                    Nenhum titular selecionado ainda.
+                  </p>
+                ) : null}
+              </div>
             </div>
 
-            <div className="max-w-sm pt-2">
-              <label htmlFor="capitaoAtletaId" className="field-label">
-                Capitão do jogo
-              </label>
-              <select
-                id="capitaoAtletaId"
-                name="capitaoAtletaId"
-                value={capitaoId}
-                onChange={(e) => setCapitaoId(e.target.value)}
-                className="field-input"
-              >
-                <option value="">Nenhum selecionado</option>
-                {convocadosList.map(({ atleta }) => (
-                  <option key={atleta.id} value={atleta.id}>
-                    {atleta.nome_completo}
-                  </option>
+            <div className="card space-y-2 p-5">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">
+                Reservas{" "}
+                <span className={reservaCheia ? "text-dourado" : "text-neutral-400"}>
+                  ({reservasList.length}/{RESERVAS_MAX})
+                </span>
+              </h2>
+              <div className="space-y-2">
+                {reservasList.map((a) => (
+                  <LinhaConvocado key={a.id} atleta={a} onRemover={() => removerConvocado(a.id)} />
                 ))}
-              </select>
-              <p className="mt-1 text-xs text-neutral-500">Precisa ser um atleta convocado acima.</p>
+                {reservasList.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-neutral-400">
+                    Nenhuma reserva selecionada ainda.
+                  </p>
+                ) : null}
+              </div>
             </div>
+          </div>
+
+          <div className="card max-w-sm space-y-1 p-5">
+            <label htmlFor="capitaoAtletaId" className="field-label">
+              Capitão do jogo
+            </label>
+            <select
+              id="capitaoAtletaId"
+              name="capitaoAtletaId"
+              value={capitaoId}
+              onChange={(e) => setCapitaoId(e.target.value)}
+              className="field-input"
+            >
+              <option value="">Nenhum selecionado</option>
+              {convocadosCandidatosCapitao.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nome_completo}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-neutral-500">Precisa ser um atleta convocado (titular ou reserva).</p>
           </div>
         </div>
       ) : (
