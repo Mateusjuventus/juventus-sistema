@@ -72,8 +72,8 @@ function CartaoAtletaDisponivel({
   onAddReserva: () => void;
 }) {
   return (
-    <div className="card flex items-center gap-2 p-2.5">
-      <Avatar atleta={atleta} className="h-9 w-9" />
+    <div className="card flex items-center gap-1.5 p-2">
+      <Avatar atleta={atleta} className="h-8 w-8" />
       <TagPosicao atleta={atleta} />
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-800">
         {atleta.apelido || atleta.nome_completo}
@@ -84,7 +84,7 @@ function CartaoAtletaDisponivel({
           onClick={onAddTitular}
           disabled={titularCheio}
           title={titularCheio ? `Titular completo (${TITULARES_MAX}/${TITULARES_MAX})` : undefined}
-          className="rounded-md bg-grena px-2 py-1 text-[11px] font-medium text-white transition-colors hover:bg-grena-escuro disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+          className="rounded-md bg-grena px-1.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-grena-escuro disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           Titular
         </button>
@@ -93,7 +93,7 @@ function CartaoAtletaDisponivel({
           onClick={onAddReserva}
           disabled={reservaCheia}
           title={reservaCheia ? `Reservas completo (${RESERVAS_MAX}/${RESERVAS_MAX})` : undefined}
-          className="rounded-md border border-neutral-300 px-2 py-1 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
+          className="rounded-md border border-neutral-300 px-1.5 py-1 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
         >
           Reserva
         </button>
@@ -245,7 +245,7 @@ export function ConvocacaoForm({
             <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">
               Atletas disponíveis <span className="text-neutral-400">({disponiveis.length})</span>
             </h2>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {disponiveis.map((a) => (
                 <CartaoAtletaDisponivel
                   key={a.id}
@@ -273,7 +273,7 @@ export function ConvocacaoForm({
                   {verLesionados ? "Ocultar lesionados" : `Ver lesionados (${lesionadosDisponiveis.length})`}
                 </button>
                 {verLesionados ? (
-                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
                     {lesionadosDisponiveis.map((a) => (
                       <CartaoAtletaDisponivel
                         key={a.id}
