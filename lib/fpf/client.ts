@@ -49,7 +49,18 @@ async function fpfGet<T>(endpoint: string, params: Record<string, string | numbe
   try {
     resposta = await fetch(url, {
       signal: AbortSignal.timeout(15_000),
-      headers: { "X-Requested-With": "XMLHttpRequest" },
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        // O site da FPF respondeu 403 sem esses dois cabeçalhos (visto em produção, ver
+        // docs/superpowers/specs/2026-08-04-integracao-fpf-design.md) — sem eles, a chamada não
+        // parece um AJAX de verdade partindo da própria página deles (proteção comum em handlers
+        // .ashx do ASP.NET contra chamada direta/hotlink). `Referer` aponta pra própria página de
+        // Competições, e o `User-Agent` imita um navegador comum (o padrão do runtime Node/Vercel
+        // costuma ser bloqueado).
+        Referer: "https://futebolpaulista.com.br/Competicoes/Tabela.aspx",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      },
     });
   } catch (erro) {
     throw new FpfApiError(`Falha de rede ao chamar ${endpoint}`, endpoint, erro);
