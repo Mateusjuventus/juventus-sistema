@@ -290,6 +290,42 @@ export interface ConvocacaoStaffRow {
   staff_id: string;
 }
 
+export type SumulaEventoTipo = "gol" | "cartao_amarelo" | "cartao_vermelho" | "substituicao";
+export type SumulaTempo = "primeiro" | "segundo";
+
+/** Súmula do jogo — uma linha por jogo (`jogo_id` único). O placar em si continua vivendo em
+ * `jogos.gols_pro`/`gols_contra` (única fonte de verdade, editável tanto na aba "Dados do jogo"
+ * quanto aqui); esta tabela guarda só a duração de cada tempo. Ver
+ * docs/superpowers/specs/2026-08-04-sumula-design.md. */
+export interface SumulaRow {
+  id: string;
+  jogo_id: string;
+  duracao_primeiro_tempo: number;
+  duracao_segundo_tempo: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Evento da súmula (gol, cartão amarelo/vermelho, substituição) — cada um salvo individualmente
+ * (sem lote), pra não perder lançamentos feitos ao vivo durante o jogo. `atleta_id` é quem fez o
+ * gol / recebeu o cartão / saiu (substituição); `atleta_entrou_id` só é usado quando
+ * tipo = "substituicao"; `atleta_assistencia_id` só é usado quando tipo = "gol", e é opcional
+ * mesmo nesse caso. `ordem` desempata visualmente eventos com o mesmo tempo/minuto. */
+export interface SumulaEventoRow {
+  id: string;
+  sumula_id: string;
+  tipo: SumulaEventoTipo;
+  tempo: SumulaTempo;
+  minuto: number;
+  atleta_id: string | null;
+  atleta_entrou_id: string | null;
+  atleta_assistencia_id: string | null;
+  ordem: number;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface RoomingListRow {
   id: string;
   jogo_id: string;
@@ -544,6 +580,34 @@ export interface ConvocacaoComissaoBaseRow {
 export interface ConvocacaoStaffBaseRow {
   convocacao_id: string;
   staff_id: string;
+}
+
+/** Espelha `SumulaRow`, mas para o Futebol de Base — tabela `sumulas_base`, `jogo_id` referencia
+ * `jogos_base`. */
+export interface SumulaBaseRow {
+  id: string;
+  jogo_id: string;
+  duracao_primeiro_tempo: number;
+  duracao_segundo_tempo: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Espelha `SumulaEventoRow`, mas para o Futebol de Base — tabela `sumula_eventos_base`, atletas
+ * referenciam `atletas_base`. */
+export interface SumulaEventoBaseRow {
+  id: string;
+  sumula_id: string;
+  tipo: SumulaEventoTipo;
+  tempo: SumulaTempo;
+  minuto: number;
+  atleta_id: string | null;
+  atleta_entrou_id: string | null;
+  atleta_assistencia_id: string | null;
+  ordem: number;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface RoomingListBaseRow {

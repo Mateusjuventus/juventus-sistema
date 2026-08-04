@@ -16,6 +16,7 @@ export function JogoTabs({
   active:
     | "dados"
     | "convocacao"
+    | "sumula"
     | "programacao"
     | "rooming-list"
     | "onibus"
@@ -35,6 +36,7 @@ export function JogoTabs({
   const tabs = [
     { key: "dados", label: "Dados do jogo", href: `/jogos/${jogoId}` },
     { key: "convocacao", label: "Convocação", href: `/jogos/${jogoId}/convocacao` },
+    { key: "sumula", label: "Súmula", href: `/jogos/${jogoId}/sumula` },
     { key: "programacao", label: "Programação", href: `/jogos/${jogoId}/programacao` },
     { key: "logistica", label: "Logística", href: `/jogos/${jogoId}/rooming-list`, active: emLogistica },
     {
