@@ -7,14 +7,10 @@ import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { calcularArtilheiros } from "@/lib/futebol/artilharia";
-import type { FpfSyncLogRow, JogoRow } from "@/lib/supabase/types";
-import { atualizarFpf, deleteJogo } from "./actions";
+import type { JogoRow } from "@/lib/supabase/types";
+import { deleteJogo } from "./actions";
 
 const TOP_ARTILHEIROS = 5;
-
-function formatDataHoraBr(iso: string): string {
-  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
-}
 
 function formatData(data: string): string {
   const [ano, mes, dia] = data.split("-");
@@ -43,19 +39,13 @@ export default async function JogosPage({
   if (mandanteFiltro === "casa") query = query.eq("mandante", true);
   if (mandanteFiltro === "fora") query = query.eq("mandante", false);
 
-  // Não busca os jogos pendentes da FPF aqui (exigiria varrer a competição inteira rodada por
-  // rodada, na FPF, toda vez que alguém abre a lista de Jogos — lento e frágil demais pra rodar em
-  // toda visita a essa tela). A contagem de pendentes fica só na própria tela
-  // `/jogos/fpf/pendentes`, que já é o lugar certo de ir ver isso.
-  const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }, { data: ultimoSyncData }, { data: golsData }] =
+  const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }, { data: golsData }] =
     await Promise.all([
       query,
       supabase.from("jogos").select("id, data_jogo"),
       supabase.from("convocacoes").select("jogo_id"),
-      supabase.from("fpf_sync_log").select("*").order("executado_em", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("sumula_eventos").select("atleta_id").eq("tipo", "gol").not("atleta_id", "is", null),
     ]);
-  const ultimoSync = (ultimoSyncData as FpfSyncLogRow | null) ?? null;
 
   const artilheirosContagem = calcularArtilheiros(
     ((golsData ?? []) as { atleta_id: string | null }[]).map((g) => ({ atletaId: g.atleta_id })),
@@ -110,19 +100,6 @@ export default async function JogosPage({
       </Link>
       <PageHeader title="Jogos / Competições" pendencia={pendenciaJogos} />
 
-      {ultimoSync ? (
-        <p className="mt-1 text-center text-xs text-neutral-400">
-          {ultimoSync.sucesso ? (
-            <>Última sincronização com a FPF: {formatDataHoraBr(ultimoSync.executado_em)}</>
-          ) : (
-            <span className="font-medium text-red-600">
-              A última sincronização com a FPF falhou ({formatDataHoraBr(ultimoSync.executado_em)}):{" "}
-              {ultimoSync.mensagem_erro ?? "erro desconhecido"}
-            </span>
-          )}
-        </p>
-      ) : null}
-
       {artilheiros.length > 0 ? (
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           <div className="flex items-center gap-2 rounded-full border border-dourado/40 bg-dourado/10 px-4 py-1.5 text-sm">
@@ -154,17 +131,6 @@ export default async function JogosPage({
         <Link href="/jogos/dashboard" className="btn-secondary">
           Ver dashboard
         </Link>
-        <Link href="/jogos/fpf/pendentes" className="btn-secondary">
-          Jogos da FPF pendentes
-        </Link>
-        <Link href="/jogos/fpf/configurar" className="btn-secondary">
-          Configurar FPF
-        </Link>
-        <form action={atualizarFpf}>
-          <button type="submit" className="btn-secondary">
-            Atualizar da FPF
-          </button>
-        </form>
         <Link href="/jogos/novo" className="btn-primary">
           + Novo jogo
         </Link>

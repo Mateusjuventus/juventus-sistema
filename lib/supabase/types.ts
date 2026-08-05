@@ -261,42 +261,12 @@ export interface JogoRow {
   updated_at: string;
 }
 
-/** Jogo da FPF marcado como "ignorar" na revisão de jogos pendentes. */
-export interface FpfJogoIgnoradoRow {
-  fpf_id_jogo: number;
-  descricao: string;
-  ignorado_por: string | null;
-  ignorado_em: string;
-}
-
 /** Atleta da FPF marcado como "não corresponde a ninguém daqui" na tela de vínculo de elenco. */
 export interface FpfAtletaIgnoradoRow {
   fpf_id_atleta: number;
   nome: string;
   ignorado_por: string | null;
   ignorado_em: string;
-}
-
-/** Configuração da integração com a FPF — linha única. */
-export interface FpfConfigRow {
-  id: boolean;
-  id_campeonato: number;
-  id_categoria: number;
-  id_clube: number;
-  nome_exibicao: string;
-  ano: number;
-  updated_at: string;
-}
-
-/** Histórico de execuções da sincronização com a FPF (manual ou automática). */
-export interface FpfSyncLogRow {
-  id: string;
-  executado_em: string;
-  origem: "manual" | "automatica";
-  sucesso: boolean;
-  jogos_novos: number;
-  jogos_atualizados: number;
-  mensagem_erro: string | null;
 }
 
 export type ProgramacaoTipo = "concentracao" | "dia_jogo";

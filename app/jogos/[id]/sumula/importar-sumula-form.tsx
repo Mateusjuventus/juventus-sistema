@@ -219,9 +219,26 @@ export function ImportarSumulaForm({
               />
             </div>
             <p className="pb-2 text-xs text-neutral-400">
-              Já vem com o acréscimo da súmula somado (45 + acréscimo), quando ela informa esse campo.
+              Já vem com o acréscimo da súmula somado (45 + acréscimo), quando ela informa esse campo. Confira
+              e ajuste se precisar — a extração automática desse campo específico ainda não foi confirmada
+              contra o formato exato da FPF.
             </p>
           </div>
+
+          {previa.linhasDuracaoEncontradas.length > 0 ? (
+            <details className="rounded-md border border-neutral-200 bg-neutral-50 p-2 text-xs text-neutral-500">
+              <summary className="cursor-pointer select-none font-semibold text-neutral-600">
+                Ver trecho da súmula sobre tempo/acréscimo (debug)
+              </summary>
+              <p className="mt-2">
+                Se a duração acima não bateu com o que a súmula real informa, copie as linhas abaixo e mande
+                pra gente ajustar o reconhecimento automático.
+              </p>
+              <pre className="mt-1 whitespace-pre-wrap break-words rounded bg-white p-2 text-neutral-700">
+                {previa.linhasDuracaoEncontradas.join("\n")}
+              </pre>
+            </details>
+          ) : null}
 
           <div>
             <h3 className="text-sm font-semibold text-grena-escuro">Eventos encontrados ({eventos.length})</h3>

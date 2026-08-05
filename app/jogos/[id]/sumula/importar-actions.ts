@@ -63,6 +63,11 @@ export interface PreviaImportacaoSumula {
    * salvo (ou 45min) quando a súmula não tem esse campo. */
   duracaoPrimeiroTempoSugerida: number;
   duracaoSegundoTempoSugerida: number;
+  /** Diagnóstico: linhas do PDF que mencionam "1º/2º Tempo" ou "Acréscimo" — mostrado na revisão
+   * só quando o acréscimo não foi reconhecido automaticamente, pra o usuário poder conferir o que
+   * a súmula realmente diz (ver nota em lib/fpf/sumula-pdf.ts sobre a falta de confirmação
+   * byte-a-byte do formato real). */
+  linhasDuracaoEncontradas: string[];
   eventos: PreviaEventoImportado[];
   linkPdf: string;
 }
@@ -227,6 +232,7 @@ export async function buscarPreviaImportacaoSumula(
       golsAdversarioContagem: golsAdversarioPdf,
       duracaoPrimeiroTempoSugerida: duracaoPrimeiroTempo,
       duracaoSegundoTempoSugerida: duracaoSegundoTempo,
+      linhasDuracaoEncontradas: dadosPdf.linhasDuracaoEncontradas,
       eventos,
       linkPdf: url,
     },
