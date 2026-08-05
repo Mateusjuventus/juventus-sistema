@@ -1,0 +1,20 @@
+PASSO 1 — Sobrescrever estes 4 arquivos (upload comum, mesmo caminho):
+
+jogos-actions.ts   -> app/jogos/actions.ts
+jogos-page.tsx     -> app/jogos/page.tsx
+jogo-tabs.tsx      -> components/jogo-tabs.tsx
+types.ts           -> lib/supabase/types.ts
+
+PASSO 2 — Apagar estes arquivos/pastas no GitHub (não tem como fazer isso por
+upload — precisa abrir cada um pelo link, clicar na lixeira, e commitar):
+
+app/jogos/fpf/pendentes/page.tsx
+app/jogos/fpf/pendentes/actions.ts
+app/jogos/fpf/configurar/page.tsx
+app/jogos/fpf/configurar/config-fpf-form.tsx
+app/jogos/fpf/configurar/actions.ts
+app/api/fpf/sincronizar/route.ts
+app/jogos/[id]/fpf/page.tsx
+lib/fpf/sincronizar.ts
+lib/fpf/sincronizar.test.ts
+lib/fpf/client.ts
