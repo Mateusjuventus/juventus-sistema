@@ -15,6 +15,7 @@ import type {
 } from "@/lib/supabase/types";
 import { DadosJogoForm } from "./dados-jogo-form";
 import { EventoForm, type ConvocadoOption } from "./evento-form";
+import { ImportarSumulaForm } from "./importar-sumula-form";
 import { adicionarEvento, removerEvento, salvarDadosJogo } from "./actions";
 
 function paraOpcao(atleta: AtletaRow): ConvocadoOption {
@@ -192,6 +193,13 @@ export default async function SumulaPage({ params }: { params: { id: string } })
         nomeMandante={nomeMandante}
         nomeVisitante={nomeVisitante}
       />
+
+      <div className="mt-4">
+        <ImportarSumulaForm
+          jogoId={jogo.id}
+          atletas={atletas.map((a) => ({ id: a.id, nome: a.nome_completo }))}
+        />
+      </div>
 
       <section className="card mt-4 p-4">
         <h2 className="text-lg font-bold text-grena-escuro">Escalação (referência)</h2>

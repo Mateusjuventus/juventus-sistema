@@ -15,6 +15,34 @@ function campo(item: Record<string, unknown>, ...chaves: string[]): string {
   return "—";
 }
 
+function ehJuventus(nome: string): boolean {
+  return nome.toLowerCase().includes("juventus");
+}
+
+/** Aviso mostrado quando a busca ao vivo falhou — o mesmo domínio da FPF usado aqui
+ * (`futebolpaulista.com.br/Handlers/*`) está bloqueando pedidos vindos do nosso servidor (ver
+ * docs/superpowers/specs/2026-08-04-integracao-fpf-design.md). Enquanto isso não é resolvido, o
+ * link abaixo abre o site oficial direto no navegador de quem está usando o sistema — que não
+ * tem esse bloqueio, já que não vem de um servidor. */
+function AvisoSemDadosAoVivo() {
+  return (
+    <div className="mt-2 rounded-md bg-amber-50 p-3 text-xs text-amber-800">
+      <p>
+        Não conseguimos buscar esse dado automaticamente agora — o site da FPF está bloqueando os
+        pedidos vindos do nosso servidor. Você pode consultar direto no site oficial:
+      </p>
+      <a
+        href="https://futebolpaulista.com.br/Competicoes/Tabela.aspx"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1 inline-block font-medium text-grena hover:underline"
+      >
+        Abrir Tabela/Classificação no site da FPF ↗
+      </a>
+    </div>
+  );
+}
+
 export default async function CompeticaoFpfPage() {
   const supabase = createClient();
   const config = await buscarConfigFpf(supabase);
@@ -76,18 +104,25 @@ export default async function CompeticaoFpfPage() {
                 </tr>
               </thead>
               <tbody>
-                {classificacaoResultado.value.map((item, i) => (
-                  <tr key={i} className="border-b border-neutral-100">
-                    <td className="py-1 pr-2">{campo(item, "Pos", "Posicao")}</td>
-                    <td className="py-1 pr-2 font-medium">{campo(item, "Classificacao", "NomePopular", "Clube")}</td>
-                    <td className="py-1 pr-2">{campo(item, "P", "Pontos")}</td>
-                    <td className="py-1 pr-2">{campo(item, "J", "Jogos")}</td>
-                    <td className="py-1 pr-2">{campo(item, "V", "Vitorias")}</td>
-                    <td className="py-1 pr-2">{campo(item, "E", "Empates")}</td>
-                    <td className="py-1 pr-2">{campo(item, "D", "Derrotas")}</td>
-                    <td className="py-1 pr-2">{campo(item, "SG", "SaldoGols")}</td>
-                  </tr>
-                ))}
+                {classificacaoResultado.value.map((item, i) => {
+                  const nomeClube = campo(item, "Classificacao", "NomePopular", "Clube");
+                  const destaque = ehJuventus(nomeClube);
+                  return (
+                    <tr
+                      key={i}
+                      className={`border-b border-neutral-100 ${destaque ? "bg-grena/10 font-semibold text-grena-escuro" : ""}`}
+                    >
+                      <td className="py-1 pr-2">{campo(item, "Pos", "Posicao")}</td>
+                      <td className="py-1 pr-2 font-medium">{nomeClube}</td>
+                      <td className="py-1 pr-2">{campo(item, "P", "Pontos")}</td>
+                      <td className="py-1 pr-2">{campo(item, "J", "Jogos")}</td>
+                      <td className="py-1 pr-2">{campo(item, "V", "Vitorias")}</td>
+                      <td className="py-1 pr-2">{campo(item, "E", "Empates")}</td>
+                      <td className="py-1 pr-2">{campo(item, "D", "Derrotas")}</td>
+                      <td className="py-1 pr-2">{campo(item, "SG", "SaldoGols")}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -102,14 +137,21 @@ export default async function CompeticaoFpfPage() {
           <p className="mt-2 text-sm text-neutral-400">Nenhum dado de artilharia disponível.</p>
         ) : (
           <div className="mt-3 flex flex-col gap-1 text-sm">
-            {artilhariaResultado.value.map((item, i) => (
-              <div key={i} className="flex justify-between border-b border-neutral-100 py-1">
-                <span>
-                  {campo(item, "Jogador", "Nome", "NomeAtleta")} — {campo(item, "Clube", "NomePopularClube")}
-                </span>
-                <span className="font-medium">{campo(item, "Gols", "QtdGols")} gols</span>
-              </div>
-            ))}
+            {artilhariaResultado.value.map((item, i) => {
+              const nomeClube = campo(item, "Clube", "NomePopularClube");
+              const destaque = ehJuventus(nomeClube);
+              return (
+                <div
+                  key={i}
+                  className={`flex justify-between border-b border-neutral-100 py-1 ${destaque ? "bg-grena/10 px-2 font-semibold text-grena-escuro" : ""}`}
+                >
+                  <span>
+                    {campo(item, "Jogador", "Nome", "NomeAtleta")} — {nomeClube}
+                  </span>
+                  <span className="font-medium">{campo(item, "Gols", "QtdGols")} gols</span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -119,5 +161,10 @@ export default async function CompeticaoFpfPage() {
 
 function ErroFpf({ erro }: { erro: unknown }) {
   const mensagem = erro instanceof FpfApiError ? erro.message : "Não foi possível carregar esses dados da FPF agora.";
-  return <p className="mt-2 text-sm text-red-600">{mensagem}</p>;
+  return (
+    <div>
+      <p className="mt-2 text-sm text-red-600">{mensagem}</p>
+      <AvisoSemDadosAoVivo />
+    </div>
+  );
 }
