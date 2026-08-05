@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsearSumulaPdf } from "./sumula-pdf";
+import { converterMinutoPdfParaRelativo, parsearSumulaPdf } from "./sumula-pdf";
 
 // Texto montado a partir de trechos confirmados de súmulas reais publicadas em
 // conteudo.fpf.org.br (ver docs/superpowers/specs/2026-08-04-integracao-fpf-design.md) — não é
@@ -92,5 +92,20 @@ describe("parsearSumulaPdf", () => {
 
   it("não extrai cartão nenhum quando não houve expulsões", () => {
     expect(resultado.cartoes.some((c) => c.cor === "vermelho")).toBe(false);
+  });
+});
+
+describe("converterMinutoPdfParaRelativo", () => {
+  it("mantém o minuto do 1º tempo sem alterar", () => {
+    expect(converterMinutoPdfParaRelativo(32, "primeiro", 45)).toBe(32);
+  });
+
+  it("converte o relógio corrido do 2º tempo (súmula) pro minuto relativo (nosso banco)", () => {
+    // Exemplo real: súmula marca "79:00 2T" com 1º tempo de 45min -> 34º minuto do 2º tempo.
+    expect(converterMinutoPdfParaRelativo(79, "segundo", 45)).toBe(34);
+  });
+
+  it("não deixa dar negativo se o minuto vier estranho", () => {
+    expect(converterMinutoPdfParaRelativo(40, "segundo", 45)).toBe(0);
   });
 });

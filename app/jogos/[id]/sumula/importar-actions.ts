@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { baixarTextoSumulaPdf, parsearSumulaPdf, SumulaPdfError, type SumulaPdfDados } from "@/lib/fpf/sumula-pdf";
+import {
+  baixarTextoSumulaPdf,
+  converterMinutoPdfParaRelativo,
+  parsearSumulaPdf,
+  SumulaPdfError,
+  type SumulaPdfDados,
+} from "@/lib/fpf/sumula-pdf";
 import { sugerirAtleta, type AtletaParaMatch } from "@/lib/fpf/atleta-match";
 import type { AtletaRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
 
@@ -101,6 +107,17 @@ export async function buscarPreviaImportacaoSumula(
     .in("id", idsConvocados);
   const convocados = ((atletasData ?? []) as AtletaRow[]).map(paraAtletaParaMatch);
 
+  // Duração do 1º tempo já salva pra esse jogo (ou o padrão de 45min, se a Súmula ainda não foi
+  // salva) — precisa pra converter o "relógio corrido" da súmula oficial (ex: "79:00 2T") pro
+  // minuto relativo ao 2º tempo que a nossa Súmula usa internamente (ver
+  // `converterMinutoPdfParaRelativo` em lib/fpf/sumula-pdf.ts).
+  const { data: sumulaExistente } = await supabase
+    .from("sumulas")
+    .select("duracao_primeiro_tempo")
+    .eq("jogo_id", jogoId)
+    .maybeSingle();
+  const duracaoPrimeiroTempo = sumulaExistente?.duracao_primeiro_tempo ?? 45;
+
   let dadosPdf: SumulaPdfDados;
   try {
     const texto = await baixarTextoSumulaPdf(url);
@@ -124,11 +141,12 @@ export async function buscarPreviaImportacaoSumula(
   const eventos: PreviaEventoImportado[] = [];
 
   for (const gol of dadosPdf.gols) {
+    const minutoRelativo = converterMinutoPdfParaRelativo(gol.minuto, gol.tempo, duracaoPrimeiroTempo);
     if (!ehLadoJuventus(gol.equipe)) {
       // Gol do adversário — importa sem vínculo de atleta, só com o nome como veio da súmula.
       eventos.push({
         tipo: "gol",
-        minuto: gol.minuto,
+        minuto: minutoRelativo,
         tempo: gol.tempo,
         descricao: `Gol do adversário — ${gol.nome}`,
         atletaId: null,
@@ -144,7 +162,7 @@ export async function buscarPreviaImportacaoSumula(
     }
     eventos.push({
       tipo: "gol",
-      minuto: gol.minuto,
+      minuto: minutoRelativo,
       tempo: gol.tempo,
       descricao: `Gol${gol.tipo === "penalti" ? " (pênalti)" : gol.tipo === "falta" ? " (falta)" : ""} — ${gol.nome}`,
       atletaId: sugerirPorNome(gol.nome),
@@ -157,7 +175,7 @@ export async function buscarPreviaImportacaoSumula(
     if (!ehLadoJuventus(cartao.equipe)) continue;
     eventos.push({
       tipo: cartao.cor === "amarelo" ? "cartao_amarelo" : "cartao_vermelho",
-      minuto: cartao.minuto,
+      minuto: converterMinutoPdfParaRelativo(cartao.minuto, cartao.tempo, duracaoPrimeiroTempo),
       tempo: cartao.tempo,
       descricao: `Cartão ${cartao.cor} — ${cartao.nome}`,
       atletaId: sugerirPorNome(cartao.nome),
@@ -170,7 +188,7 @@ export async function buscarPreviaImportacaoSumula(
     if (!ehLadoJuventus(sub.equipe)) continue;
     eventos.push({
       tipo: "substituicao",
-      minuto: sub.minuto,
+      minuto: converterMinutoPdfParaRelativo(sub.minuto, sub.tempo, duracaoPrimeiroTempo),
       tempo: sub.tempo,
       descricao: `Saiu ${sub.nomeSaiu}, entrou ${sub.nomeEntrou}`,
       atletaId: sugerirPorNome(sub.nomeSaiu),

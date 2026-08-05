@@ -47,10 +47,20 @@ export interface EstatisticasAtleta {
   jogosMais90min: number;
 }
 
-/** Converte o minuto de um evento (relativo ao próprio tempo) pro "relógio" do jogo inteiro — o 2º
- * tempo continua contando a partir de onde o 1º parou (incluindo os acréscimos configurados). */
+/** Converte um minuto "relativo ao próprio tempo" (ex: 34 = 34º minuto do 2º tempo, do jeito que
+ * lançamos manualmente na Súmula) pro "relógio" do jogo inteiro (ex: 79, se o 1º tempo durou 45)
+ * — o 2º tempo continua contando a partir de onde o 1º parou. Exportada porque também é usada só
+ * pra exibição (ver `LinhaEvento` na aba Súmula), não só no cálculo de estatísticas. */
+export function calcularMinutoAbsoluto(
+  tempo: "primeiro" | "segundo",
+  minuto: number,
+  duracaoPrimeiroTempo: number,
+): number {
+  return tempo === "primeiro" ? minuto : duracaoPrimeiroTempo + minuto;
+}
+
 function minutoAbsoluto(evento: EventoParaEstatistica, duracaoPrimeiroTempo: number): number {
-  return evento.tempo === "primeiro" ? evento.minuto : duracaoPrimeiroTempo + evento.minuto;
+  return calcularMinutoAbsoluto(evento.tempo, evento.minuto, duracaoPrimeiroTempo);
 }
 
 /**

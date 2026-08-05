@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
 import { SUMULA_EVENTO_TIPO_ICONE, SUMULA_EVENTO_TIPO_LABEL } from "@/lib/futebol/sumula-eventos";
+import { calcularMinutoAbsoluto } from "@/lib/futebol/estatisticas-atleta";
 import type {
   AtletaBaseRow,
   ConvocacaoAtletaBaseRow,
@@ -37,11 +38,16 @@ function nomeAtletaEvento(atleta: AtletaBaseRow | undefined): string {
 function LinhaEvento({
   evento,
   atletasMap,
+  duracaoPrimeiroTempo,
 }: {
   evento: SumulaEventoBaseRow;
   atletasMap: Map<string, AtletaBaseRow>;
+  duracaoPrimeiroTempo: number;
 }) {
   const atleta = evento.atleta_id ? atletasMap.get(evento.atleta_id) : undefined;
+  // Mostra o "relógio corrido" do jogo (ex: 79'), igual à súmula oficial — por baixo, guardamos
+  // o minuto relativo ao início de cada tempo (ver lib/futebol/estatisticas-atleta.ts).
+  const minutoExibido = calcularMinutoAbsoluto(evento.tempo, evento.minuto, duracaoPrimeiroTempo);
 
   let descricao: string;
   if (evento.tipo === "substituicao") {
@@ -59,7 +65,7 @@ function LinhaEvento({
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm">
       <span className="w-10 shrink-0 text-center text-lg">{SUMULA_EVENTO_TIPO_ICONE[evento.tipo]}</span>
-      <span className="w-14 shrink-0 font-semibold text-grena-escuro">{evento.minuto}&apos;</span>
+      <span className="w-14 shrink-0 font-semibold text-grena-escuro">{minutoExibido}&apos;</span>
       <span className="w-32 shrink-0 font-medium text-neutral-700">
         {SUMULA_EVENTO_TIPO_LABEL[evento.tipo]}
       </span>
@@ -78,6 +84,7 @@ function TempoSection({
   convocados,
   reservas,
   liberado,
+  duracaoPrimeiroTempo,
 }: {
   label: string;
   tempo: "primeiro" | "segundo";
@@ -87,6 +94,7 @@ function TempoSection({
   convocados: ConvocadoOption[];
   reservas: ConvocadoOption[];
   liberado: boolean;
+  duracaoPrimeiroTempo: number;
 }) {
   return (
     <section className="card p-4">
@@ -94,7 +102,12 @@ function TempoSection({
 
       <div className="mt-3 space-y-2">
         {eventos.map((evento) => (
-          <LinhaEvento key={evento.id} evento={evento} atletasMap={atletasMap} />
+          <LinhaEvento
+            key={evento.id}
+            evento={evento}
+            atletasMap={atletasMap}
+            duracaoPrimeiroTempo={duracaoPrimeiroTempo}
+          />
         ))}
         {eventos.length === 0 ? (
           <p className="text-sm text-neutral-400">Nenhum evento lançado ainda.</p>
@@ -257,6 +270,7 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
           convocados={convocadosOptions}
           reservas={reservasOptions}
           liberado={Boolean(convocacao)}
+          duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
         />
         <TempoSection
           label="Segundo Tempo"
@@ -267,6 +281,7 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
           convocados={convocadosOptions}
           reservas={reservasOptions}
           liberado={Boolean(convocacao)}
+          duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
         />
       </div>
     </AppShell>

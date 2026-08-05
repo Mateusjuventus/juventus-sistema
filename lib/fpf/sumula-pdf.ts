@@ -288,3 +288,25 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
     avisos,
   };
 }
+
+/**
+ * O `minuto` de um gol/cartão/substituição, do jeito que sai de `parsearSumulaPdf`, é o "relógio
+ * corrido" oficial do jogo — o padrão de súmula usado no futebol brasileiro (o mesmo de "gol aos
+ * 79 minutos" no rádio/TV): no 2º tempo o número já vem contando a partir de onde o 1º parou (ex:
+ * "79:00 2T" com 1º tempo de 45min = aos 34 minutos do 2º tempo), a tag "1T"/"2T" só indica em
+ * qual tempo aconteceu, não reinicia a contagem.
+ *
+ * Isso é DIFERENTE de como a nossa Súmula guarda o minuto internamente (`sumula_eventos.minuto`):
+ * lá, o minuto de um evento do 2º tempo é relativo ao início do 2º tempo (ver
+ * `lib/futebol/estatisticas-atleta.ts`, `calcularMinutoAbsoluto`) — convenção pensada pra
+ * lançamento manual durante o jogo. Essa função faz a conversão do relógio corrido do PDF pro
+ * formato interno, na importação.
+ */
+export function converterMinutoPdfParaRelativo(
+  minutoPdf: number,
+  tempo: "primeiro" | "segundo",
+  duracaoPrimeiroTempo: number,
+): number {
+  if (tempo === "primeiro") return minutoPdf;
+  return Math.max(0, minutoPdf - duracaoPrimeiroTempo);
+}
