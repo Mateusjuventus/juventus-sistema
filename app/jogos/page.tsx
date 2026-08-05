@@ -6,8 +6,11 @@ import { DeleteButton } from "@/components/delete-button";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { calcularArtilheiros } from "@/lib/futebol/artilharia";
 import type { FpfSyncLogRow, JogoRow } from "@/lib/supabase/types";
 import { atualizarFpf, deleteJogo } from "./actions";
+
+const TOP_ARTILHEIROS = 5;
 
 function formatDataHoraBr(iso: string): string {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
@@ -44,14 +47,35 @@ export default async function JogosPage({
   // rodada, na FPF, toda vez que alguém abre a lista de Jogos — lento e frágil demais pra rodar em
   // toda visita a essa tela). A contagem de pendentes fica só na própria tela
   // `/jogos/fpf/pendentes`, que já é o lugar certo de ir ver isso.
-  const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }, { data: ultimoSyncData }] =
+  const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }, { data: ultimoSyncData }, { data: golsData }] =
     await Promise.all([
       query,
       supabase.from("jogos").select("id, data_jogo"),
       supabase.from("convocacoes").select("jogo_id"),
       supabase.from("fpf_sync_log").select("*").order("executado_em", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("sumula_eventos").select("atleta_id").eq("tipo", "gol").not("atleta_id", "is", null),
     ]);
   const ultimoSync = (ultimoSyncData as FpfSyncLogRow | null) ?? null;
+
+  const artilheirosContagem = calcularArtilheiros(
+    ((golsData ?? []) as { atleta_id: string | null }[]).map((g) => ({ atletaId: g.atleta_id })),
+  ).slice(0, TOP_ARTILHEIROS);
+  const { data: artilheirosAtletasData } =
+    artilheirosContagem.length > 0
+      ? await supabase
+          .from("atletas")
+          .select("id, nome_completo")
+          .in(
+            "id",
+            artilheirosContagem.map((a) => a.atletaId),
+          )
+      : { data: [] };
+  const nomePorAtletaId = new Map(
+    ((artilheirosAtletasData ?? []) as { id: string; nome_completo: string }[]).map((a) => [a.id, a.nome_completo]),
+  );
+  const artilheiros = artilheirosContagem
+    .map((a) => ({ nome: nomePorAtletaId.get(a.atletaId), gols: a.gols }))
+    .filter((a): a is { nome: string; gols: number } => Boolean(a.nome));
   const hojeStr = new Date().toISOString().slice(0, 10);
   const hojeTime = new Date(hojeStr).getTime();
 
@@ -98,6 +122,20 @@ export default async function JogosPage({
           )}
         </p>
       ) : null}
+
+      {artilheiros.length > 0 ? (
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <div className="flex items-center gap-2 rounded-full border border-dourado/40 bg-dourado/10 px-4 py-1.5 text-sm">
+            <span className="font-semibold text-grena-escuro">⚽ Artilharia:</span>
+            {artilheiros.map((a, i) => (
+              <span key={i} className="text-neutral-700">
+                {a.nome} ({a.gols}){i < artilheiros.length - 1 ? " ·" : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <Link
           href={`/jogos?q=${encodeURIComponent(q)}&mandante=${encodeURIComponent(mandanteFiltro)}&ordem=${
@@ -118,9 +156,6 @@ export default async function JogosPage({
         </Link>
         <Link href="/jogos/fpf/pendentes" className="btn-secondary">
           Jogos da FPF pendentes
-        </Link>
-        <Link href="/jogos/fpf/competicao" className="btn-secondary">
-          Copa Paulista Rivalo (FPF)
         </Link>
         <Link href="/jogos/fpf/configurar" className="btn-secondary">
           Configurar FPF

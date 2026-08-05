@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { baixarTextoSumulaPdf, parsearSumulaPdf, SumulaPdfError, type SumulaPdfDados } from "@/lib/fpf/sumula-pdf";
-import { sugerirAtleta, type AtletaParaMatch, type ConfiancaMatch } from "@/lib/fpf/atleta-match";
+import { sugerirAtleta, type AtletaParaMatch } from "@/lib/fpf/atleta-match";
 import type { AtletaRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
 
 /**
@@ -13,23 +13,21 @@ import type { AtletaRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/ty
  * do PDF da súmula oficial, publicada num domínio diferente (`conteudo.fpf.org.br`), a gente lê
  * e sugere o preenchimento, ele revisa e confirma.
  *
- * Dois passos, dois server actions:
- * 1. `buscarPreviaImportacaoSumula` — só lê e sugere, não grava nada.
- * 2. `confirmarImportacaoSumula` — grava o que o usuário confirmou/corrigiu na revisão.
+ * Não tenta mais importar a escalação/convocação a partir do PDF — a primeira versão fazia isso
+ * comparando contra o elenco inteiro e o resultado era ruim (muito "sem sugestão", virava
+ * bagunça). A Convocação do jogo já é feita antes pelo usuário e é a fonte de verdade de quem
+ * jogou; a importação da súmula só usa esse grupo já convocado como universo pra vincular quem
+ * fez cada gol/cartão/substituição — candidatos muito mais precisos que o elenco inteiro.
  *
- * Só filtra e sugere vínculo pra eventos e jogadores do lado do Juventus — os dados do time
- * adversário aparecem no PDF mas não interessam ao nosso banco.
+ * Só o time do Juventus tem os eventos vinculados a um atleta nosso — gols do adversário também
+ * são importados, mas sem vínculo (só o nome como veio da súmula, ver `nome_adversario` em
+ * `sumula_eventos`), já que esses jogadores não existem no nosso cadastro.
  */
 
 const NOME_JUVENTUS_PARCIAL = "juventus";
 
-export interface PreviaJogadorImportado {
-  numero: number;
-  nome: string;
-  titular: boolean;
-  registroFpfNumero: number | null;
-  atletaSugeridoId: string | null;
-  confianca: ConfiancaMatch;
+function ehLadoJuventus(equipe: string): boolean {
+  return equipe.toLowerCase().includes(NOME_JUVENTUS_PARCIAL);
 }
 
 export interface PreviaEventoImportado {
@@ -39,18 +37,22 @@ export interface PreviaEventoImportado {
   descricao: string;
   atletaId: string | null;
   atletaEntrouId: string | null;
+  nomeAdversario: string | null;
 }
 
 export interface PreviaImportacaoSumula {
   competicao: string | null;
   rodada: string | null;
   data: string | null;
+  /** Placar bruto extraído da súmula, na ordem mandante/visitante DA PARTIDA (não sabemos aqui se
+   * o Juventus foi mandante ou visitante) — o cliente, que já tem o jogo carregado, decide qual é
+   * qual. Quando não foi possível extrair o placar do texto, cai pra contagem de linhas de gol
+   * encontradas (menos confiável, mas melhor que nada). */
   placarMandante: number | null;
   placarVisitante: number | null;
-  mandante: boolean;
-  jogadores: PreviaJogadorImportado[];
+  golsJuventusContagem: number;
+  golsAdversarioContagem: number;
   eventos: PreviaEventoImportado[];
-  avisos: string[];
   linkPdf: string;
 }
 
@@ -63,19 +65,41 @@ function paraAtletaParaMatch(a: AtletaRow): AtletaParaMatch {
   return { id: a.id, nome_completo: a.nome_completo, numero_fpf: a.numero_fpf };
 }
 
-function ehLadoJuventus(equipe: string): boolean {
-  return equipe.toLowerCase().includes(NOME_JUVENTUS_PARCIAL);
-}
-
-/** Busca e faz o parsing do PDF, sugere vínculo de cada jogador/evento do lado do Juventus com o
- * elenco cadastrado. Não grava nada no banco ainda — só devolve a prévia pra revisão. */
+/** Busca e faz o parsing do PDF, e sugere o vínculo de cada evento do lado do Juventus com quem
+ * já está convocado nesse jogo. Não grava nada no banco ainda — só devolve a prévia pra revisão.
+ * Exige que a Convocação do jogo já esteja salva (é o universo de candidatos ao vínculo). */
 export async function buscarPreviaImportacaoSumula(
-  _jogoId: string,
+  jogoId: string,
   linkPdf: string,
 ): Promise<PreviaImportacaoResultado> {
   const url = linkPdf.trim();
   if (!url) return { erro: "Cole o link do PDF da súmula." };
   if (!/^https?:\/\//i.test(url)) return { erro: "O link precisa começar com http:// ou https://." };
+
+  const supabase = createClient();
+  const { data: convocacao } = await supabase
+    .from("convocacoes")
+    .select("id")
+    .eq("jogo_id", jogoId)
+    .maybeSingle();
+  if (!convocacao) {
+    return { erro: "Salve a Convocação desse jogo primeiro — a importação usa os atletas já convocados pra vincular os eventos." };
+  }
+
+  const { data: caData } = await supabase
+    .from("convocacao_atletas")
+    .select("atleta_id")
+    .eq("convocacao_id", convocacao.id);
+  const idsConvocados = (caData ?? []).map((r) => r.atleta_id as string);
+  if (idsConvocados.length === 0) {
+    return { erro: "A convocação desse jogo ainda não tem nenhum atleta selecionado." };
+  }
+
+  const { data: atletasData } = await supabase
+    .from("atletas")
+    .select("id, nome_completo, numero_fpf")
+    .in("id", idsConvocados);
+  const convocados = ((atletasData ?? []) as AtletaRow[]).map(paraAtletaParaMatch);
 
   let dadosPdf: SumulaPdfDados;
   try {
@@ -86,45 +110,36 @@ export async function buscarPreviaImportacaoSumula(
     return { erro: mensagem };
   }
 
-  const supabase = createClient();
-  const { data: atletasData } = await supabase.from("atletas").select("id, nome_completo, numero_fpf");
-  const atletas = ((atletasData ?? []) as AtletaRow[]).map(paraAtletaParaMatch);
-
-  const avisos = [...dadosPdf.avisos];
-
-  const jogadores: PreviaJogadorImportado[] = [];
-  for (const jogador of dadosPdf.jogadores) {
-    const sugestao = sugerirAtleta(jogador.nome, jogador.registroFpfNumero, atletas);
-    // Descarta silenciosamente jogadores sem nenhuma correspondência plausível — quase sempre são
-    // o elenco do time adversário, que também aparece na relação de jogadores do PDF (ver
-    // comentário em lib/fpf/sumula-pdf.ts sobre não conseguirmos separar por time nessa seção).
-    if (sugestao.confianca === "nenhuma" && sugestao.pontuacao < 0.15) continue;
-    jogadores.push({
-      numero: jogador.numero,
-      nome: jogador.nome,
-      titular: jogador.titular,
-      registroFpfNumero: jogador.registroFpfNumero,
-      atletaSugeridoId: sugestao.atletaId,
-      confianca: sugestao.confianca,
-    });
-  }
-
+  // Cruza pelo nome da relação de jogadores (parseada internamente, mas não exposta na revisão —
+  // ver comentário no topo do arquivo) só pra pegar o número de registro FPF, quando disponível,
+  // e melhorar a precisão do vínculo por nome.
   const registroPorNomeNormalizado = new Map(
     dadosPdf.jogadores.map((j) => [j.nome.toLowerCase().trim(), j.registroFpfNumero]),
   );
   function sugerirPorNome(nome: string): string | null {
     const registro = registroPorNomeNormalizado.get(nome.toLowerCase().trim()) ?? null;
-    return sugerirAtleta(nome, registro, atletas).atletaId;
+    return sugerirAtleta(nome, registro, convocados).atletaId;
   }
 
   const eventos: PreviaEventoImportado[] = [];
 
   for (const gol of dadosPdf.gols) {
-    if (!ehLadoJuventus(gol.equipe)) continue;
+    if (!ehLadoJuventus(gol.equipe)) {
+      // Gol do adversário — importa sem vínculo de atleta, só com o nome como veio da súmula.
+      eventos.push({
+        tipo: "gol",
+        minuto: gol.minuto,
+        tempo: gol.tempo,
+        descricao: `Gol do adversário — ${gol.nome}`,
+        atletaId: null,
+        atletaEntrouId: null,
+        nomeAdversario: gol.nome,
+      });
+      continue;
+    }
     if (gol.tipo === "contra") {
-      avisos.push(
-        `Gol contra de ${gol.nome} (${gol.minuto}') não foi importado automaticamente — lance manualmente se necessário, pra não registrar errado quem marcou a favor.`,
-      );
+      // Gol contra feito por um jogador nosso favorece o adversário — não é um "gol" nosso.
+      // Fica de fora da importação automática; lança manualmente se precisar registrar.
       continue;
     }
     eventos.push({
@@ -134,6 +149,7 @@ export async function buscarPreviaImportacaoSumula(
       descricao: `Gol${gol.tipo === "penalti" ? " (pênalti)" : gol.tipo === "falta" ? " (falta)" : ""} — ${gol.nome}`,
       atletaId: sugerirPorNome(gol.nome),
       atletaEntrouId: null,
+      nomeAdversario: null,
     });
   }
 
@@ -146,6 +162,7 @@ export async function buscarPreviaImportacaoSumula(
       descricao: `Cartão ${cartao.cor} — ${cartao.nome}`,
       atletaId: sugerirPorNome(cartao.nome),
       atletaEntrouId: null,
+      nomeAdversario: null,
     });
   }
 
@@ -158,10 +175,14 @@ export async function buscarPreviaImportacaoSumula(
       descricao: `Saiu ${sub.nomeSaiu}, entrou ${sub.nomeEntrou}`,
       atletaId: sugerirPorNome(sub.nomeSaiu),
       atletaEntrouId: sugerirPorNome(sub.nomeEntrou),
+      nomeAdversario: null,
     });
   }
 
   eventos.sort((a, b) => (a.tempo === b.tempo ? a.minuto - b.minuto : a.tempo === "primeiro" ? -1 : 1));
+
+  const golsJuventusPdf = dadosPdf.gols.filter((g) => ehLadoJuventus(g.equipe)).length;
+  const golsAdversarioPdf = dadosPdf.gols.filter((g) => !ehLadoJuventus(g.equipe)).length;
 
   return {
     dados: {
@@ -170,20 +191,12 @@ export async function buscarPreviaImportacaoSumula(
       data: dadosPdf.data,
       placarMandante: dadosPdf.placarMandante,
       placarVisitante: dadosPdf.placarVisitante,
-      mandante: false, // preenchido pelo cliente a partir do jogo já carregado na página
-      jogadores,
+      golsJuventusContagem: golsJuventusPdf,
+      golsAdversarioContagem: golsAdversarioPdf,
       eventos,
-      avisos,
       linkPdf: url,
     },
   };
-}
-
-export interface ConfirmacaoJogador {
-  numero: number;
-  nome: string;
-  titular: boolean;
-  atletaId: string | null;
 }
 
 export interface ConfirmacaoEvento {
@@ -192,6 +205,8 @@ export interface ConfirmacaoEvento {
   tempo: SumulaTempo;
   atletaId: string | null;
   atletaEntrouId: string | null;
+  nomeAdversario: string | null;
+  incluido: boolean;
 }
 
 export interface ConfirmarImportacaoInput {
@@ -199,20 +214,18 @@ export interface ConfirmarImportacaoInput {
   linkPdf: string;
   golsPro: number | null;
   golsContra: number | null;
-  jogadores: ConfirmacaoJogador[];
   eventos: ConfirmacaoEvento[];
 }
 
 export interface ConfirmarImportacaoResultado {
   erro?: string;
   sucesso?: boolean;
-  jogadoresImportados?: number;
   eventosImportados?: number;
 }
 
-/** Grava o que foi confirmado na revisão. Substitui a convocação e os eventos da súmula desse
- * jogo pelos dados vindos do PDF (a súmula oficial é tratada como fonte de verdade de quem
- * jogou) — jogadores/eventos sem vínculo confirmado (atletaId null) são simplesmente ignorados. */
+/** Grava o que foi confirmado na revisão. Substitui os eventos da súmula desse jogo pelos dados
+ * confirmados a partir do PDF (a súmula oficial é tratada como fonte de verdade dessa parte) —
+ * não mexe na Convocação, que continua sendo mantida separadamente pelo usuário. */
 export async function confirmarImportacaoSumula(
   input: ConfirmarImportacaoInput,
 ): Promise<ConfirmarImportacaoResultado> {
@@ -230,29 +243,6 @@ export async function confirmarImportacaoSumula(
     .eq("id", input.jogoId);
   if (jogoError) return { erro: "Não foi possível atualizar o placar do jogo." };
 
-  const jogadoresVinculados = input.jogadores.filter(
-    (j): j is ConfirmacaoJogador & { atletaId: string } => j.atletaId != null,
-  );
-
-  const { data: convocacao, error: convocacaoError } = await supabase
-    .from("convocacoes")
-    .upsert({ jogo_id: input.jogoId }, { onConflict: "jogo_id" })
-    .select("id")
-    .single();
-  if (convocacaoError || !convocacao) return { erro: "Não foi possível salvar a convocação a partir da súmula." };
-
-  await supabase.from("convocacao_atletas").delete().eq("convocacao_id", convocacao.id);
-  if (jogadoresVinculados.length > 0) {
-    const { error: caError } = await supabase.from("convocacao_atletas").insert(
-      jogadoresVinculados.map((j) => ({
-        convocacao_id: convocacao.id,
-        atleta_id: j.atletaId,
-        status: j.titular ? "titular" : "reserva",
-      })),
-    );
-    if (caError) return { erro: "Não foi possível salvar a escalação a partir da súmula." };
-  }
-
   const { data: sumula, error: sumulaError } = await supabase
     .from("sumulas")
     .upsert({ jogo_id: input.jogoId }, { onConflict: "jogo_id" })
@@ -262,7 +252,9 @@ export async function confirmarImportacaoSumula(
 
   await supabase.from("sumula_eventos").delete().eq("sumula_id", sumula.id);
 
-  const eventosParaGravar = input.eventos.filter((e) => e.atletaId != null);
+  const eventosParaGravar = input.eventos.filter(
+    (e) => e.incluido && (e.atletaId != null || e.nomeAdversario != null),
+  );
   if (eventosParaGravar.length > 0) {
     const { error: eventosError } = await supabase.from("sumula_eventos").insert(
       eventosParaGravar.map((e, i) => ({
@@ -273,6 +265,7 @@ export async function confirmarImportacaoSumula(
         atleta_id: e.atletaId,
         atleta_entrou_id: e.tipo === "substituicao" ? e.atletaEntrouId : null,
         atleta_assistencia_id: null,
+        nome_adversario: e.nomeAdversario,
         ordem: i,
       })),
     );
@@ -280,13 +273,9 @@ export async function confirmarImportacaoSumula(
   }
 
   revalidatePath(`/jogos/${input.jogoId}/sumula`);
-  revalidatePath(`/jogos/${input.jogoId}/convocacao`);
   revalidatePath(`/jogos/${input.jogoId}`);
   revalidatePath(`/jogos/${input.jogoId}/fpf`);
+  revalidatePath("/jogos");
 
-  return {
-    sucesso: true,
-    jogadoresImportados: jogadoresVinculados.length,
-    eventosImportados: eventosParaGravar.length,
-  };
+  return { sucesso: true, eventosImportados: eventosParaGravar.length };
 }

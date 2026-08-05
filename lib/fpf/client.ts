@@ -289,35 +289,7 @@ export async function listarJogosDisputados(params: {
   });
 }
 
-// --- Classificação / artilharia (endpoint e campos AINDA NÃO confirmados por captura de rede) ---
-//
-// A existência dessas telas foi confirmada visualmente (abas "CLASSIFICAÇÃO" e "ARTILHARIA" no
-// site), mas nunca inspecionamos a chamada de rede por trás delas — os nomes de endpoint abaixo
-// são um palpite seguindo o mesmo padrão dos outros (`Listar<Coisa>.ashx`). Se estiver errado, a
-// chamada simplesmente falha (404 ou Sucesso=false) e a página mostra erro de forma isolada, sem
-// derrubar o resto — ver `app/jogos/fpf/competicao/page.tsx`. Confirmar com uma captura de rede
-// real assim que possível e corrigir aqui.
-
-export async function listarClassificacao(params: {
-  idCampeonato: number;
-  ano: number;
-  idCategoria: number;
-}): Promise<Record<string, unknown>[]> {
-  return fpfGet<Record<string, unknown>[]>("ListarClassificacao.ashx", {
-    IdCampeonato: params.idCampeonato,
-    Ano: params.ano,
-    IdCategoria: params.idCategoria,
-  });
-}
-
-export async function listarArtilharia(params: {
-  idCampeonato: number;
-  ano: number;
-  idCategoria: number;
-}): Promise<Record<string, unknown>[]> {
-  return fpfGet<Record<string, unknown>[]>("ListarArtilharia.ashx", {
-    IdCampeonato: params.idCampeonato,
-    Ano: params.ano,
-    IdCategoria: params.idCategoria,
-  });
-}
+// Classificação/artilharia ao vivo da FPF foram removidas (ver docs/superpowers/specs/2026-08-04-integracao-fpf-design.md)
+// — o mesmo domínio bloqueia chamadas vindas do nosso servidor, então não dava pra manter isso
+// funcionando. A Artilharia agora é calculada com dados nossos, a partir dos gols lançados na
+// Súmula (ver `lib/futebol/artilharia.ts`).

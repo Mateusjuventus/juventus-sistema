@@ -394,6 +394,11 @@ export interface SumulaEventoRow {
   atleta_id: string | null;
   atleta_entrou_id: string | null;
   atleta_assistencia_id: string | null;
+  /** Nome do jogador do time ADVERSÁRIO que fez esse gol, quando o evento não é de um atleta
+   * nosso (`atleta_id` fica null nesse caso) — usado pela importação de súmula em PDF, pra
+   * registrar o placar completo mesmo sem ter esse jogador cadastrado. Só Futebol Profissional —
+   * `SumulaEventoBaseRow` não tem essa coluna. */
+  nome_adversario: string | null;
   ordem: number;
   created_by: string | null;
   created_at: string;

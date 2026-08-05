@@ -40,9 +40,12 @@ function LinhaEvento({
   atletasMap: Map<string, AtletaRow>;
 }) {
   const atleta = evento.atleta_id ? atletasMap.get(evento.atleta_id) : undefined;
+  const ehGolAdversario = evento.tipo === "gol" && Boolean(evento.nome_adversario);
 
   let descricao: string;
-  if (evento.tipo === "substituicao") {
+  if (ehGolAdversario) {
+    descricao = `${evento.nome_adversario} (adversário)`;
+  } else if (evento.tipo === "substituicao") {
     const entrou = evento.atleta_entrou_id ? atletasMap.get(evento.atleta_entrou_id) : undefined;
     descricao = `Saiu: ${nomeAtletaEvento(atleta)} · Entrou: ${nomeAtletaEvento(entrou)}`;
   } else if (evento.tipo === "gol") {
@@ -55,11 +58,13 @@ function LinhaEvento({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm">
+    <div
+      className={`flex flex-wrap items-center gap-3 rounded-md px-3 py-2 text-sm ${ehGolAdversario ? "bg-neutral-100 text-neutral-500" : "bg-neutral-50"}`}
+    >
       <span className="w-10 shrink-0 text-center text-lg">{SUMULA_EVENTO_TIPO_ICONE[evento.tipo]}</span>
       <span className="w-14 shrink-0 font-semibold text-grena-escuro">{evento.minuto}&apos;</span>
       <span className="w-32 shrink-0 font-medium text-neutral-700">
-        {SUMULA_EVENTO_TIPO_LABEL[evento.tipo]}
+        {ehGolAdversario ? "Gol adversário" : SUMULA_EVENTO_TIPO_LABEL[evento.tipo]}
       </span>
       <span className="min-w-[200px] flex-1 text-neutral-800">{descricao}</span>
       <DeleteButton action={removerEvento} id={evento.id} entityLabel="evento" />
@@ -197,7 +202,8 @@ export default async function SumulaPage({ params }: { params: { id: string } })
       <div className="mt-4">
         <ImportarSumulaForm
           jogoId={jogo.id}
-          atletas={atletas.map((a) => ({ id: a.id, nome: a.nome_completo }))}
+          mandante={jogo.mandante}
+          atletasConvocados={convocadosOptions.map((c) => ({ id: c.id, nome: c.nome }))}
         />
       </div>
 

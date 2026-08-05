@@ -170,6 +170,11 @@ a aba mostra uma mensagem simples com atalho pra tela de vínculo.
 
 ## Fluxo: elenco (vínculo de atletas)
 
+**Removido (2026-08-05)** — dependia de `ListarAtletas`/`ReadAtleta`, no mesmo domínio que passou
+a bloquear chamadas do nosso servidor (ver "Fluxo: importar súmula da FPF" abaixo). Substituído
+pelo vínculo direto durante a importação da súmula em PDF, contra quem já está na Convocação do
+jogo. Descrição original da tela, mantida como referência histórica:
+
 Tela **"Elenco na FPF"**, acessível pela lista de Jogos, lista o elenco do Juventus segundo a FPF
 (`ListarAtletas`, com detalhe de `ReadAtleta` pra pegar o "número de registro"). Já existe no
 cadastro de atleta um campo `numero_fpf` (visível hoje na ficha do atleta, em "Número FPF") — é
@@ -192,35 +197,40 @@ atletas cadastrados no passo seguinte.
 
 ## Fluxo: importar súmula da FPF
 
-Dentro da nossa aba Súmula (já existente) de um jogo vinculado à FPF com PDF de súmula disponível,
-aparece um botão **"Importar da FPF"**. Ao clicar:
+**Atualizado (2026-08-05) — pivô por causa do bloqueio de IP.** Em produção, o domínio
+`futebolpaulista.com.br/Handlers/*` passou a responder HTTP 403 pras chamadas vindas do nosso
+servidor (bloqueio no nível de WAF contra IPs de datacenter/nuvem, não algo que dava pra contornar
+só ajustando headers — três tentativas, todas com o mesmo resultado). Isso deixa inviável, por
+enquanto, tudo que dependia desse domínio: sincronização automática de jogos, tela "Elenco na FPF"
+(removida) e Classificação/Artilharia ao vivo (removida, ver abaixo). A importação da súmula em
+PDF continua funcionando porque os PDFs ficam num domínio diferente (`conteudo.fpf.org.br`), que
+não tem esse bloqueio.
 
-1. O servidor busca o PDF (`jogos.fpf_link_sumula`) e extrai o texto.
-2. Identifica escalação (titular/reserva), gols (autor, minuto, tempo), cartões e substituições
-   (com horário), casando cada jogador citado com o `atletas.fpf_id_atleta` correspondente.
-3. Em vez de salvar direto, **pré-preenche os formulários de evento da nossa Súmula** (os mesmos
-   que já existem) como uma revisão — jogador da FPF sem vínculo confirmado aparece destacado
-   como "não vinculado ainda", pulado da pré-importação até ser resolvido na tela de Elenco.
-4. A pessoa revisa, ajusta o que precisar e salva pelos mesmos formulários e ações que já existem
-   hoje — nada é gravado sem essa revisão.
+Fluxo implementado (dentro da aba Súmula do jogo, campo pra colar o link do PDF):
 
-A extração de texto do PDF usa uma biblioteca de leitura de PDF (ex.: `pdf-parse`) mais lógica de
-interpretação própria pro formato específico da FPF — o formato exato (espaçamento, ordem das
-linhas) será conferido com uma súmula real durante a implementação, já que a investigação feita
-aqui só confirmou que o conteúdo existe e é extraível, não o layout exato linha a linha.
+1. O servidor busca o PDF e extrai o texto.
+2. Identifica gols (autor, tipo, minuto, tempo), cartões e substituições do lado do Juventus,
+   casando cada jogador citado com quem **já está na Convocação salva desse jogo** — não mais com
+   o elenco inteiro nem com uma tela de vínculo separada ("Elenco na FPF"), porque a Convocação já
+   é a fonte de verdade de quem jogou, e usar só esse grupo (bem menor) dá sugestões muito mais
+   precisas.
+3. Gols do adversário também são identificados e importados, sem vínculo de atleta (esses
+   jogadores não existem no nosso cadastro) — só o nome como veio da súmula, guardado em
+   `sumula_eventos.nome_adversario` (migração 0057).
+4. Tudo isso vira uma prévia de revisão (não grava nada ainda): o placar sugerido e a lista de
+   eventos, cada um com uma caixinha pra incluir/excluir e, quando aplicável, um seletor pra
+   corrigir o vínculo. A pessoa confirma e só aí grava — substituindo os eventos já lançados
+   nesse jogo pelos dados confirmados.
+5. A importação **não mexe na escalação/Convocação** — só nos eventos da Súmula e no placar.
 
 ## Classificação e artilharia
 
-Numa página separada, **"Copa Paulista Rivalo" (dados da competição)**, acessível por um link na
-lista de Jogos — diferente da aba "FPF" que existe dentro de cada jogo individual, essa é uma
-página só, a nível de competição inteira, com duas sub-seções somente leitura:
-
-- **Classificação**: tabela de posição, pontos, jogos, vitórias/empates/derrotas, saldo de gols
-  etc., como aparece no próprio site da FPF, buscada ao vivo a cada acesso.
-- **Artilharia**: lista de artilheiros da competição, buscada ao vivo a cada acesso.
-
-Sem vínculo com atleta nem qualquer ação de edição — é só um espelho de leitura do que a FPF
-publica.
+**Removido (2026-08-05).** A página "Copa Paulista Rivalo" (dados da competição, buscados ao vivo
+na FPF) foi removida — dependia do mesmo domínio bloqueado (ver acima). No lugar da Artilharia ao
+vivo, a lista de Jogos mostra uma Artilharia calculada com dados nossos: conta os gols já lançados
+na Súmula de cada jogo, agrupado por atleta (ver `lib/futebol/artilharia.ts`). Não há substituto
+pra Classificação — ficaria errada mostrando só os jogos do Juventus, precisaria dos jogos de
+todos os outros clubes da competição, que a gente não tem.
 
 ## Atualização automática diária + botão manual
 
