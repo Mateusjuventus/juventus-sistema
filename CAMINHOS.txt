@@ -1,0 +1,4 @@
+sumula-pdf.ts               -> lib/fpf/sumula-pdf.ts
+sumula-pdf.test.ts          -> lib/fpf/sumula-pdf.test.ts
+importar-actions.ts         -> app/jogos/[id]/sumula/importar-actions.ts
+importar-sumula-form.tsx    -> app/jogos/[id]/sumula/importar-sumula-form.tsx
