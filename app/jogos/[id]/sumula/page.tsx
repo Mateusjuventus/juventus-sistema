@@ -68,7 +68,12 @@ function LinhaEvento({
       className={`flex flex-wrap items-center gap-3 rounded-md px-3 py-2 text-sm ${ehGolAdversario ? "bg-neutral-100 text-neutral-500" : "bg-neutral-50"}`}
     >
       <span className="w-10 shrink-0 text-center text-lg">{SUMULA_EVENTO_TIPO_ICONE[evento.tipo]}</span>
-      <span className="w-14 shrink-0 font-semibold text-grena-escuro">{minutoExibido}&apos;</span>
+      <span className="w-24 shrink-0 font-semibold text-grena-escuro">
+        {minutoExibido}&apos;
+        {evento.tempo === "segundo" ? (
+          <span className="ml-1 text-xs font-normal text-neutral-400">({evento.minuto}&apos; do 2T)</span>
+        ) : null}
+      </span>
       <span className="w-32 shrink-0 font-medium text-neutral-700">
         {ehGolAdversario ? "Gol adversário" : SUMULA_EVENTO_TIPO_LABEL[evento.tipo]}
       </span>

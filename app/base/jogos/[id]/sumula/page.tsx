@@ -65,7 +65,12 @@ function LinhaEvento({
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm">
       <span className="w-10 shrink-0 text-center text-lg">{SUMULA_EVENTO_TIPO_ICONE[evento.tipo]}</span>
-      <span className="w-14 shrink-0 font-semibold text-grena-escuro">{minutoExibido}&apos;</span>
+      <span className="w-24 shrink-0 font-semibold text-grena-escuro">
+        {minutoExibido}&apos;
+        {evento.tempo === "segundo" ? (
+          <span className="ml-1 text-xs font-normal text-neutral-400">({evento.minuto}&apos; do 2T)</span>
+        ) : null}
+      </span>
       <span className="w-32 shrink-0 font-medium text-neutral-700">
         {SUMULA_EVENTO_TIPO_LABEL[evento.tipo]}
       </span>
