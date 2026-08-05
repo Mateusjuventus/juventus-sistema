@@ -65,6 +65,8 @@ export function ImportarSumulaForm({
   const [eventos, setEventos] = useState<ConfirmacaoEvento[]>([]);
   const [golsPro, setGolsPro] = useState<string>("");
   const [golsContra, setGolsContra] = useState<string>("");
+  const [duracaoPrimeiroTempo, setDuracaoPrimeiroTempo] = useState<string>("45");
+  const [duracaoSegundoTempo, setDuracaoSegundoTempo] = useState<string>("45");
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
 
   function buscar() {
@@ -107,6 +109,8 @@ export function ImportarSumulaForm({
           : dados.golsAdversarioContagem;
       setGolsPro(String(golsJuventus));
       setGolsContra(String(golsAdversario));
+      setDuracaoPrimeiroTempo(String(dados.duracaoPrimeiroTempoSugerida));
+      setDuracaoSegundoTempo(String(dados.duracaoSegundoTempoSugerida));
     });
   }
 
@@ -118,6 +122,8 @@ export function ImportarSumulaForm({
         linkPdf: previa?.linkPdf ?? url.trim(),
         golsPro: golsPro.trim() ? Number(golsPro) : null,
         golsContra: golsContra.trim() ? Number(golsContra) : null,
+        duracaoPrimeiroTempo: Number(duracaoPrimeiroTempo) || 45,
+        duracaoSegundoTempo: Number(duracaoSegundoTempo) || 45,
         eventos,
       });
       if (resultado.erro) {
@@ -191,6 +197,32 @@ export function ImportarSumulaForm({
             </div>
           </div>
 
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="field-label">Duração 1º Tempo (min)</label>
+              <input
+                type="number"
+                min={1}
+                value={duracaoPrimeiroTempo}
+                onChange={(e) => setDuracaoPrimeiroTempo(e.target.value)}
+                className="field-input w-20"
+              />
+            </div>
+            <div>
+              <label className="field-label">Duração 2º Tempo (min)</label>
+              <input
+                type="number"
+                min={1}
+                value={duracaoSegundoTempo}
+                onChange={(e) => setDuracaoSegundoTempo(e.target.value)}
+                className="field-input w-20"
+              />
+            </div>
+            <p className="pb-2 text-xs text-neutral-400">
+              Já vem com o acréscimo da súmula somado (45 + acréscimo), quando ela informa esse campo.
+            </p>
+          </div>
+
           <div>
             <h3 className="text-sm font-semibold text-grena-escuro">Eventos encontrados ({eventos.length})</h3>
             <div className="mt-2 space-y-1">
@@ -207,7 +239,13 @@ export function ImportarSumulaForm({
                     }
                     title="Incluir esse evento na importação"
                   />
-                  <span className="w-14 shrink-0 font-semibold text-grena-escuro">{evento.minuto}&apos;</span>
+                  <span className="w-28 shrink-0 font-semibold text-grena-escuro">
+                    {evento.tempo === "segundo" ? (Number(duracaoPrimeiroTempo) || 45) + evento.minuto : evento.minuto}
+                    &apos;
+                    {evento.tempo === "segundo" ? (
+                      <span className="ml-1 text-xs font-normal text-neutral-400">({evento.minuto}&apos; do 2T)</span>
+                    ) : null}
+                  </span>
                   <span className="w-40 shrink-0 text-neutral-700">
                     {evento.nomeAdversario ? "⚽ Gol (adversário)" : TIPO_EVENTO_LABEL[evento.tipo]}
                   </span>

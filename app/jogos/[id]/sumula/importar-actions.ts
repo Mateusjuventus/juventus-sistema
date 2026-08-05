@@ -58,6 +58,11 @@ export interface PreviaImportacaoSumula {
   placarVisitante: number | null;
   golsJuventusContagem: number;
   golsAdversarioContagem: number;
+  /** Duração sugerida de cada tempo (45min regulamentar + acréscimo, quando a súmula informa o
+   * campo "Acréscimo: X min") — pré-preenche o placar/duração da Súmula. Cai pro que já estava
+   * salvo (ou 45min) quando a súmula não tem esse campo. */
+  duracaoPrimeiroTempoSugerida: number;
+  duracaoSegundoTempoSugerida: number;
   eventos: PreviaEventoImportado[];
   linkPdf: string;
 }
@@ -107,17 +112,6 @@ export async function buscarPreviaImportacaoSumula(
     .in("id", idsConvocados);
   const convocados = ((atletasData ?? []) as AtletaRow[]).map(paraAtletaParaMatch);
 
-  // Duração do 1º tempo já salva pra esse jogo (ou o padrão de 45min, se a Súmula ainda não foi
-  // salva) — precisa pra converter o "relógio corrido" da súmula oficial (ex: "79:00 2T") pro
-  // minuto relativo ao 2º tempo que a nossa Súmula usa internamente (ver
-  // `converterMinutoPdfParaRelativo` em lib/fpf/sumula-pdf.ts).
-  const { data: sumulaExistente } = await supabase
-    .from("sumulas")
-    .select("duracao_primeiro_tempo")
-    .eq("jogo_id", jogoId)
-    .maybeSingle();
-  const duracaoPrimeiroTempo = sumulaExistente?.duracao_primeiro_tempo ?? 45;
-
   let dadosPdf: SumulaPdfDados;
   try {
     const texto = await baixarTextoSumulaPdf(url);
@@ -126,6 +120,26 @@ export async function buscarPreviaImportacaoSumula(
     const mensagem = erro instanceof SumulaPdfError ? erro.message : "Erro inesperado ao ler o PDF.";
     return { erro: mensagem };
   }
+
+  // Duração real de cada tempo: usa o acréscimo que a própria súmula informa (45min regulamentar +
+  // acréscimo) quando disponível — senão cai pro que já estava salvo pra esse jogo, ou 45min como
+  // padrão. Usa a duração do 1º tempo assim resolvida (não só o padrão) pra converter o "relógio
+  // corrido" da súmula (ex: "79:00 2T") pro minuto relativo que a nossa Súmula guarda internamente
+  // (ver `converterMinutoPdfParaRelativo` em lib/fpf/sumula-pdf.ts) — os dois cálculos precisam
+  // usar a MESMA duração, senão o minuto salvo fica inconsistente com a duração salva.
+  const { data: sumulaExistente } = await supabase
+    .from("sumulas")
+    .select("duracao_primeiro_tempo, duracao_segundo_tempo")
+    .eq("jogo_id", jogoId)
+    .maybeSingle();
+  const duracaoPrimeiroTempo =
+    dadosPdf.acrescimoPrimeiroTempo != null
+      ? 45 + dadosPdf.acrescimoPrimeiroTempo
+      : (sumulaExistente?.duracao_primeiro_tempo ?? 45);
+  const duracaoSegundoTempo =
+    dadosPdf.acrescimoSegundoTempo != null
+      ? 45 + dadosPdf.acrescimoSegundoTempo
+      : (sumulaExistente?.duracao_segundo_tempo ?? 45);
 
   // Cruza pelo nome da relação de jogadores (parseada internamente, mas não exposta na revisão —
   // ver comentário no topo do arquivo) só pra pegar o número de registro FPF, quando disponível,
@@ -211,6 +225,8 @@ export async function buscarPreviaImportacaoSumula(
       placarVisitante: dadosPdf.placarVisitante,
       golsJuventusContagem: golsJuventusPdf,
       golsAdversarioContagem: golsAdversarioPdf,
+      duracaoPrimeiroTempoSugerida: duracaoPrimeiroTempo,
+      duracaoSegundoTempoSugerida: duracaoSegundoTempo,
       eventos,
       linkPdf: url,
     },
@@ -232,6 +248,8 @@ export interface ConfirmarImportacaoInput {
   linkPdf: string;
   golsPro: number | null;
   golsContra: number | null;
+  duracaoPrimeiroTempo: number;
+  duracaoSegundoTempo: number;
   eventos: ConfirmacaoEvento[];
 }
 
@@ -263,7 +281,14 @@ export async function confirmarImportacaoSumula(
 
   const { data: sumula, error: sumulaError } = await supabase
     .from("sumulas")
-    .upsert({ jogo_id: input.jogoId }, { onConflict: "jogo_id" })
+    .upsert(
+      {
+        jogo_id: input.jogoId,
+        duracao_primeiro_tempo: input.duracaoPrimeiroTempo,
+        duracao_segundo_tempo: input.duracaoSegundoTempo,
+      },
+      { onConflict: "jogo_id" },
+    )
     .select("id")
     .single();
   if (sumulaError || !sumula) return { erro: "Não foi possível salvar a súmula." };

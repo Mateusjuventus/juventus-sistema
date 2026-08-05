@@ -110,6 +110,11 @@ export interface SumulaPdfDados {
   estadio: string | null;
   placarMandante: number | null;
   placarVisitante: number | null;
+  /** Minutos de acréscimo de cada tempo, do campo "Acréscimo: X min" da súmula — usado pra
+   * sugerir a duração real de cada tempo (45 + acréscimo) na importação, em vez de deixar sempre
+   * no padrão de 45min. `null` quando não achou esse campo. */
+  acrescimoPrimeiroTempo: number | null;
+  acrescimoSegundoTempo: number | null;
   jogadores: SumulaPdfJogador[];
   gols: SumulaPdfGol[];
   cartoes: SumulaPdfCartao[];
@@ -140,16 +145,40 @@ const TEMPO_SIGLA: Record<string, "primeiro" | "segundo"> = { "1T": "primeiro", 
 /** "Nº Nome Completo T/R P/A Registro" — ex: "1 Giovanni Martinez Montanari T A 661239/26" */
 const RE_JOGADOR = /^(\d{1,3})\s+(.+?)\s+(T|R)\s+(A|P)\s+(\d+)\/(\d{2,4})$/;
 
+// O minuto de um evento normalmente vem como "MM:SS" — mas um evento no acréscimo pode vir como
+// "+N" (ex: "+2 2T" = 2º minuto do acréscimo do 2º tempo), sem nunca termos confirmado o formato
+// exato byte-a-byte (ver observação no topo do arquivo). Cada padrão abaixo aceita as duas formas
+// como alternativas dentro do mesmo grupo, resolvidas por `resolverMinutoBruto`.
+const MINUTO_ALTERNATIVAS = "(?:(\\d{1,3}):(\\d{2})|\\+\\s*(\\d{1,2}))";
+
 /** "Equipe Nº Nome - (Apelido) Tipo MM:SS 1T/2T" (apelido opcional) */
-const RE_GOL_COM_APELIDO =
-  /^(.+?)\s+(\d{1,3})\s+(.+?)\s+-\s+\([^)]*\)\s+(NR|PN|CT|FT)\s+(\d{1,3}):(\d{2})\s+(1T|2T)$/;
-const RE_GOL_SEM_APELIDO = /^(.+?)\s+(\d{1,3})\s+(.+?)\s+(NR|PN|CT|FT)\s+(\d{1,3}):(\d{2})\s+(1T|2T)$/;
+const RE_GOL_COM_APELIDO = new RegExp(
+  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+-\\s+\\([^)]*\\)\\s+(NR|PN|CT|FT)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`,
+);
+const RE_GOL_SEM_APELIDO = new RegExp(
+  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+(NR|PN|CT|FT)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`,
+);
 
 /** "Equipe Nº Nome MM:SS 1T/2T" */
-const RE_CARTAO = /^(.+?)\s+(\d{1,3})\s+(.+?)\s+(\d{1,3}):(\d{2})\s+(1T|2T)$/;
+const RE_CARTAO = new RegExp(`^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`);
 
 /** "Equipe Nº Saiu Nº Entrou MM:SS 1T/2T" */
-const RE_SUBSTITUICAO = /^(.+?)\s+(\d{1,3})\s+(.+?)\s+(\d{1,3})\s+(.+?)\s+(\d{1,3}):(\d{2})\s+(1T|2T)$/;
+const RE_SUBSTITUICAO = new RegExp(
+  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`,
+);
+
+/** Resolve o minuto bruto (relógio corrido do jogo) a partir das duas formas possíveis vindas do
+ * regex — "MM:SS" direto, ou "+N" de acréscimo (nesse caso soma aos 45/90 regulamentares, que é a
+ * convenção padrão de futebol pra tempo de acréscimo, ex: "45+2", "90+3"). */
+function resolverMinutoBruto(
+  minutoNormal: string | undefined,
+  minutoAcrescimo: string | undefined,
+  tempo: "primeiro" | "segundo",
+): number {
+  if (minutoNormal != null) return Number(minutoNormal);
+  const base = tempo === "primeiro" ? 45 : 90;
+  return base + Number(minutoAcrescimo);
+}
 
 function ehCabecalhoOuVazio(linha: string): boolean {
   return (
@@ -198,7 +227,21 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
   // atravessando pra saber a cor certa de cada cartão encontrado.
   let secaoCartaoAtual: "amarelo" | "vermelho" | null = null;
 
+  // O campo "Acréscimo: X min" aparece perto de "Término 1º/2º Tempo" mas sem coluna própria
+  // ligando os dois — rastreia qual tempo foi mencionado por último pra saber a quem atribuir.
+  let ultimoTempoMencionado: "primeiro" | "segundo" | null = null;
+  let acrescimoPrimeiroTempo: number | null = null;
+  let acrescimoSegundoTempo: number | null = null;
+
   for (const linha of linhas) {
+    if (/1[ºo]\s*Tempo/i.test(linha)) ultimoTempoMencionado = "primeiro";
+    if (/2[ºo]\s*Tempo/i.test(linha)) ultimoTempoMencionado = "segundo";
+    const mAcrescimo = linha.match(/Acr[ée]scimo:?\s*(\d{1,2})\s*min/i);
+    if (mAcrescimo && ultimoTempoMencionado) {
+      if (ultimoTempoMencionado === "primeiro") acrescimoPrimeiroTempo = Number(mAcrescimo[1]);
+      else acrescimoSegundoTempo = Number(mAcrescimo[1]);
+    }
+
     if (/advert[êe]ncias/i.test(linha)) {
       secaoCartaoAtual = "amarelo";
       continue;
@@ -226,29 +269,32 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
 
     const mGol = linha.match(RE_GOL_COM_APELIDO) ?? linha.match(RE_GOL_SEM_APELIDO);
     if (mGol) {
-      const [, equipe, numero, nome, tipoSigla, minuto, , tempoSigla] = mGol;
+      const [, equipe, numero, nome, tipoSigla, minutoNormal, , minutoAcrescimo, tempoSigla] = mGol;
+      const tempo = TEMPO_SIGLA[tempoSigla];
       gols.push({
         equipe: equipe.trim(),
         numero: Number(numero),
         nome: nome.trim(),
         tipo: TIPO_GOL_POR_SIGLA[tipoSigla] ?? "normal",
-        minuto: Number(minuto),
-        tempo: TEMPO_SIGLA[tempoSigla],
+        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo),
+        tempo,
       });
       continue;
     }
 
     const mSub = linha.match(RE_SUBSTITUICAO);
     if (mSub) {
-      const [, equipe, numeroSaiu, nomeSaiu, numeroEntrou, nomeEntrou, minuto, , tempoSigla] = mSub;
+      const [, equipe, numeroSaiu, nomeSaiu, numeroEntrou, nomeEntrou, minutoNormal, , minutoAcrescimo, tempoSigla] =
+        mSub;
+      const tempo = TEMPO_SIGLA[tempoSigla];
       substituicoes.push({
         equipe: equipe.trim(),
         numeroSaiu: Number(numeroSaiu),
         nomeSaiu: nomeSaiu.trim(),
         numeroEntrou: Number(numeroEntrou),
         nomeEntrou: nomeEntrou.trim(),
-        minuto: Number(minuto),
-        tempo: TEMPO_SIGLA[tempoSigla],
+        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo),
+        tempo,
       });
       continue;
     }
@@ -257,14 +303,15 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
     // linhas por engano — RE_CARTAO é o mais genérico dos três (só "equipe nº nome mm:ss tempo").
     const mCartao = linha.match(RE_CARTAO);
     if (mCartao && secaoCartaoAtual) {
-      const [, equipe, numero, nome, minuto, , tempoSigla] = mCartao;
+      const [, equipe, numero, nome, minutoNormal, , minutoAcrescimo, tempoSigla] = mCartao;
+      const tempo = TEMPO_SIGLA[tempoSigla];
       cartoes.push({
         equipe: equipe.trim(),
         numero: Number(numero),
         nome: nome.trim(),
         cor: secaoCartaoAtual,
-        minuto: Number(minuto),
-        tempo: TEMPO_SIGLA[tempoSigla],
+        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo),
+        tempo,
       });
       continue;
     }
@@ -281,6 +328,8 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
     estadio,
     placarMandante,
     placarVisitante,
+    acrescimoPrimeiroTempo,
+    acrescimoSegundoTempo,
     jogadores,
     gols,
     cartoes,
