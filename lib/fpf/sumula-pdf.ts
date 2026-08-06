@@ -212,11 +212,18 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
   const data = campoRotulado(linhas, /^Data:?\s*(\d{2}\/\d{2}\/\d{4})/i);
   const estadio = campoRotulado(linhas, /Est[aá]dio:?\s*(.+)/i);
 
+  // CONFIRMADO numa súmula real: "Resultado do 1º Tempo: 0 X 0 Resultado do 2º Tempo: 0 X 1" — as
+  // duas colunas (1º/2º Tempo) numa linha só, igual ao caso do acréscimo acima. O regex precisa da
+  // palavra "do" entre "Resultado" e o tempo (antes só aceitava "Resultado 2º Tempo", sem "do", e
+  // por isso nunca batia com o formato real — ficava sempre null, mascarado pela sugestão de
+  // placar por contagem de gols na tela de importação). Usa matchAll pra pegar todas as ocorrências
+  // e fica com a ÚLTIMA (o "Resultado do 2º Tempo" é o placar final/cumulativo da partida, vem
+  // depois do "Resultado do 1º Tempo" que é só o parcial do intervalo).
   let placarMandante: number | null = null;
   let placarVisitante: number | null = null;
+  const RE_RESULTADO = /Resultado\s*(?:do\s*)?(?:2[ºo]?\s*Tempo)?:?\s*(\d{1,2})\s*[Xx]\s*(\d{1,2})/gi;
   for (const linha of linhas) {
-    const m = linha.match(/Resultado\s*(?:2[ºo]?\s*Tempo)?:?\s*(\d{1,2})\s*[Xx]\s*(\d{1,2})/);
-    if (m) {
+    for (const m of linha.matchAll(RE_RESULTADO)) {
       placarMandante = Number(m[1]);
       placarVisitante = Number(m[2]);
     }
@@ -232,49 +239,38 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
   // atravessando pra saber a cor certa de cada cartão encontrado.
   let secaoCartaoAtual: "amarelo" | "vermelho" | null = null;
 
-  // O campo de acréscimo aparece perto de "Término 1º/2º Tempo" mas sem coluna própria ligando os
-  // dois — rastreia qual tempo foi mencionado por último pra saber a quem atribuir, como
-  // fallback. Como não temos o texto byte-a-byte confirmado de uma súmula real (nota no topo do
-  // arquivo), o rótulo aceito é deliberadamente tolerante: "Acréscimo"/"Acréscimos"/"Acrésc.",
-  // com ou sem dois pontos, com ou sem unidade depois do número ("min", "minutos", "'", nada).
-  // Prioriza quando o próprio tempo (1º/2º) aparece NA MESMA linha do acréscimo — mais confiável
-  // que a heurística de proximidade entre linhas, que depende da ordem em que o extrator de PDF
-  // encontrou o texto (extração de PDF pode reordenar texto de layouts em coluna/formulário).
+  // CONFIRMADO numa súmula real (Copa Paulista, jogo Primavera SAF x Juventus SAF): a seção de
+  // horários é uma tabela de duas colunas (1º Tempo | 2º Tempo lado a lado), e o extrator de PDF
+  // concatena as duas colunas numa linha só, ex:
+  //   "Término 1º Tempo: 16:49 Acrésc: 4 min Término 2º Tempo: 17:54 Acrésc: 5 min"
+  // — ou seja, os DOIS campos de acréscimo (1º e 2º tempo) podem aparecer na MESMA linha. Pegar só
+  // a primeira ocorrência por linha (jeito antigo) sempre acertava o 1º tempo e perdia o 2º. Por
+  // isso a leitura abaixo varre a linha inteira token por token (marcador de tempo OU acréscimo,
+  // na ordem em que aparecem) e associa cada acréscimo ao tempo mencionado mais recentemente antes
+  // dele — funciona tanto pra essa linha com os dois tempos juntos quanto pro caso de cada tempo
+  // vir numa linha separada. O rótulo real confirmado é "Acrésc:" (abreviado, sem "io" no final),
+  // mas o regex aceita variações plausíveis ("Acréscimo", "Acréscimos", com/sem unidade) também.
   let ultimoTempoMencionado: "primeiro" | "segundo" | null = null;
   let acrescimoPrimeiroTempo: number | null = null;
   let acrescimoSegundoTempo: number | null = null;
   const linhasDuracaoEncontradas: string[] = [];
   const RE_TEMPO_INDICADOR = /(1[ºo]|2[ºo])\s*Tempo/i;
-  // "Acr[ée]sc\p{L}*" casa a palavra inteira (Acréscimo/Acréscimos) OU uma abreviação (Acrésc.),
-  // já que não temos o texto byte-a-byte confirmado de uma súmula real (nota no topo do arquivo).
   const RE_ACRESCIMO_ROTULO = /Acr[ée]sc\p{L}*/iu;
-  const RE_ACRESCIMO_NUM = /Acr[ée]sc\p{L}*\.?:?\s*(\d{1,2})/iu;
-  // Tempo e acréscimo na MESMA linha, em qualquer ordem — mais confiável que a heurística de
-  // proximidade entre linhas (abaixo), que depende da ordem em que o extrator de PDF encontrou o
-  // texto. "[^\d]*" evita atravessar outro número (ex: não deixa o "2" de "2º" virar o valor).
-  const RE_ACRESCIMO_ANTES_DO_TEMPO = /Acr[ée]sc\p{L}*[^\d]*(1[ºo]|2[ºo])\s*Tempo[^\d]*(\d{1,2})/iu;
-  const RE_ACRESCIMO_DEPOIS_DO_TEMPO = /(1[ºo]|2[ºo])\s*Tempo[^\d]*Acr[ée]sc\p{L}*[^\d]*(\d{1,2})/iu;
+  // Casa OU um marcador de tempo OU um rótulo de acréscimo com número — usado com matchAll (flag
+  // "g") pra pegar TODAS as ocorrências de cada um numa linha, na ordem em que aparecem. O
+  // "(?!\s*[ºo])" depois do número evita confundir o acréscimo com o próprio ordinal de um tempo
+  // vizinho (ex: em "Acréscimo 2º Tempo", sem valor nenhum ainda, não deixa o "2" de "2º" virar o
+  // valor do acréscimo por engano).
+  const RE_TOKEN_TEMPO_OU_ACRESCIMO = /(1[ºo]|2[ºo])\s*Tempo|Acr[ée]sc\p{L}*\.?:?\s*(\d{1,2})(?!\s*[ºo])/giu;
 
   for (const linha of linhas) {
-    const mTempoNaLinha = linha.match(RE_TEMPO_INDICADOR);
-    const temAcrescimoRotulo = RE_ACRESCIMO_ROTULO.test(linha);
-    if (mTempoNaLinha || temAcrescimoRotulo) linhasDuracaoEncontradas.push(linha);
+    if (RE_TEMPO_INDICADOR.test(linha) || RE_ACRESCIMO_ROTULO.test(linha)) linhasDuracaoEncontradas.push(linha);
 
-    const mCombo = linha.match(RE_ACRESCIMO_ANTES_DO_TEMPO) ?? linha.match(RE_ACRESCIMO_DEPOIS_DO_TEMPO);
-    if (mCombo) {
-      const valor = Number(mCombo[2]);
-      if (mCombo[1].startsWith("1")) acrescimoPrimeiroTempo = valor;
-      else acrescimoSegundoTempo = valor;
-    }
-
-    if (mTempoNaLinha) {
-      ultimoTempoMencionado = mTempoNaLinha[1].startsWith("1") ? "primeiro" : "segundo";
-    }
-
-    if (!mCombo) {
-      const mSolo = linha.match(RE_ACRESCIMO_NUM);
-      if (mSolo && ultimoTempoMencionado) {
-        const valor = Number(mSolo[1]);
+    for (const token of linha.matchAll(RE_TOKEN_TEMPO_OU_ACRESCIMO)) {
+      if (token[1] != null) {
+        ultimoTempoMencionado = token[1].startsWith("1") ? "primeiro" : "segundo";
+      } else if (token[2] != null && ultimoTempoMencionado) {
+        const valor = Number(token[2]);
         if (ultimoTempoMencionado === "primeiro") acrescimoPrimeiroTempo = valor;
         else acrescimoSegundoTempo = valor;
       }

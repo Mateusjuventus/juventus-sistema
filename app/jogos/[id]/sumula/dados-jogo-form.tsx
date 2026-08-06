@@ -41,7 +41,18 @@ export function DadosJogoForm({
   const [state, formAction] = useFormState(action, initialState);
 
   return (
-    <form action={formAction} className="card flex flex-wrap items-end gap-4 p-4">
+    <form
+      // Os campos abaixo são "uncontrolled" (defaultValue) — de propósito, pra digitar livremente
+      // sem re-render a cada tecla. Mas isso tem uma pegadinha do React: quando os valores mudam
+      // no servidor por FORA desse formulário (ex: a importação da súmula em PDF atualiza placar e
+      // duração), só trocar a prop `defaultValue` não atualiza o input já montado na tela — o
+      // usuário via a súmula importar certo mas o placar/duração aqui em cima continuavam com o
+      // valor antigo até dar F5. A `key` abaixo muda junto com os valores; quando muda, o React
+      // desmonta e remonta o formulário do zero, e aí sim o `defaultValue` novo entra em vigor.
+      key={`${golsPro}-${golsContra}-${duracaoPrimeiroTempo}-${duracaoSegundoTempo}`}
+      action={formAction}
+      className="card flex flex-wrap items-end gap-4 p-4"
+    >
       <input type="hidden" name="jogoId" value={jogoId} />
 
       <div className="flex items-end gap-2">
