@@ -44,3 +44,11 @@ export function compararPorPosicao<T extends { posicao: string; numero_camisa: n
   if (diff !== 0) return diff;
   return (a.numero_camisa ?? 999) - (b.numero_camisa ?? 999);
 }
+
+/** Comparador pronto pra `.sort()`: ordena só pelo número da camisa, do menor pro maior (sem
+ * número vai por último) — usado no Presskit do Futebol de Base, onde a numeração não é fixa por
+ * atleta (muda de jogo pra jogo) e por isso não faz sentido agrupar por posição como no
+ * Profissional; o pedido foi simplesmente "titular 1, 2, 3... reserva 12, 13, 14...". */
+export function compararPorNumeroCamisa<T extends { numero_camisa: number | null }>(a: T, b: T): number {
+  return (a.numero_camisa ?? 999) - (b.numero_camisa ?? 999);
+}

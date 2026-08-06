@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compararPorPosicao, rankPosicao } from "./ordem-posicao";
+import { compararPorNumeroCamisa, compararPorPosicao, rankPosicao } from "./ordem-posicao";
 
 describe("rankPosicao", () => {
   it("coloca goleiro primeiro", () => {
@@ -40,5 +40,28 @@ describe("compararPorPosicao", () => {
       "Zagueiro-4",
       "Atacante-9",
     ]);
+  });
+});
+
+describe("compararPorNumeroCamisa", () => {
+  it("ordena só pelo número da camisa, do menor pro maior, ignorando a posição", () => {
+    const lista = [
+      { posicao: "Atacante", numero_camisa: 14 },
+      { posicao: "Goleiro", numero_camisa: 1 },
+      { posicao: "Zagueiro", numero_camisa: 4 },
+      { posicao: "Meia", numero_camisa: 12 },
+    ];
+    const ordenada = [...lista].sort(compararPorNumeroCamisa);
+    expect(ordenada.map((a) => a.numero_camisa)).toEqual([1, 4, 12, 14]);
+  });
+
+  it("manda quem não tem número (ainda não preenchido na convocação) pro final", () => {
+    const lista = [
+      { numero_camisa: null },
+      { numero_camisa: 2 },
+      { numero_camisa: 1 },
+    ];
+    const ordenada = [...lista].sort(compararPorNumeroCamisa);
+    expect(ordenada.map((a) => a.numero_camisa)).toEqual([1, 2, null]);
   });
 });

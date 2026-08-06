@@ -102,8 +102,25 @@ function CartaoAtletaDisponivel({
   );
 }
 
-/** Linha de um atleta já convocado (titular ou reserva) — X remove e devolve pra Disponíveis. */
-function LinhaConvocado({ atleta, onRemover }: { atleta: AtletaComFoto; onRemover: () => void }) {
+/** Linha de um atleta já convocado (titular ou reserva) — X remove e devolve pra Disponíveis.
+ * O número da camisa aqui é o DESSA convocação (jogo), não o do cadastro do atleta — na Base a
+ * numeração não é fixa, muda de jogo pra jogo, então vem sempre em branco até alguém preencher
+ * (botão pequeno de editar/salvar, sem sair da tela — só confirma no estado local; a gravação de
+ * verdade acontece junto com o resto da convocação, no "Salvar convocados" do formulário). */
+function LinhaConvocado({
+  atleta,
+  numero,
+  onChangeNumero,
+  onRemover,
+}: {
+  atleta: AtletaComFoto;
+  numero: string;
+  onChangeNumero: (valor: string) => void;
+  onRemover: () => void;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [valorEditado, setValorEditado] = useState(numero);
+
   return (
     <div className="flex items-center gap-2 rounded-md border border-neutral-200 p-2">
       <Avatar atleta={atleta} className="h-8 w-8" />
@@ -111,9 +128,44 @@ function LinhaConvocado({ atleta, onRemover }: { atleta: AtletaComFoto; onRemove
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-800">
         {atleta.apelido || atleta.nome_completo}
       </span>
-      <span className="shrink-0 text-xs font-medium text-neutral-400">
-        {atleta.numero_camisa ? `Nº ${atleta.numero_camisa}` : "Sem número"}
-      </span>
+
+      {editando ? (
+        <div className="flex shrink-0 items-center gap-1">
+          <input
+            type="number"
+            min={0}
+            max={99}
+            autoFocus
+            value={valorEditado}
+            onChange={(e) => setValorEditado(e.target.value)}
+            placeholder="Nº"
+            className="field-input w-14 px-1.5 py-0.5 text-xs"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              onChangeNumero(valorEditado);
+              setEditando(false);
+            }}
+            className="shrink-0 rounded-md bg-grena px-1.5 py-1 text-[11px] font-medium text-white hover:bg-grena-escuro"
+          >
+            Salvar
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setValorEditado(numero);
+            setEditando(true);
+          }}
+          title="Editar número da camisa nessa convocação"
+          className="shrink-0 rounded-md border border-neutral-200 px-1.5 py-1 text-[11px] font-medium text-neutral-500 hover:border-grena hover:text-grena"
+        >
+          {numero ? `Nº ${numero} · Editar` : "Sem número · Editar"}
+        </button>
+      )}
+
       <button
         type="button"
         onClick={onRemover}
@@ -133,6 +185,7 @@ export function ConvocacaoFormBase({
   atletas,
   comissao,
   atletaStatusMap,
+  atletaNumeroCamisaMap,
   comissaoSelecionados,
   capitaoAtletaId,
 }: {
@@ -141,6 +194,7 @@ export function ConvocacaoFormBase({
   atletas: AtletaComFoto[];
   comissao: ComissaoTecnicaBaseRow[];
   atletaStatusMap: Record<string, "titular" | "reserva">;
+  atletaNumeroCamisaMap: Record<string, number | null>;
   comissaoSelecionados: Set<string>;
   capitaoAtletaId: string | null;
 }) {
@@ -153,8 +207,28 @@ export function ConvocacaoFormBase({
   const [convocados, setConvocados] = useState<Map<string, boolean>>(
     () => new Map(Object.entries(atletaStatusMap).map(([id, status]) => [id, status === "titular"])),
   );
+  // Número da camisa NESSA convocação (não o do cadastro do atleta — ver comentário em
+  // `LinhaConvocado`). Só entra no map quando tem valor; um atleta recém-escalado começa sem
+  // entrada aqui, e a linha mostra "Sem número" até alguém editar e salvar.
+  const [numerosCamisa, setNumerosCamisa] = useState<Map<string, string>>(
+    () =>
+      new Map(
+        Object.entries(atletaNumeroCamisaMap)
+          .filter((entry): entry is [string, number] => entry[1] != null)
+          .map(([id, numero]) => [id, String(numero)]),
+      ),
+  );
   const [comissaoIds, setComissaoIds] = useState<Set<string>>(() => new Set(comissaoSelecionados));
   const [capitaoId, setCapitaoId] = useState(capitaoAtletaId ?? "");
+
+  function alterarNumeroCamisa(atletaId: string, valor: string) {
+    setNumerosCamisa((atual) => {
+      const proximo = new Map(atual);
+      if (valor.trim()) proximo.set(atletaId, valor.trim());
+      else proximo.delete(atletaId);
+      return proximo;
+    });
+  }
 
   const atletasPorId = useMemo(() => new Map(atletas.map((a) => [a.id, a])), [atletas]);
 
@@ -182,6 +256,11 @@ export function ConvocacaoFormBase({
       proximo.delete(atletaId);
       return proximo;
     });
+    setNumerosCamisa((atual) => {
+      const proximo = new Map(atual);
+      proximo.delete(atletaId);
+      return proximo;
+    });
     if (capitaoId === atletaId) setCapitaoId("");
   }
 
@@ -205,6 +284,9 @@ export function ConvocacaoFormBase({
       ))}
       {reservasList.map((a) => (
         <input key={a.id} type="hidden" name={`atleta_${a.id}`} value="reserva" />
+      ))}
+      {[...titularesList, ...reservasList].map((a) => (
+        <input key={`camisa_${a.id}`} type="hidden" name={`camisa_${a.id}`} value={numerosCamisa.get(a.id) ?? ""} />
       ))}
       {Array.from(comissaoIds).map((id) => (
         <input key={id} type="hidden" name={`comissao_${id}`} value="on" />
@@ -301,7 +383,13 @@ export function ConvocacaoFormBase({
               </h2>
               <div className="space-y-2">
                 {titularesList.map((a) => (
-                  <LinhaConvocado key={a.id} atleta={a} onRemover={() => removerConvocado(a.id)} />
+                  <LinhaConvocado
+                    key={a.id}
+                    atleta={a}
+                    numero={numerosCamisa.get(a.id) ?? ""}
+                    onChangeNumero={(valor) => alterarNumeroCamisa(a.id, valor)}
+                    onRemover={() => removerConvocado(a.id)}
+                  />
                 ))}
                 {titularesList.length === 0 ? (
                   <p className="py-4 text-center text-sm text-neutral-400">
@@ -320,7 +408,13 @@ export function ConvocacaoFormBase({
               </h2>
               <div className="space-y-2">
                 {reservasList.map((a) => (
-                  <LinhaConvocado key={a.id} atleta={a} onRemover={() => removerConvocado(a.id)} />
+                  <LinhaConvocado
+                    key={a.id}
+                    atleta={a}
+                    numero={numerosCamisa.get(a.id) ?? ""}
+                    onChangeNumero={(valor) => alterarNumeroCamisa(a.id, valor)}
+                    onRemover={() => removerConvocado(a.id)}
+                  />
                 ))}
                 {reservasList.length === 0 ? (
                   <p className="py-4 text-center text-sm text-neutral-400">

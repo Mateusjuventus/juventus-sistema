@@ -54,6 +54,10 @@ export default async function ConvocacaoBasePage({
   const atletasComFoto = atletas.map((a, i) => ({ ...a, fotoUrl: fotoUrls[i] }));
 
   const atletaStatusMap: Record<string, "titular" | "reserva"> = {};
+  // Número da camisa NESSA convocação (não o do cadastro do atleta — na Base ele muda de jogo pra
+  // jogo, ver comentário em ConvocacaoAtletaBaseRow). Vem em branco (sem entrada no map) até
+  // alguém preencher na tela.
+  const atletaNumeroCamisaMap: Record<string, number | null> = {};
   const comissaoSelecionados = new Set<string>();
 
   if (convocacao) {
@@ -64,6 +68,7 @@ export default async function ConvocacaoBasePage({
 
     ((caData ?? []) as ConvocacaoAtletaBaseRow[]).forEach((row) => {
       atletaStatusMap[row.atleta_id] = row.status;
+      atletaNumeroCamisaMap[row.atleta_id] = row.numero_camisa;
     });
     ((ccData ?? []) as ConvocacaoComissaoBaseRow[]).forEach((row) => comissaoSelecionados.add(row.comissao_id));
   }
@@ -126,6 +131,7 @@ export default async function ConvocacaoBasePage({
         atletas={atletasComFoto}
         comissao={comissao}
         atletaStatusMap={atletaStatusMap}
+        atletaNumeroCamisaMap={atletaNumeroCamisaMap}
         comissaoSelecionados={comissaoSelecionados}
         capitaoAtletaId={convocacao?.capitao_atleta_id ?? null}
       />

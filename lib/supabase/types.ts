@@ -623,6 +623,12 @@ export interface ConvocacaoAtletaBaseRow {
   convocacao_id: string;
   atleta_id: string;
   status: ConvocacaoAtletaStatus;
+  /** Número da camisa NESSA convocação (jogo) — diferente de `atletas_base.numero_camisa`, que é
+   * fixo por atleta. Na Base a numeração muda de jogo pra jogo, então é editada aqui mesmo, na
+   * tela de Convocação, vindo sempre em branco (`null`) até alguém preencher. Ver
+   * 0059_convocacao_atleta_base_numero_camisa.sql. Só Futebol de Base — `ConvocacaoAtletaRow`
+   * (Profissional) não tem essa coluna, porque lá o número já é fixo no cadastro do atleta. */
+  numero_camisa: number | null;
 }
 
 export interface ConvocacaoComissaoBaseRow {

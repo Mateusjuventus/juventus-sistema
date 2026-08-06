@@ -20,12 +20,19 @@ export async function saveConvocacaoBase(
 
   const atletaStatus: { atletaId: string; status: "titular" | "reserva" }[] = [];
   const comissaoIds: string[] = [];
+  // Número da camisa NESSA convocação (jogo) — só Base, a numeração não é fixa por atleta como no
+  // Profissional (ver ConvocacaoAtletaBaseRow). Em branco vira `null`.
+  const numeroCamisaPorAtleta = new Map<string, number | null>();
 
   for (const [key, value] of formData.entries()) {
     if (key.startsWith("atleta_")) {
       if (value === "titular" || value === "reserva") {
         atletaStatus.push({ atletaId: key.slice("atleta_".length), status: value });
       }
+    } else if (key.startsWith("camisa_")) {
+      const atletaId = key.slice("camisa_".length);
+      const numero = Number(value);
+      numeroCamisaPorAtleta.set(atletaId, String(value).trim() && Number.isFinite(numero) ? numero : null);
     } else if (key.startsWith("comissao_")) {
       comissaoIds.push(key.slice("comissao_".length));
     }
@@ -63,6 +70,7 @@ export async function saveConvocacaoBase(
             convocacao_id: convocacaoId,
             atleta_id: a.atletaId,
             status: a.status,
+            numero_camisa: numeroCamisaPorAtleta.get(a.atletaId) ?? null,
           })),
         ),
       ),
