@@ -8,6 +8,7 @@ import {
   parsearSumulaPdf,
   SumulaPdfError,
   type SumulaPdfDados,
+  type SumulaPdfEventoTipoGol,
 } from "@/lib/fpf/sumula-pdf";
 import { sugerirAtleta, type AtletaParaMatch } from "@/lib/fpf/atleta-match";
 import type { AtletaRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
@@ -36,6 +37,17 @@ function ehLadoJuventus(equipe: string): boolean {
   return equipe.toLowerCase().includes(NOME_JUVENTUS_PARCIAL);
 }
 
+/** Pra quem esse gol realmente conta — normalmente é o lado de quem marcou (`gol.equipe`), mas um
+ * gol contra ("CT") é sempre ao contrário: um jogador do Paulista fazendo gol contra é um gol A
+ * FAVOR do Juventus, não um "gol do adversário". Bug real visto em produção: um "CT" marcado por
+ * um jogador do time adversário estava sendo contado como gol do adversário, invertendo o placar
+ * sugerido (3x1 virava 2x2). Essa função centraliza essa inversão pra não repetir a lógica em cada
+ * lugar que precisa saber "de quem" é o gol (contagem de placar sugerido e a lista de eventos). */
+function golFavoreceJuventus(gol: { equipe: string; tipo: SumulaPdfEventoTipoGol }): boolean {
+  const marcadoPeloJuventus = ehLadoJuventus(gol.equipe);
+  return gol.tipo === "contra" ? !marcadoPeloJuventus : marcadoPeloJuventus;
+}
+
 export interface PreviaEventoImportado {
   tipo: SumulaEventoTipo;
   minuto: number;
@@ -44,6 +56,10 @@ export interface PreviaEventoImportado {
   atletaId: string | null;
   atletaEntrouId: string | null;
   nomeAdversario: string | null;
+  /** true só no caso de gol contra de um jogador ADVERSÁRIO que favorece o Juventus — pra tela de
+   * revisão não rotular como "Gol (adversário)" (que soa como gol do time deles) mesmo tendo
+   * `nomeAdversario` preenchido (precisa desse campo porque quem marcou não é atleta nosso). */
+  contraFavoreceJuventus: boolean;
 }
 
 export interface PreviaImportacaoSumula {
@@ -161,8 +177,19 @@ export async function buscarPreviaImportacaoSumula(
 
   for (const gol of dadosPdf.gols) {
     const minutoRelativo = converterMinutoPdfParaRelativo(gol.minuto, gol.tempo, duracaoPrimeiroTempo);
-    if (!ehLadoJuventus(gol.equipe)) {
-      // Gol do adversário — importa sem vínculo de atleta, só com o nome como veio da súmula.
+    const marcadoPeloJuventus = ehLadoJuventus(gol.equipe);
+    const favoreceJuventus = golFavoreceJuventus(gol);
+
+    if (marcadoPeloJuventus && gol.tipo === "contra") {
+      // Gol contra de um jogador NOSSO favorece o adversário — não é um "gol" nosso, e não dá pra
+      // vincular ao atleta que marcou (ia contar errado como gol dele na Artilharia). Fica de fora
+      // da importação automática; lança manualmente se precisar registrar o placar certo.
+      continue;
+    }
+
+    if (!favoreceJuventus) {
+      // Gol do adversário (marcado normalmente por eles) — importa sem vínculo de atleta, só com
+      // o nome como veio da súmula.
       eventos.push({
         tipo: "gol",
         minuto: minutoRelativo,
@@ -171,14 +198,30 @@ export async function buscarPreviaImportacaoSumula(
         atletaId: null,
         atletaEntrouId: null,
         nomeAdversario: gol.nome,
+        contraFavoreceJuventus: false,
       });
       continue;
     }
-    if (gol.tipo === "contra") {
-      // Gol contra feito por um jogador nosso favorece o adversário — não é um "gol" nosso.
-      // Fica de fora da importação automática; lança manualmente se precisar registrar.
+
+    if (!marcadoPeloJuventus) {
+      // Gol contra de um jogador DO ADVERSÁRIO — favorece o Juventus, mas quem marcou não é
+      // atleta nosso (não dá pra vincular). Ainda assim precisa contar pro nosso placar, então
+      // importa como um "gol nosso" sem atleta vinculado, deixando claro na descrição que foi
+      // contra do adversário — bug real visto em produção: isso estava caindo no branco de "gol
+      // do adversário" e invertendo o placar sugerido.
+      eventos.push({
+        tipo: "gol",
+        minuto: minutoRelativo,
+        tempo: gol.tempo,
+        descricao: `Gol contra do adversário (a favor) — ${gol.nome}`,
+        atletaId: null,
+        atletaEntrouId: null,
+        nomeAdversario: gol.nome,
+        contraFavoreceJuventus: true,
+      });
       continue;
     }
+
     eventos.push({
       tipo: "gol",
       minuto: minutoRelativo,
@@ -187,6 +230,7 @@ export async function buscarPreviaImportacaoSumula(
       atletaId: sugerirPorNome(gol.nome),
       atletaEntrouId: null,
       nomeAdversario: null,
+      contraFavoreceJuventus: false,
     });
   }
 
@@ -200,6 +244,7 @@ export async function buscarPreviaImportacaoSumula(
       atletaId: sugerirPorNome(cartao.nome),
       atletaEntrouId: null,
       nomeAdversario: null,
+      contraFavoreceJuventus: false,
     });
   }
 
@@ -213,13 +258,16 @@ export async function buscarPreviaImportacaoSumula(
       atletaId: sugerirPorNome(sub.nomeSaiu),
       atletaEntrouId: sugerirPorNome(sub.nomeEntrou),
       nomeAdversario: null,
+      contraFavoreceJuventus: false,
     });
   }
 
   eventos.sort((a, b) => (a.tempo === b.tempo ? a.minuto - b.minuto : a.tempo === "primeiro" ? -1 : 1));
 
-  const golsJuventusPdf = dadosPdf.gols.filter((g) => ehLadoJuventus(g.equipe)).length;
-  const golsAdversarioPdf = dadosPdf.gols.filter((g) => !ehLadoJuventus(g.equipe)).length;
+  // Usa golFavoreceJuventus (não só o lado que marcou) pra não repetir o bug do placar invertido
+  // quando um gol contra do adversário favorece o Juventus (ou vice-versa).
+  const golsJuventusPdf = dadosPdf.gols.filter((g) => golFavoreceJuventus(g)).length;
+  const golsAdversarioPdf = dadosPdf.gols.filter((g) => !golFavoreceJuventus(g)).length;
 
   return {
     dados: {
@@ -247,6 +295,9 @@ export interface ConfirmacaoEvento {
   atletaEntrouId: string | null;
   nomeAdversario: string | null;
   incluido: boolean;
+  /** Só pra rotular certo na tela de revisão (ver `PreviaEventoImportado`) — não é gravado no
+   * banco, `confirmarImportacaoSumula` não lê esse campo. */
+  contraFavoreceJuventus: boolean;
 }
 
 export interface ConfirmarImportacaoInput {

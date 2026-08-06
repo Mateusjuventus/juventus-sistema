@@ -90,6 +90,7 @@ export function ImportarSumulaForm({
           atletaEntrouId: e.atletaEntrouId,
           nomeAdversario: e.nomeAdversario,
           incluido: true,
+          contraFavoreceJuventus: e.contraFavoreceJuventus,
         })),
       );
 
@@ -264,7 +265,11 @@ export function ImportarSumulaForm({
                     ) : null}
                   </span>
                   <span className="w-40 shrink-0 text-neutral-700">
-                    {evento.nomeAdversario ? "⚽ Gol (adversário)" : TIPO_EVENTO_LABEL[evento.tipo]}
+                    {evento.contraFavoreceJuventus
+                      ? "⚽ Gol contra do adversário (a favor)"
+                      : evento.nomeAdversario
+                        ? "⚽ Gol (adversário)"
+                        : TIPO_EVENTO_LABEL[evento.tipo]}
                   </span>
 
                   {evento.nomeAdversario ? (
