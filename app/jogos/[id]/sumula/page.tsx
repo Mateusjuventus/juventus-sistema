@@ -43,14 +43,24 @@ function LinhaEvento({
   duracaoPrimeiroTempo: number;
 }) {
   const atleta = evento.atleta_id ? atletasMap.get(evento.atleta_id) : undefined;
-  const ehGolAdversario = evento.tipo === "gol" && Boolean(evento.nome_adversario);
+  // Um gol do adversário que conta CONTRA nós (normal) e um gol contra marcado pelo adversário que
+  // conta A FAVOR de nós são dois casos bem diferentes, mas os dois só têm `nome_adversario`
+  // preenchido (não têm atleta nosso vinculado) — sem checar `gol_contra_favor_juventus` os dois
+  // ficavam idênticos na tela como "Gol adversário", mesmo o segundo caso sendo bom pra gente
+  // (bug real de produção corrigido em 0058_sumula_evento_gol_contra_favor.sql).
+  const golAdversarioContraNos =
+    evento.tipo === "gol" && Boolean(evento.nome_adversario) && !evento.gol_contra_favor_juventus;
+  const golContraFavorJuventus =
+    evento.tipo === "gol" && Boolean(evento.nome_adversario) && evento.gol_contra_favor_juventus;
   // Mostra o "relógio corrido" do jogo (ex: 79'), igual à súmula oficial — por baixo, guardamos
   // o minuto relativo ao início de cada tempo (ver lib/futebol/estatisticas-atleta.ts).
   const minutoExibido = calcularMinutoAbsoluto(evento.tempo, evento.minuto, duracaoPrimeiroTempo);
 
   let descricao: string;
-  if (ehGolAdversario) {
+  if (golAdversarioContraNos) {
     descricao = `${evento.nome_adversario} (adversário)`;
+  } else if (golContraFavorJuventus) {
+    descricao = `${evento.nome_adversario} (contra, adversário)`;
   } else if (evento.tipo === "substituicao") {
     const entrou = evento.atleta_entrou_id ? atletasMap.get(evento.atleta_entrou_id) : undefined;
     descricao = `Saiu: ${nomeAtletaEvento(atleta)} · Entrou: ${nomeAtletaEvento(entrou)}`;
@@ -65,7 +75,7 @@ function LinhaEvento({
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-3 rounded-md px-3 py-2 text-sm ${ehGolAdversario ? "bg-neutral-100 text-neutral-500" : "bg-neutral-50"}`}
+      className={`flex flex-wrap items-center gap-3 rounded-md px-3 py-2 text-sm ${golAdversarioContraNos ? "bg-neutral-100 text-neutral-500" : "bg-neutral-50"}`}
     >
       <span className="w-10 shrink-0 text-center text-lg">{SUMULA_EVENTO_TIPO_ICONE[evento.tipo]}</span>
       <span className="w-24 shrink-0 font-semibold text-grena-escuro">
@@ -75,7 +85,11 @@ function LinhaEvento({
         ) : null}
       </span>
       <span className="w-32 shrink-0 font-medium text-neutral-700">
-        {ehGolAdversario ? "Gol adversário" : SUMULA_EVENTO_TIPO_LABEL[evento.tipo]}
+        {golAdversarioContraNos
+          ? "Gol adversário"
+          : golContraFavorJuventus
+            ? "Gol contra (a favor)"
+            : SUMULA_EVENTO_TIPO_LABEL[evento.tipo]}
       </span>
       <span className="min-w-[200px] flex-1 text-neutral-800">{descricao}</span>
       <DeleteButton action={removerEvento} id={evento.id} entityLabel="evento" />

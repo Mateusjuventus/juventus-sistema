@@ -295,8 +295,10 @@ export interface ConfirmacaoEvento {
   atletaEntrouId: string | null;
   nomeAdversario: string | null;
   incluido: boolean;
-  /** Só pra rotular certo na tela de revisão (ver `PreviaEventoImportado`) — não é gravado no
-   * banco, `confirmarImportacaoSumula` não lê esse campo. */
+  /** Além de rotular certo na tela de revisão (ver `PreviaEventoImportado`), `confirmarImportacaoSumula`
+   * grava esse valor em `sumula_eventos.gol_contra_favor_juventus` — sem isso, depois de salvo, um
+   * gol contra do adversário (a favor) ficava indistinguível de um gol normal do adversário na aba
+   * Súmula (bug real de produção: os dois apareciam como "Gol adversário"). */
   contraFavoreceJuventus: boolean;
 }
 
@@ -366,6 +368,7 @@ export async function confirmarImportacaoSumula(
         atleta_entrou_id: e.tipo === "substituicao" ? e.atletaEntrouId : null,
         atleta_assistencia_id: null,
         nome_adversario: e.nomeAdversario,
+        gol_contra_favor_juventus: e.contraFavoreceJuventus,
         ordem: i,
       })),
     );

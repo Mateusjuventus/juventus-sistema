@@ -369,6 +369,11 @@ export interface SumulaEventoRow {
    * registrar o placar completo mesmo sem ter esse jogador cadastrado. Só Futebol Profissional —
    * `SumulaEventoBaseRow` não tem essa coluna. */
   nome_adversario: string | null;
+  /** true só quando `nome_adversario` é um gol CONTRA marcado por um jogador do adversário — esse
+   * gol favorece o Juventus, ao contrário de um gol normal do adversário (que é contra nós). Sem
+   * essa distinção os dois casos ficavam idênticos na tela (bug real de produção — ver
+   * 0058_sumula_evento_gol_contra_favor.sql). Sempre false quando `nome_adversario` é null. */
+  gol_contra_favor_juventus: boolean;
   ordem: number;
   created_by: string | null;
   created_at: string;
