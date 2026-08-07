@@ -106,7 +106,14 @@ export const comissaoTecnicaSchema = z.object({
   funcao: z.string().min(1, { message: "Função/cargo é obrigatório" }),
   telefone: telefoneField,
   email: z.string().email({ message: "E-mail inválido" }).optional().or(z.literal("")),
-  tipoQuartoPreferido: z.enum(["single", "duplo"]).optional().nullable(),
+  // ".or(z.literal(''))" é necessário aqui: o <select> de "Tipo de quarto preferido" tem "Não
+  // definido" (value="") como opção padrão, e o parseForm deste cadastro (app/comissao-tecnica/
+  // actions.ts e app/base/comissao-tecnica/actions.ts) manda essa string vazia direto pro
+  // schema, sem converter pra undefined antes (diferente do parseForm de Atleta, que já faz essa
+  // conversão). Bug real de produção: deixar no padrão (o caso mais comum, já que a maioria não
+  // tem preferência de quarto) fazia TODO o cadastro falhar com "Invalid enum value. Expected
+  // 'single' | 'duplo', received ''" — encontrado ao cadastrar a Comissão Técnica em massa.
+  tipoQuartoPreferido: z.enum(["single", "duplo"]).optional().nullable().or(z.literal("")),
 });
 export type ComissaoTecnicaInput = z.infer<typeof comissaoTecnicaSchema>;
 
