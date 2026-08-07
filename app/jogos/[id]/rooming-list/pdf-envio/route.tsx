@@ -66,7 +66,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, adversarioLogoUrl] = await Promise.all([
     atletaIds.length > 0
-      ? supabase.from("atletas").select("id, nome_completo").in("id", atletaIds)
+      ? supabase.from("atletas").select("id, nome_completo, apelido").in("id", atletaIds)
       : Promise.resolve({ data: [] }),
     comissaoIds.length > 0
       ? supabase.from("comissao_tecnica").select("id, nome_completo").in("id", comissaoIds)
@@ -78,7 +78,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   ]);
 
   const atletaMap = new Map(
-    ((atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo">[]).map((a) => [a.id, a]),
+    ((atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "apelido">[]).map((a) => [a.id, a]),
   );
   const comissaoMap = new Map(
     ((comissaoData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo">[]).map((c) => [c.id, c]),
@@ -88,12 +88,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
   );
 
   const pessoaDe = (o: RoomingListOcupanteRow): RoomingListEnvioOcupante => {
-    const registro =
-      o.pessoa_tipo === "atleta"
-        ? atletaMap.get(o.pessoa_id)
-        : o.pessoa_tipo === "comissao"
-          ? comissaoMap.get(o.pessoa_id)
-          : staffMap.get(o.pessoa_id);
+    // Atleta: prioriza o apelido (como ele é conhecido no dia a dia) sobre o nome completo — pedido
+    // do usuário, só pra atletas (Comissão Técnica e Staff continuam com nome completo).
+    if (o.pessoa_tipo === "atleta") {
+      const atleta = atletaMap.get(o.pessoa_id);
+      return { nome: atleta?.apelido || atleta?.nome_completo || "—", tipo: o.pessoa_tipo };
+    }
+    const registro = o.pessoa_tipo === "comissao" ? comissaoMap.get(o.pessoa_id) : staffMap.get(o.pessoa_id);
     return { nome: registro?.nome_completo ?? "—", tipo: o.pessoa_tipo };
   };
 

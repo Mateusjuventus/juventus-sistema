@@ -81,8 +81,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
         : o.pessoa_tipo === "comissao"
           ? comissaoMap.get(o.pessoa_id)
           : staffMap.get(o.pessoa_id);
+    // Atleta: prioriza o apelido (como ele é conhecido no dia a dia) sobre o nome completo — pedido
+    // do usuário, só pra atletas (Comissão Técnica e Staff continuam com nome completo).
+    const nome = o.pessoa_tipo === "atleta" ? (registro as AtletaBaseRow | undefined)?.apelido || registro?.nome_completo || "—" : registro?.nome_completo ?? "—";
     return {
-      nome: registro?.nome_completo ?? "—",
+      nome,
       tipo: o.pessoa_tipo,
       dataNascimento: registro?.data_nascimento ?? null,
       cpf: registro?.cpf ?? null,

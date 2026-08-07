@@ -84,7 +84,9 @@ export function RoomingListForm({
   );
 
   const pessoas: PessoaOpcao[] = [
-    ...atletas.map((a) => ({ tipo: "atleta" as const, id: a.id, nome: a.nome_completo, extra: a.posicao })),
+    // Apelido em vez de nome completo pros atletas (como eles são chamados no dia a dia) — Comissão
+    // Técnica continua com nome completo.
+    ...atletas.map((a) => ({ tipo: "atleta" as const, id: a.id, nome: a.apelido || a.nome_completo, extra: a.posicao })),
     ...comissao.map((c) => ({ tipo: "comissao" as const, id: c.id, nome: c.nome_completo, extra: c.funcao })),
   ];
 
