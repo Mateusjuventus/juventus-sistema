@@ -7,32 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getModulosPermitidos, getModulosBasePermitidos, isMaster } from "@/lib/auth/role";
 import { MODULOS, type ModuloChave } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
-import {
-  IconAtletas,
-  IconComissao,
-  IconEstoque,
-  IconFinanceiro,
-  IconJogos,
-  IconRelatorio,
-  IconSolicitacoes,
-  IconStaff,
-  IconUsuarios,
-} from "@/components/module-icons";
-
-/** Um ícone por módulo (ver `lib/auth/modulos.ts`/`lib/auth/modulos-base.ts`) — as duas chaves de
- * módulo (Profissional/Base) têm os mesmos valores de string, então o mesmo mapa serve pros dois
- * departamentos. "usuarios" não é um `ModuloChave` de verdade (não é liberável por checkbox —
- * ver `app/usuarios/page.tsx`, é master-only), por isso entra à parte, não neste mapa. */
-const ICONES_MODULO: Record<ModuloChave, (props: { className?: string }) => ReactNode> = {
-  atletas: IconAtletas,
-  comissao_tecnica: IconComissao,
-  staff_operacional: IconStaff,
-  jogos: IconJogos,
-  solicitacoes: IconSolicitacoes,
-  estoque: IconEstoque,
-  financeiro: IconFinanceiro,
-  relatorios_avulso: IconRelatorio,
-};
 
 /**
  * `nav="full"` (padrão) monta a sidebar com os módulos do departamento atual que o usuário logado
@@ -71,7 +45,7 @@ export async function AppShell({
       navItems = MODULOS_BASE.filter((m) => modulosBasePermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
         label: m.label,
-        icon: ICONES_MODULO[m.chave as ModuloChave],
+        icone: m.chave as ModuloChave,
       }));
     } else {
       const [modulosPermitidos, master] = await Promise.all([
@@ -81,12 +55,12 @@ export async function AppShell({
       navItems = MODULOS.filter((m) => modulosPermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
         label: m.label,
-        icon: ICONES_MODULO[m.chave],
+        icone: m.chave,
       }));
       // Só quem é master vê Usuários — é onde se cadastra/gerencia outras contas. Não é um
       // ModuloChave liberável por checkbox, por isso entra fora do filtro acima.
       if (master) {
-        navItems.push({ href: "/usuarios", label: "Usuários", icon: IconUsuarios });
+        navItems.push({ href: "/usuarios", label: "Usuários", icone: "usuarios" });
       }
     }
   }

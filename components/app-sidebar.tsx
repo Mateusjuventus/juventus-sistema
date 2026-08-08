@@ -2,16 +2,48 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { BellIcon, ChecklistIcon, HomeIcon } from "@/components/department-icon";
+import {
+  IconAtletas,
+  IconComissao,
+  IconEstoque,
+  IconFinanceiro,
+  IconJogos,
+  IconRelatorio,
+  IconSolicitacoes,
+  IconStaff,
+  IconUsuarios,
+} from "@/components/module-icons";
 import { PerfilMenuSidebar } from "@/components/perfil-menu";
+import type { ModuloChave } from "@/lib/auth/modulos";
+
+/** Chave de ícone que o item carrega — string simples, serializável na fronteira Server→Client
+ * Component (ver comentário abaixo). "usuarios" não é um `ModuloChave` de verdade (ver
+ * `components/app-shell.tsx`), por isso o tipo aceita ela à parte. */
+export type SidebarIconKey = ModuloChave | "usuarios";
 
 export interface SidebarNavItem {
   href: string;
   label: string;
-  icon: (props: { className?: string }) => ReactNode;
+  icone: SidebarIconKey;
 }
+
+/** Mapa de ícone só existe aqui dentro do Client Component — um componente de ícone (função) não
+ * é serializável cruzando a fronteira Server→Client (só Server Actions passam por essa fronteira
+ * como função); por isso `AppShell` (server) manda só a `SidebarIconKey` (string) em `navItems`,
+ * e a resolução pro componente de ícone de verdade acontece aqui dentro. */
+const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Element> = {
+  atletas: IconAtletas,
+  comissao_tecnica: IconComissao,
+  staff_operacional: IconStaff,
+  jogos: IconJogos,
+  solicitacoes: IconSolicitacoes,
+  estoque: IconEstoque,
+  financeiro: IconFinanceiro,
+  relatorios_avulso: IconRelatorio,
+  usuarios: IconUsuarios,
+};
 
 /**
  * Sidebar fixa à esquerda (232px) — substitui a barra horizontal no topo que o sistema usava antes
@@ -69,12 +101,15 @@ export function AppSidebar({
           <HomeIcon className="h-[18px] w-[18px] shrink-0" />
           Início
         </Link>
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href} className={linkClasse(itemAtivo(item.href))}>
-            <item.icon className="h-[18px] w-[18px] shrink-0" />
-            {item.label}
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const Icone = ICONES[item.icone];
+          return (
+            <Link key={item.href} href={item.href} className={linkClasse(itemAtivo(item.href))}>
+              <Icone className="h-[18px] w-[18px] shrink-0" />
+              {item.label}
+            </Link>
+          );
+        })}
 
         <p className="px-3 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wide text-white/45">
           Geral
