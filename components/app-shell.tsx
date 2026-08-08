@@ -2,47 +2,56 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { JuventusCrestMark } from "@/components/juventus-crest";
-import { BellIcon, ChecklistIcon, HomeIcon } from "@/components/department-icon";
-import { PerfilMenu } from "@/components/perfil-menu";
+import { AppSidebar, type SidebarNavItem } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { getModulosPermitidos, getModulosBasePermitidos } from "@/lib/auth/role";
-import type { ModuloChave } from "@/lib/auth/modulos";
-import type { ModuloBaseChave } from "@/lib/auth/modulos-base";
+import { getModulosPermitidos, getModulosBasePermitidos, isMaster } from "@/lib/auth/role";
+import { MODULOS, type ModuloChave } from "@/lib/auth/modulos";
+import { MODULOS_BASE } from "@/lib/auth/modulos-base";
+import {
+  IconAtletas,
+  IconComissao,
+  IconEstoque,
+  IconFinanceiro,
+  IconJogos,
+  IconRelatorio,
+  IconSolicitacoes,
+  IconStaff,
+  IconUsuarios,
+} from "@/components/module-icons";
 
-const NAV_LINKS: { href: string; label: string; moduloChave: ModuloChave }[] = [
-  { href: "/atletas", label: "Atletas", moduloChave: "atletas" },
-  { href: "/comissao-tecnica", label: "Comissão Técnica", moduloChave: "comissao_tecnica" },
-  { href: "/staff-operacional", label: "Staff Operacional", moduloChave: "staff_operacional" },
-  { href: "/jogos", label: "Jogos", moduloChave: "jogos" },
-];
-
-/** Mesma lista, pros módulos do Futebol de Base (ver `lib/auth/modulos-base.ts`) — agora com os 7
- * módulos completos (Fases 1-4). `getModulosBasePermitidos` ainda filtra pelo que a pessoa tem
- * liberado. */
-const NAV_LINKS_BASE: { href: string; label: string; moduloChave: ModuloBaseChave }[] = [
-  { href: "/base/atletas", label: "Atletas", moduloChave: "atletas" },
-  { href: "/base/comissao-tecnica", label: "Comissão Técnica", moduloChave: "comissao_tecnica" },
-  { href: "/base/staff-operacional", label: "Staff Operacional", moduloChave: "staff_operacional" },
-  { href: "/base/jogos", label: "Jogos", moduloChave: "jogos" },
-  { href: "/base/solicitacoes", label: "Solicitações", moduloChave: "solicitacoes" },
-  { href: "/base/estoque", label: "Estoque", moduloChave: "estoque" },
-  { href: "/base/financeiro", label: "Financeiro", moduloChave: "financeiro" },
-];
+/** Um ícone por módulo (ver `lib/auth/modulos.ts`/`lib/auth/modulos-base.ts`) — as duas chaves de
+ * módulo (Profissional/Base) têm os mesmos valores de string, então o mesmo mapa serve pros dois
+ * departamentos. "usuarios" não é um `ModuloChave` de verdade (não é liberável por checkbox —
+ * ver `app/usuarios/page.tsx`, é master-only), por isso entra à parte, não neste mapa. */
+const ICONES_MODULO: Record<ModuloChave, (props: { className?: string }) => ReactNode> = {
+  atletas: IconAtletas,
+  comissao_tecnica: IconComissao,
+  staff_operacional: IconStaff,
+  jogos: IconJogos,
+  solicitacoes: IconSolicitacoes,
+  estoque: IconEstoque,
+  financeiro: IconFinanceiro,
+  relatorios_avulso: IconRelatorio,
+};
 
 /**
- * `nav="full"` (padrão) mostra os atalhos dos módulos do departamento atual que o usuário logado
+ * `nav="full"` (padrão) monta a sidebar com os módulos do departamento atual que o usuário logado
  * tem liberados (ver `lib/auth/modulos.ts`/`lib/auth/modulos-base.ts`) — usado dentro do
- * departamento. `nav="none"` mostra só a logo — usado na tela inicial de escolha de departamento,
- * onde ainda não faz sentido atalho pra módulos de um departamento específico.
+ * departamento. A lista vem de `MODULOS`/`MODULOS_BASE` (fonte única de módulo → rota/label,
+ * mesma usada pelo middleware) filtrada por permissão, não mais de uma lista solta duplicada
+ * aqui — foi assim que "Usuários" e "Relatório Avulso" ficaram de fora da navegação por um tempo
+ * (ver a spec do redesign visual).
+ *
+ * `nav="none"` mostra só a logo, sem sidebar — usado na tela inicial de escolha de departamento,
+ * onde ainda não faz sentido menu de módulos de um departamento específico.
  *
  * `departamento` decide qual departamento está "ativo" nesta página — de que lista de módulos usar
- * e pra onde aponta o link "Início". Todas as páginas de `/base/*` passam
- * `departamento="futebol_base"`; o resto do sistema usa o padrão (`"futebol_profissional"`). O
- * link de Avisos só aparece no Futebol Profissional — não existe uma versão dele pro Futebol de
- * Base ainda (ver a spec).
+ * e pra onde aponta "Início". Todas as páginas de `/base/*` passam `departamento="futebol_base"`;
+ * o resto do sistema usa o padrão (`"futebol_profissional"`). Avisos só existe pro Futebol
+ * Profissional ainda.
  *
- * O e-mail do usuário logado é sempre buscado aqui (independente de `nav`) pra alimentar o menu
- * "Minha Conta" (`components/perfil-menu.tsx`), que fica ao lado da logo em toda página.
+ * O e-mail do usuário logado é sempre buscado aqui (independente de `nav`) pra alimentar o rodapé
+ * da sidebar (`components/perfil-menu.tsx`).
  */
 export async function AppShell({
   children,
@@ -55,14 +64,30 @@ export async function AppShell({
 }) {
   const supabase = createClient();
 
-  let linksPermitidos: { href: string; label: string }[] = [];
+  let navItems: SidebarNavItem[] = [];
   if (nav === "full") {
     if (departamento === "futebol_base") {
       const modulosBasePermitidos = await getModulosBasePermitidos(supabase);
-      linksPermitidos = NAV_LINKS_BASE.filter((link) => modulosBasePermitidos.includes(link.moduloChave));
+      navItems = MODULOS_BASE.filter((m) => modulosBasePermitidos.includes(m.chave)).map((m) => ({
+        href: m.prefixo,
+        label: m.label,
+        icon: ICONES_MODULO[m.chave as ModuloChave],
+      }));
     } else {
-      const modulosPermitidos = await getModulosPermitidos(supabase);
-      linksPermitidos = NAV_LINKS.filter((link) => modulosPermitidos.includes(link.moduloChave));
+      const [modulosPermitidos, master] = await Promise.all([
+        getModulosPermitidos(supabase),
+        isMaster(supabase),
+      ]);
+      navItems = MODULOS.filter((m) => modulosPermitidos.includes(m.chave)).map((m) => ({
+        href: m.prefixo,
+        label: m.label,
+        icon: ICONES_MODULO[m.chave],
+      }));
+      // Só quem é master vê Usuários — é onde se cadastra/gerencia outras contas. Não é um
+      // ModuloChave liberável por checkbox, por isso entra fora do filtro acima.
+      if (master) {
+        navItems.push({ href: "/usuarios", label: "Usuários", icon: IconUsuarios });
+      }
     }
   }
 
@@ -73,58 +98,41 @@ export async function AppShell({
   const homeHref = departamento === "futebol_base" ? "/base" : "/profissional";
   const homeTitle =
     departamento === "futebol_base" ? "Início do Futebol de Base" : "Início do Futebol Profissional";
+  const departamentoLabel = departamento === "futebol_base" ? "Futebol de Base" : "Futebol Profissional";
 
-  return (
-    <div className="min-h-screen">
-      <header className="border-b-2 border-dourado bg-grena-escuro text-white shadow-md">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-wide">
+  if (nav === "none") {
+    return (
+      <div className="min-h-screen">
+        <header className="border-b border-linha bg-white">
+          <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
+            <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-wide text-grena-escuro">
               <JuventusCrestMark className="h-8 w-8" />
               Juventus - SAF
             </Link>
-            <PerfilMenu email={user?.email ?? null} logoutAction={logout} />
           </div>
-          <nav className="flex flex-wrap items-center gap-1 text-sm">
-            {nav === "full" ? (
-              <Link
-                href={homeHref}
-                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
-                title={homeTitle}
-              >
-                <HomeIcon className="h-4 w-4" />
-                Início
-              </Link>
-            ) : null}
-            {linksPermitidos.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-md px-3 py-1.5 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                {link.label}
-              </Link>
-            ))}
-            {departamento === "futebol_base" ? null : (
-              <Link
-                href="/avisos"
-                className="ml-1 flex items-center gap-1.5 rounded-md border border-dourado/60 px-3 py-1.5 font-medium text-dourado transition-colors hover:bg-dourado/10"
-              >
-                <BellIcon className="h-4 w-4" />
-                Avisos
-              </Link>
-            )}
-            <Link
-              href="/tarefas"
-              className="flex items-center gap-1.5 rounded-md border border-dourado/60 px-3 py-1.5 font-medium text-dourado transition-colors hover:bg-dourado/10"
-            >
-              <ChecklistIcon className="h-4 w-4" />
-              Tarefas
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        </header>
+        <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen">
+      <AppSidebar
+        homeHref={homeHref}
+        homeTitle={homeTitle}
+        departamentoLabel={departamentoLabel}
+        navItems={navItems}
+        showAvisos={departamento !== "futebol_base"}
+        email={user?.email ?? null}
+        logoutAction={logout}
+      />
+      {/* `max-w-6xl mx-auto` reproduz a mesma largura de conteúdo que a barra horizontal antiga já
+          usava — mantém as ~40 telas do sistema com a mesma proporção de layout que já tinham,
+          sem precisar tocar em cada uma só por causa da troca de topo pra sidebar. */}
+      <main className="min-w-0 flex-1 overflow-x-auto px-6 py-6 sm:px-8">
+        <div className="mx-auto max-w-6xl">{children}</div>
+      </main>
     </div>
   );
 }

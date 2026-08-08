@@ -1,13 +1,21 @@
+/* Fonte Inter self-hosted via @fontsource-variable/inter (arquivos .woff2 empacotados no próprio
+   build, servidos pelo domínio do sistema) — variável (um arquivo cobre os pesos 100-900), em vez
+   de next/font/google, que precisa baixar a fonte de fonts.googleapis.com durante o build. Evita
+   depender de acesso de rede externo no momento do build (mesma categoria de risco que já causou
+   um build quebrado antes nesta sessão — lib/fpf/sumula-pdf.ts). O @import tem que vir antes de
+   @tailwind, senão o CSS final coloca a fonte depois de regras que já a referenciam. */
+@import "@fontsource-variable/inter";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-geist-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-geist-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900;
+  @apply bg-pagina text-neutral-900;
 }
 
 @layer components {
@@ -18,7 +26,7 @@ body {
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-md border border-neutral-300 bg-white
+    @apply inline-flex items-center justify-center rounded-md border border-linha bg-white
       px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100
       focus:outline-none focus:ring-2 focus:ring-grena focus:ring-offset-2;
   }
@@ -34,7 +42,7 @@ body {
   }
 
   .field-input {
-    @apply block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm shadow-sm
+    @apply block w-full rounded-md border border-linha px-3 py-2 text-sm shadow-sm
       focus:border-grena focus:outline-none focus:ring-1 focus:ring-grena;
   }
 
@@ -43,6 +51,6 @@ body {
   }
 
   .card {
-    @apply rounded-lg border border-neutral-200 bg-white shadow-sm;
+    @apply rounded-lg border border-linha bg-white shadow-sm;
   }
 }

@@ -15,6 +15,9 @@ const config: Config = {
         },
         dourado: juventusTheme.dourado,
         prata: juventusTheme.prata,
+        pagina: juventusTheme.cinzaPagina,
+        linha: juventusTheme.linha,
+        contexto: juventusTheme.contexto,
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
