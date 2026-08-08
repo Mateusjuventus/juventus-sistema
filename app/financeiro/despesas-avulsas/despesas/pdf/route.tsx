@@ -7,10 +7,10 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getAssinaturasFinanceiro } from "@/lib/pdf/assinaturas";
 import {
-  DespesasAvulsasOrcamentoDocument,
-  type DespesaAvulsaOrcamentoPdfCategoria,
-  type DespesaAvulsaOrcamentoPdfItem,
-} from "@/lib/pdf/despesas-avulsas-orcamento-document";
+  DespesasAvulsasRelatorioDocument,
+  type DespesaAvulsaRelatorioPdfCategoria,
+  type DespesaAvulsaRelatorioPdfItem,
+} from "@/lib/pdf/despesas-avulsas-relatorio-document";
 import type { DespesaAvulsaComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 
 function confrontoResumo(jogo: JogoRow): string {
@@ -19,10 +19,9 @@ function confrontoResumo(jogo: JogoRow): string {
   return `${nome} (${dia}/${mes})`;
 }
 
-/** PDF "Orçamento Previsto — Despesas Avulsas" (só previsto) — mesmo espírito do PDF de orçamento
- * de cada jogo (`/jogos/[id]/financeiro/pdf`). O PDF de efetuado fica em
- * `/financeiro/despesas-avulsas/despesas/pdf`, mesmo padrão de 2 PDFs separados já usado por
- * jogo (ver docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md). */
+/** PDF "Relatório de Despesas — Despesas Avulsas" (só efetuado) — mesmo espírito do PDF de
+ * despesas de cada jogo (`/jogos/[id]/financeiro/despesas/pdf`), mesma rota aninhada
+ * "despesas/pdf" ao lado do "Orçamento Previsto" em `/financeiro/despesas-avulsas/pdf`. */
 export async function GET() {
   const supabase = createClient();
 
@@ -34,10 +33,12 @@ export async function GET() {
     getAssinaturasFinanceiro(supabase),
   ]);
 
-  const despesas = (despesasData ?? []) as DespesaAvulsaComCategoriaRow[];
+  const despesas = ((despesasData ?? []) as DespesaAvulsaComCategoriaRow[]).filter(
+    (d) => d.valor_efetuado !== null,
+  );
 
   if (despesas.length === 0) {
-    return new NextResponse("Ainda não há despesas avulsas lançadas.", { status: 400 });
+    return new NextResponse("Ainda não há despesas avulsas efetuadas lançadas.", { status: 400 });
   }
 
   const jogosPorDespesa = new Map<string, string[]>();
@@ -48,21 +49,21 @@ export async function GET() {
     jogosPorDespesa.set(v.despesa_id, lista);
   }
 
-  const totalGeral = despesas.reduce((soma, d) => soma + d.valor_previsto, 0);
+  const totalGeral = despesas.reduce((soma, d) => soma + (d.valor_efetuado as number), 0);
 
-  const porCategoria = new Map<string, DespesaAvulsaOrcamentoPdfItem[]>();
+  const porCategoria = new Map<string, DespesaAvulsaRelatorioPdfItem[]>();
   for (const d of despesas) {
     const nome = d.categoria?.nome ?? "Outros";
     const lista = porCategoria.get(nome) ?? [];
     lista.push({
       data: d.data,
       descricao: d.descricao,
-      valorPrevisto: d.valor_previsto,
+      valorEfetuado: d.valor_efetuado as number,
       jogosRelacionados: jogosPorDespesa.get(d.id) ?? [],
     });
     porCategoria.set(nome, lista);
   }
-  const categorias: DespesaAvulsaOrcamentoPdfCategoria[] = Array.from(porCategoria.entries())
+  const categorias: DespesaAvulsaRelatorioPdfCategoria[] = Array.from(porCategoria.entries())
     .map(([nome, despesasDaCategoria]) => ({ nome, despesas: despesasDaCategoria }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
@@ -70,7 +71,7 @@ export async function GET() {
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(
-    <DespesasAvulsasOrcamentoDocument
+    <DespesasAvulsasRelatorioDocument
       juventusLogoSrc={juventusLogoSrc}
       geradoEm={new Date()}
       categorias={categorias}
@@ -84,7 +85,7 @@ export async function GET() {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": 'inline; filename="orcamento-previsto-despesas-avulsas.pdf"',
+      "Content-Disposition": 'inline; filename="relatorio-despesas-avulsas.pdf"',
     },
   });
 }

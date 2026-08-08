@@ -52,6 +52,7 @@ export default async function DespesasAvulsasPage() {
   const totalPrevisto = despesas.reduce((soma, d) => soma + d.valor_previsto, 0);
   const totalEfetuado = despesas.reduce((soma, d) => soma + (d.valor_efetuado ?? 0), 0);
   const totalDiferenca = totalPrevisto - totalEfetuado;
+  const temEfetuado = despesas.some((d) => d.valor_efetuado !== null);
 
   return (
     <AppShell>
@@ -69,7 +70,17 @@ export default async function DespesasAvulsasPage() {
               rel="noopener noreferrer"
               className="btn-secondary"
             >
-              Gerar Relatório de Despesas Avulsas
+              Gerar PDF do Orçamento Previsto
+            </a>
+          ) : null}
+          {temEfetuado ? (
+            <a
+              href="/financeiro/despesas-avulsas/despesas/pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              Gerar PDF do Relatório de Despesas
             </a>
           ) : null}
           <Link href="/financeiro/despesas-avulsas/novo" className="btn-primary">
