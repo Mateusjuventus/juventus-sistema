@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
-import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import type { ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
-import { getJogoEConvocados } from "../operacao-data";
+import type { JogoRow, ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 import { ReciboForm } from "./recibo-form";
 import { saveRecibo } from "../operacao-actions";
 
@@ -12,26 +10,17 @@ import { saveRecibo } from "../operacao-actions";
  * Recibo de Pagamento é só pra Staff Operacional — Comissão Técnica não recebe pagamento por esse
  * fluxo, então nem entra aqui (ver histórico: chegou a incluir Comissão Técnica, removido a pedido
  * do Mateus). Staff Operacional não precisa ser convocado — buscamos todo o staff ativo direto do
- * cadastro (mesma observação de sempre: staff só aparece pra Credenciamento e Recibo, sem depender
- * de convocação).
+ * cadastro. Por isso essa tela não depende de convocação nenhuma: basta o jogo existir (antes
+ * checava `convocacao` e bloqueava a tela com "Aviso sem convocação" se não houvesse — sobra de
+ * quando a Comissão Técnica ainda aparecia aqui; removido a pedido do Mateus, já que nada nesta
+ * tela usa dado de convocação).
  */
 export default async function ReciboPage({ params }: { params: { id: string } }) {
-  const dados = await getJogoEConvocados(params.id);
-  if (!dados) notFound();
-  const { jogo, convocacao } = dados;
-
-  if (!convocacao) {
-    return (
-      <AppShell>
-        <JogoTabs jogoId={jogo.id} active="recibo" />
-        <AvisoSemConvocacao jogoId={jogo.id} />
-      </AppShell>
-    );
-  }
-
   const supabase = createClient();
-  const [{ data: recibosData }, { data: staffData }] = await Promise.all([
-    supabase.from("recibos_jogo").select("*").eq("jogo_id", jogo.id),
+
+  const [{ data: jogoData }, { data: recibosData }, { data: staffData }] = await Promise.all([
+    supabase.from("jogos").select("*").eq("id", params.id).single(),
+    supabase.from("recibos_jogo").select("*").eq("jogo_id", params.id),
     supabase
       .from("staff_operacional")
       .select(
@@ -40,6 +29,9 @@ export default async function ReciboPage({ params }: { params: { id: string } })
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
   ]);
+
+  if (!jogoData) notFound();
+  const jogo = jogoData as JogoRow;
   const recibos = (recibosData ?? []) as ReciboJogoRow[];
   const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
   const temRecibos = recibos.length > 0;
