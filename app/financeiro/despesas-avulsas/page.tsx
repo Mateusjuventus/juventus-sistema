@@ -28,7 +28,7 @@ function confrontoResumo(jogo: JogoRow): string {
 export default async function DespesasAvulsasPage() {
   const supabase = createClient();
 
-  const [{ data: despesasData }, { data: vinculosData }] = await Promise.all([
+  const [{ data: despesasData }, { data: vinculosData }, { data: jogosData }] = await Promise.all([
     supabase
       .from("despesas_avulsas")
       .select("*, categoria:categorias_gasto(nome)")
@@ -37,9 +37,11 @@ export default async function DespesasAvulsasPage() {
     supabase
       .from("despesas_avulsas_jogos")
       .select("despesa_id, jogo:jogos(id, mandante, adversario_nome, data_jogo)"),
+    supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
   ]);
 
   const despesas = (despesasData ?? []) as DespesaAvulsaComCategoriaRow[];
+  const jogos = (jogosData ?? []) as JogoRow[];
 
   const jogosPorDespesa = new Map<string, JogoRow[]>();
   for (const v of (vinculosData ?? []) as unknown as { despesa_id: string; jogo: JogoRow | null }[]) {
@@ -62,31 +64,9 @@ export default async function DespesasAvulsasPage() {
 
       <div className="mb-4 mt-2 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Despesas avulsas</h1>
-        <div className="flex gap-2">
-          {despesas.length > 0 ? (
-            <a
-              href="/financeiro/despesas-avulsas/pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary"
-            >
-              Gerar PDF do Orçamento Previsto
-            </a>
-          ) : null}
-          {temEfetuado ? (
-            <a
-              href="/financeiro/despesas-avulsas/despesas/pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary"
-            >
-              Gerar PDF do Relatório de Despesas
-            </a>
-          ) : null}
-          <Link href="/financeiro/despesas-avulsas/novo" className="btn-primary">
-            + Nova despesa avulsa
-          </Link>
-        </div>
+        <Link href="/financeiro/despesas-avulsas/novo" className="btn-primary">
+          + Nova despesa avulsa
+        </Link>
       </div>
 
       <p className="mb-4 text-sm text-neutral-500">
@@ -94,6 +74,50 @@ export default async function DespesasAvulsasPage() {
         etc.) — entram nos totais gerais da Prestação de Contas, mas não aparecem no resumo
         financeiro de nenhum jogo, mesmo quando relacionadas a um.
       </p>
+
+      {despesas.length > 0 ? (
+        <form className="card mb-4 flex flex-wrap items-end gap-3 p-4">
+          <div className="min-w-[220px] flex-1">
+            <label htmlFor="jogoId" className="field-label">
+              Jogo (opcional)
+            </label>
+            <select id="jogoId" name="jogoId" className="field-input" defaultValue="">
+              <option value="">Nenhum</option>
+              {jogos.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {confrontoResumo(j)} — {formatData(j.data_jogo)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="min-w-[220px] flex-1">
+            <label htmlFor="titulo" className="field-label">
+              Título (usado só quando não escolher um jogo)
+            </label>
+            <input
+              id="titulo"
+              name="titulo"
+              className="field-input"
+              placeholder="Ex: Departamento Administrativo"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" formAction="/financeiro/despesas-avulsas/pdf" formTarget="_blank" className="btn-secondary">
+              Gerar PDF do Orçamento Previsto
+            </button>
+            {temEfetuado ? (
+              <button
+                type="submit"
+                formAction="/financeiro/despesas-avulsas/despesas/pdf"
+                formTarget="_blank"
+                className="btn-secondary"
+              >
+                Gerar PDF do Relatório de Despesas
+              </button>
+            ) : null}
+          </div>
+        </form>
+      ) : null}
 
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[860px] text-left text-sm">

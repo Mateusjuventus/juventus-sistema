@@ -104,6 +104,7 @@ export function DespesasAvulsasOrcamentoDocument({
   assinatura1,
   assinatura2,
   departamento,
+  subtitulo,
 }: {
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
@@ -112,6 +113,11 @@ export function DespesasAvulsasOrcamentoDocument({
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
   departamento: "profissional" | "base";
+  /** Escolhido na hora de gerar o PDF (ver /financeiro/despesas-avulsas): o jogo selecionado (se
+   * houver) ou um título livre digitado pelo Mateus — em branco se nenhum dos dois for informado.
+   * Substitui o texto fixo antigo "Despesas avulsas — não ligadas a um jogo específico", que o
+   * Mateus já sabe de cor e pediu pra tirar. */
+  subtitulo?: string;
 }) {
   return (
     <Document>
@@ -122,7 +128,7 @@ export function DespesasAvulsasOrcamentoDocument({
           <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Orçamento Previsto</Text>
-        <Text style={styles.subtitulo}>Despesas avulsas — não ligadas a um jogo específico</Text>
+        <Text style={styles.subtitulo}>{subtitulo ?? ""}</Text>
 
         {categorias.length === 0 ? (
           <Text style={sharedStyles.emptyState}>Nenhuma despesa avulsa lançada ainda.</Text>

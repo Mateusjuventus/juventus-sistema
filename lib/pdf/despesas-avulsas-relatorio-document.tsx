@@ -94,6 +94,7 @@ export function DespesasAvulsasRelatorioDocument({
   assinatura1,
   assinatura2,
   departamento,
+  subtitulo,
 }: {
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
@@ -102,6 +103,9 @@ export function DespesasAvulsasRelatorioDocument({
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
   departamento: "profissional" | "base";
+  /** Escolhido na hora de gerar o PDF — o jogo selecionado (se houver) ou um título livre, em
+   * branco se nenhum dos dois for informado. Ver DespesasAvulsasOrcamentoDocument (mesmo padrão). */
+  subtitulo?: string;
 }) {
   return (
     <Document>
@@ -112,7 +116,7 @@ export function DespesasAvulsasRelatorioDocument({
           <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Relatório de Despesas</Text>
-        <Text style={styles.subtitulo}>Despesas avulsas — não ligadas a um jogo específico</Text>
+        <Text style={styles.subtitulo}>{subtitulo ?? ""}</Text>
 
         {categorias.length === 0 ? (
           <Text style={sharedStyles.emptyState}>Nenhuma despesa avulsa efetuada lançada ainda.</Text>

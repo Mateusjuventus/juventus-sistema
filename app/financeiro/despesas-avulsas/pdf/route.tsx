@@ -19,20 +19,45 @@ function confrontoResumo(jogo: JogoRow): string {
   return `${nome} (${dia}/${mes})`;
 }
 
+/** O subtítulo do PDF é escolhido na hora de gerar (ver formulário em
+ * /financeiro/despesas-avulsas): o jogo marcado no seletor (se houver, busca os dados dele e monta
+ * confronto + competição + data) ou, se nenhum jogo foi escolhido, o título livre digitado — em
+ * branco se nenhum dos dois vier preenchido. Substitui o texto fixo "Despesas avulsas — não
+ * ligadas a um jogo específico" que existia antes (o Mateus já sabe disso, pediu pra tirar). */
+async function resolverSubtitulo(
+  supabase: ReturnType<typeof createClient>,
+  searchParams: URLSearchParams,
+): Promise<string> {
+  const jogoId = searchParams.get("jogoId");
+  if (jogoId) {
+    const { data } = await supabase.from("jogos").select("*").eq("id", jogoId).maybeSingle();
+    if (data) {
+      const jogo = data as JogoRow;
+      const confronto = jogo.mandante ? `Juventus x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x Juventus`;
+      const [ano, mes, dia] = jogo.data_jogo.split("-");
+      return `${confronto} · ${jogo.competicao} · ${dia}/${mes}/${ano}`;
+    }
+  }
+  return searchParams.get("titulo")?.trim() || "";
+}
+
 /** PDF "Orçamento Previsto — Despesas Avulsas" (só previsto) — mesmo espírito do PDF de orçamento
  * de cada jogo (`/jogos/[id]/financeiro/pdf`). O PDF de efetuado fica em
  * `/financeiro/despesas-avulsas/despesas/pdf`, mesmo padrão de 2 PDFs separados já usado por
  * jogo (ver docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md). */
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = createClient();
+  const searchParams = new URL(request.url).searchParams;
 
-  const [{ data: despesasData }, { data: vinculosData }, { assinatura1, assinatura2 }] = await Promise.all([
-    supabase.from("despesas_avulsas").select("*, categoria:categorias_gasto(nome)"),
-    supabase
-      .from("despesas_avulsas_jogos")
-      .select("despesa_id, jogo:jogos(id, mandante, adversario_nome, data_jogo)"),
-    getAssinaturasFinanceiro(supabase),
-  ]);
+  const [{ data: despesasData }, { data: vinculosData }, { assinatura1, assinatura2 }, subtitulo] =
+    await Promise.all([
+      supabase.from("despesas_avulsas").select("*, categoria:categorias_gasto(nome)"),
+      supabase
+        .from("despesas_avulsas_jogos")
+        .select("despesa_id, jogo:jogos(id, mandante, adversario_nome, data_jogo)"),
+      getAssinaturasFinanceiro(supabase),
+      resolverSubtitulo(supabase, searchParams),
+    ]);
 
   const despesas = (despesasData ?? []) as DespesaAvulsaComCategoriaRow[];
 
@@ -78,6 +103,7 @@ export async function GET() {
       assinatura1={assinatura1}
       assinatura2={assinatura2}
       departamento="profissional"
+      subtitulo={subtitulo}
     />,
   );
 
