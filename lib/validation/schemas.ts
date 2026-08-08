@@ -548,3 +548,25 @@ export const ingressoSolicitacaoSchema = z.object({
   observacoes: z.string().optional().or(z.literal("")),
 });
 export type IngressoSolicitacaoInput = z.infer<typeof ingressoSolicitacaoSchema>;
+
+/** Rótulo de cada categoria pro <select> do formulário "+ Adicionar" do widget "Calendário" (Home
+ * do Futebol Profissional) — cor de cada uma fica em `lib/futebol/calendario.ts`
+ * (`CATEGORIAS_EVENTO`), perto de onde é desenhada. */
+export const CATEGORIAS_EVENTO_CALENDARIO = [
+  { value: "treino", label: "Treino" },
+  { value: "viagem", label: "Viagem" },
+  { value: "reuniao", label: "Reunião" },
+  { value: "prazo", label: "Prazo administrativo" },
+  { value: "outro", label: "Outro" },
+] as const;
+
+export const eventoCalendarioSchema = z.object({
+  categoria: z.enum(["treino", "viagem", "reuniao", "prazo", "outro"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+  titulo: z.string().min(1, { message: "Título é obrigatório" }),
+  data: z.string().min(1, { message: "Data é obrigatória" }),
+  horario: z.string().optional().or(z.literal("")),
+  observacao: z.string().optional().or(z.literal("")),
+});
+export type EventoCalendarioInput = z.infer<typeof eventoCalendarioSchema>;

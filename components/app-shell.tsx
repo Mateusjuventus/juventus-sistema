@@ -31,10 +31,17 @@ export async function AppShell({
   children,
   nav = "full",
   departamento = "futebol_profissional",
+  breadcrumb,
 }: {
   children: ReactNode;
   nav?: "full" | "none";
   departamento?: "futebol_profissional" | "futebol_base";
+  /** Nome da página atual, mostrado como "Início / {breadcrumb}" numa barra fina no topo do
+   * conteúdo — troca os links soltos "← Voltar"/"← Início" que cada página desenhava por conta
+   * própria. Opcional: por ora só `/profissional` e `/financeiro` passam isso (ver a spec do
+   * redesign visual) — as demais páginas continuam com seu próprio link de volta até serem
+   * tocadas. */
+  breadcrumb?: string;
 }) {
   const supabase = createClient();
 
@@ -101,12 +108,22 @@ export async function AppShell({
         email={user?.email ?? null}
         logoutAction={logout}
       />
-      {/* `max-w-6xl mx-auto` reproduz a mesma largura de conteúdo que a barra horizontal antiga já
-          usava — mantém as ~40 telas do sistema com a mesma proporção de layout que já tinham,
-          sem precisar tocar em cada uma só por causa da troca de topo pra sidebar. */}
-      <main className="min-w-0 flex-1 overflow-x-auto px-6 py-6 sm:px-8">
-        <div className="mx-auto max-w-6xl">{children}</div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-auto">
+        {breadcrumb ? (
+          <div className="flex h-14 shrink-0 items-center border-b border-linha bg-white px-6 sm:px-8">
+            <p className="text-sm text-neutral-500">
+              Início <span className="mx-1 text-neutral-300">/</span>
+              <span className="font-semibold text-grena-escuro">{breadcrumb}</span>
+            </p>
+          </div>
+        ) : null}
+        {/* `max-w-6xl mx-auto` reproduz a mesma largura de conteúdo que a barra horizontal antiga
+            já usava — mantém as ~40 telas do sistema com a mesma proporção de layout que já
+            tinham, sem precisar tocar em cada uma só por causa da troca de topo pra sidebar. */}
+        <main className="flex-1 px-6 py-6 sm:px-8">
+          <div className="mx-auto max-w-6xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

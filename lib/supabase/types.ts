@@ -465,6 +465,21 @@ export interface ReciboJogoRow {
   updated_at: string;
 }
 
+/** Categoria de evento manual do widget "Calendário" (`app/profissional/page.tsx`) — cor fixa por
+ * categoria, ver `lib/futebol/calendario.ts`. Jogos não passam por aqui (vêm de `jogos` direto). */
+export type EventoCalendarioCategoria = "treino" | "viagem" | "reuniao" | "prazo" | "outro";
+
+export interface EventoCalendarioRow {
+  id: string;
+  categoria: EventoCalendarioCategoria;
+  titulo: string;
+  data: string;
+  horario: string | null;
+  observacao: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export type TarefaCategoria = "logistica" | "registro" | "financeiro" | "solicitacoes" | "gerais";
 export type TarefaStatus = "pendente" | "em_andamento" | "solicitado" | "concluido";
 
