@@ -77,6 +77,7 @@ export async function GET() {
       totalEfetuado={totalEfetuado}
       categorias={categorias}
       jogos={jogosPdf}
+      despesasAvulsas={[]}
       assinatura1={assinatura1}
       assinatura2={assinatura2}
       departamento="base"

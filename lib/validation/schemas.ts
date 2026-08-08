@@ -315,6 +315,23 @@ export const gastoJogoSchema = z
 export type GastoJogoInput = z.infer<typeof gastoJogoSchema>;
 export { NOVA_CATEGORIA_GASTO_VALUE };
 
+/** Mesmo formato de gastoJogoSchema, para despesas avulsas (sem jogo_id — o vínculo com jogos, se
+ * houver, vem separado via os checkboxes "jogo_<id>" do formulário, lidos direto do FormData). */
+export const despesaAvulsaSchema = z
+  .object({
+    categoriaId: z.string().min(1, { message: "Categoria é obrigatória" }),
+    novaCategoriaNome: z.string().optional().or(z.literal("")),
+    descricao: z.string().optional().or(z.literal("")),
+    valorPrevisto: z.coerce.number().nonnegative({ message: "Valor previsto não pode ser negativo" }),
+    valorEfetuado: z.coerce.number().nonnegative().optional().nullable(),
+    data: z.string().optional().or(z.literal("")),
+  })
+  .refine((data) => data.categoriaId !== NOVA_CATEGORIA_GASTO_VALUE || Boolean(data.novaCategoriaNome?.trim()), {
+    message: "Informe o nome da nova categoria",
+    path: ["novaCategoriaNome"],
+  });
+export type DespesaAvulsaInput = z.infer<typeof despesaAvulsaSchema>;
+
 /** Ordem fixa e numerada dos tipos de solicitação — a mesma ordem aparece no seletor do
  * formulário, no filtro da listagem e na própria listagem. */
 export const SOLICITACAO_TIPOS = [

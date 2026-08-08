@@ -77,10 +77,20 @@ export interface RelatorioPdfJogo {
   efetuado: number;
 }
 
+export interface RelatorioPdfDespesaAvulsa {
+  categoria: string;
+  descricao: string | null;
+  data: string | null;
+  previsto: number;
+  efetuado: number;
+}
+
 /**
- * Relatório geral da Prestação de Contas: totais somando todos os jogos, comparação por categoria
- * e resumo de cada jogo com gasto lançado. Mesmo padrão visual (departamento, carimbo e
- * assinaturas) do PDF de Orçamento Previsto — ver lib/pdf/orcamento-document.tsx.
+ * Relatório geral da Prestação de Contas: totais somando todos os jogos + despesas avulsas,
+ * comparação por categoria (também somada) e resumo de cada jogo com gasto lançado, mais a lista
+ * de despesas avulsas. Mesmo padrão visual (departamento, carimbo e assinaturas) do PDF de
+ * Orçamento Previsto — ver lib/pdf/orcamento-document.tsx. Despesas avulsas NÃO entram na seção
+ * "Por Jogo" (ver docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md).
  */
 export function RelatorioFinanceiroDocument({
   juventusLogoSrc,
@@ -89,6 +99,7 @@ export function RelatorioFinanceiroDocument({
   totalEfetuado,
   categorias,
   jogos,
+  despesasAvulsas,
   assinatura1,
   assinatura2,
   departamento,
@@ -99,6 +110,7 @@ export function RelatorioFinanceiroDocument({
   totalEfetuado: number;
   categorias: RelatorioPdfCategoria[];
   jogos: RelatorioPdfJogo[];
+  despesasAvulsas: RelatorioPdfDespesaAvulsa[];
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
   departamento: "profissional" | "base";
@@ -196,6 +208,38 @@ export function RelatorioFinanceiroDocument({
             })}
           </View>
         )}
+
+        {despesasAvulsas.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitulo}>Despesas Avulsas</Text>
+            <View style={sharedStyles.table}>
+            <View style={sharedStyles.tableHeaderRow}>
+              <Text style={[styles.colJogo, sharedStyles.headerCell]}>Despesa</Text>
+              <Text style={[styles.colValor, sharedStyles.headerCell]}>Previsto</Text>
+              <Text style={[styles.colValor, sharedStyles.headerCell]}>Efetuado</Text>
+              <Text style={[styles.colValor, sharedStyles.headerCell]}>Diferença</Text>
+            </View>
+            {despesasAvulsas.map((d, i) => {
+              const diferenca = d.previsto - d.efetuado;
+              return (
+                <View style={sharedStyles.tableRow} key={i} wrap={false}>
+                  <View style={styles.colJogo}>
+                    <Text style={styles.jogoConfronto}>{d.categoria}</Text>
+                    <Text style={styles.jogoSub}>
+                      {d.descricao ?? "Sem descrição"} · {formatDataBr(d.data)}
+                    </Text>
+                  </View>
+                  <Text style={styles.colValor}>{formatMoeda(d.previsto)}</Text>
+                  <Text style={styles.colValor}>{formatMoeda(d.efetuado)}</Text>
+                  <Text style={diferenca < 0 ? styles.colValorNegativo : styles.colValor}>
+                    {formatMoeda(diferenca)}
+                  </Text>
+                </View>
+              );
+            })}
+            </View>
+          </>
+        ) : null}
 
         <AssinaturasBlock assinatura1={assinatura1} assinatura2={assinatura2} />
 

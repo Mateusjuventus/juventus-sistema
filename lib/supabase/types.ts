@@ -519,6 +519,33 @@ export interface GastoJogoComCategoriaRow extends GastoJogoRow {
   categoria: { nome: string } | null;
 }
 
+/** Despesa avulsa: gasto que não pertence a nenhum jogo (folha de pagamento, manutenção do CT,
+ * etc.), mesmo formato de GastoJogoRow sem jogo_id — ver
+ * docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md. */
+export interface DespesaAvulsaRow {
+  id: string;
+  categoria_id: string;
+  descricao: string | null;
+  data: string | null;
+  valor_previsto: number;
+  valor_efetuado: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Linha de despesas_avulsas já com a categoria embutida via join. */
+export interface DespesaAvulsaComCategoriaRow extends DespesaAvulsaRow {
+  categoria: { nome: string } | null;
+}
+
+/** Vínculo N:N entre uma despesa avulsa e um jogo — só referência/etiqueta, não usado em nenhum
+ * cálculo do resumo financeiro do jogo. */
+export interface DespesaAvulsaJogoRow {
+  despesa_id: string;
+  jogo_id: string;
+}
+
 /**
  * Configurações do módulo Financeiro — tabela singleton (sempre uma linha só) com as duas
  * assinaturas usadas nos PDFs (Orçamento Previsto e Relatório Geral).
