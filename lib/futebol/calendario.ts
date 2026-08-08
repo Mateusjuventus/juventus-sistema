@@ -105,10 +105,21 @@ export function adicionarDias(dataStr: string, dias: number): string {
 
 export type Urgencia = "urgente" | "atencao" | "ok";
 
+/** Um item pronto pra exibir no widget "Mural" — já achatado (título/subtítulo/cor calculados),
+ * pra o componente não precisar entender de onde o item veio (jogo, evento manual ou contrato
+ * vencendo — ver `itensMural`/`contratosParaMural`). `href` só existe quando o item linka pra
+ * algum lugar (contrato → perfil do atleta); jogos e eventos não linkam daqui. */
 export interface ItemMural {
-  item: ItemCalendario;
+  titulo: string;
+  subtitulo: string | null;
+  cor: string;
   diasRestantes: number;
   urgencia: Urgencia;
+  href: string | null;
+}
+
+function urgenciaPorDias(diasRestantes: number): Urgencia {
+  return diasRestantes <= 2 ? "urgente" : diasRestantes <= 5 ? "atencao" : "ok";
 }
 
 /** Regra do Mural: mesma janela usada em `/avisos` (`DIAS_PRAZO_CURTO`) — um item (jogo ou evento
@@ -120,17 +131,41 @@ export function itensMural(itens: ItemCalendario[], hojeStr: string, diasPrazo =
     .map((item) => ({ item, diasRestantes: diasEntre(hojeStr, item.data) }))
     .filter(({ diasRestantes }) => diasRestantes >= 0 && diasRestantes <= diasPrazo)
     .map(({ item, diasRestantes }) => ({
-      item,
+      titulo: item.titulo,
+      subtitulo: item.horario ? item.horario.slice(0, 5) : null,
+      cor: item.tipo === "jogo" ? COR_CATEGORIA_JOGO : corDaCategoria(item.categoria),
       diasRestantes,
-      urgencia: (diasRestantes <= 2 ? "urgente" : diasRestantes <= 5 ? "atencao" : "ok") as Urgencia,
+      urgencia: urgenciaPorDias(diasRestantes),
+      href: null,
     }))
     .sort((a, b) => a.diasRestantes - b.diasRestantes);
 }
 
-/** Só os campos que o widget "Contratos vencendo" precisa (ver
- * `app/profissional/contratos-vencendo-widget.tsx`) — evita puxar o `AtletaRow` inteiro (RG, CPF,
- * endereço etc.) numa consulta que só lista nome/posição/prazo. */
+/** Só os campos que a tela de Início precisa pra contrato vencendo (barra de resumo e Mural) —
+ * evita puxar o `AtletaRow` inteiro (RG, CPF, endereço etc.) numa consulta que só usa
+ * nome/posição/prazo. */
 export type AtletaParaContratoVencendo = Pick<AtletaRow, "id" | "nome_completo" | "posicao" | "data_fim_contrato">;
+
+/** Contrato vencendo dentro da janela do Mural (10 dias por padrão, mesmas faixas de urgência de
+ * `itensMural`) — vira um item do Mural em vez do widget dedicado "Contratos vencendo" que existia
+ * antes (o usuário achou pouco útil como card fixo na Home; pediu pra virar aviso só quando a data
+ * estiver perto, igual jogos/eventos). Diferente de `atletasContratoVencendo` (janela de 90 dias,
+ * faixas 30/90, usada só na contagem da barra de resumo) — este aqui é especificamente pro Mural. */
+export function contratosParaMural(atletas: AtletaParaContratoVencendo[], hojeStr: string, diasPrazo = 10): ItemMural[] {
+  return atletas
+    .filter((a): a is AtletaParaContratoVencendo & { data_fim_contrato: string } => a.data_fim_contrato !== null)
+    .map((atleta) => ({ atleta, diasRestantes: diasEntre(hojeStr, atleta.data_fim_contrato) }))
+    .filter(({ diasRestantes }) => diasRestantes >= 0 && diasRestantes <= diasPrazo)
+    .map(({ atleta, diasRestantes }) => ({
+      titulo: `Contrato de ${atleta.nome_completo} vencendo`,
+      subtitulo: atleta.posicao,
+      cor: "#B4232C",
+      diasRestantes,
+      urgencia: urgenciaPorDias(diasRestantes),
+      href: `/atletas/${atleta.id}`,
+    }))
+    .sort((a, b) => a.diasRestantes - b.diasRestantes);
+}
 
 export interface AtletaContratoVencendo {
   atleta: AtletaParaContratoVencendo;

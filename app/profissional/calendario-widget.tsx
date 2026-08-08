@@ -139,6 +139,11 @@ export function CalendarioWidget({
   logoPorJogoId: Map<string, string | null>;
   hojeStr: string;
 }) {
+  // Só a partir de hoje: dias já passados do mês não precisam mais de ação (editar/remover) e só
+  // deixavam essa lista comprida, empurrando o resto da página pra baixo — altura limitada com
+  // scroll interno (`max-h-56 overflow-y-auto`) cobre o resto (mês com muitos jogos/eventos).
+  const itensFuturos = itensDoMes.filter((item) => item.data >= hojeStr);
+
   return (
     <div className="card p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -188,9 +193,9 @@ export function CalendarioWidget({
         ))}
       </div>
 
-      {itensDoMes.length > 0 ? (
-        <div className="mt-4 space-y-1.5 border-t border-linha pt-3">
-          {itensDoMes.map((item, i) => {
+      {itensFuturos.length > 0 ? (
+        <div className="mt-4 max-h-56 space-y-1.5 overflow-y-auto border-t border-linha pt-3">
+          {itensFuturos.map((item, i) => {
             const hora = formatHorario(item.horario);
             const local = item.tipo === "jogo" ? item.jogo.local_estadio : null;
             return (
@@ -229,7 +234,7 @@ export function CalendarioWidget({
         </div>
       ) : (
         <p className="mt-4 border-t border-linha pt-3 text-center text-sm text-neutral-400">
-          Nenhum jogo ou evento neste mês.
+          Nenhum jogo ou evento a partir de hoje neste mês.
         </p>
       )}
     </div>

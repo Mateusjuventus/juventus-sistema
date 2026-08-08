@@ -1,36 +1,33 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
-import { DeleteButton } from "@/components/delete-button";
-import { SolicitacaoStatusSelect } from "@/components/solicitacao-status";
+import { SolicitacoesLista } from "@/components/solicitacoes-lista";
 import { createClient } from "@/lib/supabase/server";
 import { SOLICITACAO_TIPOS, SOLICITACAO_STATUS } from "@/lib/validation/schemas";
 import type { SolicitacaoRow, SolicitacaoTipo, SolicitacaoStatus } from "@/lib/supabase/types";
 import { deleteSolicitacao, duplicarSolicitacao, updateSolicitacaoStatus } from "./actions";
 
-function formatData(data: string): string {
-  const [ano, mes, dia] = data.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
-
-function formatMoeda(valor: number | null): string {
-  if (valor === null) return "—";
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 /** Espelha `app/base/solicitacoes/page.tsx`. Ordenação padrão (sem parâmetro na URL): número mais
  * alto primeiro (a solicitação mais recente, já que numera em ordem de criação). */
 const COLUNA_ORDENACAO: Record<string, string> = { numero: "numero", data: "data_solicitacao" };
 
+/** Escapa `%`, `_` e `,` antes de montar um `.or(...)` do PostgREST — sem isso, uma busca com
+ * vírgula quebraria a lista de condições, e `%`/`_` seriam interpretados como curingas do LIKE em
+ * vez de texto literal. */
+function escapeIlike(texto: string): string {
+  return texto.replace(/[%_,]/g, (c) => `\\${c}`);
+}
+
 export default async function SolicitacoesPage({
   searchParams,
 }: {
-  searchParams: { tipo?: string; status?: string; ordenarPor?: string; direcao?: string };
+  searchParams: { tipo?: string; status?: string; ordenarPor?: string; direcao?: string; busca?: string };
 }) {
   const tipoFiltro = SOLICITACAO_TIPOS.some((t) => t.value === searchParams.tipo) ? searchParams.tipo! : "";
   const statusFiltro = SOLICITACAO_STATUS.some((s) => s.value === searchParams.status) ? searchParams.status! : "";
   const ordenarPor = searchParams.ordenarPor === "data" ? "data" : "numero";
   const direcao = searchParams.direcao === "asc" ? "asc" : "desc";
+  const busca = (searchParams.busca ?? "").trim();
 
   const supabase = createClient();
   let query = supabase
@@ -39,6 +36,15 @@ export default async function SolicitacoesPage({
     .order(COLUNA_ORDENACAO[ordenarPor], { ascending: direcao === "asc" });
   if (tipoFiltro) query = query.eq("tipo", tipoFiltro as SolicitacaoTipo);
   if (statusFiltro) query = query.eq("status", statusFiltro as SolicitacaoStatus);
+  if (busca) {
+    const termo = escapeIlike(busca);
+    const condicoes = [`solicitante.ilike.%${termo}%`, `descricao_necessidade.ilike.%${termo}%`, `setor.ilike.%${termo}%`];
+    // Número da solicitação também entra na busca (ex.: digitar "31" acha "Nº 031") quando o termo
+    // for só dígitos, sem os zeros à esquerda que o `.eq` numérico não aceitaria.
+    const numeroBusca = /^\d+$/.test(busca) ? Number(busca) : null;
+    if (numeroBusca !== null) condicoes.push(`numero.eq.${numeroBusca}`);
+    query = query.or(condicoes.join(","));
+  }
 
   const { data, error } = await query;
   const solicitacoes = (data ?? []) as SolicitacaoRow[];
@@ -63,6 +69,19 @@ export default async function SolicitacoesPage({
       </div>
 
       <form action="/solicitacoes" className="card mt-4 flex flex-wrap items-end gap-3 p-4">
+        <div className="min-w-[220px] flex-1">
+          <label htmlFor="busca" className="field-label">
+            Buscar
+          </label>
+          <input
+            id="busca"
+            name="busca"
+            type="text"
+            defaultValue={busca}
+            placeholder="Número, solicitante, setor ou descrição..."
+            className="field-input"
+          />
+        </div>
         <div className="min-w-[180px]">
           <label htmlFor="tipo" className="field-label">
             Tipo
@@ -126,68 +145,16 @@ export default async function SolicitacoesPage({
           do fluxo — em vez de uma lista única, fica mais fácil ver rapidamente o que ainda está
           pendente sem precisar filtrar. Dentro de cada grupo, mantém a ordenação escolhida acima
           (Número ou Data, crescente ou decrescente) vinda da consulta. Grupos sem nenhuma
-          solicitação não aparecem. */}
-      <div className="mt-4 space-y-6">
-        {SOLICITACAO_STATUS.map((statusInfo) => {
-          const doGrupo = solicitacoes.filter((s) => s.status === statusInfo.value);
-          if (doGrupo.length === 0) return null;
-          return (
-            <div key={statusInfo.value}>
-              <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                {statusInfo.label}
-                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-neutral-500">
-                  {doGrupo.length}
-                </span>
-              </h2>
-              <div className="space-y-3">
-                {doGrupo.map((s) => {
-                  const tipoLabel = SOLICITACAO_TIPOS.find((t) => t.value === s.tipo)?.label ?? s.tipo;
-                  const prazoFormatado = s.prazo_sugerido ? formatData(s.prazo_sugerido) : null;
-                  const subtitulo = s.descricao_necessidade;
-                  return (
-                    <div key={s.id} className="card flex flex-wrap items-center gap-3 p-4">
-                      <div className="min-w-[220px] flex-1">
-                        <p className="font-medium text-neutral-800">
-                          <span className="text-neutral-400">Nº {String(s.numero).padStart(3, "0")}</span> ·{" "}
-                          {tipoLabel} · {s.solicitante}
-                        </p>
-                        {subtitulo ? (
-                          <p className="mt-0.5 line-clamp-1 text-sm text-neutral-500">{subtitulo}</p>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-col items-end text-sm text-neutral-500">
-                        <span>Data: {formatData(s.data_solicitacao)}</span>
-                        {prazoFormatado ? <span>Prazo sugerido: {prazoFormatado}</span> : null}
-                        {s.valor !== null ? <span>{formatMoeda(s.valor)}</span> : null}
-                      </div>
-                      <SolicitacaoStatusSelect id={s.id} status={s.status} action={updateSolicitacaoStatus} />
-                      <div className="flex gap-2">
-                        <Link href={`/solicitacoes/${s.id}`} className="btn-secondary">
-                          Ver / Editar
-                        </Link>
-                        <a
-                          href={`/solicitacoes/${s.id}/pdf`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-secondary"
-                        >
-                          PDF
-                        </a>
-                        <form action={duplicarSolicitacao}>
-                          <input type="hidden" name="id" value={s.id} />
-                          <button type="submit" className="btn-secondary">
-                            Duplicar
-                          </button>
-                        </form>
-                        <DeleteButton action={deleteSolicitacao} id={s.id} entityLabel="solicitação" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+          solicitação não aparecem. Concluída ainda subagrupa por tipo, com colapso (ver
+          `components/solicitacoes-lista.tsx`). */}
+      <div className="mt-4">
+        <SolicitacoesLista
+          itens={solicitacoes}
+          hrefBase="/solicitacoes"
+          updateStatusAction={updateSolicitacaoStatus}
+          duplicarAction={duplicarSolicitacao}
+          deletarAction={deleteSolicitacao}
+        />
       </div>
     </AppShell>
   );

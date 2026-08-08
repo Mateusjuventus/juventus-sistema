@@ -4,6 +4,7 @@ import {
   adicionarDias,
   agruparPorDia,
   atletasContratoVencendo,
+  contratosParaMural,
   diasEntre,
   gradeDoMes,
   itensMural,
@@ -157,19 +158,22 @@ describe("itensMural", () => {
   );
 
   it("inclui de hoje até 10 dias, exclui 11 dias e datas passadas", () => {
-    const ids = itensMural(itens, "2026-08-10").map((m) => (m.item.tipo === "jogo" ? m.item.jogo.id : ""));
-    expect(ids).toEqual(["hoje", "em-2-dias", "em-5-dias", "em-10-dias"]);
+    const titulos = itensMural(itens, "2026-08-10").map((m) => m.titulo);
+    expect(titulos).toEqual([
+      tituloJogo(jogo({ id: "hoje", data_jogo: "2026-08-10" })),
+      tituloJogo(jogo({ id: "em-2-dias", data_jogo: "2026-08-12" })),
+      tituloJogo(jogo({ id: "em-5-dias", data_jogo: "2026-08-15" })),
+      tituloJogo(jogo({ id: "em-10-dias", data_jogo: "2026-08-20" })),
+    ]);
   });
 
   it("badge: vermelho até 2 dias, amarelo até 5, verde até 10", () => {
     const mural = itensMural(itens, "2026-08-10");
-    const urgenciaPorId = Object.fromEntries(
-      mural.map((m) => [m.item.tipo === "jogo" ? m.item.jogo.id : "", m.urgencia]),
-    );
-    expect(urgenciaPorId["hoje"]).toBe("urgente");
-    expect(urgenciaPorId["em-2-dias"]).toBe("urgente");
-    expect(urgenciaPorId["em-5-dias"]).toBe("atencao");
-    expect(urgenciaPorId["em-10-dias"]).toBe("ok");
+    const urgenciaPorDias = Object.fromEntries(mural.map((m) => [m.diasRestantes, m.urgencia]));
+    expect(urgenciaPorDias[0]).toBe("urgente");
+    expect(urgenciaPorDias[2]).toBe("urgente");
+    expect(urgenciaPorDias[5]).toBe("atencao");
+    expect(urgenciaPorDias[10]).toBe("ok");
   });
 
   it("evento e jogo no mesmo dia entram juntos, ordenados por proximidade", () => {
@@ -179,6 +183,41 @@ describe("itensMural", () => {
     );
     const mural = itensMural(misto, "2026-08-10");
     expect(mural.map((m) => m.diasRestantes)).toEqual([3, 5]);
+  });
+
+  it("href sempre null pra itens de jogo/evento (não linkam)", () => {
+    const mural = itensMural(itens, "2026-08-10");
+    expect(mural.every((m) => m.href === null)).toBe(true);
+  });
+});
+
+describe("contratosParaMural", () => {
+  it("inclui contrato vencendo dentro de 10 dias, exclui fora da janela e vencidos", () => {
+    const atletas = [
+      atleta({ id: "hoje", nome_completo: "Zé", data_fim_contrato: "2026-08-10" }),
+      atleta({ id: "em-10-dias", nome_completo: "João", data_fim_contrato: "2026-08-20" }),
+      atleta({ id: "em-11-dias", nome_completo: "Pedro", data_fim_contrato: "2026-08-21" }),
+      atleta({ id: "vencido", nome_completo: "Carlos", data_fim_contrato: "2026-08-09" }),
+      atleta({ id: "sem-data", nome_completo: "Lucas", data_fim_contrato: null }),
+    ];
+    const mural = contratosParaMural(atletas, "2026-08-10");
+    expect(mural.map((m) => m.titulo)).toEqual(["Contrato de Zé vencendo", "Contrato de João vencendo"]);
+  });
+
+  it("gera href pro perfil do atleta e cor fixa de alerta", () => {
+    const atletas = [atleta({ id: "atleta-x", nome_completo: "Zé", data_fim_contrato: "2026-08-10" })];
+    const mural = contratosParaMural(atletas, "2026-08-10");
+    expect(mural[0].href).toBe("/atletas/atleta-x");
+    expect(mural[0].cor).toBe("#B4232C");
+  });
+
+  it("ordena por dias restantes", () => {
+    const atletas = [
+      atleta({ id: "a", nome_completo: "A", data_fim_contrato: "2026-08-15" }),
+      atleta({ id: "b", nome_completo: "B", data_fim_contrato: "2026-08-11" }),
+    ];
+    const mural = contratosParaMural(atletas, "2026-08-10");
+    expect(mural.map((m) => m.titulo)).toEqual(["Contrato de B vencendo", "Contrato de A vencendo"]);
   });
 });
 

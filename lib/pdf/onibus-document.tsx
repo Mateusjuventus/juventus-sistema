@@ -75,8 +75,15 @@ export function OnibusDocument({
           <Text style={sharedStyles.emptyState}>Nenhum ônibus registrado.</Text>
         ) : (
           onibus.map((o) => (
-            <View style={styles.onibusBox} key={o.numero} wrap={false}>
-              <Text style={styles.onibusTitulo}>
+            // `wrap` (não `wrap={false}`) de propósito: a caixa toda (título + tabela) não pode
+            // ser "atômica" — antes disso forçava a lista inteira pra página 2 sempre que não
+            // coubesse no espaço restante da página 1, mesmo sobrando bastante espaço em branco
+            // ali (o bug relatado: cabeçalho fica na 1ª página, lista inteira pula pra 2ª). Deixar
+            // a caixa quebrar entre páginas faz ela aproveitar o espaço que sobrou na 1ª página
+            // antes de continuar na 2ª. `minPresenceAhead` no título evita ele ficar sozinho no
+            // rodapé de uma página sem nenhuma linha da tabela embaixo.
+            <View style={styles.onibusBox} key={o.numero}>
+              <Text style={styles.onibusTitulo} minPresenceAhead={40}>
                 Lista de Passageiros
                 {o.horario ? ` — Saída ${o.horario}` : ""}
               </Text>
@@ -84,14 +91,14 @@ export function OnibusDocument({
                 <Text style={styles.emptyState}>Sem passageiros.</Text>
               ) : (
                 <View style={styles.tabela}>
-                  <View style={styles.linhaCabecalho}>
+                  <View style={styles.linhaCabecalho} wrap={false} minPresenceAhead={20}>
                     <Text style={[styles.colNome, styles.headerCell]}>Nome Completo</Text>
                     <Text style={[styles.colNascimento, styles.headerCell]}>Nascimento</Text>
                     <Text style={[styles.colCpf, styles.headerCell]}>CPF</Text>
                     <Text style={[styles.colRg, styles.headerCell]}>RG</Text>
                   </View>
                   {o.passageiros.map((p, i) => (
-                    <View style={styles.linha} key={i}>
+                    <View style={styles.linha} key={i} wrap={false}>
                       <Text style={[styles.colNome, styles.cellNome]}>{p.nome}</Text>
                       <Text style={[styles.colNascimento, styles.cell]}>{formatDataBr(p.dataNascimento)}</Text>
                       <Text style={[styles.colCpf, styles.cell]}>{p.cpf ? formatCPF(p.cpf) : "—"}</Text>

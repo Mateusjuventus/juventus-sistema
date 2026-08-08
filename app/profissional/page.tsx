@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { IconAtletas, IconComissao, IconJogos, IconStaff } from "@/components/module-icons";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getModulosPermitidos } from "@/lib/auth/role";
@@ -7,6 +8,7 @@ import {
   adicionarDias,
   agruparPorDia,
   atletasContratoVencendo,
+  contratosParaMural,
   diasEntre,
   gradeDoMes,
   itensMural,
@@ -17,7 +19,6 @@ import type { AtletaParaContratoVencendo } from "@/lib/futebol/calendario";
 import type { EventoCalendarioRow, JogoRow } from "@/lib/supabase/types";
 import { CalendarioWidget } from "./calendario-widget";
 import { ProximoJogoWidget } from "./proximo-jogo-widget";
-import { ContratosVencendoWidget } from "./contratos-vencendo-widget";
 import { MuralWidget } from "./mural-widget";
 
 const DIAS_JANELA_MURAL = 10;
@@ -111,16 +112,29 @@ export default async function ProfissionalPage() {
   const eventosMural = (eventosMuralData ?? []) as EventoCalendarioRow[];
   // Consulta separada da grade do mês de propósito: a janela de 10 dias do Mural pode atravessar
   // pro mês seguinte (ex: hoje é dia 28), e a grade do widget "Calendário" só cobre o mês corrente.
-  const mural = itensMural(montarItensCalendario(jogosMural, eventosMural), hojeStr, DIAS_JANELA_MURAL);
+  // Contratos vencendo reaproveita a mesma consulta de 90 dias já feita acima (superset da janela
+  // de 10 dias do Mural) — `contratosParaMural` filtra internamente, não precisa de nova consulta.
+  const mural = [
+    ...itensMural(montarItensCalendario(jogosMural, eventosMural), hojeStr, DIAS_JANELA_MURAL),
+    ...contratosParaMural((contratosVencendoData ?? []) as AtletaParaContratoVencendo[], hojeStr, DIAS_JANELA_MURAL),
+  ].sort((a, b) => a.diasRestantes - b.diasRestantes);
 
   const estatisticas = [
-    { moduloChave: "atletas", valor: totalAtletas, label: "Atletas ativos" },
-    { moduloChave: "staff_operacional", valor: totalStaff, label: "Staff ativo" },
-    { moduloChave: "atletas", valor: contratosVencendo.length, label: "Contratos vencendo (90d)" },
+    { moduloChave: "atletas", valor: totalAtletas, label: "Atletas ativos", icone: IconAtletas, alerta: false },
+    { moduloChave: "staff_operacional", valor: totalStaff, label: "Staff ativo", icone: IconStaff, alerta: false },
+    {
+      moduloChave: "atletas",
+      valor: contratosVencendo.length,
+      label: "Contratos vencendo (90d)",
+      icone: IconComissao,
+      alerta: contratosVencendo.length > 0,
+    },
     {
       moduloChave: "jogos",
       valor: diasProximoJogo === null ? "—" : diasProximoJogo === 0 ? "Hoje" : `${diasProximoJogo}`,
       label: "Dias até o próximo jogo",
+      icone: IconJogos,
+      alerta: false,
     },
   ].filter((item) => temModulo(item.moduloChave));
 
@@ -128,18 +142,33 @@ export default async function ProfissionalPage() {
     <AppShell breadcrumb="Futebol Profissional">
       <h1 className="text-xl font-extrabold text-grena-escuro">Futebol Profissional</h1>
 
-      <div className="mt-4 grid grid-cols-[1fr_224px] gap-4 max-lg:grid-cols-1">
+      <div className="mt-4 grid grid-cols-[1fr_224px] items-start gap-4 max-lg:grid-cols-1">
         <div className="min-w-0 space-y-4">
           {estatisticas.length > 0 ? (
-            <div className="grid grid-cols-2 divide-x divide-linha rounded-lg border border-linha bg-white sm:grid-cols-4 sm:divide-x">
-              {estatisticas.map((item, i) => (
-                <div key={item.label} className={`p-4 ${i >= 2 ? "border-t border-linha sm:border-t-0" : ""}`}>
-                  <p className="text-xl font-extrabold text-neutral-800">{item.valor}</p>
-                  <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-                    {item.label}
-                  </p>
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {estatisticas.map((item) => {
+                const Icone = item.icone;
+                return (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-3 rounded-lg border border-linha bg-white p-4"
+                  >
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        item.alerta ? "bg-red-50 text-red-600" : "bg-dourado/10 text-dourado"
+                      }`}
+                    >
+                      <Icone className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xl font-extrabold leading-none text-neutral-800">{item.valor}</p>
+                      <p className="mt-1.5 truncate text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                        {item.label}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
 
@@ -155,10 +184,7 @@ export default async function ProfissionalPage() {
             />
           ) : null}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {temModulo("jogos") ? <ProximoJogoWidget jogo={proximoJogo} adversarioLogoUrl={adversarioLogoUrl} /> : null}
-            {temModulo("atletas") ? <ContratosVencendoWidget itens={contratosVencendo} /> : null}
-          </div>
+          {temModulo("jogos") ? <ProximoJogoWidget jogo={proximoJogo} adversarioLogoUrl={adversarioLogoUrl} /> : null}
         </div>
 
         <div className="min-w-0">

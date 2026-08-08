@@ -44,11 +44,12 @@ function chavePessoa(tipo: PessoaTipoRooming, id: string): string {
  * Formulário de Rooming List de um jogo — organizado por QUARTO (cada quarto é um cartão com quem
  * já está nele e um jeito de adicionar/remover pessoas direto ali), em vez de uma tabela só com
  * todo mundo e um menu "Quarto" por pessoa (formato antigo, que confundia na hora de montar os
- * quartos). Quartos só podem ser adicionados ou o último removido (nunca um do meio) — evita que
- * remover um quarto embaralhe a atribuição de pessoas nos quartos anteriores, já que a posição na
- * lista é o identificador enviado ao servidor. As setas ▲▼ em cada card permitem reordenar os
- * quartos manualmente (ex.: por hierarquia de função na Comissão Técnica) — essa ordem é a que sai
- * no PDF pra Comissão Técnica, que não tem nenhuma ordenação automática (ver
+ * quartos). Qualquer quarto pode ser removido (não só o último, ver `removerQuarto`) — a posição
+ * na lista é o identificador enviado ao servidor, então remover um do meio reindexa a atribuição de
+ * quem estava nos quartos seguintes (quem estava no quarto removido volta pra "sem quarto"; quem
+ * estava depois dele desce um índice). As setas ▲▼ em cada card permitem reordenar os quartos
+ * manualmente (ex.: por hierarquia de função na Comissão Técnica) — essa ordem é a que sai no PDF
+ * pra Comissão Técnica, que não tem nenhuma ordenação automática (ver
  * `lib/pdf/rooming-list-document.tsx`).
  */
 export function RoomingListForm({
@@ -109,13 +110,17 @@ export function RoomingListForm({
     setQuartos((atual) => [...atual, { id: crypto.randomUUID(), tipo, numeroApartamento: "" }]);
   }
 
-  function removerUltimoQuarto() {
-    const removidoIndex = quartos.length - 1;
-    setQuartos((atual) => atual.slice(0, -1));
+  /** Remove o quarto de qualquer posição (não só o último). Quem estava nesse quarto volta pra
+   * "sem quarto"; quem estava em quartos depois dele desce um índice junto com o array, senão a
+   * atribuição ficaria apontando pro quarto errado (a posição na lista é o identificador). */
+  function removerQuarto(index: number) {
+    setQuartos((atual) => atual.filter((_, i) => i !== index));
     setAtribuicoes((atual) => {
-      const copia = { ...atual };
-      for (const chave of Object.keys(copia)) {
-        if (copia[chave] === removidoIndex) copia[chave] = null;
+      const copia: Record<string, number | null> = {};
+      for (const [chave, valor] of Object.entries(atual)) {
+        if (valor === null || valor < index) copia[chave] = valor;
+        else if (valor === index) copia[chave] = null;
+        else copia[chave] = valor - 1;
       }
       return copia;
     });
@@ -207,11 +212,6 @@ export function RoomingListForm({
             <button type="button" className="btn-secondary" onClick={() => adicionarQuarto("triplo")}>
               + Quarto triplo
             </button>
-            {quartos.length > 0 ? (
-              <button type="button" className="btn-secondary" onClick={removerUltimoQuarto}>
-                Remover último
-              </button>
-            ) : null}
           </div>
         </div>
 
@@ -260,6 +260,13 @@ export function RoomingListForm({
                             ▼
                           </button>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => removerQuarto(i)}
+                          className="rounded border border-neutral-200 px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                        >
+                          Remover quarto
+                        </button>
                       </div>
                     </div>
 
