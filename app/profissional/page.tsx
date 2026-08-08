@@ -19,10 +19,13 @@ import type { AtletaParaContratoVencendo } from "@/lib/futebol/calendario";
 import type { EventoCalendarioRow, JogoRow } from "@/lib/supabase/types";
 import { CalendarioWidget } from "./calendario-widget";
 import { ProximoJogoWidget } from "./proximo-jogo-widget";
+import { ProximosJogosWidget } from "./proximos-jogos-widget";
 import { MuralWidget } from "./mural-widget";
 
 const DIAS_JANELA_MURAL = 10;
 const DIAS_JANELA_CONTRATO = 90;
+/** Quantos jogos futuros entram no widget "Próximos jogos" (coluna lateral, abaixo do Mural). */
+const LIMITE_PROXIMOS_JOGOS = 5;
 
 /** Conta linhas de uma tabela sem trazer os dados (head: true), pra montar os números da faixa de
  * resumo. */
@@ -57,7 +60,7 @@ export default async function ProfissionalPage() {
     totalAtletas,
     { count: totalStaffCount },
     { data: contratosVencendoData },
-    { data: proximoJogoData },
+    { data: proximosJogosData },
     { data: jogosDoMesData },
     { data: eventosDoMesData },
     { data: jogosMuralData },
@@ -72,7 +75,12 @@ export default async function ProfissionalPage() {
       .not("data_fim_contrato", "is", null)
       .gte("data_fim_contrato", hojeStr)
       .lte("data_fim_contrato", limiteContratoStr),
-    supabase.from("jogos").select("*").gte("data_jogo", hojeStr).order("data_jogo", { ascending: true }).limit(1).maybeSingle(),
+    supabase
+      .from("jogos")
+      .select("*")
+      .gte("data_jogo", hojeStr)
+      .order("data_jogo", { ascending: true })
+      .limit(LIMITE_PROXIMOS_JOGOS),
     supabase.from("jogos").select("*").gte("data_jogo", inicioMes).lte("data_jogo", fimMes),
     supabase.from("eventos_calendario").select("*").gte("data", inicioMes).lte("data", fimMes),
     supabase.from("jogos").select("*").gte("data_jogo", hojeStr).lte("data_jogo", limiteMuralStr),
@@ -89,9 +97,19 @@ export default async function ProfissionalPage() {
     DIAS_JANELA_CONTRATO,
   );
 
-  const proximoJogo = proximoJogoData as JogoRow | null;
-  const adversarioLogoUrl = proximoJogo ? await getSignedPhotoUrl(supabase, proximoJogo.adversario_logo_path) : null;
+  const proximosJogos = (proximosJogosData ?? []) as JogoRow[];
+  const proximoJogo = proximosJogos[0] ?? null;
   const diasProximoJogo = proximoJogo ? diasEntre(hojeStr, proximoJogo.data_jogo) : null;
+
+  const logoPorProximoJogoId = new Map<string, string | null>(
+    await Promise.all(
+      proximosJogos.map(async (jogo): Promise<[string, string | null]> => [
+        jogo.id,
+        await getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
+      ]),
+    ),
+  );
+  const adversarioLogoUrl = proximoJogo ? (logoPorProximoJogoId.get(proximoJogo.id) ?? null) : null;
 
   const jogosDoMes = (jogosDoMesData ?? []) as JogoRow[];
   const eventosDoMes = (eventosDoMesData ?? []) as EventoCalendarioRow[];
@@ -187,8 +205,11 @@ export default async function ProfissionalPage() {
           {temModulo("jogos") ? <ProximoJogoWidget jogo={proximoJogo} adversarioLogoUrl={adversarioLogoUrl} /> : null}
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-4">
           <MuralWidget itens={mural} />
+          {temModulo("jogos") ? (
+            <ProximosJogosWidget jogos={proximosJogos} logoPorJogoId={logoPorProximoJogoId} />
+          ) : null}
         </div>
       </div>
     </AppShell>
