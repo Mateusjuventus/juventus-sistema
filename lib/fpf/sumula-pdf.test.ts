@@ -201,3 +201,43 @@ describe("converterMinutoPdfParaRelativo", () => {
     expect(converterMinutoPdfParaRelativo(40, "segundo", 45)).toBe(0);
   });
 });
+
+describe("parsearSumulaPdf — tabela de Expulsões no layout 'Tempo Sigla Nº Nome Equipe'", () => {
+  // Súmula real (São Caetano x São José): as colunas vêm ao contrário do outro layout, e um dos
+  // expulsos saiu ANTES do jogo ("-" no tempo, sigla "AJ"). Antes desta correção nenhum dos dois
+  // era contabilizado.
+  const TEXTO = [
+    "Expulsões",
+    "Tempo Sigla Nº Nome Equipe",
+    "05:00 1T 1 Daniel Lamberti São Caetano",
+    "Cartão Vermelho Motivo: Expulso por calçar seu adversário de Nº 11 Jefferson Souza do Nascimento.",
+    "- AJ 33 Micael de Barros Viturino São José EC SAF",
+    "Cartão Vermelho Motivo: Expulso por sair do campo de jogo antes do inicio da partida.",
+  ].join("\n");
+
+  const resultado = parsearSumulaPdf(TEXTO);
+
+  it("contabiliza as duas expulsões como cartão vermelho", () => {
+    expect(resultado.cartoes).toHaveLength(2);
+    expect(resultado.cartoes.every((c) => c.cor === "vermelho")).toBe(true);
+  });
+
+  it("guarda nome e equipe juntos, sinalizando que precisam ser casados por continência", () => {
+    expect(resultado.cartoes[0]).toMatchObject({
+      numero: 1,
+      nome: "Daniel Lamberti São Caetano",
+      equipe: "Daniel Lamberti São Caetano",
+      nomeComEquipe: true,
+      minuto: 5,
+      tempo: "primeiro",
+    });
+  });
+
+  it("expulsão antes do jogo (traço + AJ) entra como minuto 0 do 1º tempo", () => {
+    expect(resultado.cartoes[1]).toMatchObject({ numero: 33, minuto: 0, tempo: "primeiro" });
+  });
+
+  it("a linha de motivo não vira aviso de linha não reconhecida", () => {
+    expect(resultado.avisos.join(" ")).not.toContain("Motivo");
+  });
+});

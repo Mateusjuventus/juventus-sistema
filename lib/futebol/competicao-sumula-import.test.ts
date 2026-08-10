@@ -147,3 +147,18 @@ describe("dataSumulaParaIso", () => {
     expect(resultado.data).toBe("2026-07-17");
   });
 });
+
+describe("cartões cujo nome vem colado com a equipe (tabela de Expulsões)", () => {
+  it("atribui ao lado certo por continência", () => {
+    const resultado = contarCartoesPorLado(
+      [
+        { equipe: "Daniel Lamberti São Caetano", numero: 1, nome: "Daniel Lamberti São Caetano", cor: "vermelho", minuto: 5, tempo: "primeiro", nomeComEquipe: true },
+        { equipe: "Micael de Barros Viturino São José EC SAF", numero: 33, nome: "Micael de Barros Viturino São José EC SAF", cor: "vermelho", minuto: 0, tempo: "primeiro", nomeComEquipe: true },
+      ],
+      "São Caetano",
+      "São José",
+    );
+    expect(resultado).toMatchObject({ vermelhosA: 1, vermelhosB: 1 });
+    expect(resultado.naoIdentificados).toEqual([]);
+  });
+});

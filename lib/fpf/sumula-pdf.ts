@@ -91,6 +91,10 @@ export interface SumulaPdfCartao {
   cor: "amarelo" | "vermelho";
   minuto: number;
   tempo: "primeiro" | "segundo";
+  /** true quando a linha veio no layout "Tempo Sigla Nº Nome Equipe" e não deu pra separar nome e
+   * equipe (ver RE_CARTAO_TEMPO_PRIMEIRO): nesse caso `nome` e `equipe` trazem os dois juntos, e
+   * quem consome deve casar por continência em vez de igualdade. */
+  nomeComEquipe?: boolean;
 }
 
 export interface SumulaPdfSubstituicao {
@@ -166,6 +170,21 @@ const RE_GOL_SEM_APELIDO = new RegExp(
 
 /** "Equipe Nº Nome MM:SS 1T/2T" */
 const RE_CARTAO = new RegExp(`^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`);
+
+/**
+ * Layout ALTERNATIVO das tabelas de Advertências/Expulsões, visto numa súmula real da Copa
+ * Paulista (São Caetano x São José): as colunas vêm na ordem "Tempo | Sigla | Nº | Nome | Equipe",
+ * ex.: "05:00 1T 1 Daniel Lamberti São Caetano". O tempo pode ser "-" e a sigla "AJ" (antes do
+ * jogo) quando a expulsão acontece fora das duas etapas — foi assim que uma expulsão real deixou
+ * de ser contabilizada, porque só existia o padrão com a equipe na frente.
+ *
+ * Como o extrator de PDF colapsa os espaços entre colunas (ver `normalizarLinhas`), não dá pra
+ * separar "Nome" de "Equipe" com segurança nessa ordem — o resto da linha fica junto em
+ * `nome`/`equipe`, e quem consome resolve por continência (ver `nomeComEquipe`).
+ */
+const RE_CARTAO_TEMPO_PRIMEIRO = new RegExp(
+  `^(?:${MINUTO_ALTERNATIVAS}|(-))\\s+(1T|2T|AJ|AP|IN)\\s+(\\d{1,3})\\s+(.+)$`,
+);
 
 /** "Equipe Nº Saiu Nº Entrou MM:SS 1T/2T" */
 const RE_SUBSTITUICAO = new RegExp(
@@ -284,6 +303,16 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
       secaoCartaoAtual = "vermelho";
       continue;
     }
+    // Cada entrada das tabelas novas traz uma etiqueta "Cartão Amarelo"/"Cartão Vermelho" logo
+    // abaixo — serve de reforço pra cor quando o título da seção não foi reconhecido.
+    if (/^cart[ãa]o vermelho\b/i.test(linha)) {
+      secaoCartaoAtual = "vermelho";
+      continue;
+    }
+    if (/^cart[ãa]o amarelo\b/i.test(linha)) {
+      secaoCartaoAtual = "amarelo";
+      continue;
+    }
     if (/^(gols?|substitui[çc][õo]es|comiss[ãa]o t[ée]cnica|rela[çc][ãa]o de jogadores)\b/i.test(linha)) {
       secaoCartaoAtual = null;
     }
@@ -349,6 +378,35 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
       });
       continue;
     }
+
+    // Layout alternativo (tempo na frente) — ver RE_CARTAO_TEMPO_PRIMEIRO. Só dentro da seção de
+    // cartões, pra não capturar linha de outra tabela por engano.
+    const mCartaoTempoPrimeiro = linha.match(RE_CARTAO_TEMPO_PRIMEIRO);
+    if (mCartaoTempoPrimeiro && secaoCartaoAtual) {
+      const [, minutoNormal, , minutoAcrescimo, semTempo, sigla, numero, nomeEEquipe] = mCartaoTempoPrimeiro;
+      // "AJ" (antes do jogo), "AP" (após a partida), "IN" (intervalo) e o traço no lugar do
+      // relógio: eventos fora das duas etapas entram como minuto 0 do 1º tempo, que é o mais
+      // próximo que a nossa Súmula representa.
+      const tempo: "primeiro" | "segundo" = sigla === "2T" ? "segundo" : "primeiro";
+      const minuto = semTempo || (sigla !== "1T" && sigla !== "2T")
+        ? 0
+        : resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo);
+      const texto = nomeEEquipe.trim();
+      cartoes.push({
+        equipe: texto,
+        numero: Number(numero),
+        nome: texto,
+        cor: secaoCartaoAtual,
+        minuto,
+        tempo,
+        nomeComEquipe: true,
+      });
+      continue;
+    }
+
+    // O motivo da expulsão vem numa linha própria logo abaixo da entrada ("Motivo: Expulso
+    // por..."); é texto descritivo esperado, não uma linha perdida.
+    if (/^motivo:/i.test(linha)) continue;
 
     if (!ehCabecalhoOuVazio(linha) && (secaoCartaoAtual || /cart[ãa]o|expuls[ãa]o/i.test(linha))) {
       avisos.push(`Linha não reconhecida na seção de cartões: "${linha}"`);

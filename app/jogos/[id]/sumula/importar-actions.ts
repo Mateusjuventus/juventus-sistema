@@ -236,12 +236,18 @@ export async function buscarPreviaImportacaoSumula(
 
   for (const cartao of dadosPdf.cartoes) {
     if (!ehLadoJuventus(cartao.equipe)) continue;
+    // No layout de tabela em que nome e equipe vêm colados (ver `nomeComEquipe` em
+    // lib/fpf/sumula-pdf.ts), tira o nome do clube do fim antes de tentar casar com o elenco —
+    // senão "Fulano de Tal Juventus SAF" atrapalharia a sugestão por nome.
+    const nomeCartao = cartao.nomeComEquipe
+      ? cartao.nome.replace(/\s*juventus\b.*$/i, "").trim() || cartao.nome
+      : cartao.nome;
     eventos.push({
       tipo: cartao.cor === "amarelo" ? "cartao_amarelo" : "cartao_vermelho",
       minuto: converterMinutoPdfParaRelativo(cartao.minuto, cartao.tempo, duracaoPrimeiroTempo),
       tempo: cartao.tempo,
-      descricao: `Cartão ${cartao.cor} — ${cartao.nome}`,
-      atletaId: sugerirPorNome(cartao.nome),
+      descricao: `Cartão ${cartao.cor} — ${nomeCartao}`,
+      atletaId: sugerirPorNome(nomeCartao),
       atletaEntrouId: null,
       nomeAdversario: null,
       contraFavoreceJuventus: false,
