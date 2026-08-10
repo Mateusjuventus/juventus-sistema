@@ -5,7 +5,13 @@ import { CompeticaoTabs } from "@/components/competicao-tabs";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedCompeticaoDocumentoUrl } from "@/lib/supabase/storage";
 import { carregarCompeticao, confrontoComData } from "@/lib/futebol/competicao-query";
-import { atualizarCartoesAdversario, excluirResultadoExterno, lancarResultadoExterno } from "../../actions";
+import {
+  atualizarCartoesAdversario,
+  excluirResultadoExterno,
+  importarCartoesAdversarioPorLink,
+  importarResultadoPorLink,
+  lancarResultadoExterno,
+} from "../../actions";
 
 function formatData(data: string | null): string {
   if (!data) return "—";
@@ -30,6 +36,8 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
   const lancarAction = lancarResultadoExterno.bind(null, competicao.id);
   const excluirAction = excluirResultadoExterno.bind(null, competicao.id);
   const cartoesAdversarioAction = atualizarCartoesAdversario.bind(null, competicao.id);
+  const importarResultadoAction = importarResultadoPorLink.bind(null, competicao.id);
+  const importarCartoesAction = importarCartoesAdversarioPorLink.bind(null, competicao.id);
 
   // Signed URLs das súmulas anexadas (1h) — resolvidas de uma vez pra página inteira.
   const sumulaUrls = new Map<string, string | null>();
@@ -110,6 +118,23 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
                                     : "sem placar — preencha no cadastro do jogo"}
                                 </span>
                               </div>
+                              <form
+                                action={importarCartoesAction}
+                                className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs"
+                              >
+                                <input type="hidden" name="vinculoId" value={v.id} />
+                                <input type="hidden" name="adversario" value={jogo.adversario_nome} />
+                                <input
+                                  name="sumulaLink"
+                                  type="url"
+                                  defaultValue={v.sumula_link ?? jogo.fpf_link_sumula ?? ""}
+                                  placeholder="Cole o link do PDF da súmula da FPF"
+                                  className="field-input min-w-[260px] flex-1 py-1 text-xs"
+                                />
+                                <button type="submit" className="btn-secondary px-2 py-1 text-xs">
+                                  Importar cartões do adversário
+                                </button>
+                              </form>
                               <form
                                 action={cartoesAdversarioAction}
                                 className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-neutral-600"
@@ -200,6 +225,59 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
                           <p className="text-sm text-neutral-400">Nenhum resultado lançado neste grupo ainda.</p>
                         ) : null}
                       </div>
+
+                      {equipesFixas.length > 0 ? (
+                        <form
+                          action={importarResultadoAction}
+                          className="mt-3 flex flex-wrap items-end gap-2 rounded-md border border-dourado/30 bg-dourado/5 p-3"
+                        >
+                          <input type="hidden" name="grupoId" value={grupo.id} />
+                          <div className="min-w-[240px] flex-1">
+                            <label className="field-label">
+                              Link do PDF da súmula (FPF) — importa placar e cartões
+                            </label>
+                            <input
+                              name="sumulaLink"
+                              type="url"
+                              required
+                              placeholder="https://conteudo.fpf.org.br/.../sumula.pdf"
+                              className="field-input py-1 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="field-label">Mandante</label>
+                            <select name="equipeCasa" className="field-input w-36 py-1 text-xs" required>
+                              {equipesFixas.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="field-label">Visitante</label>
+                            <select
+                              name="equipeFora"
+                              className="field-input w-36 py-1 text-xs"
+                              defaultValue={equipesFixas[1] ?? equipesFixas[0]}
+                              required
+                            >
+                              {equipesFixas.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <button type="submit" className="btn-primary px-3 py-1.5 text-sm">
+                            Importar da súmula
+                          </button>
+                          <p className="w-full text-[11px] text-neutral-500">
+                            Mesmo leitor da aba Súmula do jogo do Juventus. Se o link falhar ou o nome das
+                            equipes não bater, use o lançamento manual abaixo.
+                          </p>
+                        </form>
+                      ) : null}
 
                       <form
                         action={lancarAction}

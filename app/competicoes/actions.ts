@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { COMPETICAO_DOCUMENTOS_BUCKET, buildCompeticaoDocumentoPath } from "@/lib/supabase/storage";
 import { CRITERIOS_PADRAO, ehCriterioValido } from "@/lib/futebol/competicao-desempate";
+import { baixarTextoSumulaPdf, parsearSumulaPdf } from "@/lib/fpf/sumula-pdf";
+import { contarCartoesPorLado, montarResultadoImportado } from "@/lib/futebol/competicao-sumula-import";
 
 /**
  * Server Actions do módulo de Competições (ver
@@ -329,6 +331,83 @@ export async function lancarResultadoExterno(competicaoId: string, formData: For
     cartoes_vermelhos_casa: inteiro(formData, "vermelhosCasa", 0),
     cartoes_vermelhos_fora: inteiro(formData, "vermelhosFora", 0),
   });
+  revalidarCompeticao(competicaoId);
+}
+
+/**
+ * Lança um resultado de jogo do grupo A PARTIR DO LINK da súmula oficial (PDF da FPF) — mesmo
+ * leitor da aba Súmula do jogo do Juventus. Extrai placar e cartões de cada lado, evitando
+ * digitação. As duas equipes vêm do formulário (selects do grupo), porque a súmula traz os nomes
+ * como a federação escreve e é o casamento com o cadastro que garante os pontos no lugar certo.
+ */
+export async function importarResultadoPorLink(
+  competicaoId: string,
+  formData: FormData,
+): Promise<void> {
+  const grupoId = texto(formData, "grupoId");
+  const equipeCasa = texto(formData, "equipeCasa");
+  const equipeFora = texto(formData, "equipeFora");
+  const link = texto(formData, "sumulaLink");
+  if (!grupoId || !equipeCasa || !equipeFora || !link) return;
+
+  let dados;
+  try {
+    dados = parsearSumulaPdf(await baixarTextoSumulaPdf(link));
+  } catch {
+    // Falha de rede/PDF inválido: não grava nada — o lançamento manual continua disponível logo
+    // abaixo no mesmo formulário.
+    return;
+  }
+
+  const importado = montarResultadoImportado(dados, equipeCasa, equipeFora);
+  const supabase = createClient();
+  await supabase.from("competicao_grupo_resultados").insert({
+    grupo_id: grupoId,
+    equipe_casa: equipeCasa,
+    equipe_fora: equipeFora,
+    gols_casa: importado.golsCasa,
+    gols_fora: importado.golsFora,
+    data_jogo: textoOuNull(formData, "dataJogo") ?? importado.data,
+    rodada: textoOuNull(formData, "rodada") ?? importado.rodada,
+    sumula_link: link,
+    cartoes_amarelos_casa: importado.cartoes.amarelosA,
+    cartoes_amarelos_fora: importado.cartoes.amarelosB,
+    cartoes_vermelhos_casa: importado.cartoes.vermelhosA,
+    cartoes_vermelhos_fora: importado.cartoes.vermelhosB,
+  });
+  revalidarCompeticao(competicaoId);
+}
+
+/**
+ * Cartões do ADVERSÁRIO num jogo do Juventus, lidos do PDF da súmula oficial: conta os cartões do
+ * lado que NÃO é o Juventus. Os nossos continuam vindo da súmula do sistema (aba Súmula do jogo).
+ */
+export async function importarCartoesAdversarioPorLink(
+  competicaoId: string,
+  formData: FormData,
+): Promise<void> {
+  const vinculoId = texto(formData, "vinculoId");
+  const adversario = texto(formData, "adversario");
+  const link = texto(formData, "sumulaLink");
+  if (!vinculoId || !adversario || !link) return;
+
+  let dados;
+  try {
+    dados = parsearSumulaPdf(await baixarTextoSumulaPdf(link));
+  } catch {
+    return;
+  }
+
+  const cartoes = contarCartoesPorLado(dados.cartoes, "Juventus", adversario);
+  const supabase = createClient();
+  await supabase
+    .from("competicao_jogos")
+    .update({
+      cartoes_amarelos_adversario: cartoes.amarelosB,
+      cartoes_vermelhos_adversario: cartoes.vermelhosB,
+      sumula_link: link,
+    })
+    .eq("id", vinculoId);
   revalidarCompeticao(competicaoId);
 }
 

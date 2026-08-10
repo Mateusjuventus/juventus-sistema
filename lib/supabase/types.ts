@@ -1204,6 +1204,8 @@ export interface CompeticaoJogoRow {
    * é complementado à mão na aba Súmulas dos Grupos. */
   cartoes_amarelos_adversario: number;
   cartoes_vermelhos_adversario: number;
+  /** Link do PDF da súmula oficial usado pra importar os cartões do adversário. */
+  sumula_link: string | null;
   created_by: string | null;
   created_at: string;
 }
@@ -1229,6 +1231,9 @@ export interface CompeticaoGrupoResultadoRow {
   cartoes_amarelos_fora: number;
   cartoes_vermelhos_casa: number;
   cartoes_vermelhos_fora: number;
+  /** Link do PDF da súmula oficial de onde placar e cartões foram importados (quando veio de
+   * link em vez de digitação). */
+  sumula_link: string | null;
   created_by: string | null;
   created_at: string;
 }

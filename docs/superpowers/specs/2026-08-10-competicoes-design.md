@@ -139,3 +139,24 @@ pois quando tiver outras competições, podem mudar". Então nada de ordem fixa 
   na Visão geral da competição.
 
 Migração: 0066_competicao_criterios_desempate.sql.
+
+## Atualização (10/08, importar súmula dos jogos dos grupos por link)
+
+Pergunta do Mateus: "nessa parte de colocar a súmula do jogo dos adversários não consigo fazer
+igual do Juventus, coloco o link e ele pega as informações do jogo já?". Passou a fazer:
+
+- Reaproveitamos o leitor de súmula da FPF que já existia pro jogo do Juventus
+  (`lib/fpf/sumula-pdf.ts`, integração de 0055): cola-se o link do PDF e o sistema extrai o que
+  interessa pra classificação — placar e cartões de cada lado.
+- `lib/futebol/competicao-sumula-import.ts` (puro, testado) casa os nomes de equipe da súmula com
+  os cadastrados no grupo de forma tolerante (sem acento/caixa, ignorando "EC/FC/E.C." e afins).
+  Quando um nome não bate, ele NÃO é chutado pra um dos lados: entra em `naoIdentificados` e vira
+  aviso, com o lançamento manual sempre disponível.
+- Sem placar no PDF, conta pelos gols da própria súmula (gol contra conta pro adversário de quem
+  marcou) e avisa que é preciso conferir.
+- Dois pontos de uso na aba Súmulas dos Grupos: importar um resultado inteiro de jogo entre
+  outros clubes (escolhendo mandante/visitante do grupo), e importar os cartões do ADVERSÁRIO num
+  jogo do Juventus (conta o lado que não é o Juventus; os nossos continuam vindo da súmula do
+  sistema). O link fica guardado em `sumula_link` nas duas tabelas.
+
+Migração: 0067_competicao_resultado_sumula_link.sql.
