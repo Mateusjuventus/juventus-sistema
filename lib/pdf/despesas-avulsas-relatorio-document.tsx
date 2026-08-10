@@ -49,7 +49,6 @@ const styles = StyleSheet.create({
   colDescricao: { flex: 1 },
   colValor: { width: 90, textAlign: "right" },
   cell: { fontSize: 8, color: "#262626" },
-  cellJogos: { fontSize: 6.5, color: "#a3a3a3", marginTop: 1 },
   totalGeralBox: {
     marginTop: 10,
     paddingTop: 6,
@@ -61,6 +60,19 @@ const styles = StyleSheet.create({
   },
   totalGeralLabel: { fontSize: 11, fontWeight: 700, color: CORES.grenaEscuro, textTransform: "uppercase" },
   totalGeralValor: { fontSize: 13, fontWeight: 700, color: CORES.grena },
+  jogosIncluidosBox: {
+    alignItems: "center",
+    marginTop: -8,
+    marginBottom: 14,
+  },
+  jogosIncluidosLabel: {
+    fontSize: 7,
+    fontWeight: 700,
+    color: "#737373",
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
+  jogosIncluidosValor: { fontSize: 8.5, color: "#404040", marginTop: 2, textAlign: "center" },
 });
 
 function formatMoeda(valor: number): string {
@@ -71,7 +83,6 @@ export interface DespesaAvulsaRelatorioPdfItem {
   data: string | null;
   descricao: string | null;
   valorEfetuado: number;
-  jogosRelacionados: string[];
 }
 
 export interface DespesaAvulsaRelatorioPdfCategoria {
@@ -95,6 +106,7 @@ export function DespesasAvulsasRelatorioDocument({
   assinatura2,
   departamento,
   subtitulo,
+  jogosRelacionados,
 }: {
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
@@ -106,6 +118,10 @@ export function DespesasAvulsasRelatorioDocument({
   /** Escolhido na hora de gerar o PDF — o jogo selecionado (se houver) ou um título livre, em
    * branco se nenhum dos dois for informado. Ver DespesasAvulsasOrcamentoDocument (mesmo padrão). */
   subtitulo?: string;
+  /** Confrontos (já formatados) de todos os jogos relacionados às despesas incluídas neste
+   * relatório — ver DespesasAvulsasOrcamentoDocument (mesmo padrão: bloco único do documento,
+   * logo abaixo do cabeçalho, mesmo lugar do confronto nos PDFs de financeiro de cada jogo). */
+  jogosRelacionados?: string[];
 }) {
   return (
     <Document>
@@ -117,6 +133,13 @@ export function DespesasAvulsasRelatorioDocument({
         ) : null}
         <Text style={styles.titulo}>Relatório de Despesas</Text>
         <Text style={styles.subtitulo}>{subtitulo ?? ""}</Text>
+
+        {jogosRelacionados && jogosRelacionados.length > 0 ? (
+          <View style={styles.jogosIncluidosBox}>
+            <Text style={styles.jogosIncluidosLabel}>Jogos relacionados</Text>
+            <Text style={styles.jogosIncluidosValor}>{jogosRelacionados.join(", ")}</Text>
+          </View>
+        ) : null}
 
         {categorias.length === 0 ? (
           <Text style={sharedStyles.emptyState}>Nenhuma despesa avulsa efetuada lançada ainda.</Text>
@@ -135,9 +158,6 @@ export function DespesasAvulsasRelatorioDocument({
                       <Text style={[styles.colData, styles.cell]}>{formatDataBr(d.data)}</Text>
                       <View style={styles.colDescricao}>
                         <Text style={styles.cell}>{d.descricao ?? "—"}</Text>
-                        {d.jogosRelacionados.length > 0 ? (
-                          <Text style={styles.cellJogos}>Jogos: {d.jogosRelacionados.join(", ")}</Text>
-                        ) : null}
                       </View>
                       <Text style={[styles.colValor, styles.cell]}>{formatMoeda(d.valorEfetuado)}</Text>
                     </View>

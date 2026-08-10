@@ -68,3 +68,30 @@ export function buildPhotoPath(
   const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
   return `${prefixo}/${entidadeId}/${baseName}.${safeExt}`;
 }
+
+/** Bucket privado dos documentos de competição (regulamento + anexos) — ver
+ * supabase/migrations/0063_competicoes.sql. Mesmo espírito do `atleta-documentos`: cada arquivo é
+ * independente, com id próprio gerado antes do upload. */
+export const COMPETICAO_DOCUMENTOS_BUCKET = "competicao-documentos";
+
+export function buildCompeticaoDocumentoPath(documentoId: string, fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "pdf";
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "pdf";
+  return `competicao-documentos/${documentoId}/arquivo.${safeExt}`;
+}
+
+/** Signed URL temporária (1h) pra um documento de competição — mesmo padrão dos demais buckets
+ * privados. */
+export async function getSignedCompeticaoDocumentoUrl(
+  supabase: SupabaseClient,
+  path: string | null,
+): Promise<string | null> {
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(COMPETICAO_DOCUMENTOS_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+
+  if (error || !data) return null;
+  return data.signedUrl;
+}

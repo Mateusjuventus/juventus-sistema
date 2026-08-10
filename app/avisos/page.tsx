@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { TarefaStatusBadge } from "@/components/tarefa-status";
 import { createClient } from "@/lib/supabase/server";
 import { TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
+import { carregarAvisosCompeticoes } from "@/lib/futebol/competicao-avisos";
 import type { ChecklistJogoItemComJogoRow, TarefaRow } from "@/lib/supabase/types";
 
 const DIAS_PRAZO_CURTO = 10;
@@ -32,7 +33,7 @@ export default async function AvisosPage() {
   const hojeStr = hoje.toISOString().slice(0, 10);
   const limiteStr = addDias(hoje, DIAS_PRAZO_CURTO).toISOString().slice(0, 10);
 
-  const [{ data: tarefasData }, { data: checklistData }] = await Promise.all([
+  const [{ data: tarefasData }, { data: checklistData }, avisosCompeticoes] = await Promise.all([
     supabase.from("tarefas").select("*").neq("status", "concluido").order("prazo", { ascending: true, nullsFirst: false }),
     supabase
       .from("checklist_jogo_itens")
@@ -41,6 +42,7 @@ export default async function AvisosPage() {
       .not("prazo", "is", null)
       .lte("prazo", limiteStr)
       .order("prazo", { ascending: true }),
+    carregarAvisosCompeticoes(supabase),
   ]);
 
   const todasTarefas = (tarefasData ?? []) as TarefaRow[];
@@ -49,7 +51,7 @@ export default async function AvisosPage() {
   );
   const checklistItens = (checklistData ?? []) as ChecklistJogoItemComJogoRow[];
 
-  const totalAvisos = avisosTarefas.length + checklistItens.length;
+  const totalAvisos = avisosTarefas.length + checklistItens.length + avisosCompeticoes.length;
 
   return (
     <AppShell>
@@ -133,6 +135,39 @@ export default async function AvisosPage() {
                 </Link>
               );
             })}
+          </div>
+        </>
+      ) : null}
+
+      {avisosCompeticoes.length > 0 ? (
+        <>
+          <h2 className="mt-8 text-lg font-bold text-grena-escuro">
+            Competições ({avisosCompeticoes.length})
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Gerados automaticamente pelas súmulas e pelo motor de regras — sem cadastro manual.
+          </p>
+          <div className="mt-3 space-y-3">
+            {avisosCompeticoes.map((aviso, i) => (
+              <Link
+                key={i}
+                href={aviso.href ?? "/competicoes"}
+                className="card flex flex-wrap items-center justify-between gap-3 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-dourado"
+              >
+                <div className="flex min-w-[200px] flex-1 items-center gap-3">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: aviso.cor }} />
+                  <div>
+                    <p className="font-medium text-neutral-800">{aviso.titulo}</p>
+                    {aviso.subtitulo ? <p className="mt-0.5 text-sm text-neutral-500">{aviso.subtitulo}</p> : null}
+                  </div>
+                </div>
+                <span
+                  className={`text-sm ${aviso.urgencia === "urgente" ? "font-semibold text-red-700" : aviso.urgencia === "atencao" ? "font-medium text-amber-700" : "text-neutral-500"}`}
+                >
+                  {aviso.diasRestantes === 0 ? "Hoje" : aviso.diasRestantes === 1 ? "Amanhã" : `Em ${aviso.diasRestantes} dias`}
+                </span>
+              </Link>
+            ))}
           </div>
         </>
       ) : null}

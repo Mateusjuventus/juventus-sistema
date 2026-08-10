@@ -1108,3 +1108,145 @@ export interface PerfilRow {
   estoque_categorias_permitidas: string[];
   created_at: string;
 }
+
+// ===== Competições (ver docs/superpowers/specs/2026-08-10-competicoes-design.md) =====
+
+export interface TemporadaRow {
+  id: string;
+  nome: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type CompeticaoStatus = "planejada" | "em_andamento" | "encerrada";
+
+/** A competição é identificada só pelo nome (sem "tipo", sem nome oficial à parte). As colunas
+ * `regra_*` são o motor de regras disciplinares dela — cada campeonato pode ter regra própria. */
+export interface CompeticaoRow {
+  id: string;
+  temporada_id: string;
+  nome: string;
+  federacao: string | null;
+  categoria: string;
+  data_inicio: string | null;
+  data_termino: string | null;
+  status: CompeticaoStatus;
+  regulamento_path: string | null;
+  observacoes: string | null;
+  regra_amarelos_suspensao: number;
+  regra_jogos_suspensao_amarelos: number;
+  regra_jogos_suspensao_vermelho: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompeticaoComTemporadaRow extends CompeticaoRow {
+  temporada: Pick<TemporadaRow, "id" | "nome"> | null;
+}
+
+export type CompeticaoFaseStatus = "aguardando" | "em_andamento" | "encerrada";
+
+export interface CompeticaoFaseRow {
+  id: string;
+  competicao_id: string;
+  nome: string;
+  ordem: number;
+  status: CompeticaoFaseStatus;
+  created_at: string;
+}
+
+export interface CompeticaoGrupoRow {
+  id: string;
+  fase_id: string;
+  nome: string;
+  ordem: number;
+  created_at: string;
+}
+
+/** Equipe de um grupo: ou `nome` fixo, ou vaga projetada de fase anterior
+ * (`origem_grupo_id` + `origem_posicao`, ex.: "1º do Grupo 3") resolvida pela classificação. */
+export interface CompeticaoGrupoEquipeRow {
+  id: string;
+  grupo_id: string;
+  nome: string | null;
+  origem_grupo_id: string | null;
+  origem_posicao: number | null;
+  ordem: number;
+  created_at: string;
+}
+
+/** Vínculo do jogo EXISTENTE (`public.jogos`) com competição/fase/grupo — o módulo de Competições
+ * nunca cria jogo, só organiza os que já existem. */
+export interface CompeticaoJogoRow {
+  id: string;
+  competicao_id: string;
+  jogo_id: string;
+  fase_id: string | null;
+  grupo_id: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+/** Placar entre os OUTROS clubes do grupo (lançamento leve, só pra classificação) — jogos do
+ * Juventus nunca entram aqui. */
+export interface CompeticaoGrupoResultadoRow {
+  id: string;
+  grupo_id: string;
+  equipe_casa: string;
+  equipe_fora: string;
+  gols_casa: number;
+  gols_fora: number;
+  data_jogo: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type CompeticaoListaInscricao = "A" | "B";
+
+export interface CompeticaoInscricaoRow {
+  id: string;
+  competicao_id: string;
+  atleta_id: string;
+  lista: CompeticaoListaInscricao | null;
+  data_inscricao: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type CompeticaoSuspensaoOrigem = "cartao" | "decisao_disciplinar" | "outro";
+
+/** Só suspensão MANUAL (decisão disciplinar externa). As automáticas por cartão são derivadas
+ * das súmulas pelo motor de regras (`lib/futebol/competicao-disciplina.ts`) — sem tabela. */
+export interface CompeticaoSuspensaoManualRow {
+  id: string;
+  competicao_id: string;
+  atleta_id: string;
+  origem: CompeticaoSuspensaoOrigem;
+  motivo: string;
+  jogos_suspensao: number;
+  data_decisao: string;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CompeticaoPrazoRow {
+  id: string;
+  competicao_id: string;
+  titulo: string;
+  data_inicio: string | null;
+  data_fim: string;
+  concluido: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CompeticaoDocumentoRow {
+  id: string;
+  competicao_id: string;
+  nome: string;
+  arquivo_path: string;
+  created_by: string | null;
+  created_at: string;
+}

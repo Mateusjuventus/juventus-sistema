@@ -28,28 +28,17 @@ function confrontoResumo(jogo: JogoRow): string {
 export default async function DespesasAvulsasPage() {
   const supabase = createClient();
 
-  const [{ data: despesasData }, { data: vinculosData }, { data: jogosData }] = await Promise.all([
+  const [{ data: despesasData }, { data: jogosData }] = await Promise.all([
     supabase
       .from("despesas_avulsas")
       .select("*, categoria:categorias_gasto(nome)")
       .order("data", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
-    supabase
-      .from("despesas_avulsas_jogos")
-      .select("despesa_id, jogo:jogos(id, mandante, adversario_nome, data_jogo)"),
     supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
   ]);
 
   const despesas = (despesasData ?? []) as DespesaAvulsaComCategoriaRow[];
   const jogos = (jogosData ?? []) as JogoRow[];
-
-  const jogosPorDespesa = new Map<string, JogoRow[]>();
-  for (const v of (vinculosData ?? []) as unknown as { despesa_id: string; jogo: JogoRow | null }[]) {
-    if (!v.jogo) continue;
-    const lista = jogosPorDespesa.get(v.despesa_id) ?? [];
-    lista.push(v.jogo);
-    jogosPorDespesa.set(v.despesa_id, lista);
-  }
 
   const totalPrevisto = despesas.reduce((soma, d) => soma + d.valor_previsto, 0);
   const totalEfetuado = despesas.reduce((soma, d) => soma + (d.valor_efetuado ?? 0), 0);
@@ -82,13 +71,16 @@ export default async function DespesasAvulsasPage() {
               Jogo (opcional)
             </label>
             <select id="jogoId" name="jogoId" className="field-input" defaultValue="">
-              <option value="">Nenhum</option>
+              <option value="">Nenhum — traz todas as despesas</option>
               {jogos.map((j) => (
                 <option key={j.id} value={j.id}>
                   {confrontoResumo(j)} — {formatData(j.data_jogo)}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-neutral-400">
+              Escolhendo um jogo, o PDF traz só as despesas vinculadas a ele.
+            </p>
           </div>
           <div className="min-w-[220px] flex-1">
             <label htmlFor="titulo" className="field-label">
@@ -126,7 +118,6 @@ export default async function DespesasAvulsasPage() {
               <th className="px-4 py-3">Data</th>
               <th className="px-4 py-3">Categoria</th>
               <th className="px-4 py-3">Descrição</th>
-              <th className="px-4 py-3">Jogos relacionados</th>
               <th className="px-4 py-3">Previsto</th>
               <th className="px-4 py-3">Efetuado</th>
               <th className="px-4 py-3">Diferença</th>
@@ -136,28 +127,11 @@ export default async function DespesasAvulsasPage() {
           <tbody className="divide-y divide-neutral-100">
             {despesas.map((d) => {
               const diferenca = d.valor_efetuado === null ? null : d.valor_previsto - d.valor_efetuado;
-              const jogosRelacionados = jogosPorDespesa.get(d.id) ?? [];
               return (
                 <tr key={d.id}>
                   <td className="px-4 py-3 text-neutral-600">{formatData(d.data)}</td>
                   <td className="px-4 py-3 font-medium text-neutral-800">{d.categoria?.nome ?? "—"}</td>
                   <td className="px-4 py-3">{d.descricao ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    {jogosRelacionados.length === 0 ? (
-                      <span className="text-neutral-400">—</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {jogosRelacionados.map((j) => (
-                          <span
-                            key={j.id}
-                            className="rounded-full bg-dourado/10 px-2 py-0.5 text-xs font-medium text-dourado"
-                          >
-                            {confrontoResumo(j)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </td>
                   <td className="px-4 py-3">{formatMoeda(d.valor_previsto)}</td>
                   <td className="px-4 py-3">{formatMoeda(d.valor_efetuado)}</td>
                   <td
@@ -180,7 +154,7 @@ export default async function DespesasAvulsasPage() {
             })}
             {despesas.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-neutral-400">
                   Nenhuma despesa avulsa lançada ainda.
                 </td>
               </tr>
@@ -189,7 +163,7 @@ export default async function DespesasAvulsasPage() {
           {despesas.length > 0 ? (
             <tfoot>
               <tr className="border-t-2 border-neutral-200 bg-neutral-50 font-semibold text-neutral-800">
-                <td className="px-4 py-3" colSpan={4}>
+                <td className="px-4 py-3" colSpan={3}>
                   Total
                 </td>
                 <td className="px-4 py-3">{formatMoeda(totalPrevisto)}</td>

@@ -140,3 +140,23 @@ os gastos de jogo), pelo mesmo motivo do PDF geral.
   totais batem com a tela.
 - Verificar responsividade da tela `/financeiro/despesas-avulsas` e da nova seção em `/financeiro`
   em tela de celular.
+
+## Atualização (08/08, refinamento pós-teste): jogos relacionados viram info do documento
+
+Depois de testar a tela ao vivo, o Mateus pediu duas mudanças em como o vínculo com jogos aparece,
+mantendo o modelo de dados (many-to-many com `despesas_avulsas_jogos`) igual:
+
+- **Filtro por jogo no PDF:** ao escolher um jogo no formulário de gerar PDF (em
+  `/financeiro/despesas-avulsas`), o relatório (Orçamento Previsto ou Relatório de Despesas) agora
+  mostra só as despesas avulsas vinculadas a esse jogo — antes o jogo só definia o título do
+  documento e todas as despesas apareciam igual. É assim que dá pra separar/gerar um relatório de um
+  grupo de despesas específico depois, sem precisar de uma tela nova.
+- **Jogos relacionados como info do documento, não etiqueta por despesa:** a coluna "Jogos
+  relacionados" saiu da tabela em `/financeiro/despesas-avulsas` e dos cards de despesas avulsas em
+  `/financeiro`; no PDF, o texto auxiliar "Jogos: ..." por linha também saiu. Em vez disso, cada PDF
+  gerado mostra um bloco único "Jogos relacionados" embaixo do total, listando (sem repetir) os
+  jogos de todas as despesas incluídas naquele relatório — informação do documento como um todo, não
+  mais atrelada a um gasto individual.
+
+A edição de despesa continua permitindo vincular a nenhum, um ou vários jogos (campo "Jogos
+relacionados" no formulário) — só a exibição desse vínculo mudou.

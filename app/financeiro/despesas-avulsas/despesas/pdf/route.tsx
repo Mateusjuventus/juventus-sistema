@@ -43,6 +43,7 @@ async function resolverSubtitulo(
 export async function GET(request: Request) {
   const supabase = createClient();
   const searchParams = new URL(request.url).searchParams;
+  const jogoIdFiltro = searchParams.get("jogoId");
 
   const [{ data: despesasData }, { data: vinculosData }, { assinatura1, assinatura2 }, subtitulo] =
     await Promise.all([
@@ -54,20 +55,32 @@ export async function GET(request: Request) {
       resolverSubtitulo(supabase, searchParams),
     ]);
 
-  const despesas = ((despesasData ?? []) as DespesaAvulsaComCategoriaRow[]).filter(
-    (d) => d.valor_efetuado !== null,
-  );
-
-  if (despesas.length === 0) {
-    return new NextResponse("Ainda não há despesas avulsas efetuadas lançadas.", { status: 400 });
-  }
-
-  const jogosPorDespesa = new Map<string, string[]>();
+  const jogosPorDespesa = new Map<string, JogoRow[]>();
   for (const v of (vinculosData ?? []) as unknown as { despesa_id: string; jogo: JogoRow | null }[]) {
     if (!v.jogo) continue;
     const lista = jogosPorDespesa.get(v.despesa_id) ?? [];
-    lista.push(confrontoResumo(v.jogo));
+    lista.push(v.jogo);
     jogosPorDespesa.set(v.despesa_id, lista);
+  }
+
+  // Mesmo filtro do PDF de Orçamento Previsto (ver o comentário lá): quando um jogo é escolhido no
+  // formulário, o relatório mostra só as despesas vinculadas a ele.
+  let despesas = ((despesasData ?? []) as DespesaAvulsaComCategoriaRow[]).filter(
+    (d) => d.valor_efetuado !== null,
+  );
+  if (jogoIdFiltro) {
+    despesas = despesas.filter((d) =>
+      (jogosPorDespesa.get(d.id) ?? []).some((j) => j.id === jogoIdFiltro),
+    );
+  }
+
+  if (despesas.length === 0) {
+    return new NextResponse(
+      jogoIdFiltro
+        ? "Nenhuma despesa avulsa efetuada vinculada a esse jogo."
+        : "Ainda não há despesas avulsas efetuadas lançadas.",
+      { status: 400 },
+    );
   }
 
   const totalGeral = despesas.reduce((soma, d) => soma + (d.valor_efetuado as number), 0);
@@ -76,14 +89,18 @@ export async function GET(request: Request) {
   for (const d of despesas) {
     const nome = d.categoria?.nome ?? "Outros";
     const lista = porCategoria.get(nome) ?? [];
-    lista.push({
-      data: d.data,
-      descricao: d.descricao,
-      valorEfetuado: d.valor_efetuado as number,
-      jogosRelacionados: jogosPorDespesa.get(d.id) ?? [],
-    });
+    lista.push({ data: d.data, descricao: d.descricao, valorEfetuado: d.valor_efetuado as number });
     porCategoria.set(nome, lista);
   }
+
+  // Informação do documento como um todo — mesmo padrão do Orçamento Previsto.
+  const jogosIncluidosMap = new Map<string, string>();
+  for (const d of despesas) {
+    for (const j of jogosPorDespesa.get(d.id) ?? []) {
+      jogosIncluidosMap.set(j.id, confrontoResumo(j));
+    }
+  }
+  const jogosIncluidos = Array.from(jogosIncluidosMap.values());
   const categorias: DespesaAvulsaRelatorioPdfCategoria[] = Array.from(porCategoria.entries())
     .map(([nome, despesasDaCategoria]) => ({ nome, despesas: despesasDaCategoria }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -101,6 +118,7 @@ export async function GET(request: Request) {
       assinatura2={assinatura2}
       departamento="profissional"
       subtitulo={subtitulo}
+      jogosRelacionados={jogosIncluidos}
     />,
   );
 

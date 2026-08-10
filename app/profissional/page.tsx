@@ -16,6 +16,7 @@ import {
   montarItensCalendario,
 } from "@/lib/futebol/calendario";
 import type { AtletaParaContratoVencendo } from "@/lib/futebol/calendario";
+import { carregarAvisosCompeticoes } from "@/lib/futebol/competicao-avisos";
 import type { EventoCalendarioRow, JogoRow } from "@/lib/supabase/types";
 import { CalendarioWidget } from "./calendario-widget";
 import { ProximoJogoWidget } from "./proximo-jogo-widget";
@@ -132,9 +133,15 @@ export default async function ProfissionalPage() {
   // pro mês seguinte (ex: hoje é dia 28), e a grade do widget "Calendário" só cobre o mês corrente.
   // Contratos vencendo reaproveita a mesma consulta de 90 dias já feita acima (superset da janela
   // de 10 dias do Mural) — `contratosParaMural` filtra internamente, não precisa de nova consulta.
+  // Alertas das Competições (suspensão gerada, pendurado, suspensos no próximo jogo, prazos)
+  // entram no MESMO Mural — derivados das súmulas pelo motor de regras, nunca cadastrados à mão
+  // (ver docs/superpowers/specs/2026-08-10-competicoes-design.md, pedido do Mateus: "os avisos
+  // aparecem no mural também na tela principal").
+  const avisosCompeticoes = await carregarAvisosCompeticoes(supabase);
   const mural = [
     ...itensMural(montarItensCalendario(jogosMural, eventosMural), hojeStr, DIAS_JANELA_MURAL),
     ...contratosParaMural((contratosVencendoData ?? []) as AtletaParaContratoVencendo[], hojeStr, DIAS_JANELA_MURAL),
+    ...avisosCompeticoes,
   ].sort((a, b) => a.diasRestantes - b.diasRestantes);
 
   const estatisticas = [

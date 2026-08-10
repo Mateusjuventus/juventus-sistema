@@ -98,7 +98,7 @@ export default async function JogosPage({
       <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
-      <PageHeader title="Jogos / Competições" pendencia={pendenciaJogos} />
+      <PageHeader title="Jogos" pendencia={pendenciaJogos} />
 
       {artilheiros.length > 0 ? (
         <div className="mt-3 flex flex-wrap justify-center gap-2">

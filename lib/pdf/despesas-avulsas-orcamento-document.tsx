@@ -57,7 +57,6 @@ const styles = StyleSheet.create({
   colValor: { width: 90, textAlign: "right" },
   headerCell: { fontSize: 6.5, fontWeight: 700, color: "#737373", textTransform: "uppercase" },
   cell: { fontSize: 8, color: "#262626" },
-  cellJogos: { fontSize: 6.5, color: "#a3a3a3", marginTop: 1 },
   totalGeralBox: {
     marginTop: 10,
     paddingTop: 6,
@@ -69,6 +68,19 @@ const styles = StyleSheet.create({
   },
   totalGeralLabel: { fontSize: 11, fontWeight: 700, color: CORES.grenaEscuro, textTransform: "uppercase" },
   totalGeralValor: { fontSize: 13, fontWeight: 700, color: CORES.grena },
+  jogosIncluidosBox: {
+    alignItems: "center",
+    marginTop: -8,
+    marginBottom: 14,
+  },
+  jogosIncluidosLabel: {
+    fontSize: 7,
+    fontWeight: 700,
+    color: "#737373",
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
+  jogosIncluidosValor: { fontSize: 8.5, color: "#404040", marginTop: 2, textAlign: "center" },
 });
 
 function formatMoeda(valor: number): string {
@@ -79,9 +91,6 @@ export interface DespesaAvulsaOrcamentoPdfItem {
   data: string | null;
   descricao: string | null;
   valorPrevisto: number;
-  /** Confrontos dos jogos relacionados, já formatados — só texto auxiliar, ver
-   * DespesasAvulsasOrcamentoDocument. */
-  jogosRelacionados: string[];
 }
 
 export interface DespesaAvulsaOrcamentoPdfCategoria {
@@ -105,6 +114,7 @@ export function DespesasAvulsasOrcamentoDocument({
   assinatura2,
   departamento,
   subtitulo,
+  jogosRelacionados,
 }: {
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
@@ -118,6 +128,12 @@ export function DespesasAvulsasOrcamentoDocument({
    * Substitui o texto fixo antigo "Despesas avulsas — não ligadas a um jogo específico", que o
    * Mateus já sabe de cor e pediu pra tirar. */
   subtitulo?: string;
+  /** Confrontos (já formatados) de todos os jogos relacionados às despesas incluídas neste
+   * relatório — informação do documento como um todo, mostrada logo abaixo do cabeçalho (mesmo
+   * lugar em que o confronto aparece nos PDFs de financeiro de cada jogo), e não mais atrelada a
+   * cada despesa individualmente (o Mateus pediu pra tirar a etiqueta por linha) nem embaixo do
+   * total (ele pediu pra subir pro topo). */
+  jogosRelacionados?: string[];
 }) {
   return (
     <Document>
@@ -129,6 +145,13 @@ export function DespesasAvulsasOrcamentoDocument({
         ) : null}
         <Text style={styles.titulo}>Orçamento Previsto</Text>
         <Text style={styles.subtitulo}>{subtitulo ?? ""}</Text>
+
+        {jogosRelacionados && jogosRelacionados.length > 0 ? (
+          <View style={styles.jogosIncluidosBox}>
+            <Text style={styles.jogosIncluidosLabel}>Jogos relacionados</Text>
+            <Text style={styles.jogosIncluidosValor}>{jogosRelacionados.join(", ")}</Text>
+          </View>
+        ) : null}
 
         {categorias.length === 0 ? (
           <Text style={sharedStyles.emptyState}>Nenhuma despesa avulsa lançada ainda.</Text>
@@ -152,9 +175,6 @@ export function DespesasAvulsasOrcamentoDocument({
                       <Text style={[styles.colData, styles.cell]}>{formatDataBr(d.data)}</Text>
                       <View style={styles.colDescricao}>
                         <Text style={styles.cell}>{d.descricao ?? "—"}</Text>
-                        {d.jogosRelacionados.length > 0 ? (
-                          <Text style={styles.cellJogos}>Jogos: {d.jogosRelacionados.join(", ")}</Text>
-                        ) : null}
                       </View>
                       <Text style={[styles.colValor, styles.cell]}>{formatMoeda(d.valorPrevisto)}</Text>
                     </View>

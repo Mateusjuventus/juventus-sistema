@@ -7,6 +7,7 @@ import { BellIcon, ChecklistIcon, HomeIcon } from "@/components/department-icon"
 import {
   IconAtletas,
   IconComissao,
+  IconCompeticoes,
   IconEstoque,
   IconFinanceiro,
   IconJogos,
@@ -36,6 +37,7 @@ export interface SidebarNavItem {
 const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Element> = {
   atletas: IconAtletas,
   comissao_tecnica: IconComissao,
+  competicoes: IconCompeticoes,
   staff_operacional: IconStaff,
   jogos: IconJogos,
   solicitacoes: IconSolicitacoes,

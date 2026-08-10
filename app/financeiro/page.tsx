@@ -14,10 +14,6 @@ function formatData(data: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-function confrontoResumo(jogo: JogoRow): string {
-  return jogo.mandante ? `Juventus x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x Juventus`;
-}
-
 function StatCard({ label, valor, destaque }: { label: string; valor: string; destaque?: string }) {
   return (
     <div className="card p-4">
@@ -41,19 +37,15 @@ function StatCard({ label, valor, destaque }: { label: string; valor: string; de
 export default async function FinanceiroPage() {
   const supabase = createClient();
 
-  const [{ data: jogosData }, { data: gastosData }, { data: despesasAvulsasData }, { data: vinculosData }] =
-    await Promise.all([
-      supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
-      supabase.from("gastos_jogo").select("*, categoria:categorias_gasto(nome)"),
-      supabase
-        .from("despesas_avulsas")
-        .select("*, categoria:categorias_gasto(nome)")
-        .order("data", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("despesas_avulsas_jogos")
-        .select("despesa_id, jogo:jogos(id, mandante, adversario_nome, data_jogo)"),
-    ]);
+  const [{ data: jogosData }, { data: gastosData }, { data: despesasAvulsasData }] = await Promise.all([
+    supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
+    supabase.from("gastos_jogo").select("*, categoria:categorias_gasto(nome)"),
+    supabase
+      .from("despesas_avulsas")
+      .select("*, categoria:categorias_gasto(nome)")
+      .order("data", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false }),
+  ]);
 
   const jogos = (jogosData ?? []) as JogoRow[];
   const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
@@ -100,14 +92,6 @@ export default async function FinanceiroPage() {
       const efetuado = gastosDoJogo.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);
       return { jogo: j, previsto, efetuado, diferenca: previsto - efetuado };
     });
-
-  const jogosPorDespesaAvulsa = new Map<string, JogoRow[]>();
-  for (const v of (vinculosData ?? []) as unknown as { despesa_id: string; jogo: JogoRow | null }[]) {
-    if (!v.jogo) continue;
-    const lista = jogosPorDespesaAvulsa.get(v.despesa_id) ?? [];
-    lista.push(v.jogo);
-    jogosPorDespesaAvulsa.set(v.despesa_id, lista);
-  }
 
   return (
     <AppShell>
@@ -238,7 +222,6 @@ export default async function FinanceiroPage() {
         <div className="mt-3 space-y-3">
           {despesasAvulsas.map((d) => {
             const diferenca = d.valor_efetuado === null ? null : d.valor_previsto - (d.valor_efetuado ?? 0);
-            const jogosRelacionados = jogosPorDespesaAvulsa.get(d.id) ?? [];
             return (
               <Link
                 key={d.id}
@@ -250,18 +233,6 @@ export default async function FinanceiroPage() {
                   <p className="text-sm text-neutral-500">
                     {d.descricao ?? "Sem descrição"} · {formatData(d.data)}
                   </p>
-                  {jogosRelacionados.length > 0 ? (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {jogosRelacionados.map((j) => (
-                        <span
-                          key={j.id}
-                          className="rounded-full bg-dourado/10 px-2 py-0.5 text-xs font-medium text-dourado"
-                        >
-                          {confrontoResumo(j)}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
                 <div className="flex gap-4 text-sm">
                   <div>
