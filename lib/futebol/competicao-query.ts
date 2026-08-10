@@ -26,6 +26,12 @@ import {
   type LinhaClassificacao,
   type ResultadoSimples,
 } from "@/lib/futebol/competicao-classificacao";
+import {
+  equipesIndefinidas,
+  normalizarCriterios,
+  ordenarClassificacao,
+  type CriterioDesempate,
+} from "@/lib/futebol/competicao-desempate";
 
 /**
  * Carrega TUDO de uma competição de uma vez (estrutura, jogos vinculados, disciplina derivada das
@@ -62,6 +68,11 @@ export interface CompeticaoCarregada {
   prazos: CompeticaoPrazoRow[];
   documentos: CompeticaoDocumentoRow[];
   classificacoesPorGrupo: Map<string, LinhaClassificacao[]>;
+  /** Critérios de desempate efetivamente aplicados em cada grupo (da fase, se ela tiver os seus,
+   * senão os da competição) — a tela mostra a ordem usada. */
+  criteriosPorGrupo: Map<string, CriterioDesempate[]>;
+  /** Equipes cuja posição os critérios não conseguem decidir (empate total → sorteio). */
+  indefinidasPorGrupo: Map<string, Set<string>>;
   nomesGrupos: Map<string, string>;
 }
 
@@ -262,6 +273,8 @@ export async function carregarCompeticao(
   // Classificação por grupo: equipes fixas do grupo (+ Juventus, se tem jogo vinculado no grupo e
   // ninguém o listou) × resultados externos + jogos do Juventus com placar.
   const classificacoesPorGrupo = new Map<string, LinhaClassificacao[]>();
+  const criteriosPorGrupo = new Map<string, CriterioDesempate[]>();
+  const indefinidasPorGrupo = new Map<string, Set<string>>();
   for (const g of grupos) {
     const nomesEquipes = (equipesPorGrupo.get(g.id) ?? [])
       .map((e) => e.nome)
@@ -275,15 +288,37 @@ export async function carregarCompeticao(
       fora: r.equipe_fora,
       golsCasa: r.gols_casa,
       golsFora: r.gols_fora,
+      cartoesAmarelosCasa: r.cartoes_amarelos_casa,
+      cartoesAmarelosFora: r.cartoes_amarelos_fora,
+      cartoesVermelhosCasa: r.cartoes_vermelhos_casa,
+      cartoesVermelhosFora: r.cartoes_vermelhos_fora,
     }));
     for (const v of vinculosDoGrupo) {
       const jogo = jogosById.get(v.jogo_id);
       if (!jogo) continue;
-      const resultado = jogoJuventusParaResultado(jogo);
+      // Cartões do NOSSO lado vêm direto da súmula do jogo; os do adversário são os
+      // complementados à mão no vínculo (a súmula do sistema não registra cartão de adversário).
+      const nossos = eventosCartao.filter((e) => e.jogoId === v.jogo_id);
+      const resultado = jogoJuventusParaResultado(
+        jogo,
+        {
+          amarelos: nossos.filter((e) => e.tipo === "cartao_amarelo").length,
+          vermelhos: nossos.filter((e) => e.tipo === "cartao_vermelho").length,
+        },
+        { amarelos: v.cartoes_amarelos_adversario, vermelhos: v.cartoes_vermelhos_adversario },
+      );
       if (resultado) resultadosDoGrupo.push(resultado);
     }
 
-    classificacoesPorGrupo.set(g.id, calcularClassificacao(nomesEquipes, resultadosDoGrupo));
+    // Ordenação pelos critérios de desempate configurados: os da FASE (quando ela tem os seus —
+    // §1º do Art. 17: no play in/mata-mata valem só os critérios até a alínea "b") ou os da
+    // competição.
+    const fase = fases.find((f) => f.id === g.fase_id);
+    const criterios = normalizarCriterios(fase?.criterios_desempate ?? competicao.criterios_desempate);
+    const tabela = calcularClassificacao(nomesEquipes, resultadosDoGrupo);
+    classificacoesPorGrupo.set(g.id, ordenarClassificacao(tabela, criterios, resultadosDoGrupo));
+    criteriosPorGrupo.set(g.id, criterios);
+    indefinidasPorGrupo.set(g.id, equipesIndefinidas(tabela, criterios, resultadosDoGrupo));
   }
 
   return {
@@ -305,6 +340,8 @@ export async function carregarCompeticao(
     prazos,
     documentos,
     classificacoesPorGrupo,
+    criteriosPorGrupo,
+    indefinidasPorGrupo,
     nomesGrupos,
   };
 }

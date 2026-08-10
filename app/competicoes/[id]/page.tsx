@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedCompeticaoDocumentoUrl } from "@/lib/supabase/storage";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { carregarCompeticao } from "@/lib/futebol/competicao-query";
+import { CRITERIO_LABEL, normalizarCriterios } from "@/lib/futebol/competicao-desempate";
 import { avisosDaCompeticao } from "@/lib/futebol/competicao-avisos";
 import { excluirCompeticao } from "../actions";
 
@@ -113,6 +114,14 @@ export default async function CompeticaoVisaoGeralPage({ params }: { params: { i
                 <dd className="mt-1 whitespace-pre-wrap text-neutral-700">{competicao.observacoes}</dd>
               </div>
             ) : null}
+            <div className="flex justify-between gap-4">
+              <dt className="text-neutral-500">Critérios de desempate</dt>
+              <dd className="text-right text-neutral-800">
+                {normalizarCriterios(competicao.criterios_desempate)
+                  .map((c) => CRITERIO_LABEL[c])
+                  .join(" → ")}
+              </dd>
+            </div>
             {competicao.regra_observacoes ? (
               <div>
                 <dt className="text-neutral-500">Regulamento — regras disciplinares</dt>

@@ -74,6 +74,32 @@ export function avisosDaCompeticao(carregada: CompeticaoCarregada, hojeStr: stri
     }
   }
 
+  // Análise do adversário do próximo jogo (pedido do Mateus): posição e disciplina do rival no
+  // grupo — CA/CV contados no escopo do grupo/fase (zera entre fases naturalmente, cada fase tem
+  // seus próprios grupos). Dados pra avaliar o adversário, não pra agir.
+  if (proximoJogo) {
+    const vinculoProximo = carregada.vinculos.find((v) => v.jogo_id === proximoJogo.jogoId);
+    const jogoProximo = carregada.jogosById.get(proximoJogo.jogoId);
+    if (vinculoProximo?.grupo_id && jogoProximo) {
+      const classificacao = carregada.classificacoesPorGrupo.get(vinculoProximo.grupo_id) ?? [];
+      const posicao = classificacao.findIndex(
+        (l) => l.equipe.trim().toLocaleLowerCase("pt-BR") === jogoProximo.adversario_nome.trim().toLocaleLowerCase("pt-BR"),
+      );
+      if (posicao !== -1) {
+        const linha = classificacao[posicao];
+        const nomeGrupo = carregada.nomesGrupos.get(vinculoProximo.grupo_id) ?? "grupo";
+        itens.push({
+          titulo: `Adversário: ${linha.equipe} — ${posicao + 1}º do ${nomeGrupo}`,
+          subtitulo: `${linha.pontos} pts · ${linha.cartoesAmarelos} CA · ${linha.cartoesVermelhos} CV na fase`,
+          cor: COR_ATENCAO,
+          diasRestantes: Math.max(0, diasEntre(hojeStr, proximoJogo.data)),
+          urgencia: "ok",
+          href: `/competicoes/${competicao.id}/classificacao`,
+        });
+      }
+    }
+  }
+
   // Prazos da competição — mesma janela de 10 dias do resto do Mural.
   for (const p of prazos) {
     if (p.concluido) continue;

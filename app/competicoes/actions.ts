@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { COMPETICAO_DOCUMENTOS_BUCKET, buildCompeticaoDocumentoPath } from "@/lib/supabase/storage";
+import { CRITERIOS_PADRAO, ehCriterioValido } from "@/lib/futebol/competicao-desempate";
 
 /**
  * Server Actions do módulo de Competições (ver
@@ -54,8 +55,16 @@ export interface CompeticaoFormState {
   error?: string;
 }
 
+/** Lista ORDENADA de critérios de desempate — um hidden input `criterios` por critério, na ordem
+ * em que o usuário montou (ver CriteriosDesempateField). */
+function parseCriterios(formData: FormData): string[] {
+  return formData.getAll("criterios").map(String).filter(ehCriterioValido);
+}
+
 function parseCompeticao(formData: FormData) {
+  const criterios = parseCriterios(formData);
   return {
+    criterios_desempate: criterios.length > 0 ? criterios : CRITERIOS_PADRAO,
     temporada_id: texto(formData, "temporadaId"),
     nome: texto(formData, "nome"),
     federacao: textoOuNull(formData, "federacao"),
@@ -168,6 +177,20 @@ export async function atualizarStatusFase(competicaoId: string, formData: FormDa
   await supabase
     .from("competicao_fases")
     .update({ status, zerar_cartoes_ao_encerrar: formData.get("zeraCartoes") === "on" })
+    .eq("id", faseId);
+  revalidarCompeticao(competicaoId);
+}
+
+/** Critérios de desempate PRÓPRIOS da fase — lista vazia volta a herdar os da competição (§1º do
+ * Art. 17: no play in/mata-mata valem só os critérios até a alínea "b", na fase em questão). */
+export async function atualizarCriteriosFase(competicaoId: string, formData: FormData): Promise<void> {
+  const faseId = texto(formData, "faseId");
+  if (!faseId) return;
+  const criterios = parseCriterios(formData);
+  const supabase = createClient();
+  await supabase
+    .from("competicao_fases")
+    .update({ criterios_desempate: criterios.length > 0 ? criterios : null })
     .eq("id", faseId);
   revalidarCompeticao(competicaoId);
 }
@@ -300,7 +323,28 @@ export async function lancarResultadoExterno(competicaoId: string, formData: For
     data_jogo: textoOuNull(formData, "dataJogo"),
     rodada: textoOuNull(formData, "rodada"),
     sumula_path: sumulaPath,
+    // Cartões de cada lado (da súmula do jogo lançado) — alimentam CA/CV da classificação.
+    cartoes_amarelos_casa: inteiro(formData, "amarelosCasa", 0),
+    cartoes_amarelos_fora: inteiro(formData, "amarelosFora", 0),
+    cartoes_vermelhos_casa: inteiro(formData, "vermelhosCasa", 0),
+    cartoes_vermelhos_fora: inteiro(formData, "vermelhosFora", 0),
   });
+  revalidarCompeticao(competicaoId);
+}
+
+/** Cartões do ADVERSÁRIO num jogo do Juventus — complementados à mão (a súmula do sistema só
+ * registra cartões dos nossos atletas, que entram sozinhos na contagem). */
+export async function atualizarCartoesAdversario(competicaoId: string, formData: FormData): Promise<void> {
+  const vinculoId = texto(formData, "vinculoId");
+  if (!vinculoId) return;
+  const supabase = createClient();
+  await supabase
+    .from("competicao_jogos")
+    .update({
+      cartoes_amarelos_adversario: inteiro(formData, "amarelosAdversario", 0),
+      cartoes_vermelhos_adversario: inteiro(formData, "vermelhosAdversario", 0),
+    })
+    .eq("id", vinculoId);
   revalidarCompeticao(competicaoId);
 }
 

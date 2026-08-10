@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import type { CompeticaoRow, TemporadaRow } from "@/lib/supabase/types";
+import { CriteriosDesempateField } from "./criterios-desempate-field";
 import type { CompeticaoFormState } from "./actions";
 
 function SubmitButton({ label }: { label: string }) {
@@ -224,6 +225,15 @@ export function CompeticaoForm({
             fase é marcado fase a fase, na aba Fases e Grupos.
           </p>
         </div>
+      </fieldset>
+
+      <fieldset className="rounded-md border border-linha p-4">
+        <legend className="px-1 text-sm font-semibold text-neutral-700">Critérios de desempate</legend>
+        <p className="mb-3 text-xs text-neutral-400">
+          Aplicados sucessivamente quando duas equipes empatam em pontos, na ordem abaixo (na Copa Paulista
+          é o Art. 17 — cada competição tem os seus). Uma fase pode ter ordem própria, na aba Fases e Grupos.
+        </p>
+        <CriteriosDesempateField valorInicial={competicao?.criterios_desempate ?? null} />
       </fieldset>
 
       <div className="flex justify-end gap-2">

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calcularClassificacao,
   jogoJuventusParaResultado,
+  jogosAJogar,
   resolverEquipes,
 } from "./competicao-classificacao";
 
@@ -55,10 +56,10 @@ describe("jogoJuventusParaResultado", () => {
   it("mapeia mandante/visitante pro lado certo do placar", () => {
     expect(
       jogoJuventusParaResultado({ adversario_nome: "Osasco", mandante: true, gols_pro: 2, gols_contra: 1 }),
-    ).toEqual({ casa: "Juventus", fora: "Osasco", golsCasa: 2, golsFora: 1 });
+    ).toMatchObject({ casa: "Juventus", fora: "Osasco", golsCasa: 2, golsFora: 1 });
     expect(
       jogoJuventusParaResultado({ adversario_nome: "Osasco", mandante: false, gols_pro: 2, gols_contra: 1 }),
-    ).toEqual({ casa: "Osasco", fora: "Juventus", golsCasa: 1, golsFora: 2 });
+    ).toMatchObject({ casa: "Osasco", fora: "Juventus", golsCasa: 1, golsFora: 2 });
   });
 
   it("devolve null enquanto o placar não foi preenchido", () => {
@@ -81,7 +82,19 @@ describe("resolverEquipes", () => {
         [
           "g3",
           [
-            { equipe: "Juventus", pontos: 4, jogos: 2, vitorias: 1, empates: 1, derrotas: 0, golsPro: 2, golsContra: 1, saldo: 1 },
+            {
+              equipe: "Juventus",
+              pontos: 4,
+              jogos: 2,
+              vitorias: 1,
+              empates: 1,
+              derrotas: 0,
+              golsPro: 2,
+              golsContra: 1,
+              saldo: 1,
+              cartoesAmarelos: 3,
+              cartoesVermelhos: 0,
+            },
           ],
         ],
       ]),
@@ -90,5 +103,57 @@ describe("resolverEquipes", () => {
     expect(resolvidas[0]).toEqual({ rotulo: "Portuguesa", projecao: null });
     expect(resolvidas[1]).toEqual({ rotulo: "1º do Grupo 3", projecao: "Juventus" });
     expect(resolvidas[2]).toEqual({ rotulo: "9º do Grupo 3", projecao: null });
+  });
+});
+
+describe("disciplina por equipe (colunas CA/CV) e jogos a jogar", () => {
+  it("soma cartões de cada lado nas linhas da tabela", () => {
+    const tabela = calcularClassificacao(
+      ["Juventus", "Osasco Sporting"],
+      [
+        {
+          casa: "Juventus",
+          fora: "Osasco Sporting",
+          golsCasa: 2,
+          golsFora: 1,
+          cartoesAmarelosCasa: 3,
+          cartoesAmarelosFora: 5,
+          cartoesVermelhosCasa: 0,
+          cartoesVermelhosFora: 1,
+        },
+      ],
+    );
+    expect(tabela[0]).toMatchObject({ equipe: "Juventus", cartoesAmarelos: 3, cartoesVermelhos: 0 });
+    expect(tabela[1]).toMatchObject({ equipe: "Osasco Sporting", cartoesAmarelos: 5, cartoesVermelhos: 1 });
+  });
+
+  it("resultado sem cartões informados conta zero", () => {
+    const tabela = calcularClassificacao(
+      ["A"],
+      [{ casa: "A", fora: "B", golsCasa: 1, golsFora: 0 }],
+    );
+    expect(tabela[0]).toMatchObject({ cartoesAmarelos: 0, cartoesVermelhos: 0 });
+  });
+
+  it("jogo do Juventus carrega os cartões dos dois lados pro lado certo", () => {
+    const resultado = jogoJuventusParaResultado(
+      { adversario_nome: "Primavera", mandante: false, gols_pro: 1, gols_contra: 1 },
+      { amarelos: 2, vermelhos: 1 },
+      { amarelos: 4, vermelhos: 0 },
+    );
+    expect(resultado).toMatchObject({
+      casa: "Primavera",
+      fora: "Juventus",
+      cartoesAmarelosCasa: 4,
+      cartoesVermelhosCasa: 0,
+      cartoesAmarelosFora: 2,
+      cartoesVermelhosFora: 1,
+    });
+  });
+
+  it("jogosAJogar assume turno único no grupo", () => {
+    expect(jogosAJogar(4, 3)).toBe(0);
+    expect(jogosAJogar(4, 1)).toBe(2);
+    expect(jogosAJogar(4, 5)).toBe(0);
   });
 });

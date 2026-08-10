@@ -6,8 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { carregarCompeticao } from "@/lib/futebol/competicao-query";
 import { resolverEquipes } from "@/lib/futebol/competicao-classificacao";
 import type { CompeticaoFaseStatus } from "@/lib/supabase/types";
+import { normalizarCriterios } from "@/lib/futebol/competicao-desempate";
+import { CriteriosDesempateField } from "../../criterios-desempate-field";
 import {
   adicionarEquipe,
+  atualizarCriteriosFase,
   atualizarStatusFase,
   criarFase,
   criarGrupo,
@@ -43,6 +46,8 @@ export default async function CompeticaoFasesPage({ params }: { params: { id: st
   const excluirGrupoAction = excluirGrupo.bind(null, competicao.id);
   const excluirEquipeAction = excluirEquipe.bind(null, competicao.id);
   const statusFaseAction = atualizarStatusFase.bind(null, competicao.id);
+  const criteriosFaseAction = atualizarCriteriosFase.bind(null, competicao.id);
+  const criteriosDaCompeticao = normalizarCriterios(competicao.criterios_desempate);
 
   // Grupos de fases ANTERIORES podem ser origem de vaga projetada nas fases seguintes.
   const todosGrupos = fases.flatMap((f) => (gruposPorFase.get(f.id) ?? []).map((g) => ({ fase: f, grupo: g })));
@@ -116,6 +121,31 @@ export default async function CompeticaoFasesPage({ params }: { params: { id: st
                   <DeleteButton action={excluirFaseAction} id={fase.id} entityLabel="fase (com os grupos dela)" />
                 </div>
               </div>
+
+              <details className="mt-3 rounded-md border border-linha bg-neutral-50 p-3">
+                <summary className="cursor-pointer text-xs font-medium text-neutral-600 hover:text-grena">
+                  Critérios de desempate desta fase{" "}
+                  <span className="font-normal text-neutral-400">
+                    ({fase.criterios_desempate ? "próprios da fase" : "herdados da competição"})
+                  </span>
+                </summary>
+                <form action={criteriosFaseAction} className="mt-3">
+                  <input type="hidden" name="faseId" value={fase.id} />
+                  <p className="mb-2 text-[11px] text-neutral-400">
+                    Deixe vazio pra herdar os da competição. É aqui que se representa o §1º do Art. 17 da Copa
+                    Paulista: no Play In e no mata-mata valem só os critérios até a alínea &quot;b&quot;
+                    (vitórias e saldo), na fase em questão.
+                  </p>
+                  <CriteriosDesempateField
+                    valorInicial={fase.criterios_desempate}
+                    herdado={criteriosDaCompeticao}
+                    compacto
+                  />
+                  <button type="submit" className="btn-secondary mt-2 px-2 py-1 text-xs">
+                    Salvar critérios da fase
+                  </button>
+                </form>
+              </details>
 
               {grupos.length === 0 ? (
                 <p className="mt-3 text-sm text-neutral-400">Nenhum grupo nesta fase ainda.</p>

@@ -5,7 +5,7 @@ import { CompeticaoTabs } from "@/components/competicao-tabs";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedCompeticaoDocumentoUrl } from "@/lib/supabase/storage";
 import { carregarCompeticao, confrontoComData } from "@/lib/futebol/competicao-query";
-import { excluirResultadoExterno, lancarResultadoExterno } from "../../actions";
+import { atualizarCartoesAdversario, excluirResultadoExterno, lancarResultadoExterno } from "../../actions";
 
 function formatData(data: string | null): string {
   if (!data) return "—";
@@ -24,11 +24,12 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
   const carregada = await carregarCompeticao(supabase, params.id);
   if (!carregada) notFound();
 
-  const { competicao, fases, gruposPorFase, equipesPorGrupo, resultadosPorGrupo, vinculos, jogosById } =
+  const { competicao, fases, gruposPorFase, equipesPorGrupo, resultadosPorGrupo, vinculos, jogosById, eventosCartao } =
     carregada;
 
   const lancarAction = lancarResultadoExterno.bind(null, competicao.id);
   const excluirAction = excluirResultadoExterno.bind(null, competicao.id);
+  const cartoesAdversarioAction = atualizarCartoesAdversario.bind(null, competicao.id);
 
   // Signed URLs das súmulas anexadas (1h) — resolvidas de uma vez pra página inteira.
   const sumulaUrls = new Map<string, string | null>();
@@ -89,24 +90,60 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
                           const jogo = jogosById.get(v.jogo_id);
                           if (!jogo) return null;
                           const comPlacar = jogo.gols_pro !== null && jogo.gols_contra !== null;
+                          const nossos = eventosCartao.filter((e) => e.jogoId === v.jogo_id);
+                          const nossosAmarelos = nossos.filter((e) => e.tipo === "cartao_amarelo").length;
+                          const nossosVermelhos = nossos.filter((e) => e.tipo === "cartao_vermelho").length;
                           return (
-                            <div
-                              key={v.id}
-                              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-dourado/5 px-3 py-2 text-sm"
-                            >
-                              <span className="font-medium text-grena">
-                                {confrontoComData(jogo)}
-                                <span className="ml-2 rounded-full bg-grena/10 px-2 py-0.5 text-[11px] font-semibold">
-                                  jogo do Juventus
+                            <div key={v.id} className="rounded-md bg-dourado/5 px-3 py-2 text-sm">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-medium text-grena">
+                                  {confrontoComData(jogo)}
+                                  <span className="ml-2 rounded-full bg-grena/10 px-2 py-0.5 text-[11px] font-semibold">
+                                    jogo do Juventus
+                                  </span>
                                 </span>
-                              </span>
-                              <span className={comPlacar ? "font-semibold" : "text-neutral-400"}>
-                                {comPlacar
-                                  ? jogo.mandante
-                                    ? `${jogo.gols_pro} x ${jogo.gols_contra}`
-                                    : `${jogo.gols_contra} x ${jogo.gols_pro}`
-                                  : "sem placar — preencha no cadastro do jogo"}
-                              </span>
+                                <span className={comPlacar ? "font-semibold" : "text-neutral-400"}>
+                                  {comPlacar
+                                    ? jogo.mandante
+                                      ? `${jogo.gols_pro} x ${jogo.gols_contra}`
+                                      : `${jogo.gols_contra} x ${jogo.gols_pro}`
+                                    : "sem placar — preencha no cadastro do jogo"}
+                                </span>
+                              </div>
+                              <form
+                                action={cartoesAdversarioAction}
+                                className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-neutral-600"
+                              >
+                                <input type="hidden" name="vinculoId" value={v.id} />
+                                <span>
+                                  Juventus: 🟨 {nossosAmarelos} · 🟥 {nossosVermelhos}{" "}
+                                  <span className="text-neutral-400">(da súmula)</span>
+                                </span>
+                                <span className="text-neutral-300">|</span>
+                                <label className="flex items-center gap-1">
+                                  {jogo.adversario_nome}: 🟨
+                                  <input
+                                    name="amarelosAdversario"
+                                    type="number"
+                                    min={0}
+                                    defaultValue={v.cartoes_amarelos_adversario}
+                                    className="field-input w-14 py-0.5 text-xs"
+                                  />
+                                </label>
+                                <label className="flex items-center gap-1">
+                                  🟥
+                                  <input
+                                    name="vermelhosAdversario"
+                                    type="number"
+                                    min={0}
+                                    defaultValue={v.cartoes_vermelhos_adversario}
+                                    className="field-input w-14 py-0.5 text-xs"
+                                  />
+                                </label>
+                                <button type="submit" className="btn-secondary px-2 py-0.5 text-xs">
+                                  Salvar
+                                </button>
+                              </form>
                             </div>
                           );
                         })}
@@ -126,6 +163,12 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
                                     .filter(Boolean)
                                     .join(" · ")}
                                 </span>
+                                {r.cartoes_amarelos_casa + r.cartoes_amarelos_fora + r.cartoes_vermelhos_casa + r.cartoes_vermelhos_fora > 0 ? (
+                                  <span className="ml-2 text-xs text-neutral-500">
+                                    🟨 {r.cartoes_amarelos_casa}x{r.cartoes_amarelos_fora} · 🟥{" "}
+                                    {r.cartoes_vermelhos_casa}x{r.cartoes_vermelhos_fora}
+                                  </span>
+                                ) : null}
                               </span>
                               <span className="flex items-center gap-3">
                                 {url ? (
@@ -223,6 +266,24 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
                         <div>
                           <label className="field-label">Data</label>
                           <input name="dataJogo" type="date" className="field-input w-36 py-1 text-xs" />
+                        </div>
+                        <div>
+                          <label className="field-label" title="Cartões amarelos (mandante x visitante)">
+                            🟨 casa x fora
+                          </label>
+                          <div className="flex items-center gap-1">
+                            <input name="amarelosCasa" type="number" min={0} defaultValue={0} className="field-input w-14 py-1 text-xs" />
+                            <input name="amarelosFora" type="number" min={0} defaultValue={0} className="field-input w-14 py-1 text-xs" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="field-label" title="Cartões vermelhos (mandante x visitante)">
+                            🟥 casa x fora
+                          </label>
+                          <div className="flex items-center gap-1">
+                            <input name="vermelhosCasa" type="number" min={0} defaultValue={0} className="field-input w-14 py-1 text-xs" />
+                            <input name="vermelhosFora" type="number" min={0} defaultValue={0} className="field-input w-14 py-1 text-xs" />
+                          </div>
                         </div>
                         <div className="min-w-[180px]">
                           <label className="field-label">Súmula (PDF, opcional)</label>

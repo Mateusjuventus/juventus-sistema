@@ -173,12 +173,15 @@ export interface CompeticaoClassificacaoPdfLinha {
   equipe: string;
   pontos: number;
   jogos: number;
+  aJogar: number;
   vitorias: number;
   empates: number;
   derrotas: number;
   golsPro: number;
   golsContra: number;
   saldo: number;
+  cartoesAmarelos: number;
+  cartoesVermelhos: number;
   juventus: boolean;
 }
 
@@ -195,11 +198,15 @@ export function CompeticaoClassificacaoDocument({
   geradoEm,
   subtitulo,
   grupos,
+  criterios,
 }: {
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
   subtitulo: string;
   grupos: CompeticaoClassificacaoPdfGrupo[];
+  /** Ordem dos critérios de desempate aplicada (texto já montado) — registrada no rodapé do
+   * documento, já que muda de competição pra competição. */
+  criterios?: string;
 }) {
   const colNum = { width: 26, textAlign: "center" as const };
   return (
@@ -225,12 +232,15 @@ export function CompeticaoClassificacaoDocument({
                   <Text style={[styles.colNome, styles.headerCell]}>Equipe</Text>
                   <Text style={[colNum, styles.headerCell]}>P</Text>
                   <Text style={[colNum, styles.headerCell]}>J</Text>
+                  <Text style={[colNum, styles.headerCell]}>AJ</Text>
                   <Text style={[colNum, styles.headerCell]}>V</Text>
                   <Text style={[colNum, styles.headerCell]}>E</Text>
                   <Text style={[colNum, styles.headerCell]}>D</Text>
                   <Text style={[colNum, styles.headerCell]}>GP</Text>
                   <Text style={[colNum, styles.headerCell]}>GC</Text>
                   <Text style={[colNum, styles.headerCell]}>SG</Text>
+                  <Text style={[colNum, styles.headerCell]}>CA</Text>
+                  <Text style={[colNum, styles.headerCell]}>CV</Text>
                 </View>
                 {g.linhas.map((l) => (
                   <View style={styles.linha} key={l.equipe}>
@@ -240,18 +250,25 @@ export function CompeticaoClassificacaoDocument({
                     </Text>
                     <Text style={[colNum, styles.cell, { fontWeight: 700 }]}>{l.pontos}</Text>
                     <Text style={[colNum, styles.cell]}>{l.jogos}</Text>
+                    <Text style={[colNum, styles.cell]}>{l.aJogar}</Text>
                     <Text style={[colNum, styles.cell]}>{l.vitorias}</Text>
                     <Text style={[colNum, styles.cell]}>{l.empates}</Text>
                     <Text style={[colNum, styles.cell]}>{l.derrotas}</Text>
                     <Text style={[colNum, styles.cell]}>{l.golsPro}</Text>
                     <Text style={[colNum, styles.cell]}>{l.golsContra}</Text>
                     <Text style={[colNum, styles.cell]}>{l.saldo}</Text>
+                    <Text style={[colNum, styles.cell]}>{l.cartoesAmarelos}</Text>
+                    <Text style={[colNum, styles.cell]}>{l.cartoesVermelhos}</Text>
                   </View>
                 ))}
               </>
             )}
           </View>
         ))}
+
+        {criterios ? (
+          <Text style={[styles.cellMuted, { marginTop: 8 }]}>Critérios de desempate: {criterios}</Text>
+        ) : null}
 
         <DocumentoFooter geradoEm={geradoEm} />
       </Page>

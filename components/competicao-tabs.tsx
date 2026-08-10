@@ -13,6 +13,7 @@ export type CompeticaoTabKey =
   | "fases"
   | "classificacao"
   | "resultados"
+  | "adversarios"
   | "jogos"
   | "inscritos"
   | "cartoes"
@@ -55,6 +56,7 @@ export function CompeticaoTabs({
     { key: "fases", label: "Fases e Grupos", href: `${base}/fases` },
     { key: "classificacao", label: "Classificação", href: `${base}/classificacao` },
     { key: "resultados", label: "Súmulas dos Grupos", href: `${base}/resultados` },
+    { key: "adversarios", label: "Adversários", href: `${base}/adversarios` },
     { key: "jogos", label: "Jogos", href: `${base}/jogos` },
     { key: "inscritos", label: "Atletas Inscritos", href: `${base}/inscritos` },
     { key: "cartoes", label: "Cartões", href: `${base}/cartoes` },

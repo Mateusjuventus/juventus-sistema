@@ -4,7 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import { CompeticaoTabs } from "@/components/competicao-tabs";
 import { createClient } from "@/lib/supabase/server";
 import { carregarCompeticao } from "@/lib/futebol/competicao-query";
-import { resolverEquipes } from "@/lib/futebol/competicao-classificacao";
+import { jogosAJogar, resolverEquipes } from "@/lib/futebol/competicao-classificacao";
+import { CRITERIO_LABEL } from "@/lib/futebol/competicao-desempate";
 
 /**
  * Classificação por grupo + possíveis confrontos das próximas fases (pedido do Mateus durante a
@@ -26,6 +27,8 @@ export default async function CompeticaoClassificacaoPage({ params }: { params: 
     classificacoesPorGrupo,
     nomesGrupos,
     vinculos,
+    criteriosPorGrupo,
+    indefinidasPorGrupo,
   } = carregada;
 
   return (
@@ -121,31 +124,50 @@ export default async function CompeticaoClassificacaoPage({ params }: { params: 
                               <th className="py-1 pr-2">Equipe</th>
                               <th className="px-1 py-1 text-center">P</th>
                               <th className="px-1 py-1 text-center">J</th>
+                              <th className="px-1 py-1 text-center" title="A jogar (turno único no grupo)">AJ</th>
                               <th className="px-1 py-1 text-center">V</th>
                               <th className="px-1 py-1 text-center">E</th>
                               <th className="px-1 py-1 text-center">D</th>
                               <th className="px-1 py-1 text-center">GP</th>
                               <th className="px-1 py-1 text-center">GC</th>
                               <th className="px-1 py-1 text-center">SG</th>
+                              <th className="px-1 py-1 text-center" title="Cartões amarelos da equipe no grupo (súmulas)">CA</th>
+                              <th className="px-1 py-1 text-center" title="Cartões vermelhos da equipe no grupo (súmulas)">CV</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-100">
                             {classificacao.map((linha, i) => {
                               const ehJuventus = linha.equipe.trim().toLocaleLowerCase("pt-BR") === "juventus";
+                              const indefinida = (indefinidasPorGrupo.get(grupo.id) ?? new Set()).has(linha.equipe);
                               return (
                                 <tr key={linha.equipe} className={ehJuventus ? "bg-dourado/5" : undefined}>
-                                  <td className="py-1.5 pr-2 text-neutral-400">{i + 1}º</td>
+                                  <td className="py-1.5 pr-2 text-neutral-400">
+                                    {i + 1}º
+                                    {indefinida ? (
+                                      <span
+                                        className="ml-0.5 text-amber-600"
+                                        title="Empate que os critérios não decidem — posição depende de sorteio"
+                                      >
+                                        *
+                                      </span>
+                                    ) : null}
+                                  </td>
                                   <td className={`py-1.5 pr-2 ${ehJuventus ? "font-bold text-grena" : "text-neutral-800"}`}>
                                     {linha.equipe}
                                   </td>
                                   <td className="px-1 py-1.5 text-center font-semibold">{linha.pontos}</td>
                                   <td className="px-1 py-1.5 text-center text-neutral-500">{linha.jogos}</td>
+                                  <td className="px-1 py-1.5 text-center text-neutral-500">
+                                    {jogosAJogar(classificacao.length, linha.jogos)}
+                                  </td>
                                   <td className="px-1 py-1.5 text-center text-neutral-500">{linha.vitorias}</td>
                                   <td className="px-1 py-1.5 text-center text-neutral-500">{linha.empates}</td>
                                   <td className="px-1 py-1.5 text-center text-neutral-500">{linha.derrotas}</td>
                                   <td className="px-1 py-1.5 text-center text-neutral-500">{linha.golsPro}</td>
                                   <td className="px-1 py-1.5 text-center text-neutral-500">{linha.golsContra}</td>
                                   <td className="px-1 py-1.5 text-center text-neutral-500">{linha.saldo}</td>
+                                  <td className="px-1 py-1.5 text-center text-amber-600">{linha.cartoesAmarelos}</td>
+                                  <td className="px-1 py-1.5 text-center text-red-700">{linha.cartoesVermelhos}</td>
                                 </tr>
                               );
                             })}
@@ -154,15 +176,26 @@ export default async function CompeticaoClassificacaoPage({ params }: { params: 
                       )}
 
                       {!temVagaProjetada ? (
-                        <p className="mt-3 border-t border-linha pt-3 text-xs text-neutral-500">
-                          {jogosDoGrupo.length + resultados.length} resultado(s) contabilizado(s) ·{" "}
-                          <Link
-                            href={`/competicoes/${competicao.id}/resultados`}
-                            className="font-medium text-grena hover:underline"
-                          >
-                            lançar/ver súmulas dos jogos do grupo →
-                          </Link>
-                        </p>
+                        <div className="mt-3 border-t border-linha pt-3">
+                          <p className="text-[11px] text-neutral-400">
+                            Desempate:{" "}
+                            {(criteriosPorGrupo.get(grupo.id) ?? [])
+                              .map((c) => CRITERIO_LABEL[c])
+                              .join(" → ")}
+                            {(indefinidasPorGrupo.get(grupo.id)?.size ?? 0) > 0
+                              ? " · * empate que depende de sorteio"
+                              : ""}
+                          </p>
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {jogosDoGrupo.length + resultados.length} resultado(s) contabilizado(s) ·{" "}
+                            <Link
+                              href={`/competicoes/${competicao.id}/resultados`}
+                              className="font-medium text-grena hover:underline"
+                            >
+                              lançar/ver súmulas dos jogos do grupo →
+                            </Link>
+                          </p>
+                        </div>
                       ) : null}
                     </div>
                   );

@@ -20,6 +20,12 @@ export interface ResultadoSimples {
   fora: string;
   golsCasa: number;
   golsFora: number;
+  /** Cartões de cada lado (opcional) — alimentam as colunas CA/CV da tabela, como na
+   * classificação oficial da FPF. */
+  cartoesAmarelosCasa?: number;
+  cartoesAmarelosFora?: number;
+  cartoesVermelhosCasa?: number;
+  cartoesVermelhosFora?: number;
 }
 
 export interface LinhaClassificacao {
@@ -32,6 +38,10 @@ export interface LinhaClassificacao {
   golsPro: number;
   golsContra: number;
   saldo: number;
+  /** Cartões da equipe no escopo do grupo (que pertence a uma fase — por isso "zera" entre fases
+   * naturalmente: cada fase tem seus próprios grupos). */
+  cartoesAmarelos: number;
+  cartoesVermelhos: number;
 }
 
 function normalizar(nome: string): string {
@@ -42,7 +52,10 @@ function normalizar(nome: string): string {
  * Monta a tabela do grupo. Só as `equipes` cadastradas no grupo entram na tabela — um resultado
  * que cita um nome desconhecido ainda conta pro lado conhecido (ex.: resultado digitado com o
  * adversário grafado diferente não zera os pontos de quem está certo).
- * Critérios de desempate (padrão FPF): pontos, vitórias, saldo, gols pró, ordem alfabética.
+ *
+ * A ORDEM sai daqui só com o desempate padrão; quem quiser aplicar os critérios configurados da
+ * competição usa `ordenarClassificacao` (lib/futebol/competicao-desempate.ts) sobre o resultado —
+ * é o que `carregarCompeticao` faz.
  */
 export function calcularClassificacao(equipes: string[], resultados: ResultadoSimples[]): LinhaClassificacao[] {
   const linhas = new Map<string, LinhaClassificacao>();
@@ -59,17 +72,21 @@ export function calcularClassificacao(equipes: string[], resultados: ResultadoSi
         golsPro: 0,
         golsContra: 0,
         saldo: 0,
+        cartoesAmarelos: 0,
+        cartoesVermelhos: 0,
       });
     }
   }
 
-  const aplicar = (nome: string, golsPro: number, golsContra: number) => {
+  const aplicar = (nome: string, golsPro: number, golsContra: number, amarelos: number, vermelhos: number) => {
     const linha = linhas.get(normalizar(nome));
     if (!linha) return;
     linha.jogos += 1;
     linha.golsPro += golsPro;
     linha.golsContra += golsContra;
     linha.saldo = linha.golsPro - linha.golsContra;
+    linha.cartoesAmarelos += amarelos;
+    linha.cartoesVermelhos += vermelhos;
     if (golsPro > golsContra) {
       linha.vitorias += 1;
       linha.pontos += 3;
@@ -82,8 +99,8 @@ export function calcularClassificacao(equipes: string[], resultados: ResultadoSi
   };
 
   for (const r of resultados) {
-    aplicar(r.casa, r.golsCasa, r.golsFora);
-    aplicar(r.fora, r.golsFora, r.golsCasa);
+    aplicar(r.casa, r.golsCasa, r.golsFora, r.cartoesAmarelosCasa ?? 0, r.cartoesVermelhosCasa ?? 0);
+    aplicar(r.fora, r.golsFora, r.golsCasa, r.cartoesAmarelosFora ?? 0, r.cartoesVermelhosFora ?? 0);
   }
 
   return Array.from(linhas.values()).sort(
@@ -97,17 +114,47 @@ export function calcularClassificacao(equipes: string[], resultados: ResultadoSi
 }
 
 /** Converte um jogo do Juventus (vinculado ao grupo) em resultado da tabela — null enquanto o
- * placar não estiver preenchido no cadastro do jogo. */
-export function jogoJuventusParaResultado(jogo: {
-  adversario_nome: string;
-  mandante: boolean;
-  gols_pro: number | null;
-  gols_contra: number | null;
-}): ResultadoSimples | null {
+ * placar não estiver preenchido no cadastro do jogo. Os cartões do NOSSO lado vêm da súmula
+ * (`cartoesJuventus`, contados pelo chamador); os do adversário são os complementados à mão no
+ * vínculo do jogo. */
+export function jogoJuventusParaResultado(
+  jogo: {
+    adversario_nome: string;
+    mandante: boolean;
+    gols_pro: number | null;
+    gols_contra: number | null;
+  },
+  cartoesJuventus: { amarelos: number; vermelhos: number } = { amarelos: 0, vermelhos: 0 },
+  cartoesAdversario: { amarelos: number; vermelhos: number } = { amarelos: 0, vermelhos: 0 },
+): ResultadoSimples | null {
   if (jogo.gols_pro === null || jogo.gols_contra === null) return null;
   return jogo.mandante
-    ? { casa: JUVENTUS_NOME, fora: jogo.adversario_nome, golsCasa: jogo.gols_pro, golsFora: jogo.gols_contra }
-    : { casa: jogo.adversario_nome, fora: JUVENTUS_NOME, golsCasa: jogo.gols_contra, golsFora: jogo.gols_pro };
+    ? {
+        casa: JUVENTUS_NOME,
+        fora: jogo.adversario_nome,
+        golsCasa: jogo.gols_pro,
+        golsFora: jogo.gols_contra,
+        cartoesAmarelosCasa: cartoesJuventus.amarelos,
+        cartoesVermelhosCasa: cartoesJuventus.vermelhos,
+        cartoesAmarelosFora: cartoesAdversario.amarelos,
+        cartoesVermelhosFora: cartoesAdversario.vermelhos,
+      }
+    : {
+        casa: jogo.adversario_nome,
+        fora: JUVENTUS_NOME,
+        golsCasa: jogo.gols_contra,
+        golsFora: jogo.gols_pro,
+        cartoesAmarelosCasa: cartoesAdversario.amarelos,
+        cartoesVermelhosCasa: cartoesAdversario.vermelhos,
+        cartoesAmarelosFora: cartoesJuventus.amarelos,
+        cartoesVermelhosFora: cartoesJuventus.vermelhos,
+      };
+}
+
+/** "A jogar" (coluna AJ da tabela oficial): assume turno único dentro do grupo — cada equipe joga
+ * (nº de equipes − 1) partidas; o que falta é isso menos as já jogadas. */
+export function jogosAJogar(numEquipesNoGrupo: number, jogosJaJogados: number): number {
+  return Math.max(0, numEquipesNoGrupo - 1 - jogosJaJogados);
 }
 
 export interface EquipeDeGrupo {

@@ -90,3 +90,52 @@ O Mateus colou o Art. 60 do Regulamento Específico da Copa Paulista e pediu tr�
    evitar erro de grafia que quebraria a contagem de pontos.
 
 Migração: 0064_competicao_regras_fase_sumulas.sql.
+
+## Atualização (10/08, disciplina por equipe e análise de adversários)
+
+O Mateus mandou a tabela oficial da FPF (colunas P, J, AJ, V, E, D, GP, GC, SG, CA, CV) e pediu:
+"tem informação importante que precisa puxar da súmula pra contabilizar, a exemplo dos cartões",
+e "como já puxa os dados dos cartões, quero que gere alerta pra mim — seriam como se fosse dados
+para avaliarmos nossos adversários, lembrando das fases que ao passar zera".
+
+- **CA/CV por equipe na classificação**: `LinhaClassificacao` ganhou `cartoesAmarelos` e
+  `cartoesVermelhos`. Origem dos números, sem duplicar nada: os cartões do JUVENTUS vêm da súmula
+  do jogo (já contados por `eventosCartao`); os do ADVERSÁRIO num jogo nosso são complementados à
+  mão em `competicao_jogos.cartoes_*_adversario` (a súmula do sistema só registra os nossos); os
+  dos jogos entre os outros clubes vêm junto do placar em `competicao_grupo_resultados.cartoes_*`.
+  Coluna AJ = `jogosAJogar(nº de equipes, jogos)`, assumindo turno único dentro do grupo.
+- **Zeramento entre fases vale de graça aqui**: a contagem é sempre no escopo do GRUPO, e cada
+  grupo pertence a uma fase — a tabela de uma fase nova já começa zerada, sem regra extra.
+- **Aba "Adversários"** (`/competicoes/[id]/adversarios`): destaque do próximo adversário
+  (posição, pontos, CA/CV, média de amarelos por jogo, gols, campanha, jogos a jogar) e a visão
+  de todos os grupos com CA/CV e CA/J — média ≥ 2,5 amarelos/jogo fica em vermelho ("time
+  faltoso"). Um item de Mural/Avisos com o resumo do próximo adversário também é gerado em
+  `competicao-avisos.ts`.
+- Critérios de desempate: o Mateus vai mandar os oficiais da Copa Paulista; a ordenação hoje é
+  pontos → vitórias → saldo → gols pró → nome (ajustar em `calcularClassificacao` quando chegarem).
+
+Migração: 0065_competicao_disciplina_equipes.sql.
+
+## Atualização (10/08, critérios de desempate configuráveis — Art. 17)
+
+O Mateus mandou o Art. 17 da Copa Paulista e observou: "esses critérios precisam ser editáveis,
+pois quando tiver outras competições, podem mudar". Então nada de ordem fixa no código:
+
+- `competicoes.criterios_desempate` (text[]) é a lista ORDENADA de critérios, aplicada
+  sucessivamente enquanto o empate persistir. Editável no formulário da competição, com um campo
+  que permite adicionar, remover e reordenar (`app/competicoes/criterios-desempate-field.tsx`).
+  Chaves suportadas em `lib/futebol/competicao-desempate.ts` (puro, testado): vitorias, saldo,
+  gols_pro, gols_contra, confronto_direto, menos_vermelhos, menos_amarelos, sorteio.
+  Padrão = Art. 17 da Copa Paulista (vitórias → saldo → gols marcados → menos vermelhos → menos
+  amarelos → sorteio).
+- `competicao_fases.criterios_desempate` (text[], null = herda da competição) representa o §1º:
+  no Play In, quartas, semi e final aplicam-se os critérios "até a alínea b", somente na fase em
+  questão — basta a fase ter a própria lista com vitorias e saldo. Editável na aba Fases e Grupos.
+- Pontos ganhos vêm sempre antes de qualquer critério (caput). "sorteio" não é decidível pelo
+  sistema: as equipes que chegam nele ficam em ordem alfabética e a tela marca a posição com "*"
+  (a lista de indefinidas vem de `equipesIndefinidas`). O mesmo vale pro §1º quando a igualdade
+  persiste depois da alínea "b" — decisão por pênaltis, fora do sistema.
+- A ordem aplicada aparece embaixo de cada tabela na aba Classificação, no PDF de classificação e
+  na Visão geral da competição.
+
+Migração: 0066_competicao_criterios_desempate.sql.

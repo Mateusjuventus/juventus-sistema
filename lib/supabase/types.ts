@@ -1139,6 +1139,9 @@ export interface CompeticaoRow {
   /** Texto livre do regulamento que embasa as regras disciplinares (ex.: Art. 60 da Copa
    * Paulista) — só registro/consulta, o motor usa as colunas `regra_*` acima. */
   regra_observacoes: string | null;
+  /** Critérios de desempate da competição, na ordem em que se aplicam (Art. 17 na Copa Paulista,
+   * mas configurável — cada campeonato tem os seus). Ver lib/futebol/competicao-desempate.ts. */
+  criterios_desempate: string[];
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1161,6 +1164,10 @@ export interface CompeticaoFaseRow {
    * seguintes — suspensão já gerada dentro da fase continua valendo (ver
    * lib/futebol/competicao-disciplina.ts). */
   zerar_cartoes_ao_encerrar: boolean;
+  /** Critérios de desempate próprios desta fase — null herda os da competição. É assim que o §1º
+   * do Art. 17 da Copa Paulista é representado: no play in e no mata-mata valem só os critérios
+   * "até a alínea b" (vitórias e saldo), na fase em questão. */
+  criterios_desempate: string[] | null;
   created_at: string;
 }
 
@@ -1192,6 +1199,11 @@ export interface CompeticaoJogoRow {
   jogo_id: string;
   fase_id: string | null;
   grupo_id: string | null;
+  /** Cartões do ADVERSÁRIO neste jogo do Juventus — a súmula do sistema só registra cartões dos
+   * nossos atletas (que entram sozinhos na contagem da classificação), então o lado do adversário
+   * é complementado à mão na aba Súmulas dos Grupos. */
+  cartoes_amarelos_adversario: number;
+  cartoes_vermelhos_adversario: number;
   created_by: string | null;
   created_at: string;
 }
@@ -1211,6 +1223,12 @@ export interface CompeticaoGrupoResultadoRow {
   /** PDF da súmula do jogo anexado (bucket competicao-documentos), quando o Mateus quiser guardar
    * o comprovante do placar lançado. */
   sumula_path: string | null;
+  /** Cartões de cada lado, lançados junto do placar — alimentam as colunas CA/CV da classificação
+   * (mesmo formato da tabela oficial da FPF). */
+  cartoes_amarelos_casa: number;
+  cartoes_amarelos_fora: number;
+  cartoes_vermelhos_casa: number;
+  cartoes_vermelhos_fora: number;
   created_by: string | null;
   created_at: string;
 }
