@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SumulaPdfCartao, SumulaPdfDados } from "@/lib/fpf/sumula-pdf";
 import {
   contarCartoesPorLado,
+  dataSumulaParaIso,
   equipeCorrespondente,
   montarResultadoImportado,
   normalizarEquipe,
@@ -119,5 +120,30 @@ describe("montarResultadoImportado", () => {
       "Marília",
     );
     expect(resultado).toMatchObject({ golsCasa: 1, golsFora: 0 });
+  });
+});
+
+describe("dataSumulaParaIso", () => {
+  it("converte dd/mm/aaaa da súmula pro formato do banco", () => {
+    expect(dataSumulaParaIso("17/07/2026")).toBe("2026-07-17");
+  });
+
+  it("deixa passar data que já está em ISO", () => {
+    expect(dataSumulaParaIso("2026-07-17")).toBe("2026-07-17");
+  });
+
+  it("devolve null pro que não reconhece (em vez de quebrar o insert)", () => {
+    expect(dataSumulaParaIso(null)).toBeNull();
+    expect(dataSumulaParaIso("17 de julho")).toBeNull();
+    expect(dataSumulaParaIso("32/13/2026")).toBeNull();
+  });
+
+  it("resultado importado já sai com a data em ISO", () => {
+    const resultado = montarResultadoImportado(
+      dados({ placarMandante: 1, placarVisitante: 0, data: "17/07/2026" }),
+      "Linense",
+      "Marília",
+    );
+    expect(resultado.data).toBe("2026-07-17");
   });
 });

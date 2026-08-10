@@ -100,6 +100,24 @@ export function contarCartoesPorLado(
   return resultado;
 }
 
+/**
+ * A súmula traz a data como dd/mm/aaaa (ver `RE_DATA` em lib/fpf/sumula-pdf.ts), mas a coluna
+ * `data_jogo` é `date` — gravar o texto brasileiro direto dava
+ * "date/time field value out of range". Converte pra ISO; devolve null se não reconhecer.
+ */
+export function dataSumulaParaIso(data: string | null): string | null {
+  if (!data) return null;
+  const jaIso = data.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (jaIso) return data;
+  const br = data.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!br) return null;
+  const [, dia, mes, ano] = br;
+  const diaNum = Number(dia);
+  const mesNum = Number(mes);
+  if (mesNum < 1 || mesNum > 12 || diaNum < 1 || diaNum > 31) return null;
+  return `${ano}-${mes}-${dia}`;
+}
+
 export interface ResultadoImportado {
   golsCasa: number;
   golsFora: number;
@@ -155,5 +173,10 @@ export function montarResultadoImportado(
     avisos.push(`${dados.avisos.length} linha(s) do PDF não foram reconhecidas.`);
   }
 
-  return { golsCasa, golsFora, cartoes, rodada: dados.rodada, data: dados.data, avisos };
+  const dataIso = dataSumulaParaIso(dados.data);
+  if (dados.data && !dataIso) {
+    avisos.push(`A data "${dados.data}" do PDF não foi reconhecida — preencha a data à mão se precisar.`);
+  }
+
+  return { golsCasa, golsFora, cartoes, rodada: dados.rodada, data: dataIso, avisos };
 }
