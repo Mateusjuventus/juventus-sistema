@@ -207,6 +207,23 @@ export function CompeticaoForm({
             />
           </div>
         </div>
+        <div className="mt-4">
+          <label htmlFor="regraObservacoes" className="field-label">
+            Texto do regulamento (referência)
+          </label>
+          <textarea
+            id="regraObservacoes"
+            name="regraObservacoes"
+            rows={5}
+            className="field-input font-mono text-xs"
+            placeholder="Cole aqui o artigo do regulamento que embasa essas regras (ex.: Art. 60 da Copa Paulista)…"
+            defaultValue={competicao?.regra_observacoes ?? ""}
+          />
+          <p className="mt-1 text-xs text-neutral-400">
+            Só registro para consulta — o motor usa os números acima. O zeramento de amarelos ao fim de uma
+            fase é marcado fase a fase, na aba Fases e Grupos.
+          </p>
+        </div>
       </fieldset>
 
       <div className="flex justify-end gap-2">

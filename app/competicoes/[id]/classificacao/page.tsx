@@ -1,16 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { CompeticaoTabs } from "@/components/competicao-tabs";
 import { createClient } from "@/lib/supabase/server";
-import { carregarCompeticao, confrontoComData } from "@/lib/futebol/competicao-query";
+import { carregarCompeticao } from "@/lib/futebol/competicao-query";
 import { resolverEquipes } from "@/lib/futebol/competicao-classificacao";
-import { excluirResultadoExterno, lancarResultadoExterno } from "../../actions";
-
-function formatData(data: string | null): string {
-  if (!data) return "—";
-  const [ano, mes, dia] = data.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
 
 /**
  * Classificação por grupo + possíveis confrontos das próximas fases (pedido do Mateus durante a
@@ -32,11 +26,7 @@ export default async function CompeticaoClassificacaoPage({ params }: { params: 
     classificacoesPorGrupo,
     nomesGrupos,
     vinculos,
-    jogosById,
   } = carregada;
-
-  const lancarAction = lancarResultadoExterno.bind(null, competicao.id);
-  const excluirAction = excluirResultadoExterno.bind(null, competicao.id);
 
   return (
     <AppShell>
@@ -49,8 +39,8 @@ export default async function CompeticaoClassificacaoPage({ params }: { params: 
         </a>
       </div>
       <p className="mt-1 text-sm text-neutral-500">
-        Os jogos do Juventus entram sozinhos (pelo placar preenchido no cadastro do jogo). Lance aqui só os
-        resultados entre os outros clubes do grupo.
+        Os jogos do Juventus entram sozinhos (pelo placar preenchido no cadastro do jogo); os resultados dos
+        outros clubes são lançados na aba Súmulas dos Grupos.
       </p>
 
       {fases.length === 0 ? (
@@ -164,95 +154,15 @@ export default async function CompeticaoClassificacaoPage({ params }: { params: 
                       )}
 
                       {!temVagaProjetada ? (
-                        <details className="mt-3 border-t border-linha pt-3">
-                          <summary className="cursor-pointer text-xs font-medium text-neutral-500 hover:text-grena">
-                            Resultados do grupo ({jogosDoGrupo.length + resultados.length})
-                          </summary>
-                          <ul className="mt-2 space-y-1 text-sm text-neutral-700">
-                            {jogosDoGrupo.map((v) => {
-                              const jogo = jogosById.get(v.jogo_id);
-                              if (!jogo) return null;
-                              const comPlacar = jogo.gols_pro !== null && jogo.gols_contra !== null;
-                              return (
-                                <li key={v.id} className="flex items-center justify-between gap-2">
-                                  <span>{confrontoComData(jogo)}</span>
-                                  <span className={comPlacar ? "font-medium" : "text-neutral-400"}>
-                                    {comPlacar
-                                      ? jogo.mandante
-                                        ? `${jogo.gols_pro} x ${jogo.gols_contra}`
-                                        : `${jogo.gols_contra} x ${jogo.gols_pro}`
-                                      : "sem placar"}
-                                  </span>
-                                </li>
-                              );
-                            })}
-                            {resultados.map((r) => (
-                              <li key={r.id} className="flex items-center justify-between gap-2">
-                                <span>
-                                  {r.equipe_casa} x {r.equipe_fora}
-                                  {r.data_jogo ? (
-                                    <span className="ml-1 text-xs text-neutral-400">({formatData(r.data_jogo)})</span>
-                                  ) : null}
-                                </span>
-                                <span className="flex items-center gap-2">
-                                  <span className="font-medium">
-                                    {r.gols_casa} x {r.gols_fora}
-                                  </span>
-                                  <form action={excluirAction}>
-                                    <input type="hidden" name="id" value={r.id} />
-                                    <button
-                                      type="submit"
-                                      className="text-xs text-neutral-300 hover:text-red-600"
-                                      title="Excluir resultado"
-                                    >
-                                      ✕
-                                    </button>
-                                  </form>
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-
-                          <form action={lancarAction} className="mt-3 flex flex-wrap items-center gap-1.5">
-                            <input type="hidden" name="grupoId" value={grupo.id} />
-                            <input
-                              name="equipeCasa"
-                              className="field-input w-32 py-1 text-xs"
-                              placeholder="Mandante"
-                              required
-                            />
-                            <input
-                              name="golsCasa"
-                              type="number"
-                              min={0}
-                              className="field-input w-14 py-1 text-xs"
-                              placeholder="0"
-                              required
-                            />
-                            <span className="text-xs text-neutral-400">x</span>
-                            <input
-                              name="golsFora"
-                              type="number"
-                              min={0}
-                              className="field-input w-14 py-1 text-xs"
-                              placeholder="0"
-                              required
-                            />
-                            <input
-                              name="equipeFora"
-                              className="field-input w-32 py-1 text-xs"
-                              placeholder="Visitante"
-                              required
-                            />
-                            <input name="dataJogo" type="date" className="field-input w-36 py-1 text-xs" />
-                            <button type="submit" className="btn-secondary px-2 py-1 text-xs">
-                              Lançar
-                            </button>
-                          </form>
-                          <p className="mt-1 text-[11px] text-neutral-400">
-                            Só confrontos entre os outros clubes — os do Juventus vêm do cadastro do jogo.
-                          </p>
-                        </details>
+                        <p className="mt-3 border-t border-linha pt-3 text-xs text-neutral-500">
+                          {jogosDoGrupo.length + resultados.length} resultado(s) contabilizado(s) ·{" "}
+                          <Link
+                            href={`/competicoes/${competicao.id}/resultados`}
+                            className="font-medium text-grena hover:underline"
+                          >
+                            lançar/ver súmulas dos jogos do grupo →
+                          </Link>
+                        </p>
                       ) : null}
                     </div>
                   );

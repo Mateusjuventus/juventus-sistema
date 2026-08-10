@@ -80,7 +80,7 @@ export default async function CompeticaoFasesPage({ params }: { params: { id: st
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <h3 className="text-base font-bold text-grena-escuro">{fase.nome}</h3>
-                  <form action={statusFaseAction} className="flex items-center gap-1">
+                  <form action={statusFaseAction} className="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="faseId" value={fase.id} />
                     <select
                       name="status"
@@ -93,6 +93,13 @@ export default async function CompeticaoFasesPage({ params }: { params: { id: st
                         </option>
                       ))}
                     </select>
+                    <label
+                      className="flex cursor-pointer items-center gap-1 text-xs text-neutral-600"
+                      title="Regra tipo Art. 60 da Copa Paulista: encerrada esta fase, os amarelos acumulados zeram — a suspensão de um 3º amarelo recebido na fase continua valendo."
+                    >
+                      <input type="checkbox" name="zeraCartoes" defaultChecked={fase.zerar_cartoes_ao_encerrar} />
+                      Zera amarelos ao encerrar
+                    </label>
                     <button type="submit" className="btn-secondary px-2 py-1 text-xs">
                       OK
                     </button>

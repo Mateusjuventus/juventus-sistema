@@ -54,6 +54,8 @@ export interface CompeticaoCarregada {
   /** Eventos de cartão crus (já filtrados pros jogos vinculados) — expostos pra telas que
    * recalculam a disciplina num subconjunto de jogos (filtro por fase/grupo em /cartoes). */
   eventosCartao: CartaoEvento[];
+  /** Fases com "zerar cartões ao encerrar" — pra quem recalcula a disciplina manter a regra. */
+  fasesQueZeramAmarelos: Set<string>;
   manuais: CompeticaoSuspensaoManualRow[];
   inscricoes: CompeticaoInscricaoRow[];
   atletasById: Map<string, AtletaResumo>;
@@ -182,11 +184,21 @@ export async function carregarCompeticao(
     }
   }
 
+  const fasePorJogo = new Map(vinculos.map((v) => [v.jogo_id, v.fase_id]));
   const jogosOrdenados: JogoDisciplina[] = vinculos
     .map((v) => jogosById.get(v.jogo_id))
     .filter((j): j is JogoRow => Boolean(j))
     .sort((a, b) => (a.data_jogo === b.data_jogo ? a.id.localeCompare(b.id) : a.data_jogo.localeCompare(b.data_jogo)))
-    .map((j) => ({ jogoId: j.id, data: j.data_jogo, confronto: confrontoComData(j) }));
+    .map((j) => ({
+      jogoId: j.id,
+      data: j.data_jogo,
+      confronto: confrontoComData(j),
+      faseId: fasePorJogo.get(j.id) ?? null,
+    }));
+
+  // Fases com "zerar cartões ao encerrar" (Art. 60 da Copa Paulista) — o motor zera o acúmulo de
+  // amarelos ao cruzar do último jogo dessas fases pro primeiro da fase seguinte.
+  const fasesQueZeramAmarelos = new Set(fases.filter((f) => f.zerar_cartoes_ao_encerrar).map((f) => f.id));
 
   const disciplina = calcularDisciplina(
     {
@@ -205,6 +217,7 @@ export async function carregarCompeticao(
       dataDecisao: m.data_decisao,
     })),
     hojeBrasilia(),
+    fasesQueZeramAmarelos,
   );
 
   // Nomes dos atletas que aparecem em qualquer tela do módulo (inscritos + quem tem cartão ou
@@ -285,6 +298,7 @@ export async function carregarCompeticao(
     jogosOrdenados,
     disciplina,
     eventosCartao,
+    fasesQueZeramAmarelos,
     manuais,
     inscricoes,
     atletasById,

@@ -58,6 +58,7 @@ export default async function CompeticaoCartoesPage({
             dataDecisao: m.data_decisao,
           })),
           hojeStr,
+          carregada.fasesQueZeramAmarelos,
         )
       : carregada.disciplina;
 

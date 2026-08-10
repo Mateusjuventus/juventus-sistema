@@ -66,6 +66,7 @@ function parseCompeticao(formData: FormData) {
       ? texto(formData, "status")
       : "planejada",
     observacoes: textoOuNull(formData, "observacoes"),
+    regra_observacoes: textoOuNull(formData, "regraObservacoes"),
     regra_amarelos_suspensao: inteiro(formData, "regraAmarelos", 3) || 3,
     regra_jogos_suspensao_amarelos: inteiro(formData, "regraJogosAmarelos", 1) || 1,
     regra_jogos_suspensao_vermelho: inteiro(formData, "regraJogosVermelho", 1) || 1,
@@ -162,7 +163,12 @@ export async function atualizarStatusFase(competicaoId: string, formData: FormDa
   const status = texto(formData, "status");
   if (!faseId || !["aguardando", "em_andamento", "encerrada"].includes(status)) return;
   const supabase = createClient();
-  await supabase.from("competicao_fases").update({ status }).eq("id", faseId);
+  // O mesmo formulário da fase salva também a regra "zerar amarelos ao encerrar" (Art. 60 da
+  // Copa Paulista) — checkbox `zeraCartoes`.
+  await supabase
+    .from("competicao_fases")
+    .update({ status, zerar_cartoes_ao_encerrar: formData.get("zeraCartoes") === "on" })
+    .eq("id", faseId);
   revalidarCompeticao(competicaoId);
 }
 
@@ -273,6 +279,18 @@ export async function lancarResultadoExterno(competicaoId: string, formData: For
   if (!Number.isFinite(golsCasa) || !Number.isFinite(golsFora) || golsCasa < 0 || golsFora < 0) return;
 
   const supabase = createClient();
+
+  // Súmula do jogo (PDF/imagem) anexada junto do placar — opcional, bucket competicao-documentos.
+  let sumulaPath: string | null = null;
+  const sumula = formData.get("sumula");
+  if (sumula instanceof File && sumula.size > 0) {
+    const path = buildCompeticaoDocumentoPath(randomUUID(), sumula.name);
+    const { error } = await supabase.storage.from(COMPETICAO_DOCUMENTOS_BUCKET).upload(path, sumula, {
+      contentType: sumula.type || "application/pdf",
+    });
+    if (!error) sumulaPath = path;
+  }
+
   await supabase.from("competicao_grupo_resultados").insert({
     grupo_id: grupoId,
     equipe_casa: equipeCasa,
@@ -280,6 +298,8 @@ export async function lancarResultadoExterno(competicaoId: string, formData: For
     gols_casa: golsCasa,
     gols_fora: golsFora,
     data_jogo: textoOuNull(formData, "dataJogo"),
+    rodada: textoOuNull(formData, "rodada"),
+    sumula_path: sumulaPath,
   });
   revalidarCompeticao(competicaoId);
 }
@@ -288,7 +308,15 @@ export async function excluirResultadoExterno(competicaoId: string, formData: Fo
   const resultadoId = texto(formData, "id");
   if (!resultadoId) return;
   const supabase = createClient();
+  const { data } = await supabase
+    .from("competicao_grupo_resultados")
+    .select("sumula_path")
+    .eq("id", resultadoId)
+    .maybeSingle();
   await supabase.from("competicao_grupo_resultados").delete().eq("id", resultadoId);
+  if (data?.sumula_path) {
+    await supabase.storage.from(COMPETICAO_DOCUMENTOS_BUCKET).remove([data.sumula_path as string]);
+  }
   revalidarCompeticao(competicaoId);
 }
 

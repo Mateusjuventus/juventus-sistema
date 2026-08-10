@@ -47,6 +47,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
             dataDecisao: m.data_decisao,
           })),
           hojeBrasilia(),
+          carregada.fasesQueZeramAmarelos,
         )
       : carregada.disciplina;
 

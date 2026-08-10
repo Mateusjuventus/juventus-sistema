@@ -1136,6 +1136,9 @@ export interface CompeticaoRow {
   regra_amarelos_suspensao: number;
   regra_jogos_suspensao_amarelos: number;
   regra_jogos_suspensao_vermelho: number;
+  /** Texto livre do regulamento que embasa as regras disciplinares (ex.: Art. 60 da Copa
+   * Paulista) — só registro/consulta, o motor usa as colunas `regra_*` acima. */
+  regra_observacoes: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1153,6 +1156,11 @@ export interface CompeticaoFaseRow {
   nome: string;
   ordem: number;
   status: CompeticaoFaseStatus;
+  /** Regulamentos como o da Copa Paulista zeram os amarelos ao fim de certas fases ("desde que
+   * não seja o terceiro da série"): com true, o acúmulo de amarelos não carrega pras fases
+   * seguintes — suspensão já gerada dentro da fase continua valendo (ver
+   * lib/futebol/competicao-disciplina.ts). */
+  zerar_cartoes_ao_encerrar: boolean;
   created_at: string;
 }
 
@@ -1198,6 +1206,11 @@ export interface CompeticaoGrupoResultadoRow {
   gols_casa: number;
   gols_fora: number;
   data_jogo: string | null;
+  /** Rodada do jogo (texto livre, ex.: "1ª rodada") — só organização da lista. */
+  rodada: string | null;
+  /** PDF da súmula do jogo anexado (bucket competicao-documentos), quando o Mateus quiser guardar
+   * o comprovante do placar lançado. */
+  sumula_path: string | null;
   created_by: string | null;
   created_at: string;
 }

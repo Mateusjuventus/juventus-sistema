@@ -1,0 +1,245 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { CompeticaoTabs } from "@/components/competicao-tabs";
+import { createClient } from "@/lib/supabase/server";
+import { getSignedCompeticaoDocumentoUrl } from "@/lib/supabase/storage";
+import { carregarCompeticao, confrontoComData } from "@/lib/futebol/competicao-query";
+import { excluirResultadoExterno, lancarResultadoExterno } from "../../actions";
+
+function formatData(data: string | null): string {
+  if (!data) return "—";
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+/**
+ * Súmulas dos jogos dos grupos (pedido do Mateus): a área pra lançar os resultados dos jogos
+ * entre os OUTROS clubes de cada grupo — com rodada, data e o PDF da súmula anexado — pra
+ * contabilizar os pontos e sustentar a classificação. Os jogos do Juventus aparecem aqui só como
+ * referência (entram sozinhos pela súmula/placar do módulo de Jogos, nunca são lançados à mão).
+ */
+export default async function CompeticaoResultadosPage({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const carregada = await carregarCompeticao(supabase, params.id);
+  if (!carregada) notFound();
+
+  const { competicao, fases, gruposPorFase, equipesPorGrupo, resultadosPorGrupo, vinculos, jogosById } =
+    carregada;
+
+  const lancarAction = lancarResultadoExterno.bind(null, competicao.id);
+  const excluirAction = excluirResultadoExterno.bind(null, competicao.id);
+
+  // Signed URLs das súmulas anexadas (1h) — resolvidas de uma vez pra página inteira.
+  const sumulaUrls = new Map<string, string | null>();
+  for (const resultados of Array.from(resultadosPorGrupo.values())) {
+    for (const r of resultados) {
+      if (r.sumula_path && !sumulaUrls.has(r.id)) {
+        sumulaUrls.set(r.id, await getSignedCompeticaoDocumentoUrl(supabase, r.sumula_path));
+      }
+    }
+  }
+
+  return (
+    <AppShell>
+      <CompeticaoTabs competicao={competicao} active="resultados" />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-grena-escuro">Súmulas dos jogos dos grupos</h2>
+        <Link href={`/competicoes/${competicao.id}/classificacao`} className="btn-secondary">
+          Ver classificação
+        </Link>
+      </div>
+      <p className="mt-1 text-sm text-neutral-500">
+        Lance aqui os resultados dos jogos entre os outros clubes de cada grupo (com a súmula anexada, se
+        quiser) — é daqui que a classificação contabiliza os pontos. Os jogos do Juventus entram sozinhos
+        pelo placar do módulo de Jogos.
+      </p>
+
+      {fases.length === 0 ? (
+        <div className="card mt-4 p-8 text-center text-neutral-400">
+          Crie as fases e grupos da competição primeiro, na aba Fases e Grupos.
+        </div>
+      ) : null}
+
+      <div className="mt-4 space-y-6">
+        {fases.map((fase) => {
+          const grupos = (gruposPorFase.get(fase.id) ?? []).filter(
+            (g) => (equipesPorGrupo.get(g.id) ?? []).some((e) => e.nome !== null),
+          );
+          if (grupos.length === 0) return null;
+          return (
+            <section key={fase.id}>
+              <h3 className="text-base font-bold text-grena-escuro">{fase.nome}</h3>
+              <div className="mt-2 space-y-4">
+                {grupos.map((grupo) => {
+                  const resultados = resultadosPorGrupo.get(grupo.id) ?? [];
+                  const jogosDoGrupo = vinculos.filter((v) => v.grupo_id === grupo.id);
+                  const equipesFixas = (equipesPorGrupo.get(grupo.id) ?? [])
+                    .map((e) => e.nome)
+                    .filter((n): n is string => n !== null)
+                    .filter((n) => n.trim().toLocaleLowerCase("pt-BR") !== "juventus");
+
+                  return (
+                    <div key={grupo.id} className="card p-4">
+                      <h4 className="text-sm font-bold uppercase tracking-wide text-neutral-600">{grupo.nome}</h4>
+
+                      <div className="mt-3 space-y-1.5">
+                        {jogosDoGrupo.map((v) => {
+                          const jogo = jogosById.get(v.jogo_id);
+                          if (!jogo) return null;
+                          const comPlacar = jogo.gols_pro !== null && jogo.gols_contra !== null;
+                          return (
+                            <div
+                              key={v.id}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-dourado/5 px-3 py-2 text-sm"
+                            >
+                              <span className="font-medium text-grena">
+                                {confrontoComData(jogo)}
+                                <span className="ml-2 rounded-full bg-grena/10 px-2 py-0.5 text-[11px] font-semibold">
+                                  jogo do Juventus
+                                </span>
+                              </span>
+                              <span className={comPlacar ? "font-semibold" : "text-neutral-400"}>
+                                {comPlacar
+                                  ? jogo.mandante
+                                    ? `${jogo.gols_pro} x ${jogo.gols_contra}`
+                                    : `${jogo.gols_contra} x ${jogo.gols_pro}`
+                                  : "sem placar — preencha no cadastro do jogo"}
+                              </span>
+                            </div>
+                          );
+                        })}
+
+                        {resultados.map((r) => {
+                          const url = sumulaUrls.get(r.id) ?? null;
+                          return (
+                            <div
+                              key={r.id}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-linha px-3 py-2 text-sm"
+                            >
+                              <span className="text-neutral-800">
+                                {r.equipe_casa} <span className="font-semibold">{r.gols_casa} x {r.gols_fora}</span>{" "}
+                                {r.equipe_fora}
+                                <span className="ml-2 text-xs text-neutral-400">
+                                  {[r.rodada, r.data_jogo ? formatData(r.data_jogo) : null]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </span>
+                              </span>
+                              <span className="flex items-center gap-3">
+                                {url ? (
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-xs font-medium text-grena hover:underline"
+                                  >
+                                    📄 Súmula
+                                  </a>
+                                ) : null}
+                                <form action={excluirAction}>
+                                  <input type="hidden" name="id" value={r.id} />
+                                  <button
+                                    type="submit"
+                                    className="text-xs text-neutral-300 hover:text-red-600"
+                                    title="Excluir resultado"
+                                  >
+                                    ✕
+                                  </button>
+                                </form>
+                              </span>
+                            </div>
+                          );
+                        })}
+
+                        {jogosDoGrupo.length === 0 && resultados.length === 0 ? (
+                          <p className="text-sm text-neutral-400">Nenhum resultado lançado neste grupo ainda.</p>
+                        ) : null}
+                      </div>
+
+                      <form
+                        action={lancarAction}
+                        className="mt-3 flex flex-wrap items-end gap-2 border-t border-linha pt-3"
+                      >
+                        <input type="hidden" name="grupoId" value={grupo.id} />
+                        <div>
+                          <label className="field-label">Rodada</label>
+                          <input name="rodada" className="field-input w-24 py-1 text-xs" placeholder="1ª" />
+                        </div>
+                        <div>
+                          <label className="field-label">Mandante</label>
+                          {equipesFixas.length > 0 ? (
+                            <select name="equipeCasa" className="field-input w-36 py-1 text-xs" required>
+                              {equipesFixas.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input name="equipeCasa" className="field-input w-36 py-1 text-xs" required />
+                          )}
+                        </div>
+                        <div>
+                          <label className="field-label">Placar</label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              name="golsCasa"
+                              type="number"
+                              min={0}
+                              className="field-input w-14 py-1 text-xs"
+                              required
+                            />
+                            <span className="text-xs text-neutral-400">x</span>
+                            <input
+                              name="golsFora"
+                              type="number"
+                              min={0}
+                              className="field-input w-14 py-1 text-xs"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="field-label">Visitante</label>
+                          {equipesFixas.length > 0 ? (
+                            <select
+                              name="equipeFora"
+                              className="field-input w-36 py-1 text-xs"
+                              defaultValue={equipesFixas[1] ?? equipesFixas[0]}
+                              required
+                            >
+                              {equipesFixas.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input name="equipeFora" className="field-input w-36 py-1 text-xs" required />
+                          )}
+                        </div>
+                        <div>
+                          <label className="field-label">Data</label>
+                          <input name="dataJogo" type="date" className="field-input w-36 py-1 text-xs" />
+                        </div>
+                        <div className="min-w-[180px]">
+                          <label className="field-label">Súmula (PDF, opcional)</label>
+                          <input name="sumula" type="file" className="field-input py-1 text-xs" />
+                        </div>
+                        <button type="submit" className="btn-primary px-3 py-1.5 text-sm">
+                          Lançar resultado
+                        </button>
+                      </form>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </AppShell>
+  );
+}

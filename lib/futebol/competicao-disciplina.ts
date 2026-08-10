@@ -21,11 +21,13 @@ export interface RegrasDisciplina {
   jogosSuspensaoVermelho: number;
 }
 
-/** Jogo vinculado à competição, já achatado — `data` decide a ordem cronológica. */
+/** Jogo vinculado à competição, já achatado — `data` decide a ordem cronológica. `faseId` (quando
+ * o vínculo tem fase) permite aplicar o zeramento de amarelos entre fases. */
 export interface JogoDisciplina {
   jogoId: string;
   data: string; // yyyy-mm-dd
   confronto: string;
+  faseId?: string | null;
 }
 
 export interface CartaoEvento {
@@ -93,6 +95,13 @@ function ordenarJogos(jogos: JogoDisciplina[]): JogoDisciplina[] {
  * Calcula cartões e suspensões da competição inteira a partir dos eventos das súmulas.
  * `hojeStr` (yyyy-mm-dd) decide o que já foi cumprido: um jogo conta como cumprido quando a data
  * dele já passou (`data < hoje`) — no dia do jogo o atleta ainda está suspenso PARA ele.
+ *
+ * `fasesQueZeramAmarelos`: fases com "zerar cartões ao encerrar" (regulamento da Copa Paulista,
+ * Art. 60 caput: "Finalizada a primeira fase [...] os cartões amarelos serão zerados, desde que
+ * não seja o terceiro da série"). Na linha do tempo dos jogos vinculados, ao cruzar do último
+ * jogo de uma dessas fases pro primeiro jogo de outra fase, o ACÚMULO de amarelos de todo mundo
+ * zera — mas suspensão já gerada dentro da fase (3º amarelo no último jogo, por exemplo) continua
+ * valendo e é cumprida normalmente nos jogos seguintes.
  */
 export function calcularDisciplina(
   regras: RegrasDisciplina,
@@ -100,9 +109,30 @@ export function calcularDisciplina(
   eventos: CartaoEvento[],
   manuais: SuspensaoManualInput[],
   hojeStr: string,
+  fasesQueZeramAmarelos: Set<string> = new Set(),
 ): DisciplinaCompeticao {
   const jogosOrdenados = ordenarJogos(jogos);
   const indexPorJogo = new Map<string, number>(jogosOrdenados.map((j, i) => [j.jogoId, i]));
+
+  // "Época" de cada jogo na linha do tempo: cruza pra uma época nova quando o jogo anterior era
+  // de uma fase que zera amarelos e este jogo é de outra fase. Amarelos só acumulam dentro da
+  // mesma época.
+  const epocaPorIndice: number[] = [];
+  let epocaAtual = 0;
+  for (let i = 0; i < jogosOrdenados.length; i++) {
+    if (i > 0) {
+      const anterior = jogosOrdenados[i - 1];
+      const atual = jogosOrdenados[i];
+      if (
+        anterior.faseId &&
+        fasesQueZeramAmarelos.has(anterior.faseId) &&
+        atual.faseId !== anterior.faseId
+      ) {
+        epocaAtual += 1;
+      }
+    }
+    epocaPorIndice.push(epocaAtual);
+  }
 
   // eventos agrupados por atleta e, dentro do atleta, por jogo (na ordem cronológica dos jogos)
   const porAtleta = new Map<string, Map<string, CartaoEvento[]>>();
@@ -132,8 +162,12 @@ export function calcularDisciplina(
   const cartoes: CartoesAtleta[] = [];
   const brutas: SuspensaoBruta[] = [];
 
+  // Época em que os amarelos "vivos" de fato estão: a do último jogo vinculado (o ciclo atual).
+  const epocaFinal = epocaPorIndice.length > 0 ? epocaPorIndice[epocaPorIndice.length - 1] : 0;
+
   for (const [atletaId, jogosDoAtleta] of porAtleta) {
     let acumulado = 0;
+    let epocaDoAcumulado = 0;
     let totalAmarelos = 0;
     let totalVermelhos = 0;
     let ultimoJogoId: string | null = null;
@@ -142,6 +176,14 @@ export function calcularDisciplina(
     for (const jogo of jogosOrdenados) {
       const doJogo = jogosDoAtleta.get(jogo.jogoId);
       if (!doJogo || doJogo.length === 0) continue;
+
+      // Virou a época (fim de fase que zera amarelos)? O acúmulo em andamento morre ali —
+      // suspensões já geradas ficam.
+      const epocaDoJogo = epocaPorIndice[indexPorJogo.get(jogo.jogoId) as number];
+      if (epocaDoJogo !== epocaDoAcumulado) {
+        acumulado = 0;
+        epocaDoAcumulado = epocaDoJogo;
+      }
 
       const amarelosNoJogo = doJogo.filter((e) => e.tipo === "cartao_amarelo").length;
       const vermelhosNoJogo = doJogo.filter((e) => e.tipo === "cartao_vermelho").length;
@@ -199,14 +241,18 @@ export function calcularDisciplina(
       }
     }
 
+    // Se a linha do tempo já cruzou pra uma época posterior à do último cartão do atleta, o
+    // acúmulo dele foi zerado pelo fim da fase mesmo sem ele ter jogado de novo.
+    const amarelosAtivos = epocaDoAcumulado === epocaFinal ? acumulado : 0;
+
     cartoes.push({
       atletaId,
       amarelos: totalAmarelos,
       vermelhos: totalVermelhos,
       ultimoJogoId,
       ultimoTipo,
-      amarelosAtivos: acumulado,
-      pendurado: regras.amarelosParaSuspensao > 1 && acumulado === regras.amarelosParaSuspensao - 1,
+      amarelosAtivos,
+      pendurado: regras.amarelosParaSuspensao > 1 && amarelosAtivos === regras.amarelosParaSuspensao - 1,
     });
   }
 

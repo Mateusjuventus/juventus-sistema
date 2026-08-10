@@ -60,3 +60,33 @@ aprovado em mockup HTML antes da implementação. Pontos inegociáveis, na ordem
 - `carregarCompeticao` (`lib/futebol/competicao-query.ts`) é a única porta de entrada de dados —
   todas as abas e PDFs derivam das mesmas fontes.
 - Documentos/regulamento num bucket privado novo `competicao-documentos` (padrão de 0054).
+
+## Atualização (10/08, regulamento da Copa Paulista — Art. 60)
+
+O Mateus colou o Art. 60 do Regulamento Específico da Copa Paulista e pediu três coisas:
+
+1. **Regra registrada na competição**: campo `competicoes.regra_observacoes` (texto livre) pro
+   artigo do regulamento ficar junto da configuração — aparece na Visão geral e é editável no
+   formulário. O motor continua usando as colunas numéricas `regra_*`.
+2. **Zerar amarelos por fase** (caput: "Finalizada a primeira fase [...] os cartões amarelos serão
+   zerados, desde que não seja o terceiro da série"): flag `competicao_fases.zerar_cartoes_ao_encerrar`,
+   marcada fase a fase na aba Fases e Grupos. No motor, a linha do tempo dos jogos vinculados é
+   dividida em "épocas": cruzou do último jogo de uma fase com a flag pro primeiro de outra fase,
+   o ACÚMULO de amarelos zera pra todo mundo — suspensão já gerada dentro da fase (3º amarelo no
+   último jogo, p.ex.) continua valendo e cumpre nos jogos seguintes. Testado em
+   competicao-disciplina.test.ts.
+   As combinações do §1º o motor já cumpria e agora têm teste com o nome do artigo:
+   (a) amarelo + vermelho direto na mesma partida → o amarelo permanece na série;
+   (b) 3º amarelo + vermelho direto na mesma partida → 2 impedimentos, cumpridos em sequência;
+   (c) 2º amarelo com vermelho consequente → os amarelos não contam pra série.
+   §§ 2º–4º (partida suspensa/adiada/W.O.) não são modelados — casos raros, ajustáveis com
+   suspensão manual ou desvinculando o jogo.
+3. **Área de súmulas dos jogos dos grupos**: aba nova "Súmulas dos Grupos"
+   (`/competicoes/[id]/resultados`) — por grupo, lista os jogos do Juventus (referência, entram
+   sozinhos) e os resultados entre os outros clubes, com rodada, data e o PDF da súmula anexado
+   (`competicao_grupo_resultados.rodada`/`.sumula_path`, bucket competicao-documentos). O
+   lançamento saiu da aba Classificação (que agora só mostra tabelas/confrontos e linka pra cá).
+   Mandante/visitante viram selects com as equipes cadastradas no grupo (menos o Juventus), pra
+   evitar erro de grafia que quebraria a contagem de pontos.
+
+Migração: 0064_competicao_regras_fase_sumulas.sql.

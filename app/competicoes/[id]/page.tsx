@@ -113,6 +113,14 @@ export default async function CompeticaoVisaoGeralPage({ params }: { params: { i
                 <dd className="mt-1 whitespace-pre-wrap text-neutral-700">{competicao.observacoes}</dd>
               </div>
             ) : null}
+            {competicao.regra_observacoes ? (
+              <div>
+                <dt className="text-neutral-500">Regulamento — regras disciplinares</dt>
+                <dd className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-xs text-neutral-600">
+                  {competicao.regra_observacoes}
+                </dd>
+              </div>
+            ) : null}
           </dl>
         </section>
 
