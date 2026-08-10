@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { COMPETICAO_DOCUMENTOS_BUCKET, buildCompeticaoDocumentoPath } from "@/lib/supabase/storage";
 import { CRITERIOS_PADRAO, ehCriterioValido } from "@/lib/futebol/competicao-desempate";
-import { baixarTextoSumulaPdf, parsearSumulaPdf } from "@/lib/fpf/sumula-pdf";
+import { baixarTextoSumulaPdf, parsearSumulaPdf, SumulaPdfError } from "@/lib/fpf/sumula-pdf";
 import { contarCartoesPorLado, montarResultadoImportado } from "@/lib/futebol/competicao-sumula-import";
 
 /**
@@ -340,28 +340,44 @@ export async function lancarResultadoExterno(competicaoId: string, formData: For
  * digitação. As duas equipes vêm do formulário (selects do grupo), porque a súmula traz os nomes
  * como a federação escreve e é o casamento com o cadastro que garante os pontos no lugar certo.
  */
+export interface ImportarSumulaState {
+  erro?: string;
+  sucesso?: string;
+  /** Avisos do parser (placar contado pelos gols, equipe não identificada...) — mostrados junto
+   * do sucesso pra o usuário conferir antes de confiar no número. */
+  avisos?: string[];
+}
+
 export async function importarResultadoPorLink(
   competicaoId: string,
+  _prevState: ImportarSumulaState,
   formData: FormData,
-): Promise<void> {
+): Promise<ImportarSumulaState> {
   const grupoId = texto(formData, "grupoId");
   const equipeCasa = texto(formData, "equipeCasa");
   const equipeFora = texto(formData, "equipeFora");
   const link = texto(formData, "sumulaLink");
-  if (!grupoId || !equipeCasa || !equipeFora || !link) return;
+  if (!grupoId || !equipeCasa || !equipeFora || !link) {
+    return { erro: "Preencha o link e as duas equipes." };
+  }
+  if (!/^https?:\/\//i.test(link)) {
+    return { erro: "O link precisa começar com http:// ou https://." };
+  }
+  if (equipeCasa === equipeFora) {
+    return { erro: "Mandante e visitante não podem ser a mesma equipe." };
+  }
 
   let dados;
   try {
     dados = parsearSumulaPdf(await baixarTextoSumulaPdf(link));
-  } catch {
-    // Falha de rede/PDF inválido: não grava nada — o lançamento manual continua disponível logo
-    // abaixo no mesmo formulário.
-    return;
+  } catch (erro) {
+    const mensagem = erro instanceof SumulaPdfError ? erro.message : "Erro inesperado ao ler o PDF.";
+    return { erro: `${mensagem} Você pode lançar o resultado manualmente no formulário abaixo.` };
   }
 
   const importado = montarResultadoImportado(dados, equipeCasa, equipeFora);
   const supabase = createClient();
-  await supabase.from("competicao_grupo_resultados").insert({
+  const { error } = await supabase.from("competicao_grupo_resultados").insert({
     grupo_id: grupoId,
     equipe_casa: equipeCasa,
     equipe_fora: equipeFora,
@@ -375,7 +391,13 @@ export async function importarResultadoPorLink(
     cartoes_vermelhos_casa: importado.cartoes.vermelhosA,
     cartoes_vermelhos_fora: importado.cartoes.vermelhosB,
   });
+  if (error) return { erro: `Não foi possível salvar: ${error.message}` };
+
   revalidarCompeticao(competicaoId);
+  return {
+    sucesso: `Importado: ${equipeCasa} ${importado.golsCasa} x ${importado.golsFora} ${equipeFora} · 🟨 ${importado.cartoes.amarelosA}x${importado.cartoes.amarelosB} · 🟥 ${importado.cartoes.vermelhosA}x${importado.cartoes.vermelhosB}`,
+    avisos: importado.avisos,
+  };
 }
 
 /**
@@ -384,23 +406,28 @@ export async function importarResultadoPorLink(
  */
 export async function importarCartoesAdversarioPorLink(
   competicaoId: string,
+  _prevState: ImportarSumulaState,
   formData: FormData,
-): Promise<void> {
+): Promise<ImportarSumulaState> {
   const vinculoId = texto(formData, "vinculoId");
   const adversario = texto(formData, "adversario");
   const link = texto(formData, "sumulaLink");
-  if (!vinculoId || !adversario || !link) return;
+  if (!vinculoId || !adversario || !link) return { erro: "Cole o link do PDF da súmula." };
+  if (!/^https?:\/\//i.test(link)) {
+    return { erro: "O link precisa começar com http:// ou https://." };
+  }
 
   let dados;
   try {
     dados = parsearSumulaPdf(await baixarTextoSumulaPdf(link));
-  } catch {
-    return;
+  } catch (erro) {
+    const mensagem = erro instanceof SumulaPdfError ? erro.message : "Erro inesperado ao ler o PDF.";
+    return { erro: `${mensagem} Você pode preencher os cartões à mão no campo ao lado.` };
   }
 
   const cartoes = contarCartoesPorLado(dados.cartoes, "Juventus", adversario);
   const supabase = createClient();
-  await supabase
+  const { error } = await supabase
     .from("competicao_jogos")
     .update({
       cartoes_amarelos_adversario: cartoes.amarelosB,
@@ -408,7 +435,16 @@ export async function importarCartoesAdversarioPorLink(
       sumula_link: link,
     })
     .eq("id", vinculoId);
+  if (error) return { erro: `Não foi possível salvar: ${error.message}` };
+
   revalidarCompeticao(competicaoId);
+  return {
+    sucesso: `${adversario}: 🟨 ${cartoes.amarelosB} · 🟥 ${cartoes.vermelhosB} importados da súmula.`,
+    avisos:
+      cartoes.naoIdentificados.length > 0
+        ? [`Cartões de ${cartoes.naoIdentificados.join(", ")} não foram atribuídos — confira o nome do adversário no cadastro do jogo.`]
+        : [],
+  };
 }
 
 /** Cartões do ADVERSÁRIO num jogo do Juventus — complementados à mão (a súmula do sistema só
