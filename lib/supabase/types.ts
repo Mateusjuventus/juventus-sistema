@@ -1286,3 +1286,44 @@ export interface CompeticaoDocumentoRow {
   created_by: string | null;
   created_at: string;
 }
+
+// ===== Termo de Responsabilidade — Retirada de Materiais =====
+// Ver docs/superpowers/specs/2026-08-11-termos-retirada-design.md.
+
+export type TermoRetiradaTipo = "emprestimo" | "definitiva";
+
+/** Documento assinado no ato da retirada de material do clube. Diferente de `estoque_saidas`
+ * (catálogo do Estoque, com baixa de quantidade): aqui os itens são digitados livremente. */
+export interface TermoRetiradaRow {
+  id: string;
+  numero: number;
+  data: string;
+  tipo: TermoRetiradaTipo;
+  responsavel_nome: string;
+  responsavel_documento: string | null;
+  funcao: string | null;
+  departamento: string | null;
+  finalidade: string | null;
+  /** Só faz sentido em empréstimo. */
+  previsao_devolucao: string | null;
+  /** Texto efetivamente assinado — gravado no termo pra o PDF de um documento antigo não mudar
+   * quando o texto padrão do sistema for ajustado. */
+  texto_responsabilidade: string;
+  observacoes: string | null;
+  devolvido_em: string | null;
+  devolucao_observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TermoRetiradaItemRow {
+  id: string;
+  termo_id: string;
+  descricao: string;
+  quantidade: number;
+  /** "Valor sugerido" do item — opcional; sustenta o trecho de ressarcimento do termo. */
+  valor_unitario: number | null;
+  ordem: number;
+  created_at: string;
+}

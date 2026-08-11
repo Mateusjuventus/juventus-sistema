@@ -14,6 +14,7 @@ import {
   IconRelatorio,
   IconSolicitacoes,
   IconStaff,
+  IconTermos,
   IconUsuarios,
 } from "@/components/module-icons";
 import { PerfilMenuSidebar } from "@/components/perfil-menu";
@@ -42,6 +43,7 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
   jogos: IconJogos,
   solicitacoes: IconSolicitacoes,
   estoque: IconEstoque,
+  termos_retirada: IconTermos,
   financeiro: IconFinanceiro,
   relatorios_avulso: IconRelatorio,
   usuarios: IconUsuarios,

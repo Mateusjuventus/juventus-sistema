@@ -79,6 +79,15 @@ export function IconCompeticoes({ className }: { className?: string }) {
   );
 }
 
+export function IconTermos({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1Z" />
+      <path d="M10 8h4M10 12h4M10 16h2" />
+    </svg>
+  );
+}
+
 export function IconRelatorio({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
