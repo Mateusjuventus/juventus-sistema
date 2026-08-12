@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
+import { getSignedTermoDocumentoUrl } from "@/lib/supabase/storage";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import {
   formatMoeda,
@@ -14,8 +15,19 @@ import {
   totalDoItem,
   totalDoTermo,
 } from "@/lib/futebol/termo-retirada";
-import type { TermoRetiradaItemRow, TermoRetiradaRow } from "@/lib/supabase/types";
-import { excluirTermo, registrarDevolucao } from "../actions";
+import type {
+  TermoRetiradaAnexoRow,
+  TermoRetiradaAnexoTipo,
+  TermoRetiradaItemRow,
+  TermoRetiradaRow,
+} from "@/lib/supabase/types";
+import { enviarAnexoTermo, excluirAnexoTermo, excluirTermo, registrarDevolucao } from "../actions";
+
+const ANEXO_TIPO_LABEL: Record<TermoRetiradaAnexoTipo, string> = {
+  assinado: "Termo assinado",
+  devolucao: "Comprovante de devolução",
+  outro: "Outro documento",
+};
 
 function formatData(data: string | null): string {
   if (!data) return "—";
@@ -25,17 +37,30 @@ function formatData(data: string | null): string {
 
 export default async function TermoDetalhePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const [{ data: termoData }, { data: itensData }] = await Promise.all([
+  const [{ data: termoData }, { data: itensData }, { data: anexosData }] = await Promise.all([
     supabase.from("termos_retirada").select("*").eq("id", params.id).maybeSingle(),
     supabase.from("termo_retirada_itens").select("*").eq("termo_id", params.id).order("ordem"),
+    supabase
+      .from("termo_retirada_anexos")
+      .select("*")
+      .eq("termo_id", params.id)
+      .order("created_at", { ascending: false }),
   ]);
   if (!termoData) notFound();
 
   const termo = termoData as TermoRetiradaRow;
   const itens = (itensData ?? []) as TermoRetiradaItemRow[];
+  const anexos = await Promise.all(
+    ((anexosData ?? []) as TermoRetiradaAnexoRow[]).map(async (a) => ({
+      ...a,
+      url: await getSignedTermoDocumentoUrl(supabase, a.arquivo_path),
+    })),
+  );
   const total = totalDoTermo(itensParaTotal(itens));
   const situacao = situacaoDoTermo(termo, hojeBrasilia());
   const devolucaoAction = registrarDevolucao.bind(null, termo.id);
+  const enviarAnexoAction = enviarAnexoTermo.bind(null, termo.id);
+  const excluirAnexoAction = excluirAnexoTermo.bind(null, termo.id);
 
   return (
     <AppShell>
@@ -82,8 +107,12 @@ export default async function TermoDetalhePage({ params }: { params: { id: strin
             </div>
             {termo.tipo === "emprestimo" ? (
               <div className="flex justify-between gap-4">
-                <dt className="text-neutral-500">Previsão de devolução</dt>
-                <dd className="text-neutral-800">{formatData(termo.previsao_devolucao)}</dd>
+                <dt className="text-neutral-500">Devolução</dt>
+                <dd className="text-right text-neutral-800">
+                  {termo.previsao_devolucao
+                    ? `Até ${formatData(termo.previsao_devolucao)}`
+                    : "Ao término do vínculo/função ou quando solicitado"}
+                </dd>
               </div>
             ) : null}
             {termo.observacoes ? (
@@ -195,6 +224,78 @@ export default async function TermoDetalhePage({ params }: { params: { id: strin
         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-neutral-700">
           {termo.texto_responsabilidade}
         </p>
+      </section>
+
+      <section className="card mt-4 p-5">
+        <h2 className="text-base font-bold text-grena-escuro">Documento assinado e anexos</h2>
+        <p className="mt-1 text-xs text-neutral-400">
+          O sistema não assina digitalmente: gere o PDF, imprima, colha as assinaturas e anexe aqui o
+          documento digitalizado (ou a foto). É o anexo que dá valor de comprovante ao registro.
+        </p>
+
+        <div className="mt-3 space-y-2">
+          {anexos.map((anexo) => (
+            <div
+              key={anexo.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-linha p-3"
+            >
+              <div>
+                {anexo.url ? (
+                  <a
+                    href={anexo.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-grena hover:underline"
+                  >
+                    📎 {anexo.nome}
+                  </a>
+                ) : (
+                  <span className="text-sm font-medium text-neutral-500">📎 {anexo.nome}</span>
+                )}
+                <p className="text-xs text-neutral-400">
+                  {ANEXO_TIPO_LABEL[anexo.tipo]} · enviado em {formatData(anexo.created_at.slice(0, 10))}
+                </p>
+              </div>
+              <form action={excluirAnexoAction}>
+                <input type="hidden" name="id" value={anexo.id} />
+                <button type="submit" className="text-xs text-neutral-400 hover:text-red-600">
+                  Excluir
+                </button>
+              </form>
+            </div>
+          ))}
+          {anexos.length === 0 ? (
+            <p className="text-sm text-neutral-400">Nenhum documento anexado ainda.</p>
+          ) : null}
+        </div>
+
+        <form action={enviarAnexoAction} className="mt-4 flex flex-wrap items-end gap-2 border-t border-linha pt-4">
+          <div>
+            <label htmlFor="tipo" className="field-label">
+              Tipo
+            </label>
+            <select id="tipo" name="tipo" className="field-input w-auto" defaultValue="assinado">
+              <option value="assinado">Termo assinado</option>
+              <option value="devolucao">Comprovante de devolução</option>
+              <option value="outro">Outro documento</option>
+            </select>
+          </div>
+          <div className="min-w-[160px] flex-1">
+            <label htmlFor="nome" className="field-label">
+              Nome (opcional)
+            </label>
+            <input id="nome" name="nome" className="field-input" placeholder="Ex.: termo assinado — via do clube" />
+          </div>
+          <div className="min-w-[200px] flex-1">
+            <label htmlFor="arquivo" className="field-label">
+              Arquivo (PDF ou foto)
+            </label>
+            <input id="arquivo" name="arquivo" type="file" accept="application/pdf,image/*" className="field-input" required />
+          </div>
+          <button type="submit" className="btn-primary">
+            Anexar
+          </button>
+        </form>
       </section>
 
       <div className="mt-8 flex justify-end border-t border-linha pt-4">

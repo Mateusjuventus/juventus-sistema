@@ -58,6 +58,17 @@ function TagPosicao({ atleta }: { atleta: AtletaComFoto }) {
  * pra lista escolhida (Titular ou Reserva), sem passo intermediário. Cada botão fica desabilitado
  * quando aquela lista já está no limite.
  */
+/** Nome que aparece no cartão (apelido, quando existe) — a lista chega do banco ordenada por
+ * `nome_completo`, então ordenar por ele deixava a grade fora de ordem aos olhos de quem lê
+ * ("Justen" caindo depois de "Keven", por exemplo). Ordenar pelo texto exibido resolve. */
+function nomeExibido(atleta: { apelido: string | null; nome_completo: string }): string {
+  return atleta.apelido || atleta.nome_completo;
+}
+
+function ordenarPorNomeExibido<T extends { apelido: string | null; nome_completo: string }>(lista: T[]): T[] {
+  return [...lista].sort((a, b) => nomeExibido(a).localeCompare(nomeExibido(b), "pt-BR"));
+}
+
 function CartaoAtletaDisponivel({
   atleta,
   titularCheio,
@@ -76,7 +87,7 @@ function CartaoAtletaDisponivel({
       <Avatar atleta={atleta} className="h-8 w-8" />
       <TagPosicao atleta={atleta} />
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-800">
-        {atleta.apelido || atleta.nome_completo}
+        {nomeExibido(atleta)}
       </span>
       <div className="flex shrink-0 gap-1">
         <button
@@ -109,7 +120,7 @@ function LinhaConvocado({ atleta, onRemover }: { atleta: AtletaComFoto; onRemove
       <Avatar atleta={atleta} className="h-8 w-8" />
       <TagPosicao atleta={atleta} />
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-800">
-        {atleta.apelido || atleta.nome_completo}
+        {nomeExibido(atleta)}
       </span>
       <span className="shrink-0 text-xs font-medium text-neutral-400">
         {atleta.numero_camisa ? `Nº ${atleta.numero_camisa}` : "Sem número"}
@@ -187,9 +198,11 @@ export function ConvocacaoForm({
   // Disponíveis = não convocados ainda. Departamento Médico fica escondido por padrão (revelado
   // por "Ver Lesionados"); Liberado e Suspenso aparecem direto — suspensão não impede convocar,
   // só o Departamento Médico é tratado como "fora de combate" nesta grade.
-  const disponiveis = atletas.filter((a) => !convocados.has(a.id) && a.status !== "departamento_medico");
-  const lesionadosDisponiveis = atletas.filter(
-    (a) => !convocados.has(a.id) && a.status === "departamento_medico",
+  const disponiveis = ordenarPorNomeExibido(
+    atletas.filter((a) => !convocados.has(a.id) && a.status !== "departamento_medico"),
+  );
+  const lesionadosDisponiveis = ordenarPorNomeExibido(
+    atletas.filter((a) => !convocados.has(a.id) && a.status === "departamento_medico"),
   );
 
   const convocadosCandidatosCapitao = [...titularesList, ...reservasList];

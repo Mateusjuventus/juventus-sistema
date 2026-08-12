@@ -53,6 +53,31 @@ atrasado/em aberto/devolvido, numeração).
 Migração: 0068_termos_retirada.sql — cria as tabelas e libera o módulo novo `termos_retirada` para
 todos os usuários existentes (mesmo espírito de 0024 e 0063).
 
+## Atualização (11/08): prazo do empréstimo e anexo do termo assinado
+
+O Mateus perguntou como fica o prazo quando quem retira é funcionário e usa o material no
+trabalho — devolveria só ao mudar de função ou sair do clube. A resposta é que a previsão de
+devolução **é opcional**: em branco, o termo fica "Em aberto" por tempo indeterminado e nunca vira
+"atrasado" (o alerta só existe quando há data). A data serve pro empréstimo pontual, com prazo
+certo. O texto padrão já cobria isso ("no prazo previsto neste termo, no ato da rescisão do meu
+contrato ou sempre que solicitado pelo Clube").
+
+Dois ajustes que saíram daí:
+
+- Sem data, a tela e o PDF deixaram de mostrar um traço vazio e passam a imprimir "Ao término do
+  vínculo/função ou quando solicitado pelo Clube" — que é o que de fato vale. O texto de ajuda do
+  formulário explica o que significa deixar em branco.
+- **Anexo do termo assinado** (`termo_retirada_anexos`, migração 0069): o sistema NÃO faz
+  assinatura digital, então o fluxo é gerar o PDF, imprimir, colher as assinaturas e subir o
+  digitalizado de volta no termo — é o anexo que dá valor de comprovante ao registro. É tabela (e
+  não uma coluna) porque o termo costuma acumular mais de um arquivo: o termo assinado, o
+  comprovante da devolução assinado depois, foto do material. Bucket privado próprio
+  `termo-documentos`, mesmo padrão de 0054/0063.
+
+Assinatura eletrônica de verdade (Clicksign, D4Sign, ZapSign e afins) ficaria como integração
+externa paga, com fluxo de envio/assinatura/callback — não está no escopo e nunca foi prometida
+aqui.
+
 ## Fora de escopo por ora
 
 - Vincular o termo a um atleta/colaborador já cadastrado (hoje o nome é digitado) — dá para fazer

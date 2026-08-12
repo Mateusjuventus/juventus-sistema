@@ -1327,3 +1327,17 @@ export interface TermoRetiradaItemRow {
   ordem: number;
   created_at: string;
 }
+
+/** Tipo do anexo do termo: o documento assinado da retirada, o comprovante assinado da devolução,
+ * ou qualquer outro arquivo de apoio (foto do material, nota fiscal). */
+export type TermoRetiradaAnexoTipo = "assinado" | "devolucao" | "outro";
+
+export interface TermoRetiradaAnexoRow {
+  id: string;
+  termo_id: string;
+  tipo: TermoRetiradaAnexoTipo;
+  nome: string;
+  arquivo_path: string;
+  created_by: string | null;
+  created_at: string;
+}

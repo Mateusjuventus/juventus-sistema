@@ -174,7 +174,9 @@ export function TermoForm({
               defaultValue={termo?.previsao_devolucao ?? ""}
             />
             <p className="mt-1 text-xs text-neutral-400">
-              Passando dessa data sem devolução, o termo aparece como atrasado na lista.
+              Deixe em branco quando o material fica com a pessoa enquanto durar o vínculo/função — o termo
+              segue em aberto e nunca vira atrasado. Com data preenchida, passando dela o termo aparece
+              como atrasado na lista.
             </p>
           </div>
         ) : null}

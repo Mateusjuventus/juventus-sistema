@@ -95,3 +95,28 @@ export async function getSignedCompeticaoDocumentoUrl(
   if (error || !data) return null;
   return data.signedUrl;
 }
+
+/** Bucket privado dos anexos do Termo de Retirada — principalmente o termo ASSINADO, digitalizado
+ * depois da impressão (o sistema não faz assinatura digital). Ver
+ * supabase/migrations/0069_termo_retirada_anexos.sql. */
+export const TERMO_DOCUMENTOS_BUCKET = "termo-documentos";
+
+export function buildTermoDocumentoPath(anexoId: string, fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "pdf";
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "pdf";
+  return `termo-documentos/${anexoId}/arquivo.${safeExt}`;
+}
+
+export async function getSignedTermoDocumentoUrl(
+  supabase: SupabaseClient,
+  path: string | null,
+): Promise<string | null> {
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(TERMO_DOCUMENTOS_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+
+  if (error || !data) return null;
+  return data.signedUrl;
+}

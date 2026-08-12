@@ -1,8 +1,10 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { buildTermoDocumentoPath, TERMO_DOCUMENTOS_BUCKET } from "@/lib/supabase/storage";
 import { proximoNumero, TEXTO_PADRAO } from "@/lib/futebol/termo-retirada";
 import type { TermoRetiradaTipo } from "@/lib/supabase/types";
 
@@ -169,4 +171,52 @@ export async function excluirTermo(formData: FormData): Promise<void> {
   await supabase.from("termos_retirada").delete().eq("id", termoId);
   revalidatePath("/termos");
   redirect("/termos");
+}
+
+// ===== Anexos (termo assinado, comprovante de devolução, apoio) =====
+
+/**
+ * Guarda no termo o arquivo do documento ASSINADO — o sistema não faz assinatura digital, então o
+ * fluxo é gerar o PDF, imprimir, assinar e subir o digitalizado aqui. Também serve pro comprovante
+ * assinado da devolução e pra qualquer arquivo de apoio.
+ */
+export async function enviarAnexoTermo(termoId: string, formData: FormData): Promise<void> {
+  const file = formData.get("arquivo");
+  if (!(file instanceof File) || file.size === 0) return;
+
+  const tipoBruto = texto(formData, "tipo");
+  const tipo = ["assinado", "devolucao", "outro"].includes(tipoBruto) ? tipoBruto : "assinado";
+  const anexoId = randomUUID();
+  const path = buildTermoDocumentoPath(anexoId, file.name);
+
+  const supabase = createClient();
+  const { error } = await supabase.storage.from(TERMO_DOCUMENTOS_BUCKET).upload(path, file, {
+    contentType: file.type || "application/pdf",
+  });
+  if (error) return;
+
+  await supabase.from("termo_retirada_anexos").insert({
+    id: anexoId,
+    termo_id: termoId,
+    tipo,
+    nome: texto(formData, "nome") || file.name,
+    arquivo_path: path,
+  });
+  revalidarTermos(termoId);
+}
+
+export async function excluirAnexoTermo(termoId: string, formData: FormData): Promise<void> {
+  const anexoId = texto(formData, "id");
+  if (!anexoId) return;
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("termo_retirada_anexos")
+    .select("arquivo_path")
+    .eq("id", anexoId)
+    .maybeSingle();
+  await supabase.from("termo_retirada_anexos").delete().eq("id", anexoId);
+  if (data?.arquivo_path) {
+    await supabase.storage.from(TERMO_DOCUMENTOS_BUCKET).remove([data.arquivo_path as string]);
+  }
+  revalidarTermos(termoId);
 }

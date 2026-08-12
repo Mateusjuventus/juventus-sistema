@@ -143,7 +143,15 @@ export function TermoRetiradaDocument({
     { label: "Data", valor: formatDataBr(termo.data) },
   ];
   if (termo.tipo === "emprestimo") {
-    info.push({ label: "Devolução até", valor: formatDataBr(termo.previsaoDevolucao) });
+    // Sem data marcada, a devolução não é "indefinida": ela acontece quando o vínculo/função
+    // termina ou quando o clube pedir — que é o que a própria declaração diz. Imprimir isso vale
+    // mais do que um traço (pedido do Mateus: material de trabalho não tem prazo fixo).
+    info.push({
+      label: "Devolução",
+      valor: termo.previsaoDevolucao
+        ? `Até ${formatDataBr(termo.previsaoDevolucao)}`
+        : "Ao término do vínculo/função ou quando solicitado pelo Clube",
+    });
   }
 
   return (
