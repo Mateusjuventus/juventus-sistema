@@ -63,6 +63,8 @@ export async function AppShell({
         href: m.prefixo,
         label: m.label,
         icone: m.chave,
+        // Bloco recolhível da sidebar, quando o módulo pertence a um (ver `lib/auth/modulos.ts`).
+        grupo: m.grupo,
       }));
       // Só quem é master vê Usuários — é onde se cadastra/gerencia outras contas. Não é um
       // ModuloChave liberável por checkbox, por isso entra fora do filtro acima.

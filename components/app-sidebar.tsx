@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { JuventusCrestMark } from "@/components/juventus-crest";
@@ -31,6 +32,9 @@ export interface SidebarNavItem {
   href: string;
   label: string;
   icone: SidebarIconKey;
+  /** Nome do bloco recolhível a que o item pertence (ver `grupo` em `lib/auth/modulos.ts`). Item
+   * sem `grupo` fica solto na lista principal. */
+  grupo?: string;
 }
 
 /** Mapa de ícone só existe aqui dentro do Client Component — um componente de ícone (função) não
@@ -52,6 +56,87 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
   relatorios_avulso: IconRelatorio,
   usuarios: IconUsuarios,
 };
+
+function ItemLink({
+  item,
+  ativo,
+  classe,
+  recuado,
+}: {
+  item: SidebarNavItem;
+  ativo: boolean;
+  classe: (ativo: boolean) => string;
+  recuado?: boolean;
+}) {
+  const Icone = ICONES[item.icone];
+  return (
+    <Link href={item.href} className={`${classe(ativo)}${recuado ? " pl-6" : ""}`}>
+      <Icone className="h-[18px] w-[18px] shrink-0" />
+      {item.label}
+    </Link>
+  );
+}
+
+/**
+ * Bloco de módulos que abre e fecha numa setinha (ver `grupo` em `lib/auth/modulos.ts`).
+ *
+ * Começa ABERTO quando a página atual está dentro dele — senão, ao entrar em Hotéis o usuário veria
+ * um bloco fechado e nenhum item destacado, sem pista de onde está. Fora isso começa fechado, que é
+ * o motivo do agrupamento existir: encurtar a barra.
+ *
+ * O estado é por montagem (não fica guardado entre páginas) de propósito: guardar em localStorage
+ * é proibido nos artefatos do sistema, e cookie/servidor pra lembrar um menu aberto seria peso
+ * demais pro que a tela ganha.
+ */
+function GrupoRecolhivel({
+  titulo,
+  itens,
+  itemAtivo,
+  linkClasse,
+}: {
+  titulo: string;
+  itens: SidebarNavItem[];
+  itemAtivo: (href: string) => boolean;
+  linkClasse: (ativo: boolean) => string;
+}) {
+  const temAtivo = itens.some((item) => itemAtivo(item.href));
+  const [aberto, setAberto] = useState(temAtivo);
+
+  return (
+    <div className="pt-3">
+      <button
+        type="button"
+        onClick={() => setAberto((atual) => !atual)}
+        aria-expanded={aberto}
+        className="flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/45 transition-colors hover:text-white/75"
+      >
+        <svg
+          viewBox="0 0 12 12"
+          className={`h-3 w-3 shrink-0 transition-transform ${aberto ? "rotate-90" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M4.5 2.5 8 6l-3.5 3.5" />
+        </svg>
+        {titulo}
+        {/* Ponto dourado avisa que a página atual está aqui dentro quando o bloco está fechado —
+            sem ele, fechar o grupo esconderia o único indicador de onde o usuário está. */}
+        {!aberto && temAtivo ? <span className="ml-auto h-1.5 w-1.5 rounded-full bg-dourado" /> : null}
+      </button>
+      {aberto ? (
+        <div className="space-y-0.5">
+          {itens.map((item) => (
+            <ItemLink key={item.href} item={item} ativo={itemAtivo(item.href)} classe={linkClasse} recuado />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Sidebar fixa à esquerda (232px) — substitui a barra horizontal no topo que o sistema usava antes
@@ -92,6 +177,17 @@ export function AppSidebar({
         : "text-white/75 hover:bg-white/5 hover:text-white"
     }`;
 
+  // Itens soltos primeiro (o que se usa toda semana), depois cada bloco recolhível na ordem em que
+  // apareceu em `navItems` — que é a ordem de `MODULOS`, a fonte única de módulo → rota/label.
+  const soltos = navItems.filter((item) => !item.grupo);
+  const grupos: [string, SidebarNavItem[]][] = [];
+  for (const item of navItems) {
+    if (!item.grupo) continue;
+    const existente = grupos.find(([titulo]) => titulo === item.grupo);
+    if (existente) existente[1].push(item);
+    else grupos.push([item.grupo, [item]]);
+  }
+
   return (
     <aside className="sticky top-0 flex h-screen w-[232px] shrink-0 flex-col bg-grena text-white">
       <div className="px-4 pb-4 pt-5">
@@ -109,15 +205,19 @@ export function AppSidebar({
           <HomeIcon className="h-[18px] w-[18px] shrink-0" />
           Início
         </Link>
-        {navItems.map((item) => {
-          const Icone = ICONES[item.icone];
-          return (
-            <Link key={item.href} href={item.href} className={linkClasse(itemAtivo(item.href))}>
-              <Icone className="h-[18px] w-[18px] shrink-0" />
-              {item.label}
-            </Link>
-          );
-        })}
+        {soltos.map((item) => (
+          <ItemLink key={item.href} item={item} ativo={itemAtivo(item.href)} classe={linkClasse} />
+        ))}
+
+        {grupos.map(([titulo, itens]) => (
+          <GrupoRecolhivel
+            key={titulo}
+            titulo={titulo}
+            itens={itens}
+            itemAtivo={itemAtivo}
+            linkClasse={linkClasse}
+          />
+        ))}
 
         <p className="px-3 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wide text-white/45">
           Geral

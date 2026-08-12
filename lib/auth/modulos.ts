@@ -28,7 +28,16 @@ export interface ModuloInfo {
   chave: ModuloChave;
   label: string;
   prefixo: string;
+  /** Grupo recolhível da sidebar. Módulo sem `grupo` fica solto na lista principal (é o caso do
+   * que se usa toda semana); com `grupo`, ele desce pro bloco de mesmo nome, que abre e fecha
+   * numa setinha — ver `components/app-sidebar.tsx`. A ordem dentro do bloco é a ordem daqui. */
+  grupo?: string;
 }
+
+/** Único grupo por ora: o que se abre de vez em quando (documento de retirada, cadastro de hotel,
+ * placa de carro, relatório solto). Deixar esses quatro soltos empurrava Atletas e Jogos pro meio
+ * de uma lista de 13 itens. */
+export const GRUPO_ADMINISTRATIVO = "Administrativo";
 
 export const MODULOS: ModuloInfo[] = [
   { chave: "atletas", label: "Atletas", prefixo: "/atletas" },
@@ -38,11 +47,16 @@ export const MODULOS: ModuloInfo[] = [
   { chave: "competicoes", label: "Competições", prefixo: "/competicoes" },
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/estoque" },
-  { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos" },
-  { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis" },
-  { chave: "veiculos", label: "Veículos / Placas", prefixo: "/veiculos" },
   { chave: "financeiro", label: "Prestação de Contas", prefixo: "/financeiro" },
-  { chave: "relatorios_avulso", label: "Relatório Avulso", prefixo: "/relatorios/avulso" },
+  { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos", grupo: GRUPO_ADMINISTRATIVO },
+  { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis", grupo: GRUPO_ADMINISTRATIVO },
+  { chave: "veiculos", label: "Veículos / Placas", prefixo: "/veiculos", grupo: GRUPO_ADMINISTRATIVO },
+  {
+    chave: "relatorios_avulso",
+    label: "Relatório Avulso",
+    prefixo: "/relatorios/avulso",
+    grupo: GRUPO_ADMINISTRATIVO,
+  },
 ];
 
 /** Todas as chaves de módulo — usado como padrão de quem ainda não tem `modulos_permitidos`
