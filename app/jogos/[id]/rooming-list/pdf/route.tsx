@@ -80,11 +80,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         : o.pessoa_tipo === "comissao"
           ? comissaoMap.get(o.pessoa_id)
           : staffMap.get(o.pessoa_id);
-    // Atleta: prioriza o apelido (como ele é conhecido no dia a dia) sobre o nome completo — pedido
-    // do usuário, só pra atletas (Comissão Técnica e Staff continuam com nome completo).
-    const nome = o.pessoa_tipo === "atleta" ? (registro as AtletaRow | undefined)?.apelido || registro?.nome_completo || "—" : registro?.nome_completo ?? "—";
+    // NOME COMPLETO pra todo mundo, inclusive atleta. Este é o PDF de uso interno, que vai junto
+    // de CPF/RG e é o que o hotel usa pra fazer o check-in — apelido ali não bate com documento.
+    // O apelido continua no "PDF para atletas/comissão" (../pdf-envio), que é o que circula com o
+    // grupo, e nas telas de seleção do módulo.
     return {
-      nome,
+      nome: registro?.nome_completo ?? "—",
       tipo: o.pessoa_tipo,
       dataNascimento: registro?.data_nascimento ?? null,
       cpf: registro?.cpf ?? null,

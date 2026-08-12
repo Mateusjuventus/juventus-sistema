@@ -3,7 +3,13 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import type { RoomingListOcupanteRow, RoomingListQuartoRow, RoomingListRow } from "@/lib/supabase/types";
+import { enderecoCompleto } from "@/lib/futebol/hotel";
+import type {
+  HotelRow,
+  RoomingListOcupanteRow,
+  RoomingListQuartoRow,
+  RoomingListRow,
+} from "@/lib/supabase/types";
 import { getJogoEConvocados } from "../operacao-data";
 import { RoomingListForm, type QuartoInicial } from "./rooming-list-form";
 import { saveRoomingList } from "../operacao-actions";
@@ -59,6 +65,22 @@ export default async function RoomingListPage({ params }: { params: { id: string
 
   const temRoomingList = quartosIniciais.length > 0;
 
+  // Cadastro de Hotéis (módulo `/hoteis`) só como atalho de preenchimento — ver `rooming-list-form.tsx`.
+  const { data: hoteisData } = await supabase
+    .from("hoteis")
+    .select("id, nome, logradouro, numero, complemento, bairro, cidade, uf, cep")
+    .eq("ativo", true)
+    .order("nome", { ascending: true });
+  const hoteisCadastrados = ((hoteisData ?? []) as Pick<
+    HotelRow,
+    "id" | "nome" | "logradouro" | "numero" | "complemento" | "bairro" | "cidade" | "uf" | "cep"
+  >[]).map((h) => ({
+    id: h.id,
+    nome: h.nome,
+    endereco: enderecoCompleto(h),
+    cidade: h.cidade,
+  }));
+
   return (
     <AppShell>
       <JogoTabs jogoId={jogo.id} active="rooming-list" />
@@ -86,6 +108,7 @@ export default async function RoomingListPage({ params }: { params: { id: string
         checkinInicial={roomingList?.checkin ?? ""}
         checkoutInicial={roomingList?.checkout ?? ""}
         quartosIniciais={quartosIniciais}
+        hoteisCadastrados={hoteisCadastrados}
       />
     </AppShell>
   );

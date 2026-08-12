@@ -19,6 +19,8 @@ export type ModuloChave =
   | "solicitacoes"
   | "estoque"
   | "termos_retirada"
+  | "hoteis"
+  | "veiculos"
   | "financeiro"
   | "relatorios_avulso";
 
@@ -37,6 +39,8 @@ export const MODULOS: ModuloInfo[] = [
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/estoque" },
   { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos" },
+  { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis" },
+  { chave: "veiculos", label: "Veículos / Placas", prefixo: "/veiculos" },
   { chave: "financeiro", label: "Prestação de Contas", prefixo: "/financeiro" },
   { chave: "relatorios_avulso", label: "Relatório Avulso", prefixo: "/relatorios/avulso" },
 ];

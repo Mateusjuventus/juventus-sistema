@@ -63,6 +63,7 @@ export function RoomingListForm({
   checkinInicial,
   checkoutInicial,
   quartosIniciais,
+  hoteisCadastrados = [],
 }: {
   action: (prevState: RoomingListFormState, formData: FormData) => Promise<RoomingListFormState>;
   jogoId: string;
@@ -74,8 +75,14 @@ export function RoomingListForm({
   checkinInicial: string;
   checkoutInicial: string;
   quartosIniciais: QuartoInicial[];
+  /** Atalho de preenchimento vindo do módulo Hotéis — escolher um daqui só copia nome e endereço
+   * pros campos de texto. A rooming list NÃO guarda referência ao cadastro de propósito: o
+   * documento de um jogo antigo tem que continuar imprimindo o hotel que foi usado na época. */
+  hoteisCadastrados?: { id: string; nome: string; endereco: string; cidade: string | null }[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
+  const [hotelNome, setHotelNome] = useState(hotelNomeInicial);
+  const [hotelEndereco, setHotelEndereco] = useState(hotelEnderecoInicial);
   const [quartos, setQuartos] = useState<QuartoState[]>(() =>
     quartosIniciais.map((q, i) => ({
       id: `inicial-${i}`,
@@ -193,8 +200,60 @@ export function RoomingListForm({
       {state.error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p> : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="Hotel" name="hotelNome" defaultValue={hotelNomeInicial} />
-        <TextField label="Endereço do hotel" name="hotelEndereco" defaultValue={hotelEnderecoInicial} />
+        {hoteisCadastrados.length > 0 ? (
+          <div className="sm:col-span-2">
+            <label htmlFor="hotelCadastrado" className="field-label">
+              Escolher hotel cadastrado
+            </label>
+            <select
+              id="hotelCadastrado"
+              className="field-input"
+              value=""
+              onChange={(e) => {
+                const escolhido = hoteisCadastrados.find((h) => h.id === e.target.value);
+                if (!escolhido) return;
+                setHotelNome(escolhido.nome);
+                setHotelEndereco(escolhido.endereco);
+              }}
+            >
+              <option value="">— preencher a partir do cadastro de Hotéis —</option>
+              {hoteisCadastrados.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.nome}
+                  {h.cidade ? ` — ${h.cidade}` : ""}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-neutral-400">
+              Só preenche os dois campos abaixo, que continuam editáveis: a rooming list guarda o texto
+              do hotel usado neste jogo, então editar o cadastro depois não muda documento antigo.
+            </p>
+          </div>
+        ) : null}
+        <div>
+          <label htmlFor="hotelNome" className="field-label">
+            Hotel
+          </label>
+          <input
+            id="hotelNome"
+            name="hotelNome"
+            className="field-input"
+            value={hotelNome}
+            onChange={(e) => setHotelNome(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="hotelEndereco" className="field-label">
+            Endereço do hotel
+          </label>
+          <input
+            id="hotelEndereco"
+            name="hotelEndereco"
+            className="field-input"
+            value={hotelEndereco}
+            onChange={(e) => setHotelEndereco(e.target.value)}
+          />
+        </div>
         <TextField label="Check-in" name="checkin" type="date" defaultValue={checkinInicial} />
         <TextField label="Check-out" name="checkout" type="date" defaultValue={checkoutInicial} />
       </div>

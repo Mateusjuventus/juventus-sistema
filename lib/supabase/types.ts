@@ -1341,3 +1341,64 @@ export interface TermoRetiradaAnexoRow {
   created_by: string | null;
   created_at: string;
 }
+
+// ===== Hotéis (cadastro reutilizável — ver supabase/migrations/0070_hoteis.sql) =====
+
+export interface HotelRow {
+  id: string;
+  nome: string;
+  cnpj: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  telefone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  site: string | null;
+  /** Pessoa de contato no hotel (comercial/eventos) — é com quem a reserva é fechada. */
+  contato_nome: string | null;
+  contato_funcao: string | null;
+  contato_telefone: string | null;
+  contato_email: string | null;
+  diaria_referencia: number | null;
+  cafe_incluso: boolean;
+  estacionamento_onibus: boolean;
+  sala_refeicao_grupo: boolean;
+  horario_checkin: string | null;
+  horario_checkout: string | null;
+  observacoes: string | null;
+  ativo: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ===== Veículos / Placas (ver supabase/migrations/0071_veiculos.sql) =====
+
+/** Mesmos três grupos de pessoa do rooming list — o vínculo é opcional (condutor pode ser
+ * terceirizado, familiar, dirigente convidado). */
+export type VeiculoPessoaTipo = "atleta" | "comissao" | "staff";
+
+export interface VeiculoRow {
+  id: string;
+  /** Condutor/responsável — é o nome impresso no ofício de liberação de acesso. */
+  nome: string;
+  documento: string | null;
+  placa: string;
+  modelo: string | null;
+  marca: string | null;
+  cor: string | null;
+  ano: number | null;
+  pessoa_tipo: VeiculoPessoaTipo | null;
+  pessoa_id: string | null;
+  telefone: string | null;
+  observacoes: string | null;
+  ativo: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}

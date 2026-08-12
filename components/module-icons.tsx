@@ -108,3 +108,24 @@ export function IconUsuarios({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function IconHotel({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M3 21h18" />
+      <path d="M5 21V5a1 1 0 011-1h12a1 1 0 011 1v16" />
+      <path d="M9 8h2M13 8h2M9 12h2M13 12h2" />
+      <path d="M10 21v-4h4v4" />
+    </svg>
+  );
+}
+
+export function IconVeiculo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M4 16.5v2a1 1 0 001 1h1.5a1 1 0 001-1v-1M16.5 17.5v1a1 1 0 001 1H19a1 1 0 001-1v-2" />
+      <path d="M3.5 16.5v-3.2c0-.4.1-.8.3-1.1l2-3.5A2 2 0 017.5 7.5h9a2 2 0 011.7 1l2 3.5c.2.3.3.7.3 1.1v3.4a1 1 0 01-1 1h-15a1 1 0 01-1-1Z" />
+      <path d="M6.5 13.5h2M15.5 13.5h2" />
+    </svg>
+  );
+}
