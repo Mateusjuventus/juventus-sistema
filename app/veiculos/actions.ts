@@ -92,7 +92,7 @@ export async function atualizarVeiculo(
   redirect("/veiculos");
 }
 
-/** Veículo vendido/trocado sai da lista sem sumir do histórico dos ofícios já enviados. */
+/** Veículo vendido/trocado sai da lista de seleção da Relação de Placas sem apagar o cadastro. */
 export async function alternarVeiculoAtivo(formData: FormData): Promise<void> {
   const veiculoId = String(formData.get("id") ?? "");
   const ativo = String(formData.get("ativo") ?? "") === "1";

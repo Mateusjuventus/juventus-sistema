@@ -4,7 +4,7 @@ import type { PessoaOpcaoVeiculo } from "./veiculo-form";
 
 /**
  * Lista de pessoas que podem ser vinculadas a um veículo — atletas, comissão técnica e staff
- * operacional ativo, sempre por NOME COMPLETO (o ofício de liberação vai para a portaria de um
+ * operacional ativo, sempre por NOME COMPLETO (a Relação de Placas vai para a portaria de um
  * estádio: apelido ali não confere com documento).
  *
  * O CPF já vem formatado porque é assim que ele é copiado pro documento; o RG do atleta/comissão

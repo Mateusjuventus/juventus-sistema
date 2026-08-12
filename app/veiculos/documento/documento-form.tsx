@@ -16,14 +16,14 @@ export interface JogoOpcao {
 }
 
 /**
- * Monta o ofício de liberação de acesso: escolhe os veículos e para onde/quando vai.
+ * Monta a Relação de Placas: escolhe os veículos e, quando o documento é de um jogo, os dados dele.
  *
  * É um `form method="get"` que abre a rota de PDF em outra aba — não grava nada. O documento é
  * gerado sob demanda a partir do cadastro; guardar cada emissão viraria um histórico que ninguém
- * pediu e que envelheceria mal (o veículo muda, o ofício antigo não deveria mudar junto).
+ * pediu e que envelheceria mal (o veículo muda de dono, o documento antigo não deveria mudar junto).
  *
- * Escolher um jogo preenche evento, data, horário e local — os campos seguem editáveis, porque
- * quem recebe o ofício às vezes é o CT do adversário, e não o estádio.
+ * Escolher um jogo preenche jogo, data, horário e local — os campos seguem editáveis, e deixar
+ * tudo em branco é válido: o PDF sai só com o título e a tabela de placas.
  */
 export function DocumentoVeiculosForm({ veiculos, jogos }: { veiculos: VeiculoRow[]; jogos: JogoOpcao[] }) {
   const lista = ordenarPorCondutor(veiculos);
@@ -47,7 +47,9 @@ export function DocumentoVeiculosForm({ veiculos, jogos }: { veiculos: VeiculoRo
     if (!jogo) return;
     setEvento(`${jogo.mandante ? "Juventus" : jogo.adversarioNome} x ${jogo.mandante ? jogo.adversarioNome : "Juventus"} — ${jogo.competicao}`);
     setData(jogo.dataJogo);
-    setHorario(jogo.horario ?? "");
+    // `horario` vem do banco como `time` ("15:00:00") — sem cortar os segundos o documento sairia
+    // com "às 15:00:00", que ninguém escreve.
+    setHorario(jogo.horario ? jogo.horario.slice(0, 5) : "");
     setLocal([jogo.localEstadio, jogo.endereco].filter(Boolean).join(" — "));
   };
 
@@ -56,7 +58,11 @@ export function DocumentoVeiculosForm({ veiculos, jogos }: { veiculos: VeiculoRo
   return (
     <form action="/veiculos/documento/pdf" method="get" target="_blank" className="mt-6 space-y-5">
       <section className="card space-y-4 p-6">
-        <h2 className="text-base font-bold text-grena-escuro">Para onde vai o documento</h2>
+        <h2 className="text-base font-bold text-grena-escuro">Dados do jogo (opcional)</h2>
+        <p className="text-xs text-neutral-400">
+          Preenchido, sai um bloco com jogo, data, horário e local no topo do documento. Em branco, o
+          PDF traz só o título &ldquo;Relação de Placas&rdquo; e a tabela.
+        </p>
 
         {jogos.length > 0 ? (
           <div>
@@ -76,22 +82,10 @@ export function DocumentoVeiculosForm({ veiculos, jogos }: { veiculos: VeiculoRo
           </div>
         ) : null}
 
-        <div>
-          <label htmlFor="destinatario" className="field-label">
-            Destinatário
-          </label>
-          <input
-            id="destinatario"
-            name="destinatario"
-            className="field-input"
-            placeholder="Ex.: À Coordenação de Segurança do Estádio Municipal Prefeito José Liberatti"
-          />
-        </div>
-
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label htmlFor="evento" className="field-label">
-              Evento / jogo
+              Jogo
             </label>
             <input
               id="evento"
@@ -123,7 +117,7 @@ export function DocumentoVeiculosForm({ veiculos, jogos }: { veiculos: VeiculoRo
               id="horario"
               name="horario"
               className="field-input"
-              placeholder="Ex.: 15h00"
+              placeholder="Ex.: 15:00"
               value={horario}
               onChange={(e) => setHorario(e.target.value)}
             />

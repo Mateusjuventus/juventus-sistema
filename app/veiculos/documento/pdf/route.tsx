@@ -14,7 +14,7 @@ import {
 import type { VeiculoRow } from "@/lib/supabase/types";
 
 /**
- * Ofício de liberação de acesso, gerado sob demanda a partir dos veículos escolhidos na tela
+ * Relação de Placas, gerada sob demanda a partir dos veículos escolhidos na tela
  * (`/veiculos/documento`). Os ids vêm na query string porque a tela é um `form method="get"` — o
  * documento não é gravado em lugar nenhum (ver o comentário em `documento-form.tsx`).
  */
@@ -54,7 +54,6 @@ export async function GET(request: Request) {
       juventusLogoSrc={juventusLogoSrc}
       emitidoEm={hojeBrasilia()}
       dados={{
-        destinatario: texto("destinatario"),
         evento: texto("evento"),
         data: texto("data"),
         horario: texto("horario"),
@@ -70,7 +69,7 @@ export async function GET(request: Request) {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="relacao-veiculos-liberacao-${hojeBrasilia()}.pdf"`,
+      "Content-Disposition": `inline; filename="relacao-de-placas-${hojeBrasilia()}.pdf"`,
     },
   });
 }

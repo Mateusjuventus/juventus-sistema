@@ -2,15 +2,15 @@ import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/render
 import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
 
 /**
- * Relação de Veículos — Solicitação de Liberação de Acesso.
+ * Relação de Placas — o documento que o clube manda antes de jogo fora pra portaria/segurança do
+ * estádio liberar a entrada dos carros da delegação.
  *
- * É o ofício que o clube manda antes de jogo fora ("segue a relação de placas das pessoas que vão
- * de carro") pra portaria/segurança do estádio liberar a entrada. Segue o mesmo desenho dos outros
- * documentos oficiais do sistema (escudo, faixa de título, corpo, tabela, assinatura) — ver
- * `lib/pdf/termo-retirada-document.tsx`.
+ * É uma RELAÇÃO, não um ofício: sem parágrafo de abertura e sem destinatário (pedido do Mateus em
+ * 12/08). Quando o documento é atrelado a um jogo, o que aparece no lugar do texto são os dados do
+ * jogo em bloco de label/valor — jogo, data, horário e local. Sem nada preenchido, fica só o título
+ * e a tabela, que é o suficiente pra quem recebe.
  *
- * O texto do ofício é montado a partir do que foi preenchido na tela; parte que ficou em branco
- * simplesmente não entra na frase, pra nunca sair um "no dia __" pela metade.
+ * Segue o desenho dos outros documentos oficiais do sistema (ver `lib/pdf/termo-retirada-document.tsx`).
  */
 
 const styles = StyleSheet.create({
@@ -33,19 +33,22 @@ const styles = StyleSheet.create({
   },
   subtituloTexto: { fontSize: 8, color: "#f5e6ee", textAlign: "center", marginTop: 2 },
 
-  destinatario: { fontSize: 10, fontWeight: 700, color: CORES.grenaEscuro, marginTop: 6 },
-  corpo: { fontSize: 9.5, color: "#262626", lineHeight: 1.55, marginTop: 8, textAlign: "justify" },
-
   sectionBar: {
     backgroundColor: "#f5f5f5",
     borderLeftWidth: 3,
     borderLeftColor: CORES.dourado,
     paddingVertical: 3,
     paddingHorizontal: 6,
-    marginTop: 14,
+    marginTop: 12,
     marginBottom: 4,
   },
   sectionBarTexto: { fontSize: 8.5, fontWeight: 700, color: CORES.grenaEscuro, textTransform: "uppercase" },
+
+  infoRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: "#e5e5e5" },
+  infoLabelCell: { width: 76, backgroundColor: "#fafafa", padding: 4 },
+  infoValorCell: { flex: 1, padding: 4 },
+  infoLabelTexto: { fontSize: 7.5, fontWeight: 700, color: "#525252", textTransform: "uppercase" },
+  infoValorTexto: { fontSize: 9, color: "#262626" },
 
   tabelaHeader: { flexDirection: "row", backgroundColor: CORES.grenaEscuro, paddingVertical: 4 },
   tabelaLinha: {
@@ -83,7 +86,6 @@ export interface VeiculoLiberacaoPdf {
 }
 
 export interface VeiculosLiberacaoDados {
-  destinatario: string | null;
   evento: string | null;
   data: string | null;
   horario: string | null;
@@ -93,24 +95,15 @@ export interface VeiculosLiberacaoDados {
   responsavelFuncao: string | null;
 }
 
-/** Frase do ofício montada só com o que existe — sem lacuna vazia no meio do texto. */
-function montarCorpo(dados: VeiculosLiberacaoDados, quantidade: number): string {
-  const veiculosTexto = quantidade === 1 ? "o veículo relacionado abaixo" : `os ${quantidade} veículos relacionados abaixo`;
-  const partes: string[] = [
-    `Vimos por meio deste solicitar a liberação de acesso para ${veiculosTexto}, pertencentes a integrantes da delegação do Clube Atlético Juventus`,
-  ];
-
-  if (dados.evento) partes.push(`, por ocasião de ${dados.evento}`);
-  if (dados.data) {
-    const dia = `no dia ${formatDataBr(dados.data)}`;
-    partes.push(dados.horario ? `, ${dia}, às ${dados.horario}` : `, ${dia}`);
-  } else if (dados.horario) {
-    partes.push(`, às ${dados.horario}`);
-  }
-  if (dados.local) partes.push(`, em ${dados.local}`);
-  partes.push(".");
-
-  return partes.join("");
+/** Bloco de dados do jogo — só as linhas preenchidas. Vazio quando o documento não foi atrelado a
+ * nada, e aí o componente não desenha a seção inteira. */
+function linhasDoEvento(dados: VeiculosLiberacaoDados): { label: string; valor: string }[] {
+  const linhas: { label: string; valor: string }[] = [];
+  if (dados.evento) linhas.push({ label: "Jogo", valor: dados.evento });
+  if (dados.data) linhas.push({ label: "Data", valor: formatDataBr(dados.data) });
+  if (dados.horario) linhas.push({ label: "Horário", valor: dados.horario });
+  if (dados.local) linhas.push({ label: "Local", valor: dados.local });
+  return linhas;
 }
 
 export function VeiculosLiberacaoDocument({
@@ -125,6 +118,8 @@ export function VeiculosLiberacaoDocument({
   /** Data de emissão no formato ISO (yyyy-mm-dd) — vem de fora pro documento ser determinístico. */
   emitidoEm: string;
 }) {
+  const evento = linhasDoEvento(dados);
+
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
@@ -135,13 +130,29 @@ export function VeiculosLiberacaoDocument({
           ) : null}
         </View>
         <View style={styles.tituloBar}>
-          <Text style={styles.tituloTexto}>Relação de Veículos — Liberação de Acesso</Text>
+          <Text style={styles.tituloTexto}>Relação de Placas</Text>
           <Text style={styles.subtituloTexto}>Emitido em {formatDataBr(emitidoEm)}</Text>
         </View>
 
-        {dados.destinatario ? <Text style={styles.destinatario}>{dados.destinatario}</Text> : null}
-
-        <Text style={styles.corpo}>{montarCorpo(dados, veiculos.length)}</Text>
+        {evento.length > 0 ? (
+          <>
+            <View style={styles.sectionBar}>
+              <Text style={styles.sectionBarTexto}>Jogo</Text>
+            </View>
+            <View>
+              {evento.map((linha) => (
+                <View style={styles.infoRow} key={linha.label}>
+                  <View style={styles.infoLabelCell}>
+                    <Text style={styles.infoLabelTexto}>{linha.label}</Text>
+                  </View>
+                  <View style={styles.infoValorCell}>
+                    <Text style={styles.infoValorTexto}>{linha.valor}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
 
         <View style={styles.sectionBar}>
           <Text style={styles.sectionBarTexto}>Veículos e condutores</Text>
@@ -174,17 +185,10 @@ export function VeiculosLiberacaoDocument({
           </>
         ) : null}
 
-        <Text style={styles.corpo}>
-          Colocamo-nos à disposição para quaisquer esclarecimentos e agradecemos antecipadamente pela
-          atenção dispensada.
-        </Text>
-
         <View style={styles.assinaturaBox} wrap={false}>
           <View style={styles.assinaturaLinha} />
           <Text style={styles.assinaturaLabel}>{dados.responsavelNome || "Responsável pela delegação"}</Text>
-          <Text style={styles.assinaturaExtra}>
-            {dados.responsavelFuncao || "Clube Atlético Juventus"}
-          </Text>
+          <Text style={styles.assinaturaExtra}>{dados.responsavelFuncao || "Clube Atlético Juventus"}</Text>
         </View>
 
         <DocumentoFooter />

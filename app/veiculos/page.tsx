@@ -10,8 +10,8 @@ import { alternarVeiculoAtivo, excluirVeiculo } from "./actions";
 import { VeiculoAtivoButton } from "./veiculo-ativo-button";
 
 /**
- * Cadastro de Veículos / Placas. A lista é a base do documento de liberação de acesso — daí o
- * botão de gerar o ofício ficar no topo, junto do "novo veículo".
+ * Cadastro de Veículos / Placas. A lista é a base da Relação de Placas — daí o botão de gerar o
+ * documento ficar no topo, junto do "novo veículo".
  */
 export default async function VeiculosPage({ searchParams }: { searchParams: { q?: string } }) {
   const q = searchParams.q?.trim() ?? "";
@@ -32,13 +32,13 @@ export default async function VeiculosPage({ searchParams }: { searchParams: { q
       </Link>
       <PageHeader title="Veículos / Placas" />
       <p className="mt-1 text-center text-sm text-neutral-500">
-        Quem vai de carro próprio. Serve para gerar o ofício de liberação de acesso que o clube manda
-        antes de jogo fora.
+        Quem vai de carro próprio. Serve para gerar a Relação de Placas que o clube manda antes de
+        jogo fora, para liberação de acesso.
       </p>
 
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <Link href="/veiculos/documento" className="btn-secondary">
-          Gerar documento de liberação
+          Gerar relação de placas
         </Link>
         <Link href="/veiculos/novo" className="btn-primary">
           + Novo veículo

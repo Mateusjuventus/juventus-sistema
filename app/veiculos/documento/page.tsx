@@ -6,14 +6,14 @@ import { hojeBrasilia } from "@/lib/data-brasil";
 import type { JogoRow, VeiculoRow } from "@/lib/supabase/types";
 import { DocumentoVeiculosForm, type JogoOpcao } from "./documento-form";
 
-/** Tela de montagem do ofício de liberação de acesso — ver `documento-form.tsx`. */
+/** Tela de montagem da Relação de Placas — ver `documento-form.tsx`. */
 export default async function DocumentoVeiculosPage() {
   const supabase = createClient();
   const hojeStr = hojeBrasilia();
 
   const [{ data: veiculosData }, { data: jogosData }] = await Promise.all([
     supabase.from("veiculos").select("*").eq("ativo", true).order("nome", { ascending: true }),
-    // Só jogos daqui pra frente: o ofício é sempre sobre um compromisso que ainda vai acontecer.
+    // Só jogos daqui pra frente: a relação é sempre sobre um compromisso que ainda vai acontecer.
     supabase
       .from("jogos")
       .select("id, adversario_nome, competicao, data_jogo, horario, local_estadio, endereco, mandante")
@@ -44,9 +44,10 @@ export default async function DocumentoVeiculosPage() {
       <Link href="/veiculos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Veículos / Placas
       </Link>
-      <PageHeader title="Documento de Liberação de Acesso" />
+      <PageHeader title="Relação de Placas" />
       <p className="mt-1 text-center text-sm text-neutral-500">
-        Escolha os veículos e para onde o ofício vai. O PDF abre em outra aba, pronto para encaminhar.
+        Escolha os veículos e, se for de um jogo, os dados dele. O PDF abre em outra aba, pronto para
+        encaminhar.
       </p>
 
       <DocumentoVeiculosForm veiculos={veiculos} jogos={jogos} />

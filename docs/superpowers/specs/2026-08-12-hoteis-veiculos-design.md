@@ -61,19 +61,23 @@ virarem dois cadastros do mesmo carro; a formatação com hífen é decidida na 
 padrões brasileiros (antigo `ABC-1234` e Mercosul `ABC1D23`) **não bloqueia o salvamento** — só
 mostra um aviso, porque existe carro estrangeiro e veículo especial.
 
-### O documento (`/veiculos/documento`)
+### O documento — Relação de Placas (`/veiculos/documento`)
 
 É o que o pedido pedia de fato: "às vezes temos jogos fora e eu preciso enviar as placas das pessoas
-para liberação". A tela marca os veículos que vão no ofício, escolhe destinatário, evento, data,
-horário, local e quem assina — e **preencher a partir de um jogo** já cadastrado preenche evento,
-data, horário e local de uma vez (campos seguem editáveis, porque quem recebe o ofício às vezes é o
-CT do adversário, e não o estádio).
+para liberação". A tela marca os veículos que entram, opcionalmente os dados do jogo e quem assina —
+e **preencher a partir de um jogo** já cadastrado traz jogo, data, horário e local de uma vez
+(campos seguem editáveis).
 
-O PDF (`lib/pdf/veiculos-liberacao-document.tsx`) sai no mesmo desenho dos outros documentos
-oficiais: escudo, faixa de título, destinatário, corpo do ofício, tabela (condutor, RG/CPF, placa,
-veículo), observações e assinatura. A frase do ofício é montada só com o que foi preenchido — campo
-em branco simplesmente não entra, pra nunca sair um "no dia __" pela metade. A tabela sai em ordem
-alfabética do condutor, que é como a portaria confere a lista.
+O PDF (`lib/pdf/veiculos-liberacao-document.tsx`) é uma **relação, não um ofício** — decisão do
+Mateus depois de ver a primeira versão: sem parágrafo de abertura ("Vimos por meio deste solicitar…")
+e **sem destinatário**. O que entra no lugar do texto são os dados do jogo em bloco de label/valor;
+sem jogo atrelado, o documento fica só com o título "RELAÇÃO DE PLACAS" e a tabela, que é o que
+quem recebe precisa ler. Linha do bloco só aparece se estiver preenchida, então nunca sai um campo
+pela metade. A tabela (condutor, RG/CPF, placa, veículo) sai em ordem alfabética do condutor, que é
+como a portaria confere a lista.
+
+O horário do jogo vem do banco como `time` ("15:00:00") e é cortado pra "15:00" no preenchimento —
+a primeira versão imprimia os segundos.
 
 O documento **não é gravado**: é gerado sob demanda a partir do cadastro. Guardar cada emissão
 viraria um histórico que ninguém pediu e que envelheceria mal (o veículo muda de dono, e o ofício
