@@ -64,6 +64,40 @@ export async function adicionarItemProgramacaoBase(
   return { success: true };
 }
 
+/** Espelha `atualizarItemProgramacao` do Profissional. */
+export async function atualizarItemProgramacaoBase(
+  itemId: string,
+  _prevState: ProgramacaoLinhaFormState,
+  formData: FormData,
+): Promise<ProgramacaoLinhaFormState> {
+  const horario = String(formData.get("horario") ?? "").trim();
+  const local = String(formData.get("local") ?? "").trim();
+  const ehConfronto = formData.get("ehConfronto") === "on";
+  const atividade = ehConfronto ? "" : String(formData.get("atividade") ?? "").trim();
+
+  if (!itemId) return { error: "Linha não identificada. Recarregue a página e tente novamente." };
+  if (!horario || !local || (!ehConfronto && !atividade)) {
+    return { error: 'Preencha horário, local e atividade (ou marque "Esta linha é o confronto").' };
+  }
+
+  const supabase = createClient();
+  const { data: item } = await supabase
+    .from("jogo_programacao_itens_base")
+    .select("jogo_id")
+    .eq("id", itemId)
+    .single();
+
+  const { error } = await supabase
+    .from("jogo_programacao_itens_base")
+    .update({ horario, atividade, local, eh_confronto: ehConfronto })
+    .eq("id", itemId);
+
+  if (error) return { error: `Não foi possível salvar a linha: ${error.message}` };
+
+  if (item) revalidatePath(caminhoProgramacao(item.jogo_id as string));
+  return { success: true };
+}
+
 export async function removerItemProgramacaoBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (!id) return;

@@ -1,36 +1,19 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
-import { DeleteButton } from "@/components/delete-button";
+import { ProgramacaoLinha } from "@/components/programacao-linha";
 import { createClient } from "@/lib/supabase/server";
+import { ordenarPorHorario } from "@/lib/futebol/programacao-horario";
 import type { JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import {
   adicionarItemProgramacao,
+  atualizarItemProgramacao,
   removerItemProgramacao,
   salvarConfigConcentracao,
   salvarConfigDiaJogo,
 } from "./actions";
 import { ProgramacaoLinhaForm } from "./programacao-linha-form";
-
-function LinhaProgramacao({
-  item,
-  confrontoTexto,
-}: {
-  item: JogoProgramacaoItemRow;
-  confrontoTexto: string;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm">
-      <span className="w-24 shrink-0 font-semibold text-grena-escuro">{item.horario}</span>
-      <span className="min-w-[160px] flex-1 font-medium text-neutral-800">
-        {item.eh_confronto ? confrontoTexto : item.atividade}
-      </span>
-      <span className="min-w-[120px] flex-1 text-neutral-600">{item.local}</span>
-      <DeleteButton action={removerItemProgramacao} id={item.id} entityLabel="item da programação" />
-    </div>
-  );
-}
 
 export default async function ProgramacaoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -48,8 +31,11 @@ export default async function ProgramacaoPage({ params }: { params: { id: string
   const jogo = jogoData as JogoRow;
   const itens = (itensData ?? []) as JogoProgramacaoItemRow[];
 
-  const itensConcentracao = itens.filter((i) => i.tipo === "concentracao");
-  const itensDiaJogo = itens.filter((i) => i.tipo === "dia_jogo");
+  // Sempre do menor horário pro maior — `ordem` virou só desempate (ver
+  // `lib/futebol/programacao-horario.ts`), porque uma linha adicionada depois quase nunca é a
+  // última do cronograma.
+  const itensConcentracao = ordenarPorHorario(itens.filter((i) => i.tipo === "concentracao"));
+  const itensDiaJogo = ordenarPorHorario(itens.filter((i) => i.tipo === "dia_jogo"));
   const confrontoTexto = buildConfrontoTexto(jogo);
 
   const concentracaoLiberada = Boolean(jogo.concentracao_data) && itensConcentracao.length > 0;
@@ -95,7 +81,13 @@ export default async function ProgramacaoPage({ params }: { params: { id: string
 
           <div className="mt-4 space-y-2">
             {itensConcentracao.map((item) => (
-              <LinhaProgramacao key={item.id} item={item} confrontoTexto={confrontoTexto} />
+              <ProgramacaoLinha
+                key={item.id}
+                item={item}
+                confrontoTexto={confrontoTexto}
+                acaoAtualizar={atualizarItemProgramacao.bind(null, item.id)}
+                acaoRemover={removerItemProgramacao}
+              />
             ))}
             {itensConcentracao.length === 0 ? (
               <p className="text-sm text-neutral-400">Nenhuma linha adicionada ainda.</p>
@@ -161,7 +153,14 @@ export default async function ProgramacaoPage({ params }: { params: { id: string
 
           <div className="mt-4 space-y-2">
             {itensDiaJogo.map((item) => (
-              <LinhaProgramacao key={item.id} item={item} confrontoTexto={confrontoTexto} />
+              <ProgramacaoLinha
+                key={item.id}
+                item={item}
+                confrontoTexto={confrontoTexto}
+                mostrarConfronto
+                acaoAtualizar={atualizarItemProgramacao.bind(null, item.id)}
+                acaoRemover={removerItemProgramacao}
+              />
             ))}
             {itensDiaJogo.length === 0 ? (
               <p className="text-sm text-neutral-400">Nenhuma linha adicionada ainda.</p>

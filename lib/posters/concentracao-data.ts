@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { ordenarPorHorario } from "@/lib/futebol/programacao-horario";
 import type { JogoBaseRow, JogoProgramacaoItemBaseRow, JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
 import { diaDaSemana } from "./relacionados-data";
 import type { ItemProgramacaoTexto } from "./programacao-item";
@@ -44,7 +45,7 @@ export async function buildConcentracaoData(jogoId: string): Promise<Concentraca
   const itensRaw = (itensData ?? []) as JogoProgramacaoItemRow[];
   if (itensRaw.length === 0) return null;
 
-  const itens: ItemProgramacaoTexto[] = itensRaw.map((item) => ({
+  const itens: ItemProgramacaoTexto[] = ordenarPorHorario(itensRaw).map((item) => ({
     horario: item.horario,
     atividade: item.atividade,
     local: item.local,
@@ -91,7 +92,7 @@ export async function buildConcentracaoDataBase(jogoId: string): Promise<Concent
   const itensRaw = (itensData ?? []) as JogoProgramacaoItemBaseRow[];
   if (itensRaw.length === 0) return null;
 
-  const itens: ItemProgramacaoTexto[] = itensRaw.map((item) => ({
+  const itens: ItemProgramacaoTexto[] = ordenarPorHorario(itensRaw).map((item) => ({
     horario: item.horario,
     atividade: item.atividade,
     local: item.local,
