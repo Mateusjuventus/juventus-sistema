@@ -5,6 +5,7 @@ import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
 import { corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
 import type { AtletaBaseRow, ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
+import { nomeExibido, ordenarPorNomeExibido } from "@/lib/futebol/nome-atleta";
 import type { ConvocacaoFormState } from "./actions";
 
 const initialState: ConvocacaoFormState = {};
@@ -58,17 +59,6 @@ function TagPosicao({ atleta }: { atleta: AtletaComFoto }) {
  * pra lista escolhida (Titular ou Reserva), sem passo intermediário. Cada botão fica desabilitado
  * quando aquela lista já está no limite.
  */
-/** Nome que aparece no cartão (apelido, quando existe) — a lista chega do banco ordenada por
- * `nome_completo`, então ordenar por ele deixava a grade fora de ordem aos olhos de quem lê
- * ("Justen" caindo depois de "Keven", por exemplo). Ordenar pelo texto exibido resolve. */
-function nomeExibido(atleta: { apelido: string | null; nome_completo: string }): string {
-  return atleta.apelido || atleta.nome_completo;
-}
-
-function ordenarPorNomeExibido<T extends { apelido: string | null; nome_completo: string }>(lista: T[]): T[] {
-  return [...lista].sort((a, b) => nomeExibido(a).localeCompare(nomeExibido(b), "pt-BR"));
-}
-
 function CartaoAtletaDisponivel({
   atleta,
   titularCheio,

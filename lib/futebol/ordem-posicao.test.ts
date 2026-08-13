@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { compararPorNumeroCamisa, compararPorPosicao, rankPosicao } from "./ordem-posicao";
+import {
+  compararPorNumeroCamisa,
+  compararPorNumeroCamisaGoleiroPrimeiro,
+  compararPorPosicao,
+  ehGoleiro,
+  rankPosicao,
+} from "./ordem-posicao";
 
 describe("rankPosicao", () => {
   it("coloca goleiro primeiro", () => {
@@ -63,5 +69,63 @@ describe("compararPorNumeroCamisa", () => {
     ];
     const ordenada = [...lista].sort(compararPorNumeroCamisa);
     expect(ordenada.map((a) => a.numero_camisa)).toEqual([1, 2, null]);
+  });
+});
+
+describe("ehGoleiro", () => {
+  it("reconhece a posição escrita por extenso, com ou sem acento/maiúscula", () => {
+    expect(ehGoleiro("Goleiro")).toBe(true);
+    expect(ehGoleiro("GOLEIRA")).toBe(true);
+    expect(ehGoleiro(" goleiro ")).toBe(true);
+  });
+
+  it("reconhece as abreviações usadas no cadastro", () => {
+    expect(ehGoleiro("GOL")).toBe(true);
+    expect(ehGoleiro("go")).toBe(true);
+    expect(ehGoleiro("GK")).toBe(true);
+  });
+
+  it("não confunde outras posições", () => {
+    expect(ehGoleiro("Zagueiro")).toBe(false);
+    expect(ehGoleiro("Atacante")).toBe(false);
+    expect(ehGoleiro(null)).toBe(false);
+    expect(ehGoleiro("")).toBe(false);
+  });
+});
+
+describe("compararPorNumeroCamisaGoleiroPrimeiro", () => {
+  it("põe o goleiro na frente mesmo com número maior", () => {
+    const reservas = [
+      { posicao: "Zagueiro", numero_camisa: 13 },
+      { posicao: "Atacante", numero_camisa: 14 },
+      { posicao: "Goleiro", numero_camisa: 22 },
+      { posicao: "Meia", numero_camisa: 15 },
+    ];
+    const ordenada = [...reservas].sort(compararPorNumeroCamisaGoleiroPrimeiro);
+    expect(ordenada.map((a) => `${a.posicao}-${a.numero_camisa}`)).toEqual([
+      "Goleiro-22",
+      "Zagueiro-13",
+      "Atacante-14",
+      "Meia-15",
+    ]);
+  });
+
+  it("entre dois goleiros vale o número da camisa", () => {
+    const lista = [
+      { posicao: "Goleiro", numero_camisa: 12 },
+      { posicao: "Goleiro", numero_camisa: 1 },
+      { posicao: "Lateral", numero_camisa: 2 },
+    ];
+    const ordenada = [...lista].sort(compararPorNumeroCamisaGoleiroPrimeiro);
+    expect(ordenada.map((a) => a.numero_camisa)).toEqual([1, 12, 2]);
+  });
+
+  it("goleiro sem número ainda vem antes de quem é de linha", () => {
+    const lista = [
+      { posicao: "Atacante", numero_camisa: 9 },
+      { posicao: "GOL", numero_camisa: null },
+    ];
+    const ordenada = [...lista].sort(compararPorNumeroCamisaGoleiroPrimeiro);
+    expect(ordenada.map((a) => a.posicao)).toEqual(["GOL", "Atacante"]);
   });
 });

@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { compararPorNumeroCamisa } from "@/lib/futebol/ordem-posicao";
+import { compararPorNumeroCamisaGoleiroPrimeiro } from "@/lib/futebol/ordem-posicao";
 import { PresskitDocument, type AtletaPresskitItem } from "@/lib/pdf/presskit-document";
 import type {
   AtletaBaseRow,
@@ -53,9 +53,11 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
   // Na Base o número da camisa é da CONVOCAÇÃO (esse jogo), não do cadastro do atleta — sobrepõe
   // `numero_camisa` do atleta pelo valor informado na convocação antes de ordenar/exibir, sem
-  // precisar mexer no resto do PresskitDocument (que já lê `atleta.numero_camisa`). Pedido do
-  // usuário: titulares e reservas ordenados por esse número, do menor pro maior (não mais por
-  // posição, já que a numeração muda de jogo pra jogo — ver 0059_convocacao_atleta_base_numero_camisa.sql).
+  // precisar mexer no resto do PresskitDocument (que já lê `atleta.numero_camisa`). Titulares e
+  // reservas saem por esse número, do menor pro maior (a numeração muda de jogo pra jogo, então
+  // não faz sentido agrupar por posição como no Profissional — ver
+  // 0059_convocacao_atleta_base_numero_camisa.sql), COM O GOLEIRO SEMPRE NA FRENTE: é regra do
+  // Presskit e vale nas duas listas, senão o goleiro reserva de camisa 12 cai depois dos de linha.
   const comNumeroDaConvocacao = (c: ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow }): AtletaBaseRow => ({
     ...c.atleta,
     numero_camisa: c.numero_camisa,
@@ -63,11 +65,11 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const atletasTitulares = convocacaoAtletas
     .filter((c) => c.status === "titular")
     .map(comNumeroDaConvocacao)
-    .sort(compararPorNumeroCamisa);
+    .sort(compararPorNumeroCamisaGoleiroPrimeiro);
   const atletasReservas = convocacaoAtletas
     .filter((c) => c.status === "reserva")
     .map(comNumeroDaConvocacao)
-    .sort(compararPorNumeroCamisa);
+    .sort(compararPorNumeroCamisaGoleiroPrimeiro);
 
   const comFoto = async (atletas: AtletaBaseRow[]): Promise<AtletaPresskitItem[]> =>
     Promise.all(

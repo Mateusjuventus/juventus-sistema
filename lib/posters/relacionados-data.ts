@@ -10,6 +10,7 @@ import type {
   JogoBaseRow,
   JogoRow,
 } from "@/lib/supabase/types";
+import { nomeExibido, ordenarPorNomeExibido } from "@/lib/futebol/nome-atleta";
 import { buildConfrontoTexto } from "./jogo-texto";
 
 export interface RelacionadosData {
@@ -52,7 +53,8 @@ export function formatHorario(horario: string | null): string | null {
  * Busca tudo que o pôster de Relacionados precisa: dados do jogo, escudo do adversário e a lista
  * de atletas convocados (só atletas — comissão técnica e staff não entram nesse pôster, decisão
  * tomada com o Mateus), mostrados pelo apelido (ou nome completo, se ele ainda não tiver apelido
- * cadastrado). Devolve `null` quando o jogo não existe ou ainda não tem convocação salva.
+ * cadastrado) e em ordem alfabética por esse nome. Devolve `null` quando o jogo não existe ou ainda
+ * não tem convocação salva.
  */
 export async function buildRelacionadosData(jogoId: string): Promise<RelacionadosData | null> {
   const supabase = createClient();
@@ -75,10 +77,11 @@ export async function buildRelacionadosData(jogoId: string): Promise<Relacionado
   ]);
 
   const convocados = (caData ?? []) as (ConvocacaoAtletaRow & { atleta: AtletaRow })[];
-  const nomes = convocados
-    .map((c) => c.atleta)
-    .sort((a, b) => (a.numero_camisa ?? 999) - (b.numero_camisa ?? 999))
-    .map((atleta) => (atleta.apelido?.trim() || atleta.nome_completo).toUpperCase());
+  // Ordem ALFABÉTICA pelo nome que aparece no pôster (apelido, quando existe) — pedido do usuário.
+  // Antes saía pela numeração da camisa, que não ajuda quem procura um nome na lista impressa.
+  const nomes = ordenarPorNomeExibido(convocados.map((c) => c.atleta)).map((atleta) =>
+    nomeExibido(atleta).toUpperCase(),
+  );
 
   const meio = Math.ceil(nomes.length / 2);
 
@@ -125,10 +128,11 @@ export async function buildRelacionadosDataBase(jogoId: string): Promise<Relacio
   ]);
 
   const convocados = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
-  const nomes = convocados
-    .map((c) => c.atleta)
-    .sort((a, b) => (a.numero_camisa ?? 999) - (b.numero_camisa ?? 999))
-    .map((atleta) => (atleta.apelido?.trim() || atleta.nome_completo).toUpperCase());
+  // Ordem ALFABÉTICA pelo nome que aparece no pôster (apelido, quando existe) — pedido do usuário.
+  // Antes saía pela numeração da camisa, que não ajuda quem procura um nome na lista impressa.
+  const nomes = ordenarPorNomeExibido(convocados.map((c) => c.atleta)).map((atleta) =>
+    nomeExibido(atleta).toUpperCase(),
+  );
 
   const meio = Math.ceil(nomes.length / 2);
 
