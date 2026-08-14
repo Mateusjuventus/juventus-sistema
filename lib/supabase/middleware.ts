@@ -71,7 +71,7 @@ export async function updateSession(request: NextRequest) {
   const moduloBase = user && !modulo ? moduloBaseDaRota(pathname) : undefined;
   const isHubProfissional = pathname === "/profissional";
   const isHubBase = pathname === "/base";
-  // Estoque tem duas ramificações (Esportivo/Médico) com permissão própria — ver
+  // Estoque tem três ramificações (Esportivo/Medicação/Materiais) com permissão própria — ver
   // lib/auth/estoque-categorias.ts. Só entra aqui pra uma URL tipo /estoque/<categoria>/..., não
   // pro hub /estoque em si (esse é filtrado na própria página, não bloqueado aqui). O Estoque do
   // Futebol de Base não tem essa dimensão (só existe Esportivo — ver a spec), então não precisa

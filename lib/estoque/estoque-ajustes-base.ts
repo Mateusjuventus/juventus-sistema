@@ -11,7 +11,7 @@ export interface PlanoAjusteEstoqueBase {
  * Espelha `calcularAjustesEstoque`/`gravarPlanoAjustes` (./estoque-ajustes.ts) para o Futebol de
  * Base — mesma lógica de duas fases (calcular sem gravar, depois gravar), mas contra
  * `estoque_itens_base` em vez de `estoque_itens`. Como o Estoque do Base não tem a bifurcação
- * Esportivo/Médico (é uma lista só, sem coluna `categoria`), não recebe nem precisa de nenhum
+ * Esportivo/Medicação/Materiais (é uma lista só, sem coluna `categoria`), não recebe nem precisa de nenhum
  * parâmetro de categoria.
  */
 export async function calcularAjustesEstoqueBase(

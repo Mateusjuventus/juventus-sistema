@@ -888,10 +888,12 @@ export interface SolicitacaoItemRow {
   created_at: string;
 }
 
-export type EstoqueCategoria = "esportivo" | "medico";
+/** "medico" é o valor gravado da ramificação hoje chamada de **Medicação** na interface — ver
+ * ESTOQUE_CATEGORIAS em lib/validation/schemas.ts. */
+export type EstoqueCategoria = "esportivo" | "medico" | "materiais";
 
 /**
- * Item do catálogo de Estoque — Esportivo e Médico são duas listas totalmente independentes,
+ * Item do catálogo de Estoque — Esportivo, Medicação e Materiais são listas totalmente independentes,
  * nunca se misturam (nem no catálogo, nem em Entradas/Saídas). `tamanhos` guarda a quantidade de
  * cada tamanho/variação num objeto só (ex: {"P": 12, "M": 20, "Único": 5}) — o item inteiro é uma
  * linha só, não uma linha por tamanho. A quantidade só muda através de Entrada (soma) ou Saída
@@ -914,7 +916,7 @@ export interface EstoqueItemRow {
 
 /**
  * Ficha de Saída (retirada de material por um colaborador) — "numero" é sequencial e independente
- * por categoria (Esportivo e Médico cada um com sua própria contagem 0001, 0002...).
+ * por categoria (cada ramificação com sua própria contagem 0001, 0002...).
  */
 export interface EstoqueSaidaRow {
   id: string;
@@ -972,7 +974,7 @@ export interface EstoqueEntradaItemRow {
  * Futebol de Base — Estoque e Solicitações (Fase 4, ver a spec). Nenhum dos dois ganha a dimensão
  * `categoria` (Sub-20 a Sub-11): Solicitações já era uma lista única no Profissional, e o Estoque do
  * Base só tem material esportivo (Estoque Médico está fora de escopo), então nem existe uma coluna
- * `categoria` aqui — ao contrário de `EstoqueItemRow`, que tem duas listas (Esportivo/Médico).
+ * `categoria` aqui — ao contrário de `EstoqueItemRow`, que tem três listas.
  */
 export interface EstoqueItemBaseRow {
   id: string;

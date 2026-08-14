@@ -5,12 +5,14 @@ import type { EstoqueCategoria } from "@/lib/supabase/types";
 
 const TITULOS: Record<EstoqueCategoria, string> = {
   esportivo: "Material Esportivo",
-  medico: "Material Médico",
+  medico: "Medicação",
+  materiais: "Materiais",
 };
 
 const SUBTITULOS: Record<EstoqueCategoria, string> = {
   esportivo: "Departamento de Futebol Profissional",
   medico: "Departamento Médico",
+  materiais: "Departamento de Futebol Profissional",
 };
 
 const styles = StyleSheet.create({
@@ -116,7 +118,7 @@ export interface EstoqueEntradaPdfData {
 }
 
 /**
- * Comprovante de Entrada de Estoque (Esportivo ou Médico) — reposição de material que chegou.
+ * Comprovante de Entrada de Estoque (Esportivo, Medicação ou Materiais) — reposição de material que chegou.
  * Diferente da EstoqueFichaDocument (usada nas Saídas), aqui não há declaração de responsabilidade
  * nem bloco de assinaturas: Entrada é só um registro de recebimento (com fornecedor/nota fiscal),
  * ninguém precisa assinar recebendo material de volta pro próprio estoque do clube.

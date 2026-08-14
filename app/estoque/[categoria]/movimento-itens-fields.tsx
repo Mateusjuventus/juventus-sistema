@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { FieldGroup, FormSection, TextField } from "@/components/fields";
-import { labelNomeItem, labelUnidade, placeholderUnidade } from "@/lib/estoque/labels";
+import {
+  artigoUnidade,
+  labelNomeItem,
+  labelUnidade,
+  placeholderNomeItem,
+  placeholderUnidade,
+  usaCampoMg,
+} from "@/lib/estoque/labels";
 import { ESTOQUE_ITEM_NOVO_VALUE } from "@/lib/validation/schemas";
 import type { EstoqueCategoria, EstoqueItemRow } from "@/lib/supabase/types";
 
@@ -26,7 +33,7 @@ export function SaidaItensFields({ itens, categoria }: { itens: EstoqueItemRow[]
   return (
     <FormSection title="Itens">
       <p className="-mt-1 text-sm text-neutral-500">
-        Selecione o item e informe {categoria === "medico" ? "a unidade" : "o tamanho"} e a quantidade retirada.
+        Selecione o item e informe {artigoUnidade(categoria)} e a quantidade retirada.
       </p>
       <div className="space-y-4">
         {rows.map((row, i) => {
@@ -120,7 +127,7 @@ interface LinhaEntrada {
  * cadastrado no catálogo (mesmo <select> travado usado em SaidaItensFields acima) ou
  * "+ Cadastrar item novo", que revela os campos de nome/código/mg pra cadastrar na hora. Ver
  * resolverItensEntrada em ./actions.ts, que espera itemId = ESTOQUE_ITEM_NOVO_VALUE nas linhas de
- * item novo. No Médico, o campo "Mg" (dosagem) também aparece, opcional, só nas linhas de item
+ * item novo. Na Medicação, o campo "Mg" (dosagem) também aparece, opcional, só nas linhas de item
  * novo.
  */
 export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow[]; categoria: EstoqueCategoria }) {
@@ -129,7 +136,7 @@ export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow
   return (
     <FormSection title="Itens">
       <p className="-mt-1 text-sm text-neutral-500">
-        Selecione o item (ou cadastre um novo), informe {categoria === "medico" ? "a unidade" : "o tamanho"} e a
+        Selecione o item (ou cadastre um novo), informe {artigoUnidade(categoria)} e a
         quantidade que chegou.
       </p>
       <div className="space-y-4">
@@ -184,7 +191,7 @@ export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow
                     name="itemNome"
                     id={`itemNome-${row.rowId}`}
                     autoComplete="off"
-                    placeholder={categoria === "medico" ? "Ex: Dipirona 500mg comprimido" : "Nome do item"}
+                    placeholder={placeholderNomeItem(categoria)}
                   />
                 ) : null}
                 {isNovo ? (
@@ -196,7 +203,7 @@ export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow
                     placeholder="Opcional"
                   />
                 ) : null}
-                {isNovo && categoria === "medico" ? (
+                {isNovo && usaCampoMg(categoria) ? (
                   <TextField
                     label="Mg / dosagem (opcional)"
                     name="itemMg"

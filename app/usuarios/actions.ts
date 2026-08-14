@@ -55,7 +55,7 @@ function parseCategoriasTarefas(formData: FormData): string[] {
   return formData.getAll("tarefasCategorias").map(String).filter(ehTarefaCategoriaValida);
 }
 
-/** Ramificações de Estoque (Esportivo/Médico) liberadas pra esse usuário — ver
+/** Ramificações de Estoque (Esportivo/Medicação/Materiais) liberadas pra esse usuário — ver
  * `lib/auth/estoque-categorias.ts`. Diferente de Tarefas, isto É uma permissão de acesso (o
  * middleware bloqueia quem não tiver), então "master" sempre grava as duas, igual módulo/
  * departamento. */
@@ -248,7 +248,7 @@ export async function atualizarCategoriasTarefas(
   return { success: "Categorias salvas." };
 }
 
-/** Salva quais ramificações de Estoque (Esportivo/Médico) um usuário "regular" já existente pode
+/** Salva quais ramificações de Estoque (Esportivo/Medicação/Materiais) um usuário "regular" já existente pode
  * acessar. Mesma regra de `atualizarModulos`/`atualizarDepartamentos`: só master pode chamar, e
  * não faz sentido pra quem é master (já tem as duas). */
 export async function atualizarEstoqueCategorias(

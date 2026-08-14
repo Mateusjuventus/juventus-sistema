@@ -1,21 +1,25 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { labelUnidade } from "@/lib/estoque/labels";
 import type { EstoqueCategoria } from "@/lib/supabase/types";
 
 const TITULOS: Record<EstoqueCategoria, string> = {
   esportivo: "Material Esportivo",
-  medico: "Material Médico",
+  medico: "Medicação",
+  materiais: "Materiais",
 };
 
 const SUBTITULOS: Record<EstoqueCategoria, string> = {
   esportivo: "Departamento de Futebol Profissional",
   medico: "Departamento Médico",
+  materiais: "Departamento de Futebol Profissional",
 };
 
-/** Texto de declaração da ficha de Saída — muda conforme a categoria: Esportivo fala de uniformes/
- * equipamentos que retornam ao Clube (mesmo texto do formulário impresso já em uso); Médico fala de
- * medicamentos retirados pra uso nas atividades do Clube (não retornam), com o texto exato pedido
- * pelo Mateus em 2026-07-21. */
+/** Texto de declaração da ficha de Saída — muda conforme a categoria, porque a natureza da retirada
+ * é diferente em cada uma: Esportivo fala de uniformes/equipamentos que RETORNAM ao Clube (mesmo
+ * texto do formulário impresso já em uso); Medicação fala de medicamentos retirados pra uso nas
+ * atividades do Clube (não retornam), com o texto exato pedido pelo Mateus em 2026-07-21; Materiais
+ * segue a linha do Esportivo (é patrimônio do Clube e volta), mas sem falar em uniforme. */
 const PARAGRAFOS_DECLARACAO: Record<EstoqueCategoria, string[]> = {
   esportivo: [
     "Declaro que recebi do Clube os uniformes e/ou equipamentos relacionados acima, comprometendo-me a utilizá-los exclusivamente durante a jornada de trabalho e no exercício de minhas atividades profissionais.",
@@ -26,6 +30,11 @@ const PARAGRAFOS_DECLARACAO: Record<EstoqueCategoria, string[]> = {
     "Declaro que os medicamentos relacionados acima foram retirados do estoque do Departamento Médico para utilização nas atividades do Clube, conforme a necessidade e a finalidade a que se destinam.",
     "Declaro, ainda, que a presente retirada foi devidamente conferida e registrada, sendo de minha responsabilidade a correta destinação dos medicamentos, em conformidade com os procedimentos internos de controle de estoque e utilização estabelecidos pelo Clube.",
     "Estou ciente de que toda movimentação de entrada e saída de medicamentos deverá ser devidamente registrada, visando garantir a rastreabilidade, o controle de estoque e a segurança na utilização dos itens.",
+  ],
+  materiais: [
+    "Declaro que recebi do Clube os materiais relacionados acima, comprometendo-me a utilizá-los exclusivamente no exercício de minhas atividades e para a finalidade a que se destinam.",
+    "Comprometo-me a zelar pela conservação dos materiais recebidos e a devolvê-los em perfeitas condições de uso, ressalvado o desgaste natural decorrente da utilização regular, quando encerrada a atividade a que se destinam ou sempre que solicitado pelo Clube.",
+    "Estou ciente de que a não devolução dos materiais, ou a devolução em condições incompatíveis com o desgaste natural de uso, poderá acarretar o desconto dos respectivos valores, conforme o custo individual de cada item, observada a legislação vigente.",
   ],
 };
 
@@ -150,7 +159,7 @@ export interface EstoqueFichaPdfData {
 const QTD_LINHAS_BRANCO = 10;
 
 /**
- * Ficha de Saída de Estoque (Esportivo ou Médico) — mesmo modelo do formulário impresso já usado
+ * Ficha de Saída de Estoque (Esportivo, Medicação ou Materiais) — mesmo modelo do formulário impresso já usado
  * pelo clube: logo centralizado no topo, faixa com o título (varia conforme a categoria), dados do
  * colaborador, tabela de materiais entregues, declaração de responsabilidade e bloco de 3
  * assinaturas em branco pra imprimir e assinar. Quando `ficha.numero` é null, gera a versão em
@@ -242,7 +251,7 @@ export function EstoqueFichaDocument({
           <View style={styles.itensHeaderRow}>
             <Text style={[styles.colDescricao, styles.colDivisor, sharedStyles.headerCell]}>Descrição</Text>
             <Text style={[styles.colTamanho, styles.colDivisor, sharedStyles.headerCell]}>
-              {ficha.categoria === "medico" ? "Unidade" : "Tamanho"}
+              {labelUnidade(ficha.categoria)}
             </Text>
             <Text style={[styles.colCodigo, styles.colDivisor, sharedStyles.headerCell]}>Código</Text>
             <Text style={[styles.colQtd, sharedStyles.headerCell]}>Qtd.</Text>

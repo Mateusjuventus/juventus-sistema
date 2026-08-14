@@ -1,10 +1,12 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { CORES, DocumentoFooter, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { labelUnidade, usaCampoMg } from "@/lib/estoque/labels";
 import type { EstoqueCategoria } from "@/lib/supabase/types";
 
 const TITULOS: Record<EstoqueCategoria, string> = {
   esportivo: "Relatório de Estoque — Material Esportivo",
-  medico: "Relatório de Estoque — Material Médico",
+  medico: "Relatório de Estoque — Medicação",
+  materiais: "Relatório de Estoque — Materiais",
 };
 
 const styles = StyleSheet.create({
@@ -92,10 +94,10 @@ function formatTamanhos(tamanhos: Record<string, number>): string {
 }
 
 /**
- * Relatório do catálogo de Estoque (Esportivo ou Médico) — uma lista de todos os itens cadastrados
+ * Relatório do catálogo de Estoque (Esportivo, Medicação ou Materiais) — uma lista de todos os itens cadastrados
  * com as quantidades atuais, pra imprimir ou conferir rapidamente. Diferente da Ficha de Saída
  * (que é o documento oficial assinado, com o mesmo layout do formulário em papel do clube), este
- * relatório é só uma conferência do catálogo, por isso o Médico usa a ordem de colunas pedida
+ * relatório é só uma conferência do catálogo, por isso a Medicação usa a ordem de colunas pedida
  * (Unidade — Mg — Descrição — Código — Total) em vez de seguir o layout fixo da ficha.
  */
 export function EstoqueRelatorioDocument({
@@ -108,7 +110,9 @@ export function EstoqueRelatorioDocument({
   itens: EstoqueRelatorioPdfItem[];
 }) {
   const totalGeral = itens.reduce((soma, i) => soma + totalItem(i.tamanhos), 0);
-  const medico = dados.categoria === "medico";
+  // O layout com coluna "Mg" só existe na Medicação; Esportivo e Materiais usam a tabela simples,
+  // que só troca o cabeçalho da coluna de variação ("Tamanhos" x "Unidades").
+  const comMg = usaCampoMg(dados.categoria);
 
   return (
     <Document>
@@ -128,7 +132,7 @@ export function EstoqueRelatorioDocument({
         </Text>
 
         <View style={styles.tabela}>
-          {medico ? (
+          {comMg ? (
             <View style={styles.headerRow}>
               <Text style={[styles.colUnidade, styles.colDivisor, styles.cell, sharedStyles.headerCell]}>
                 Unidade / Qtd.
@@ -151,7 +155,7 @@ export function EstoqueRelatorioDocument({
                 Código
               </Text>
               <Text style={[styles.colTamanhos, styles.colDivisor, styles.cell, sharedStyles.headerCell]}>
-                Tamanhos / Qtd.
+                {labelUnidade(dados.categoria)}s / Qtd.
               </Text>
               <Text style={[styles.colTotal, styles.cell, sharedStyles.headerCell]}>Total</Text>
             </View>
@@ -159,7 +163,7 @@ export function EstoqueRelatorioDocument({
 
           {itens.length === 0 ? (
             <Text style={sharedStyles.emptyState}>Nenhum item cadastrado.</Text>
-          ) : medico ? (
+          ) : comMg ? (
             itens.map((item, i) => (
               <View style={styles.row} key={i} wrap={false}>
                 <Text style={[styles.colUnidade, styles.colDivisor, styles.cell]}>{formatTamanhos(item.tamanhos)}</Text>

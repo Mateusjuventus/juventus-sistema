@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
-import { exemploUnidadesSection, labelNomeItem, labelUnidade, labelUnidadesSection, placeholderUnidade } from "@/lib/estoque/labels";
+import {
+  exemploUnidadesSection,
+  labelNomeItem,
+  labelUnidade,
+  labelUnidadesSection,
+  placeholderNomeItem,
+  placeholderUnidade,
+  usaCampoMg,
+} from "@/lib/estoque/labels";
 import type { EstoqueCategoria } from "@/lib/supabase/types";
 import type { EstoqueItemFormState } from "../actions";
 
@@ -20,7 +28,7 @@ interface LinhaTamanho {
  * Linhas de tamanho/quantidade do item, dentro do próprio formulário — mesmo padrão das listas
  * dinâmicas de item já usadas em Solicitações (ver app/solicitacoes/solicitacao-form.tsx): cada
  * linha usa os MESMOS nomes de campo (itemTamanho/itemQuantidade); no servidor, lê-se todas as
- * ocorrências na mesma ordem (ver buildTamanhos em ../actions.ts). No Médico, esse mesmo campo
+ * ocorrências na mesma ordem (ver buildTamanhos em ../actions.ts). Na Medicação, esse mesmo campo
  * guarda unidades de medida (Caixa/Unidade/Pacote) em vez de tamanho de roupa — só o rótulo muda.
  */
 function TamanhosFields({
@@ -120,7 +128,7 @@ export function ItemForm({
             error={errors.nome}
             required
             autoComplete="off"
-            placeholder={categoria === "medico" ? "Ex: Dipirona 500mg comprimido" : "Ex: Camiseta Polo"}
+            placeholder={placeholderNomeItem(categoria)}
           />
           <TextField
             label="Código (opcional)"
@@ -130,7 +138,7 @@ export function ItemForm({
             autoComplete="off"
             placeholder="Ex: CP"
           />
-          {categoria === "medico" ? (
+          {usaCampoMg(categoria) ? (
             <TextField
               label="Mg / dosagem (opcional)"
               name="mg"
