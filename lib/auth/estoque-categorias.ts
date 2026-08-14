@@ -1,6 +1,6 @@
 import { ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 
-/** As ramificações do módulo Estoque (Esportivo / Medicação / Materiais) — mesma fonte usada no cadastro de
+/** As ramificações do módulo Estoque (Esportivo / Medicamentos / Materiais) — mesma fonte usada no cadastro de
  * Estoque (`lib/validation/schemas.ts`), reexportada como lista simples de valores pra validar o
  * que vem do formulário de permissões (`app/usuarios`) e pro bloqueio no middleware. Diferente de
  * `lib/auth/tarefas-categorias.ts`, isto é uma permissão de acesso de verdade, não só preferência

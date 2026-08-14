@@ -28,7 +28,7 @@ interface LinhaTamanho {
  * Linhas de tamanho/quantidade do item, dentro do próprio formulário — mesmo padrão das listas
  * dinâmicas de item já usadas em Solicitações (ver app/solicitacoes/solicitacao-form.tsx): cada
  * linha usa os MESMOS nomes de campo (itemTamanho/itemQuantidade); no servidor, lê-se todas as
- * ocorrências na mesma ordem (ver buildTamanhos em ../actions.ts). Na Medicação, esse mesmo campo
+ * ocorrências na mesma ordem (ver buildTamanhos em ../actions.ts). Em Medicamentos, esse mesmo campo
  * guarda unidades de medida (Caixa/Unidade/Pacote) em vez de tamanho de roupa — só o rótulo muda.
  */
 function TamanhosFields({

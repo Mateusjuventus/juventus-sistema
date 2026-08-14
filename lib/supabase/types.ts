@@ -888,12 +888,12 @@ export interface SolicitacaoItemRow {
   created_at: string;
 }
 
-/** "medico" é o valor gravado da ramificação hoje chamada de **Medicação** na interface — ver
+/** "medico" é o valor gravado da ramificação hoje chamada de **Medicamentos** na interface — ver
  * ESTOQUE_CATEGORIAS em lib/validation/schemas.ts. */
 export type EstoqueCategoria = "esportivo" | "medico" | "materiais";
 
 /**
- * Item do catálogo de Estoque — Esportivo, Medicação e Materiais são listas totalmente independentes,
+ * Item do catálogo de Estoque — Esportivo, Medicamentos e Materiais são listas totalmente independentes,
  * nunca se misturam (nem no catálogo, nem em Entradas/Saídas). `tamanhos` guarda a quantidade de
  * cada tamanho/variação num objeto só (ex: {"P": 12, "M": 20, "Único": 5}) — o item inteiro é uma
  * linha só, não uma linha por tamanho. A quantidade só muda através de Entrada (soma) ou Saída

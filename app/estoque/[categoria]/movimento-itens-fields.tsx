@@ -127,7 +127,7 @@ interface LinhaEntrada {
  * cadastrado no catálogo (mesmo <select> travado usado em SaidaItensFields acima) ou
  * "+ Cadastrar item novo", que revela os campos de nome/código/mg pra cadastrar na hora. Ver
  * resolverItensEntrada em ./actions.ts, que espera itemId = ESTOQUE_ITEM_NOVO_VALUE nas linhas de
- * item novo. Na Medicação, o campo "Mg" (dosagem) também aparece, opcional, só nas linhas de item
+ * item novo. Em Medicamentos, o campo "Mg" (dosagem) também aparece, opcional, só nas linhas de item
  * novo.
  */
 export function EntradaItensFields({ itens, categoria }: { itens: EstoqueItemRow[]; categoria: EstoqueCategoria }) {

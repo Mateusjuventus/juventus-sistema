@@ -149,7 +149,7 @@ export default async function UsuariosPage() {
                           id={perfil.id}
                           fieldName="estoqueCategorias"
                           titulo="Estoque: ramificações liberadas"
-                          ajuda="Desmarque uma se essa pessoa não deve ver aquele estoque (ex.: só Medicação)."
+                          ajuda="Desmarque uma se essa pessoa não deve ver aquele estoque (ex.: só Medicamentos)."
                           opcoes={ESTOQUE_CATEGORIAS}
                           valoresIniciais={estoqueCategoriasPermitidas}
                           action={atualizarEstoqueCategorias}

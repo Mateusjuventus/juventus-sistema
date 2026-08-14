@@ -493,16 +493,20 @@ export const configuracaoFinanceiroSchema = z.object({
 });
 export type ConfiguracaoFinanceiroInput = z.infer<typeof configuracaoFinanceiroSchema>;
 
-/** As três listas de Estoque — Esportivo, Medicação e Materiais — totalmente independentes umas
+/** As três listas de Estoque — Esportivo, Medicamentos e Materiais — totalmente independentes umas
  * das outras (catálogo, entradas, saídas e histórico próprios).
  *
- * O `value` de Medicação continua sendo "medico": é o que está gravado em `estoque_itens`,
+ * `departamento` é só rótulo de tela e de documento: Medicamentos e Materiais são as **duas listas do
+ * Departamento Médico** (remédio de um lado, material de consumo do outro), e sem essa linha a
+ * separação entre elas parece arbitrária pra quem abre a tela.
+ *
+ * O `value` de Medicamentos continua sendo "medico": é o que está gravado em `estoque_itens`,
  * `estoque_entradas`, `estoque_saidas` e na permissão de cada perfil. Só o rótulo mudou (ver
  * 0072_estoque_materiais.sql). */
 export const ESTOQUE_CATEGORIAS = [
-  { value: "esportivo", label: "Esportivo" },
-  { value: "medico", label: "Medicação" },
-  { value: "materiais", label: "Materiais" },
+  { value: "esportivo", label: "Esportivo", departamento: "Futebol Profissional" },
+  { value: "medico", label: "Medicamentos", departamento: "Departamento Médico" },
+  { value: "materiais", label: "Materiais", departamento: "Departamento Médico" },
 ] as const;
 
 /** Valor sentinela usado no <select> de item da Entrada (ver EntradaItensFields em

@@ -5,21 +5,24 @@ import type { EstoqueCategoria } from "@/lib/supabase/types";
 
 const TITULOS: Record<EstoqueCategoria, string> = {
   esportivo: "Material Esportivo",
-  medico: "Medicação",
+  medico: "Medicamentos",
   materiais: "Materiais",
 };
 
 const SUBTITULOS: Record<EstoqueCategoria, string> = {
   esportivo: "Departamento de Futebol Profissional",
   medico: "Departamento Médico",
-  materiais: "Departamento de Futebol Profissional",
+  // Materiais é material de uso do Departamento Médico (gaze, esparadrapo, atadura) — a lista é
+  // separada de Medicamentos porque não é remédio, mas o departamento é o mesmo.
+  materiais: "Departamento Médico",
 };
 
 /** Texto de declaração da ficha de Saída — muda conforme a categoria, porque a natureza da retirada
  * é diferente em cada uma: Esportivo fala de uniformes/equipamentos que RETORNAM ao Clube (mesmo
- * texto do formulário impresso já em uso); Medicação fala de medicamentos retirados pra uso nas
+ * texto do formulário impresso já em uso); Medicamentos fala de itens retirados pra uso nas
  * atividades do Clube (não retornam), com o texto exato pedido pelo Mateus em 2026-07-21; Materiais
- * segue a linha do Esportivo (é patrimônio do Clube e volta), mas sem falar em uniforme. */
+ * é material de consumo do Departamento Médico, então segue a linha de Medicamentos (sai do estoque
+ * pra ser usado, não pra voltar) e não a do Esportivo. */
 const PARAGRAFOS_DECLARACAO: Record<EstoqueCategoria, string[]> = {
   esportivo: [
     "Declaro que recebi do Clube os uniformes e/ou equipamentos relacionados acima, comprometendo-me a utilizá-los exclusivamente durante a jornada de trabalho e no exercício de minhas atividades profissionais.",
@@ -32,9 +35,9 @@ const PARAGRAFOS_DECLARACAO: Record<EstoqueCategoria, string[]> = {
     "Estou ciente de que toda movimentação de entrada e saída de medicamentos deverá ser devidamente registrada, visando garantir a rastreabilidade, o controle de estoque e a segurança na utilização dos itens.",
   ],
   materiais: [
-    "Declaro que recebi do Clube os materiais relacionados acima, comprometendo-me a utilizá-los exclusivamente no exercício de minhas atividades e para a finalidade a que se destinam.",
-    "Comprometo-me a zelar pela conservação dos materiais recebidos e a devolvê-los em perfeitas condições de uso, ressalvado o desgaste natural decorrente da utilização regular, quando encerrada a atividade a que se destinam ou sempre que solicitado pelo Clube.",
-    "Estou ciente de que a não devolução dos materiais, ou a devolução em condições incompatíveis com o desgaste natural de uso, poderá acarretar o desconto dos respectivos valores, conforme o custo individual de cada item, observada a legislação vigente.",
+    "Declaro que os materiais relacionados acima foram retirados do estoque do Departamento Médico para utilização nas atividades do Clube, conforme a necessidade e a finalidade a que se destinam.",
+    "Declaro, ainda, que a presente retirada foi devidamente conferida e registrada, sendo de minha responsabilidade a correta destinação dos materiais, em conformidade com os procedimentos internos de controle de estoque e utilização estabelecidos pelo Clube.",
+    "Estou ciente de que toda movimentação de entrada e saída de materiais deverá ser devidamente registrada, visando garantir a rastreabilidade, o controle de estoque e a segurança na utilização dos itens.",
   ],
 };
 
@@ -159,7 +162,7 @@ export interface EstoqueFichaPdfData {
 const QTD_LINHAS_BRANCO = 10;
 
 /**
- * Ficha de Saída de Estoque (Esportivo, Medicação ou Materiais) — mesmo modelo do formulário impresso já usado
+ * Ficha de Saída de Estoque (Esportivo, Medicamentos ou Materiais) — mesmo modelo do formulário impresso já usado
  * pelo clube: logo centralizado no topo, faixa com o título (varia conforme a categoria), dados do
  * colaborador, tabela de materiais entregues, declaração de responsabilidade e bloco de 3
  * assinaturas em branco pra imprimir e assinar. Quando `ficha.numero` é null, gera a versão em

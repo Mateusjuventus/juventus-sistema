@@ -1,9 +1,9 @@
--- Terceira ramificação do Estoque: MATERIAIS (pedido do Mateus em 13/08). Esportivo e Medicação
+-- Terceira ramificação do Estoque: MATERIAIS (pedido do Mateus em 13/08). Esportivo e Medicamentos
 -- continuam como estão; Materiais entra do mesmo jeito — catálogo, entradas, saídas, histórico e
 -- relatório próprios, sem se misturar com as outras duas.
 --
 -- O valor gravado da categoria de medicamentos continua sendo 'medico'. Só o RÓTULO mudou de
--- "Médico" para "Medicação" (na tela e nos documentos). Renomear o valor no banco obrigaria a
+-- "Médico" para "Medicamentos" (na tela e nos documentos). Renomear o valor no banco obrigaria a
 -- reescrever `estoque_itens`, `estoque_entradas`, `estoque_saidas` e a permissão de cada perfil de
 -- uma vez, com risco em dado que já existe, pra ganhar só uma URL mais bonita — não vale.
 

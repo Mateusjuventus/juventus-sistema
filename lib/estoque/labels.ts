@@ -6,13 +6,14 @@ import type { EstoqueCategoria } from "@/lib/supabase/types";
  * pensa a mesma informação de um jeito:
  *
  * - **Esportivo** trabalha com TAMANHO (P/M/G/Único) — é uniforme.
- * - **Medicação** trabalha com UNIDADE de medida (Caixa/Unidade/Pacote) e chama o nome do item de
+ * - **Medicamentos** trabalha com UNIDADE de medida (Caixa/Unidade/Pacote) e chama o nome do item de
  *   "Descrição", que é como a receita/nota fiscal se refere ao medicamento.
- * - **Materiais** também é por UNIDADE (cone, bola, garrafa não têm tamanho), mas o item tem nome
- *   próprio, não descrição.
+ * - **Materiais** é o material de consumo do Departamento Médico (gaze, esparadrapo, atadura,
+ *   seringa) — mesma lógica de UNIDADE de Medicamentos, mas sem dosagem, e com nome próprio em vez de
+ *   descrição.
  *
  * São Records e não `if categoria === "medico"` de propósito: com três ramificações, o ternário
- * fazia Materiais herdar silenciosamente o texto do Esportivo (e falar em "tamanho" de cone).
+ * fazia Materiais herdar silenciosamente o texto do Esportivo (e falar em "tamanho" de gaze).
  */
 
 const NOME_ITEM: Record<EstoqueCategoria, string> = {
@@ -30,7 +31,7 @@ const UNIDADE: Record<EstoqueCategoria, string> = {
 const PLACEHOLDER_UNIDADE: Record<EstoqueCategoria, string> = {
   esportivo: "Ex: M ou Único",
   medico: "Ex: Caixa, Unidade ou Pacote",
-  materiais: "Ex: Unidade, Caixa ou Par",
+  materiais: "Ex: Caixa, Unidade ou Rolo",
 };
 
 const SECAO_UNIDADES: Record<EstoqueCategoria, string> = {
@@ -42,14 +43,14 @@ const SECAO_UNIDADES: Record<EstoqueCategoria, string> = {
 const EXEMPLO_SECAO: Record<EstoqueCategoria, string> = {
   esportivo: "Ex: P, M, G, Único... Adicione uma linha por tamanho/variação que esse item tem.",
   medico: "Ex: Caixa, Unidade, Pacote... Adicione uma linha por unidade de medida que esse item tem.",
-  materiais: "Ex: Unidade, Caixa, Par, Jogo... Adicione uma linha por unidade de medida que esse item tem.",
+  materiais: "Ex: Caixa, Unidade, Rolo, Pacote... Adicione uma linha por unidade de medida que esse item tem.",
 };
 
 /** Exemplo de item, usado como placeholder do campo de nome. */
 const EXEMPLO_ITEM: Record<EstoqueCategoria, string> = {
   esportivo: "Ex: Camiseta Polo",
   medico: "Ex: Dipirona 500mg comprimido",
-  materiais: "Ex: Cone de treino",
+  materiais: "Ex: Atadura elástica 10cm",
 };
 
 export function labelNomeItem(categoria: EstoqueCategoria): string {
@@ -81,7 +82,7 @@ export function artigoUnidade(categoria: EstoqueCategoria): string {
   return categoria === "esportivo" ? "o tamanho" : "a unidade";
 }
 
-/** Só Medicação usa dosagem/concentração ("500mg") — nem uniforme nem cone têm isso. */
+/** Só Medicamentos usa dosagem/concentração ("500mg"): nem uniforme nem gaze têm isso. */
 export function usaCampoMg(categoria: EstoqueCategoria): boolean {
   return categoria === "medico";
 }

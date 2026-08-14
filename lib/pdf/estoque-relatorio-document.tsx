@@ -5,7 +5,7 @@ import type { EstoqueCategoria } from "@/lib/supabase/types";
 
 const TITULOS: Record<EstoqueCategoria, string> = {
   esportivo: "Relatório de Estoque — Material Esportivo",
-  medico: "Relatório de Estoque — Medicação",
+  medico: "Relatório de Estoque — Medicamentos",
   materiais: "Relatório de Estoque — Materiais",
 };
 
@@ -94,10 +94,10 @@ function formatTamanhos(tamanhos: Record<string, number>): string {
 }
 
 /**
- * Relatório do catálogo de Estoque (Esportivo, Medicação ou Materiais) — uma lista de todos os itens cadastrados
+ * Relatório do catálogo de Estoque (Esportivo, Medicamentos ou Materiais) — uma lista de todos os itens cadastrados
  * com as quantidades atuais, pra imprimir ou conferir rapidamente. Diferente da Ficha de Saída
  * (que é o documento oficial assinado, com o mesmo layout do formulário em papel do clube), este
- * relatório é só uma conferência do catálogo, por isso a Medicação usa a ordem de colunas pedida
+ * relatório é só uma conferência do catálogo, por isso Medicamentos usa a ordem de colunas pedida
  * (Unidade — Mg — Descrição — Código — Total) em vez de seguir o layout fixo da ficha.
  */
 export function EstoqueRelatorioDocument({
@@ -110,7 +110,7 @@ export function EstoqueRelatorioDocument({
   itens: EstoqueRelatorioPdfItem[];
 }) {
   const totalGeral = itens.reduce((soma, i) => soma + totalItem(i.tamanhos), 0);
-  // O layout com coluna "Mg" só existe na Medicação; Esportivo e Materiais usam a tabela simples,
+  // O layout com coluna "Mg" só existe em Medicamentos; Esportivo e Materiais usam a tabela simples,
   // que só troca o cabeçalho da coluna de variação ("Tamanhos" x "Unidades").
   const comMg = usaCampoMg(dados.categoria);
 

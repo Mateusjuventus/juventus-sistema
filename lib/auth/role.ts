@@ -121,7 +121,7 @@ export async function getCategoriasTarefasVisiveis(
 }
 
 /**
- * Ramificações do módulo Estoque (Esportivo / Medicação / Materiais) que o usuário logado pode acessar. Ao
+ * Ramificações do módulo Estoque (Esportivo / Medicamentos / Materiais) que o usuário logado pode acessar. Ao
  * contrário de `getCategoriasTarefasVisiveis`, isto É uma permissão de acesso de verdade — quem
  * não tiver uma delas aqui não entra em `/estoque/<categoria>` (ver
  * `lib/supabase/middleware.ts`). "Master" sempre tem as duas.

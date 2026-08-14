@@ -8,7 +8,7 @@ import { ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import type { EstoqueItemRow } from "@/lib/supabase/types";
 
 /**
- * Estoque é um módulo só, mas com listas totalmente separadas — Esportivo, Medicação e Materiais
+ * Estoque é um módulo só, mas com listas totalmente separadas — Esportivo, Medicamentos e Materiais
  * nunca se misturam (catálogo, entradas, saídas e histórico, cada um com o seu). Esta tela é só a
  * porta de entrada: escolher qual delas. Só mostra a(s) ramificação(ões) que o usuário logado tem
  * liberada(s) (ver lib/auth/estoque-categorias.ts) — o bloqueio de verdade é no middleware.
@@ -29,7 +29,8 @@ export default async function EstoquePage() {
       </Link>
       <PageHeader title="Estoque" />
       <p className="mt-1 text-center text-sm text-neutral-500">
-        Escolha o estoque — cada lista é controlada separadamente.
+        Escolha o estoque — cada lista é controlada separadamente. Medicamentos e Materiais são as duas
+        listas do Departamento Médico.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -44,6 +45,7 @@ export default async function EstoquePage() {
             >
               <span className="absolute inset-x-0 top-0 h-1 bg-grena" />
               <h2 className="text-lg font-bold text-grena-escuro">{c.label}</h2>
+              <p className="-mt-1.5 text-xs text-neutral-400">{c.departamento}</p>
               <p className="text-sm font-medium text-neutral-500">
                 {doGrupo.length} referência{doGrupo.length === 1 ? "" : "s"} · {totalPecas} peça
                 {totalPecas === 1 ? "" : "s"} em estoque

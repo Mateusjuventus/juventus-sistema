@@ -129,7 +129,7 @@ export function UsuarioForm() {
                   <div className="ml-4 border-l-2 border-neutral-100 pl-4">
                     <p className="field-label">Estoque: ramificações liberadas</p>
                     <p className="-mt-0.5 text-xs text-neutral-400">
-                      Desmarque uma se essa pessoa não deve ver aquele estoque (ex.: só Medicação).
+                      Desmarque uma se essa pessoa não deve ver aquele estoque (ex.: só Medicamentos).
                     </p>
                     <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {ESTOQUE_CATEGORIAS.map((cat) => (

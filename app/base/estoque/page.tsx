@@ -8,7 +8,7 @@ import { deleteItemBase } from "./actions";
 
 /**
  * Espelha `app/estoque/[categoria]/page.tsx` para o Futebol de Base — mas sem a bifurcação
- * Esportivo/Medicação/Materiais: aqui é uma lista só, numa rota fixa (`/base/estoque`, sem segmento
+ * Esportivo/Medicamentos/Materiais: aqui é uma lista só, numa rota fixa (`/base/estoque`, sem segmento
  * `[categoria]`), já que o Estoque do Base só existe para material esportivo (ver a spec).
  */
 export default async function EstoqueBasePage() {
