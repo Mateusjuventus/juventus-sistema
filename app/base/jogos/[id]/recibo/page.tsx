@@ -1,39 +1,34 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
-import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import type { ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
-import { getJogoBaseEConvocados } from "../operacao-data";
+import type {
+  JogoBaseRow,
+  ReciboJogoBaseRow,
+  StaffOperacionalBaseComFuncaoRow,
+} from "@/lib/supabase/types";
 import { ReciboFormBase } from "./recibo-form-base";
 import { saveReciboBase } from "../operacao-actions";
 
 /**
  * Espelha `app/jogos/[id]/recibo/page.tsx` para o Futebol de Base. Recibo de Pagamento é só pra
  * Staff Operacional — Comissão Técnica não entra aqui. Staff Operacional não precisa ser convocado
- * — buscamos todo o staff ativo direto do cadastro.
+ * (a convocação é de atletas e comissão), então buscamos todo o staff ativo direto do cadastro.
+ *
+ * Por isso esta tela NÃO depende de convocação nenhuma: basta o jogo existir. Ela chegou a bloquear
+ * com o aviso "monte a convocação primeiro", sobra de quando a Comissão Técnica ainda aparecia
+ * aqui — o Profissional já tinha sido corrigido, a Base ficou pra trás.
  */
 export default async function ReciboBasePage({
   params,
 }: {
   params: { id: string };
 }) {
-  const dados = await getJogoBaseEConvocados(params.id);
-  if (!dados) notFound();
-  const { jogo, convocacao } = dados;
-
-  if (!convocacao) {
-    return (
-      <AppShell departamento="futebol_base">
-        <JogoTabsBase jogoId={jogo.id} active="recibo" />
-        <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${jogo.id}/convocacao`} />
-      </AppShell>
-    );
-  }
-
   const supabase = createClient();
-  const [{ data: recibosData }, { data: staffData }] = await Promise.all([
-    supabase.from("recibos_jogo_base").select("*").eq("jogo_id", jogo.id),
+
+  const [{ data: jogoData }, { data: recibosData }, { data: staffData }] = await Promise.all([
+    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+    supabase.from("recibos_jogo_base").select("*").eq("jogo_id", params.id),
     supabase
       .from("staff_operacional_base")
       .select(
@@ -42,6 +37,9 @@ export default async function ReciboBasePage({
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
   ]);
+
+  if (!jogoData) notFound();
+  const jogo = jogoData as JogoBaseRow;
   const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
   const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
   const temRecibos = recibos.length > 0;
