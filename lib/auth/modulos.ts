@@ -59,6 +59,22 @@ export const MODULOS: ModuloInfo[] = [
   },
 ];
 
+/**
+ * Ordem de preferência da barra inferior do celular, que só tem espaço para 3 módulos além de
+ * Início e Menu. Não dá pra usar a ordem de `MODULOS` (que é a da sidebar, começando por Atletas,
+ * Comissão e Staff): no telefone o que se abre é o jogo do fim de semana, não o cadastro de quem
+ * já está contratado. A lista é filtrada pela permissão do usuário, então quem não tem Jogos
+ * liberado simplesmente recebe o próximo da fila.
+ */
+export const PRIORIDADE_MOBILE: ModuloChave[] = [
+  "jogos",
+  "competicoes",
+  "atletas",
+  "estoque",
+  "solicitacoes",
+  "financeiro",
+];
+
 /** Todas as chaves de módulo — usado como padrão de quem ainda não tem `modulos_permitidos`
  * definido (nunca deve tirar acesso de ninguém sem querer) e pra validar o que vem do formulário. */
 export const TODOS_MODULOS: ModuloChave[] = MODULOS.map((m) => m.chave);

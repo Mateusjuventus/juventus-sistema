@@ -21,7 +21,7 @@ import {
   IconVeiculo,
 } from "@/components/module-icons";
 import { PerfilMenuSidebar } from "@/components/perfil-menu";
-import type { ModuloChave } from "@/lib/auth/modulos";
+import { PRIORIDADE_MOBILE, type ModuloChave } from "@/lib/auth/modulos";
 
 /** Chave de ícone que o item carrega — string simples, serializável na fronteira Server→Client
  * Component (ver comentário abaixo). "usuarios" não é um `ModuloChave` de verdade (ver
@@ -56,6 +56,23 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
   relatorios_avulso: IconRelatorio,
   usuarios: IconUsuarios,
 };
+
+/** Rótulos da sidebar são escritos por extenso ("Comissão Técnica / Diretoria") e não cabem embaixo
+ * de um ícone de 22px. Aqui eles viram a versão curta — só na barra inferior; a gaveta e o desktop
+ * continuam com o nome completo. */
+const ROTULO_CURTO: Record<string, string> = {
+  "Comissão Técnica / Diretoria": "Comissão",
+  "Staff Operacional": "Staff",
+  "Prestação de Contas": "Contas",
+  "Termos de Retirada": "Termos",
+  "Veículos / Placas": "Veículos",
+  "Relatório Avulso": "Relatório",
+  "Jogos / Competições": "Jogos",
+};
+
+function rotuloCurto(label: string): string {
+  return ROTULO_CURTO[label] ?? label;
+}
 
 function ItemLink({
   item,
@@ -249,27 +266,60 @@ export function AppSidebar({
     </>
   );
 
+  /* Barra inferior do celular: Início + 3 módulos + Menu. Cinco é o limite prático — com seis os
+     rótulos começam a cortar em tela de 360px. Quem fica de fora continua acessível pelo Menu, que
+     abre a mesma gaveta com a lista completa. */
+  const itensMobile: SidebarNavItem[] = [];
+  for (const chave of PRIORIDADE_MOBILE) {
+    if (itensMobile.length === 3) break;
+    const achado = navItems.find((item) => item.icone === chave);
+    if (achado) itensMobile.push(achado);
+  }
+  // Usuário com permissões incomuns pode não ter nenhum dos prioritários — completa com o que ele
+  // tem, pra a barra nunca aparecer pela metade.
+  for (const item of navItems) {
+    if (itensMobile.length === 3) break;
+    if (!itensMobile.includes(item)) itensMobile.push(item);
+  }
+
+  const itemInferior = (ativo: boolean) =>
+    `flex flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-medium leading-none transition-colors ${
+      ativo ? "text-grena" : "text-neutral-500"
+    }`;
+
   return (
     <>
-      {/* Celular: barra fina no topo com o botão de menu. A sidebar de 232px fixa ocupava mais de
-          metade da largura de um telefone, o que sozinho já inviabilizava o uso. */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-grena px-4 text-white lg:hidden">
+      {/* Celular: barra inferior fixa, no alcance do polegar. Substitui a barra de topo — o topo
+          gastava 56px de altura só com identidade visual, e a altura é justamente o que falta num
+          telefone. `pb-[env(safe-area-inset-bottom)]` evita que o indicador de home do iPhone fique
+          por cima dos rótulos. */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-linha bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_3px_rgba(0,0,0,0.06)] lg:hidden">
+        <Link href={homeHref} className={itemInferior(homeAtivo)}>
+          <HomeIcon className="h-[22px] w-[22px]" />
+          <span className="w-full truncate text-center">Início</span>
+        </Link>
+        {itensMobile.map((item) => {
+          const Icone = ICONES[item.icone];
+          return (
+            <Link key={item.href} href={item.href} className={itemInferior(itemAtivo(item.href))}>
+              <Icone className="h-[22px] w-[22px]" />
+              <span className="w-full truncate text-center">{rotuloCurto(item.label)}</span>
+            </Link>
+          );
+        })}
         <button
           type="button"
           onClick={() => setMenuAberto(true)}
           aria-label="Abrir menu"
           aria-expanded={menuAberto}
-          className="-ml-2 flex h-10 w-10 items-center justify-center rounded-md transition-colors hover:bg-white/10"
+          className={itemInferior(menuAberto)}
         >
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
+          <span className="w-full truncate text-center">Menu</span>
         </button>
-        <Link href={homeHref} className="flex min-w-0 items-center gap-2 text-[15px] font-bold tracking-wide">
-          <JuventusCrestMark className="h-7 w-7 shrink-0" />
-          <span className="truncate">Juventus - SAF</span>
-        </Link>
-      </header>
+      </nav>
 
       {/* Gaveta do celular. Fica sempre montada e só desliza pra fora da tela quando fechada, pra a
           abertura ser imediata em vez de piscar montando a lista inteira. */}

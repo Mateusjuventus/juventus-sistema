@@ -127,7 +127,9 @@ export async function AppShell({
             tinham, sem precisar tocar em cada uma só por causa da troca de topo pra sidebar.
             `min-w-0` no wrapper impede que uma tabela larga estique a página inteira no celular:
             sem ele, a rolagem horizontal da tabela vira rolagem da tela toda. */}
-        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        {/* `pb-24` no celular reserva a altura da barra inferior fixa — sem isso o último botão de
+            cada tela ficava escondido atrás dela. */}
+        <main className="min-w-0 flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-6 lg:pt-6">
           <div className="mx-auto min-w-0 max-w-6xl">{children}</div>
         </main>
       </div>

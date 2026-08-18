@@ -13,14 +13,33 @@ uma linha que sozinha muda mais do que todo o resto desta spec.
 `maximumScale` fica **deliberadamente sem limite**: travar o zoom é hostil para quem precisa
 aproximar para ler.
 
-## 2. A barra lateral virou gaveta
+## 2. Barra inferior com ícones + gaveta
 
 A sidebar tinha 232px fixos e ficava sempre visível. Num telefone de 390px isso é **mais da metade
 da largura da tela** ocupada por menu.
 
-Agora, abaixo de `lg`: uma barra fina no topo com o botão de menu, e a sidebar vira gaveta que
-desliza da esquerda com fundo escurecido. De `lg` para cima nada muda — é a mesma barra fixa de
-antes.
+Abaixo de `lg` a navegação passa a ser uma **barra inferior fixa**, no alcance do polegar: Início,
+três módulos e Menu, cada um com ícone e legenda. O Menu abre a gaveta que desliza da esquerda com
+a lista completa. De `lg` para cima nada muda — é a mesma barra lateral fixa de antes.
+
+A primeira versão usava uma barra no **topo** com o botão de menu; virou barra inferior a pedido do
+Mateus, e ficou melhor por dois motivos: o topo gastava 56px de altura só com identidade visual —
+e altura é justamente o que falta num telefone — e o canto superior esquerdo é o ponto mais difícil
+de alcançar com o polegar.
+
+Decisões que essa barra obriga a tomar:
+
+- **Quais três módulos aparecem.** Não dá para usar a ordem da sidebar (que começa por Atletas,
+  Comissão e Staff): no telefone o que se abre é o jogo do fim de semana, não o cadastro de quem já
+  está contratado. Daí `PRIORIDADE_MOBILE` em `lib/auth/modulos.ts` — Jogos, Competições, Atletas,
+  Estoque... — filtrada pela permissão de cada usuário, de forma que quem não tem Jogos liberado
+  recebe o próximo da fila em vez de um buraco.
+- **Cinco itens é o teto.** Com seis, os rótulos começam a cortar em tela de 360px (conferido).
+- **Rótulos curtos.** "Comissão Técnica / Diretoria" não cabe embaixo de um ícone de 22px; a barra
+  usa "Comissão". A gaveta e o desktop continuam com o nome por extenso.
+- `pb-[env(safe-area-inset-bottom)]` na barra e `pb-24` no conteúdo: sem o primeiro o indicador de
+  home do iPhone fica por cima dos rótulos; sem o segundo o último botão de cada tela fica escondido
+  atrás da barra.
 
 Três detalhes que decidem se isso funciona na prática:
 
@@ -56,7 +75,7 @@ existe mais coluna. No desktop volta ao cartão arredondado de sempre.
 
 ## Verificado
 
-Renderizado no Chromium com o perfil de iPhone 13 (390px): a página passa a ocupar exatamente
+Renderizado no Chromium com o perfil de iPhone 13 (390px) e num telefone pequeno (360px): a página passa a ocupar exatamente
 390px sem rolagem horizontal parasita (`scrollWidth === innerWidth`), o campo de formulário reporta
 `font-size: 16px`, a gaveta abre e fecha, e a faixa de abas rola. Conferido também em 1440px para
 garantir que o desktop não mudou.
