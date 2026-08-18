@@ -55,7 +55,7 @@ export default async function VeiculosPage({ searchParams }: { searchParams: { q
         </p>
       ) : null}
 
-      <div className="card mt-4 overflow-x-auto">
+      <div className="card tabela-rolavel mt-4">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
@@ -87,7 +87,7 @@ export default async function VeiculosPage({ searchParams }: { searchParams: { q
           <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-neutral-600">
             Inativos ({inativos.length})
           </summary>
-          <div className="overflow-x-auto border-t border-neutral-200">
+          <div className="tabela-rolavel border-t border-neutral-200 sm:border-x-0">
             <table className="w-full min-w-[760px] text-left text-sm">
               <tbody className="divide-y divide-neutral-100">
                 {inativos.map((v) => (

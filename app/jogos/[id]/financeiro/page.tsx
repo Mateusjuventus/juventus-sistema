@@ -78,7 +78,7 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
         volte no mesmo lançamento e preencha o valor efetuado — o previsto continua salvo.
       </p>
 
-      <div className="card overflow-x-auto">
+      <div className="card tabela-rolavel">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>

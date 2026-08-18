@@ -52,7 +52,7 @@ export default async function EstoqueBasePage() {
         </p>
       ) : null}
 
-      <div className="card mt-4 overflow-x-auto">
+      <div className="card tabela-rolavel mt-4">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>

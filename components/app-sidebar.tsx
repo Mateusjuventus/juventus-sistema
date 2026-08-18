@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { JuventusCrestMark } from "@/components/juventus-crest";
@@ -162,6 +162,15 @@ export function AppSidebar({
   logoutAction: () => Promise<void>;
 }) {
   const pathname = usePathname();
+  const [menuAberto, setMenuAberto] = useState(false);
+  const fechar = () => setMenuAberto(false);
+
+  // Fecha a gaveta ao trocar de rota. Sem isto, tocar num item do menu no celular navegava mas
+  // deixava a gaveta aberta por cima da tela nova.
+  useEffect(() => {
+    setMenuAberto(false);
+  }, [pathname]);
+
   // Início só fica ativo na própria rota (não em prefixo) — senão "/base" combinaria com
   // "/base/atletas" e ligaria os dois itens ao mesmo tempo.
   const homeAtivo = pathname === homeHref;
@@ -188,10 +197,12 @@ export function AppSidebar({
     else grupos.push([item.grupo, [item]]);
   }
 
-  return (
-    <aside className="sticky top-0 flex h-screen w-[232px] shrink-0 flex-col bg-grena text-white">
+  /* O mesmo conteúdo serve à barra fixa do desktop e à gaveta do celular — duplicar essa lista em
+     dois lugares era garantia de um item novo aparecer só num deles. */
+  const conteudo = (
+    <>
       <div className="px-4 pb-4 pt-5">
-        <Link href="/" className="flex items-center gap-2 text-[15px] font-bold tracking-wide">
+        <Link href="/" onClick={fechar} className="flex items-center gap-2 text-[15px] font-bold tracking-wide">
           <JuventusCrestMark className="h-8 w-8 shrink-0" />
           <span>Juventus - SAF</span>
         </Link>
@@ -235,6 +246,62 @@ export function AppSidebar({
       </nav>
 
       <PerfilMenuSidebar email={email} logoutAction={logoutAction} />
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Celular: barra fina no topo com o botão de menu. A sidebar de 232px fixa ocupava mais de
+          metade da largura de um telefone, o que sozinho já inviabilizava o uso. */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-grena px-4 text-white lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMenuAberto(true)}
+          aria-label="Abrir menu"
+          aria-expanded={menuAberto}
+          className="-ml-2 flex h-10 w-10 items-center justify-center rounded-md transition-colors hover:bg-white/10"
+        >
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
+        <Link href={homeHref} className="flex min-w-0 items-center gap-2 text-[15px] font-bold tracking-wide">
+          <JuventusCrestMark className="h-7 w-7 shrink-0" />
+          <span className="truncate">Juventus - SAF</span>
+        </Link>
+      </header>
+
+      {/* Gaveta do celular. Fica sempre montada e só desliza pra fora da tela quando fechada, pra a
+          abertura ser imediata em vez de piscar montando a lista inteira. */}
+      <div className={`fixed inset-0 z-40 lg:hidden ${menuAberto ? "" : "pointer-events-none"}`}>
+        <div
+          onClick={fechar}
+          aria-hidden
+          className={`absolute inset-0 bg-black/50 transition-opacity ${menuAberto ? "opacity-100" : "opacity-0"}`}
+        />
+        <aside
+          className={`absolute inset-y-0 left-0 flex w-[264px] max-w-[85%] flex-col bg-grena text-white shadow-xl transition-transform duration-200 ${
+            menuAberto ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <button
+            type="button"
+            onClick={fechar}
+            aria-label="Fechar menu"
+            className="absolute right-2 top-3 flex h-10 w-10 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+          {conteudo}
+        </aside>
+      </div>
+
+      {/* Desktop: a barra fixa de sempre. */}
+      <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col bg-grena text-white lg:flex">
+        {conteudo}
+      </aside>
+    </>
   );
 }

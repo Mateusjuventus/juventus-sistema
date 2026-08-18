@@ -111,7 +111,7 @@ export default async function DespesasAvulsasPage() {
         </form>
       ) : null}
 
-      <div className="card overflow-x-auto">
+      <div className="card tabela-rolavel">
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>

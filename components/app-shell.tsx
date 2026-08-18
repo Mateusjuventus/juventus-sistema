@@ -94,13 +94,16 @@ export async function AppShell({
             </Link>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">{children}</main>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen">
+    // `flex-col` no celular / `flex-row` no desktop: o `AppSidebar` renderiza uma barra de topo com
+    // o botão de menu (que precisa ficar ACIMA do conteúdo) e, do `lg` pra cima, a barra lateral de
+    // sempre (que precisa ficar AO LADO). A mesma direção de flex serve pros dois casos.
+    <div className="flex min-h-screen flex-col lg:flex-row">
       <AppSidebar
         homeHref={homeHref}
         homeTitle={homeTitle}
@@ -110,9 +113,9 @@ export async function AppShell({
         email={user?.email ?? null}
         logoutAction={logout}
       />
-      <div className="flex min-w-0 flex-1 flex-col overflow-x-auto">
+      <div className="flex min-w-0 flex-1 flex-col">
         {breadcrumb ? (
-          <div className="flex h-14 shrink-0 items-center border-b border-linha bg-white px-6 sm:px-8">
+          <div className="flex h-12 shrink-0 items-center border-b border-linha bg-white px-4 sm:h-14 sm:px-6 lg:px-8">
             <p className="text-sm text-neutral-500">
               Início <span className="mx-1 text-neutral-300">/</span>
               <span className="font-semibold text-grena-escuro">{breadcrumb}</span>
@@ -121,9 +124,11 @@ export async function AppShell({
         ) : null}
         {/* `max-w-6xl mx-auto` reproduz a mesma largura de conteúdo que a barra horizontal antiga
             já usava — mantém as ~40 telas do sistema com a mesma proporção de layout que já
-            tinham, sem precisar tocar em cada uma só por causa da troca de topo pra sidebar. */}
-        <main className="flex-1 px-6 py-6 sm:px-8">
-          <div className="mx-auto max-w-6xl">{children}</div>
+            tinham, sem precisar tocar em cada uma só por causa da troca de topo pra sidebar.
+            `min-w-0` no wrapper impede que uma tabela larga estique a página inteira no celular:
+            sem ele, a rolagem horizontal da tabela vira rolagem da tela toda. */}
+        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+          <div className="mx-auto min-w-0 max-w-6xl">{children}</div>
         </main>
       </div>
     </div>

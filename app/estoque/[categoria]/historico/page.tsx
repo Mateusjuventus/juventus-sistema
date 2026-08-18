@@ -111,7 +111,7 @@ export default async function HistoricoEstoquePage({
       </form>
 
       <h2 className="mt-6 text-lg font-semibold text-neutral-700">Saídas</h2>
-      <div className="card mt-2 overflow-x-auto">
+      <div className="card tabela-rolavel mt-2">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
@@ -162,7 +162,7 @@ export default async function HistoricoEstoquePage({
       </div>
 
       <h2 className="mt-6 text-lg font-semibold text-neutral-700">Entradas</h2>
-      <div className="card mt-2 overflow-x-auto">
+      <div className="card tabela-rolavel mt-2">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>

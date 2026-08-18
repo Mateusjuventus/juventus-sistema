@@ -89,7 +89,7 @@ export default async function CompeticaoInscritosPage({ params }: { params: { id
         </div>
       </div>
 
-      <div className="card mt-3 overflow-x-auto">
+      <div className="card tabela-rolavel mt-3">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-linha bg-neutral-50 text-left text-[11px] font-semibold uppercase tracking-wide text-neutral-500">

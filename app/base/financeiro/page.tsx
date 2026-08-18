@@ -113,7 +113,7 @@ export default async function FinanceiroBasePage() {
           Nenhum gasto lançado ainda em nenhum jogo.
         </div>
       ) : (
-        <div className="card mt-3 overflow-x-auto">
+        <div className="card tabela-rolavel mt-3">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>

@@ -94,7 +94,7 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
         <div className="mb-3">
           <CargaInlineForm jogoId={jogo.id} action={createCarga} />
         </div>
-        <div className="card overflow-x-auto">
+        <div className="card tabela-rolavel">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>
@@ -137,7 +137,7 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
         <div className="mb-3">
           <SolicitacaoInlineForm jogoId={jogo.id} action={createSolicitacao} />
         </div>
-        <div className="card overflow-x-auto">
+        <div className="card tabela-rolavel">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>

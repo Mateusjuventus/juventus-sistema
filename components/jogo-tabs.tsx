@@ -71,14 +71,14 @@ export function JogoTabs({
       <Link href="/jogos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Jogos
       </Link>
-      <div className="mb-4 mt-3 flex flex-wrap gap-1 border-b border-neutral-200">
+      <div className="tab-bar mb-4 mt-3">
         {tabs.map((tab) => {
           const isActive = "active" in tab ? tab.active : active === tab.key;
           return (
             <Link
               key={tab.key}
               href={tab.href}
-              className={`border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+              className={`tab-item border-b-2 px-3 py-2.5 text-sm font-medium transition-colors sm:py-2 ${
                 isActive
                   ? "border-grena text-grena"
                   : "border-transparent text-neutral-500 hover:text-grena"
@@ -96,7 +96,7 @@ export function JogoTabs({
             <Link
               key={tab.key}
               href={tab.href}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:py-1 ${
                 active === tab.key
                   ? "bg-grena text-white"
                   : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"

@@ -69,7 +69,7 @@ export default async function JogosDashboardPage() {
           Nenhum jogo com placar preenchido ainda. Edite um jogo e preencha o resultado depois de acontecer.
         </div>
       ) : (
-        <div className="card mt-3 overflow-x-auto">
+        <div className="card tabela-rolavel mt-3">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>

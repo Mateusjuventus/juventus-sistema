@@ -20,30 +20,36 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-md bg-grena px-4 py-2 text-sm font-medium
-      text-white transition-colors hover:bg-grena-escuro focus:outline-none focus:ring-2
-      focus:ring-dourado focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-md bg-grena px-4 py-2.5 text-sm
+      font-medium text-white transition-colors hover:bg-grena-escuro focus:outline-none
+      focus:ring-2 focus:ring-dourado focus:ring-offset-2 disabled:cursor-not-allowed
+      disabled:opacity-50 sm:py-2;
   }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center rounded-md border border-linha bg-white
-      px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100
-      focus:outline-none focus:ring-2 focus:ring-grena focus:ring-offset-2;
+      px-4 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100
+      focus:outline-none focus:ring-2 focus:ring-grena focus:ring-offset-2 sm:py-2;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm
+    @apply inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2.5 text-sm
       font-medium text-white transition-colors hover:bg-red-800 focus:outline-none focus:ring-2
-      focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+      focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50
+      sm:py-2;
   }
 
   .field-label {
     @apply mb-1 block text-sm font-medium text-neutral-700;
   }
 
+  /* `text-base` (16px) no celular não é escolha estética: abaixo de 16px o Safari do iPhone dá
+     zoom automático ao focar o campo e deixa a página deslocada, com o usuário tendo que pinçar
+     pra voltar. Do `sm` pra cima volta pro 14px do desenho original. Mesma razão do `py-2.5`: alvo
+     de toque menor que ~44px é difícil de acertar com o dedo. */
   .field-input {
-    @apply block w-full rounded-md border border-linha px-3 py-2 text-sm shadow-sm
-      focus:border-grena focus:outline-none focus:ring-1 focus:ring-grena;
+    @apply block w-full rounded-md border border-linha px-3 py-2.5 text-base shadow-sm
+      focus:border-grena focus:outline-none focus:ring-1 focus:ring-grena sm:py-2 sm:text-sm;
   }
 
   .field-error {
@@ -52,5 +58,39 @@ body {
 
   .card {
     @apply rounded-lg border border-linha bg-white shadow-sm;
+  }
+
+  /* Barra de abas das telas de Jogo/Competição. No desktop continua quebrando em várias linhas
+     (`flex-wrap`); no celular vira uma faixa que ROLA na horizontal — com 11 abas, quebrar em
+     linha empurrava o conteúdo da tela pra baixo da dobra antes de mostrar qualquer coisa.
+     A barra de rolagem some (só o gesto importa), e o sangramento até a borda (`-mx-4`) deixa
+     claro que há mais aba pro lado. */
+  .tab-bar {
+    @apply -mx-4 flex gap-1 overflow-x-auto border-b border-neutral-200 px-4
+      sm:mx-0 sm:flex-wrap sm:overflow-x-visible sm:px-0;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Cada aba dentro de `.tab-bar` — sem isto o flex espreme os textos em vez de rolar. */
+  .tab-item {
+    @apply shrink-0 whitespace-nowrap;
+  }
+
+  /* Envelope das tabelas largas (elenco, estoque, veículos...). No celular a tabela rola pro lado
+     em vez de espremer as colunas — texto quebrado em 3 letras por linha é ilegível e some com a
+     leitura de qualquer jeito. O sangramento até a borda (`-mx-4`) devolve os 32px de margem da
+     página pra tabela, e a sombra na direita indica que existe mais coluna pra rolar. */
+  .tabela-rolavel {
+    @apply -mx-4 overflow-x-auto rounded-none border-x-0 sm:mx-0 sm:rounded-lg sm:border-x;
+    background-image: linear-gradient(to left, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0));
+    background-position: right center;
+    background-repeat: no-repeat;
+    background-size: 18px 100%;
+    background-attachment: local, scroll;
   }
 }

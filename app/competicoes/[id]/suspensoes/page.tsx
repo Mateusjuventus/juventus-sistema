@@ -60,7 +60,7 @@ export default async function CompeticaoSuspensoesPage({ params }: { params: { i
         O registro manual abaixo é só pra casos externos (ex.: decisão do tribunal).
       </p>
 
-      <div className="card mt-4 overflow-x-auto">
+      <div className="card tabela-rolavel mt-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-linha bg-neutral-50 text-left text-[11px] font-semibold uppercase tracking-wide text-neutral-500">

@@ -7,7 +7,7 @@
 export function PageHeader({ title, pendencia }: { title: string; pendencia?: string | null }) {
   return (
     <div className="mt-2 text-center">
-      <h1 className="text-3xl font-bold text-grena-escuro">{title}</h1>
+      <h1 className="text-2xl font-bold text-grena-escuro sm:text-3xl">{title}</h1>
       {pendencia ? (
         <p className="mt-1 text-sm font-medium text-amber-700">{pendencia}</p>
       ) : null}
