@@ -43,11 +43,32 @@ function Moldura({ children }: { children: React.ReactNode }) {
 export default async function VagasPublicasPage({ params }: { params: { token: string } }) {
   const admin = createAdminClient();
 
-  const { data: vagasData } = await admin
+  const { data: vagasData, error: vagasError } = await admin
     .from("jogo_vagas_staff")
     .select("*")
     .eq("token", params.token)
     .maybeSingle();
+
+  // Erro de consulta e token inexistente davam a MESMA tela ("Link não encontrado"), o que escondia
+  // a causa mais provável (a migração 0073 ainda não aplicada) atrás da menos provável. `42P01` é
+  // "tabela não existe" no Postgres; `PGRST205` é o equivalente do PostgREST quando o schema em
+  // cache não conhece a tabela.
+  if (vagasError) {
+    console.error("[vagas] erro ao buscar o link:", vagasError);
+    const tabelaFaltando = vagasError.code === "42P01" || vagasError.code === "PGRST205";
+    return (
+      <Moldura>
+        <div className="py-6 text-center">
+          <p className="text-lg font-semibold text-grena-escuro">Vagas indisponíveis no momento</p>
+          <p className="mt-2 text-sm text-neutral-500">
+            {tabelaFaltando
+              ? "O recurso de vagas ainda não foi liberado neste sistema. Avise o Departamento de Futebol Profissional."
+              : "Não foi possível carregar as vagas agora. Tente novamente em instantes."}
+          </p>
+        </div>
+      </Moldura>
+    );
+  }
 
   if (!vagasData) {
     return (
@@ -55,7 +76,8 @@ export default async function VagasPublicasPage({ params }: { params: { token: s
         <div className="py-6 text-center">
           <p className="text-lg font-semibold text-grena-escuro">Link não encontrado</p>
           <p className="mt-2 text-sm text-neutral-500">
-            Peça o link atualizado ao Departamento de Futebol Profissional.
+            Confira se o endereço veio completo — ele termina em 12 letras e números. Se estiver certo,
+            peça o link atualizado ao Departamento de Futebol Profissional.
           </p>
         </div>
       </Moldura>
