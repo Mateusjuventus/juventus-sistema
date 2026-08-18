@@ -26,7 +26,7 @@ export default async function ReciboBasePage({
 }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: recibosData }, { data: staffData }] = await Promise.all([
+  const [{ data: jogoData }, { data: recibosData }, { data: staffData }, { data: vagasData }] = await Promise.all([
     supabase.from("jogos_base").select("*").eq("id", params.id).single(),
     supabase.from("recibos_jogo_base").select("*").eq("jogo_id", params.id),
     supabase
@@ -36,6 +36,8 @@ export default async function ReciboBasePage({
       )
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
+    // Quem pegou vaga na aba "Vagas de Staff" — usado só como sugestão inicial (ver ReciboFormBase).
+    supabase.from("jogo_vagas_staff_base").select("id").eq("jogo_id", params.id).maybeSingle(),
   ]);
 
   if (!jogoData) notFound();
@@ -43,6 +45,17 @@ export default async function ReciboBasePage({
   const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
   const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
   const temRecibos = recibos.length > 0;
+
+  let staffComVaga: string[] = [];
+  const vagasId = (vagasData?.id as string | undefined) ?? null;
+  if (vagasId) {
+    const { data: inscricoesData } = await supabase
+      .from("jogo_vagas_staff_base_inscricoes")
+      .select("staff_id")
+      .eq("vagas_id", vagasId)
+      .eq("situacao", "confirmado");
+    staffComVaga = ((inscricoesData ?? []) as { staff_id: string }[]).map((i) => i.staff_id);
+  }
 
   return (
     <AppShell departamento="futebol_base">
@@ -80,7 +93,13 @@ export default async function ReciboBasePage({
         pode ser ajustado aqui.
       </p>
 
-      <ReciboFormBase action={saveReciboBase} jogoId={jogo.id} staff={staff} recibos={recibos} />
+      <ReciboFormBase
+        action={saveReciboBase}
+        jogoId={jogo.id}
+        staff={staff}
+        recibos={recibos}
+        staffComVaga={staffComVaga}
+      />
     </AppShell>
   );
 }

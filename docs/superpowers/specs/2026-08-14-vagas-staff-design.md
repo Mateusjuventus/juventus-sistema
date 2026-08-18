@@ -119,8 +119,28 @@ salvas do outro lado.
 **Regra para tabela nova daqui pra frente: se alguma tela SEM LOGIN lê ou escreve nela, ela precisa
 de grant para o `service_role`, não só para o `authenticated`.**
 
+## Duplicado para o Futebol de Base (18/08)
+
+Mesmo modelo, tabelas próprias (`jogo_vagas_staff_base*`, ver 0075_vagas_staff_base.sql) apontando
+para `jogos_base` e `staff_operacional_base` — não uma coluna `departamento` nas tabelas do
+Profissional, porque é assim que o resto do sistema já separa os dois departamentos.
+
+O que é compartilhado: o catálogo de funções (`staff_funcoes_catalogo`) e os três componentes de
+UI, movidos para `components/` (`vagas-form.tsx`, `link-vagas.tsx`, `vaga-publica-form.tsx`) — os
+dois departamentos usam exatamente a mesma tela, só trocando de tabela por baixo. `LinkVagas` ganhou
+um prop `caminho` (`/vagas` no Profissional, `/vagas-base` na Base) e `VagaPublicaForm` ganhou
+`cadastroHref`, pra mandar quem não está cadastrado para o autocadastro do departamento certo —
+misturar isso criaria o staff no departamento errado.
+
+Rota pública: `/base/jogos/[id]/vagas` (admin) e `/vagas-base/[token]` (link, adicionado a
+`PUBLIC_PATHS`). O grant pro `service_role` já nasceu na própria 0075, em vez de numa migração de
+correção depois — é a lição registrada abaixo, aplicada de cara desta vez.
+
+O pré-marcado do Recibo de Pagamento (ver "Encaixe com o que já existe") também foi replicado:
+`app/base/jogos/[id]/recibo/page.tsx` busca quem confirmou vaga em `jogo_vagas_staff_base` e passa
+pra `ReciboFormBase`, do mesmo jeito que o Profissional já fazia.
+
 ## Fora de escopo por ora
 
 - Notificar por WhatsApp/e-mail quem está na espera quando abre vaga (hoje o Mateus chama e avisa).
 - Limitar quantas vagas a mesma pessoa pode pegar ao longo do mês.
-- Vagas de Staff no Futebol de Base.

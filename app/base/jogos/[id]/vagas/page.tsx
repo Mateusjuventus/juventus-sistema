@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { JogoTabs } from "@/components/jogo-tabs";
+import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import { formatDataBr, formatHorario } from "@/lib/posters/relacionados-data";
@@ -11,14 +11,19 @@ import {
   vagasRestantes,
 } from "@/lib/futebol/vagas-staff";
 import type {
-  JogoRow,
-  JogoVagasStaffFuncaoRow,
-  JogoVagasStaffInscricaoRow,
-  JogoVagasStaffRow,
+  JogoBaseRow,
+  JogoVagasStaffBaseFuncaoRow,
+  JogoVagasStaffBaseInscricaoRow,
+  JogoVagasStaffBaseRow,
   StaffFuncaoCatalogoRow,
-  StaffOperacionalRow,
+  StaffOperacionalBaseRow,
 } from "@/lib/supabase/types";
-import { alternarVagasAbertas, chamarDaEspera, removerInscricao, salvarVagas } from "./actions";
+import {
+  alternarVagasAbertasBase,
+  chamarDaEsperaBase,
+  removerInscricaoBase,
+  salvarVagasBase,
+} from "./actions";
 import { LinkVagas } from "@/components/link-vagas";
 import { VagasForm, type FuncaoInicial } from "@/components/vagas-form";
 
@@ -29,45 +34,46 @@ function formatQuando(iso: string): string {
 }
 
 /**
- * Vagas de Staff do jogo: o Mateus abre as vagas por função, manda o link, e acompanha quem pegou.
- * Ninguém é selecionado — é por ordem de chegada, e o limite é garantido pela função
- * `pegar_vaga_staff` no banco (ver 0073_vagas_staff_jogo.sql).
+ * Espelha `app/jogos/[id]/vagas/page.tsx` para o Futebol de Base — mesma tela, tabelas
+ * `jogo_vagas_staff_base*` e link público em `/vagas-base/<token>`. Ninguém é selecionado — é por
+ * ordem de chegada, e o limite é garantido pela função `pegar_vaga_staff_base` no banco (ver
+ * 0075_vagas_staff_base.sql).
  */
-export default async function VagasStaffPage({ params }: { params: { id: string } }) {
+export default async function VagasStaffBasePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
   const [{ data: jogoData }, { data: vagasData }, { data: funcoesCatalogoData }] = await Promise.all([
-    supabase.from("jogos").select("*").eq("id", params.id).single(),
-    supabase.from("jogo_vagas_staff").select("*").eq("jogo_id", params.id).maybeSingle(),
+    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+    supabase.from("jogo_vagas_staff_base").select("*").eq("jogo_id", params.id).maybeSingle(),
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
   ]);
 
   if (!jogoData) notFound();
-  const jogo = jogoData as JogoRow;
-  const vagas = vagasData as JogoVagasStaffRow | null;
+  const jogo = jogoData as JogoBaseRow;
+  const vagas = vagasData as JogoVagasStaffBaseRow | null;
   const funcoesCatalogo = (funcoesCatalogoData ?? []) as StaffFuncaoCatalogoRow[];
   const nomePorFuncaoId = new Map(funcoesCatalogo.map((f) => [f.id, f.nome]));
 
-  let funcoes: JogoVagasStaffFuncaoRow[] = [];
-  let inscricoes: JogoVagasStaffInscricaoRow[] = [];
-  let staffPorId = new Map<string, StaffOperacionalRow>();
+  let funcoes: JogoVagasStaffBaseFuncaoRow[] = [];
+  let inscricoes: JogoVagasStaffBaseInscricaoRow[] = [];
+  let staffPorId = new Map<string, StaffOperacionalBaseRow>();
 
   if (vagas) {
     const [{ data: funcoesData }, { data: inscricoesData }] = await Promise.all([
-      supabase.from("jogo_vagas_staff_funcoes").select("*").eq("vagas_id", vagas.id),
+      supabase.from("jogo_vagas_staff_base_funcoes").select("*").eq("vagas_id", vagas.id),
       supabase
-        .from("jogo_vagas_staff_inscricoes")
+        .from("jogo_vagas_staff_base_inscricoes")
         .select("*")
         .eq("vagas_id", vagas.id)
         .order("created_at", { ascending: true }),
     ]);
-    funcoes = (funcoesData ?? []) as JogoVagasStaffFuncaoRow[];
-    inscricoes = (inscricoesData ?? []) as JogoVagasStaffInscricaoRow[];
+    funcoes = (funcoesData ?? []) as JogoVagasStaffBaseFuncaoRow[];
+    inscricoes = (inscricoesData ?? []) as JogoVagasStaffBaseInscricaoRow[];
 
     const staffIds = inscricoes.map((i) => i.staff_id);
     if (staffIds.length > 0) {
-      const { data: staffData } = await supabase.from("staff_operacional").select("*").in("id", staffIds);
-      staffPorId = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s]));
+      const { data: staffData } = await supabase.from("staff_operacional_base").select("*").in("id", staffIds);
+      staffPorId = new Map(((staffData ?? []) as StaffOperacionalBaseRow[]).map((s) => [s.id, s]));
     }
   }
 
@@ -85,17 +91,17 @@ export default async function VagasStaffPage({ params }: { params: { id: string 
     inscritos: inscricoes.filter((i) => i.vaga_funcao_id === f.id).length,
   }));
 
-  const salvarAction = salvarVagas.bind(null, jogo.id);
-  const alternarAction = alternarVagasAbertas.bind(null, jogo.id);
-  const removerAction = removerInscricao.bind(null, jogo.id);
-  const chamarAction = chamarDaEspera.bind(null, jogo.id);
+  const salvarAction = salvarVagasBase.bind(null, jogo.id);
+  const alternarAction = alternarVagasAbertasBase.bind(null, jogo.id);
+  const removerAction = removerInscricaoBase.bind(null, jogo.id);
+  const chamarAction = chamarDaEsperaBase.bind(null, jogo.id);
 
   const dataTexto = `${formatDataBr(jogo.data_jogo)}${formatHorario(jogo.horario) ? ` · ${formatHorario(jogo.horario)}` : ""}`;
   const mensagemWhatsapp = `Vagas de trabalho — ${buildConfrontoTexto(jogo)} (${dataTexto}). Pegue a sua:`;
 
   return (
-    <AppShell>
-      <JogoTabs jogoId={jogo.id} active="vagas" />
+    <AppShell departamento="futebol_base">
+      <JogoTabsBase jogoId={jogo.id} active="vagas" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-bold text-grena-escuro">Vagas de Staff</h1>
@@ -149,7 +155,7 @@ export default async function VagasStaffPage({ params }: { params: { id: string 
 
           <div className="mt-4">
             <p className="field-label">Link para o grupo</p>
-            <LinkVagas token={vagas.token} mensagem={mensagemWhatsapp} />
+            <LinkVagas token={vagas.token} mensagem={mensagemWhatsapp} caminho="/vagas-base" />
           </div>
         </section>
       ) : (

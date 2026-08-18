@@ -17,11 +17,15 @@ export function ReciboFormBase({
   jogoId,
   staff,
   recibos,
+  staffComVaga = [],
 }: {
   action: (prevState: ReciboFormState, formData: FormData) => Promise<ReciboFormState>;
   jogoId: string;
   staff: StaffOperacionalBaseComFuncaoRow[];
   recibos: ReciboJogoBaseRow[];
+  /** Quem pegou vaga neste jogo (aba Vagas de Staff). Serve só pra já vir marcado na PRIMEIRA vez
+   * que a tela é aberta — ver o comentário equivalente em `recibo-form.tsx` do Profissional. */
+  staffComVaga?: string[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
 
@@ -43,7 +47,13 @@ export function ReciboFormBase({
 
   const [incluidos, setIncluidos] = useState<Record<string, boolean>>(() => {
     const inicial: Record<string, boolean> = {};
-    for (const p of pessoas) inicial[chave(p.tipo, p.id)] = Boolean(reciboDe(p.tipo, p.id));
+    // Só sugere a partir das vagas enquanto NADA foi salvo ainda — ver o comentário equivalente em
+    // `recibo-form.tsx` do Profissional.
+    const aindaNaoSalvou = recibos.length === 0;
+    const comVaga = new Set(staffComVaga);
+    for (const p of pessoas) {
+      inicial[chave(p.tipo, p.id)] = Boolean(reciboDe(p.tipo, p.id)) || (aindaNaoSalvou && comVaga.has(p.id));
+    }
     return inicial;
   });
 

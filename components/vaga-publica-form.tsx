@@ -3,7 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
-import type { VagaPublicaState } from "./actions";
+/** Estado devolvido pelas Server Actions públicas dos dois departamentos — declarado por estrutura
+ * pra este componente servir ao Profissional e à Base. */
+export interface VagaPublicaState {
+  error?: string;
+  sucesso?: "confirmado" | "espera";
+  funcaoNome?: string;
+  horario?: string | null;
+}
 
 function Botao({ label, pendente, classe }: { label: string; pendente: string; classe: string }) {
   const { pending } = useFormStatus();
@@ -77,6 +84,7 @@ export function VagaPublicaForm({
   desistirAction,
   inscricaoPorStaff,
   localApresentacao,
+  cadastroHref,
 }: {
   pessoas: PessoaOpcao[];
   pegarAction: (prevState: VagaPublicaState, formData: FormData) => Promise<VagaPublicaState>;
@@ -84,6 +92,10 @@ export function VagaPublicaForm({
   /** Quem já está na lista, com a função e o horário — pra quem volta ao link ver a própria vaga. */
   inscricaoPorStaff: Record<string, InscricaoDaPessoa>;
   localApresentacao: string | null;
+  /** Link do autocadastro do departamento certo — `/cadastro-staff` no Profissional,
+   * `/cadastro-staff-base` na Base. Mandar a pessoa pro cadastro errado criaria o staff no
+   * departamento em que ele não vai trabalhar. */
+  cadastroHref: string;
 }) {
   const [state, formAction] = useFormState(pegarAction, {} as VagaPublicaState);
   const [stateDesistir, desistirFormAction] = useFormState(desistirAction, {} as VagaPublicaState);
@@ -141,7 +153,7 @@ export function VagaPublicaForm({
         </select>
         <p className="mt-1.5 text-xs text-neutral-500">
           Não está na lista?{" "}
-          <Link href="/cadastro-staff" className="font-semibold text-grena underline">
+          <Link href={cadastroHref} className="font-semibold text-grena underline">
             Faça seu cadastro primeiro
           </Link>{" "}
           e volte a este link.

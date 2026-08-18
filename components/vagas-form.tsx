@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import type { StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
-import type { VagasFormState } from "./actions";
+/** Estado devolvido pelas Server Actions dos dois departamentos — declarado por estrutura pra este
+ * componente servir ao Profissional e à Base sem importar de nenhum dos dois. */
+export interface VagasFormState {
+  error?: string;
+  success?: boolean;
+}
 
 function SalvarButton() {
   const { pending } = useFormStatus();

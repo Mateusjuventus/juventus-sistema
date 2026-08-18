@@ -1444,3 +1444,39 @@ export interface JogoVagasStaffInscricaoRow {
   /** Ordem de chegada — é o critério de tudo neste módulo. */
   created_at: string;
 }
+
+// ===== Vagas de Staff por jogo — FUTEBOL DE BASE (ver 0075_vagas_staff_base.sql) =====
+// Espelham as três de cima, mas apontam para `jogos_base` e `staff_operacional_base`.
+
+/** Abertura de vagas de um jogo da Base. `token` é o que vai na URL pública `/vagas-base/<token>`. */
+export interface JogoVagasStaffBaseRow {
+  id: string;
+  jogo_id: string;
+  token: string;
+  aberto: boolean;
+  horario_apresentacao: string | null;
+  local_apresentacao: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JogoVagasStaffBaseFuncaoRow {
+  id: string;
+  vagas_id: string;
+  funcao_id: string;
+  quantidade: number;
+  horario_apresentacao: string | null;
+  created_at: string;
+}
+
+export interface JogoVagasStaffBaseInscricaoRow {
+  id: string;
+  vagas_id: string;
+  vaga_funcao_id: string;
+  staff_id: string;
+  situacao: VagaStaffSituacao;
+  observacao: string | null;
+  created_at: string;
+}

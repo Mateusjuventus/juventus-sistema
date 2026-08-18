@@ -20,6 +20,7 @@ export function JogoTabsBase({
     | "rooming-list"
     | "onibus"
     | "checklist"
+    | "vagas"
     | "recibo"
     | "financeiro";
 }) {
@@ -44,6 +45,7 @@ export function JogoTabsBase({
       href: `${base}/checklist`,
       active: active === "checklist",
     },
+    { key: "vagas", label: "Vagas de Staff", href: `${base}/vagas`, active: active === "vagas" },
     { key: "recibo", label: "Recibo de Pagamento", href: `${base}/recibo`, active: active === "recibo" },
     {
       key: "financeiro",

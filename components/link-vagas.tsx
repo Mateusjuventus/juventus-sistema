@@ -11,9 +11,18 @@ import { useState } from "react";
  * guarda o próprio endereço em lugar nenhum, e o domínio de onde a página está aberta é justamente
  * o endereço que funciona pra quem vai receber.
  */
-export function LinkVagas({ token, mensagem }: { token: string; mensagem: string }) {
+export function LinkVagas({
+  token,
+  mensagem,
+  caminho = "/vagas",
+}: {
+  token: string;
+  mensagem: string;
+  /** Prefixo da rota pública: `/vagas` no Profissional, `/vagas-base` na Base. */
+  caminho?: string;
+}) {
   const [copiado, setCopiado] = useState(false);
-  const url = typeof window === "undefined" ? `/vagas/${token}` : `${window.location.origin}/vagas/${token}`;
+  const url = typeof window === "undefined" ? `${caminho}/${token}` : `${window.location.origin}${caminho}/${token}`;
 
   const copiar = async () => {
     try {

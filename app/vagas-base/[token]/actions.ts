@@ -10,26 +10,18 @@ import {
 } from "@/lib/futebol/vagas-staff";
 
 /**
- * Ações da tela pública de vagas (`/vagas/[token]`) — sem login, igual ao autocadastro de Staff.
- * Roda com o cliente admin (service_role) porque quem abre a página não tem sessão.
- *
- * A conferência de "é você mesmo" é o final do CPF. Não é senha e não pretende ser: o link já é
- * secreto (token de 12 caracteres) e circula no grupo fechado do clube; os 4 dígitos servem pra
- * ninguém pegar vaga no lugar de outro por engano ou brincadeira. Nada do cadastro é exibido antes
- * de a pessoa acertar.
+ * Espelha `app/vagas/[token]/actions.ts` para o Futebol de Base — tabelas `jogo_vagas_staff_base*`
+ * e RPCs `pegar_vaga_staff_base` / `desistir_vaga_staff_base` (ver 0075_vagas_staff_base.sql).
  */
 
-// O tipo vive no componente compartilhado (components/vaga-publica-form.tsx) — ele carrega, junto
-// do sucesso, a função e o horário DA PESSOA, porque o horário muda de uma função pra outra.
 export type { VagaPublicaState } from "@/components/vaga-publica-form";
 import type { VagaPublicaState } from "@/components/vaga-publica-form";
 
 /**
  * Pega a vaga. Toda a decisão (tem vaga? qual função? entra ou vai pra espera?) acontece dentro da
- * função `pegar_vaga_staff` no banco — ver o comentário longo em 0073_vagas_staff_jogo.sql sobre
- * por que conferir o limite aqui no servidor não seria suficiente.
+ * função `pegar_vaga_staff_base` no banco.
  */
-export async function pegarVaga(
+export async function pegarVagaBase(
   token: string,
   _prevState: VagaPublicaState,
   formData: FormData,
@@ -43,13 +35,13 @@ export async function pegarVaga(
   const admin = createAdminClient();
 
   const { data: pessoa } = await admin
-    .from("staff_operacional")
+    .from("staff_operacional_base")
     .select("id, cpf, ativo")
     .eq("id", staffId)
     .maybeSingle();
 
   if (!pessoa || !(pessoa as { ativo: boolean }).ativo) {
-    return { error: "Cadastro não encontrado. Fale com o Departamento de Futebol." };
+    return { error: "Cadastro não encontrado. Fale com o Departamento de Futebol de Base." };
   }
   if (!confereFinalCpf((pessoa as { cpf: string | null }).cpf, finalCpf)) {
     // Mensagem propositalmente igual pra nome inexistente e dígito errado — dizer "esse não é o CPF
@@ -57,12 +49,12 @@ export async function pegarVaga(
     return { error: "Os 4 dígitos não conferem com esse nome. Confira e tente de novo." };
   }
 
-  const { data, error } = await admin.rpc("pegar_vaga_staff", { p_token: token, p_staff_id: staffId });
+  const { data, error } = await admin.rpc("pegar_vaga_staff_base", { p_token: token, p_staff_id: staffId });
   if (error) return { error: `Não foi possível registrar agora: ${error.message}` };
 
   const resultado = data as ResultadoPegarVaga;
   if (resultado === "confirmado" || resultado === "espera") {
-    revalidatePath(`/vagas/${token}`);
+    revalidatePath(`/vagas-base/${token}`);
     const detalhe = await detalheDaVaga(admin, token, staffId);
     return { sucesso: resultado, ...detalhe };
   }
@@ -70,9 +62,8 @@ export async function pegarVaga(
 }
 
 /**
- * Busca a função e o horário da vaga que a pessoa acabou de pegar. É uma consulta a mais depois do
- * sucesso, de propósito: a função do banco devolve só o resultado ('confirmado'/'espera'), e é
- * melhor mantê-la assim — ela roda dentro de um lock e não deve carregar trabalho de exibição.
+ * Busca a função e o horário da vaga que a pessoa acabou de pegar. Consulta a mais depois do
+ * sucesso, de propósito: ver o comentário equivalente em `app/vagas/[token]/actions.ts`.
  */
 async function detalheDaVaga(
   admin: ReturnType<typeof createAdminClient>,
@@ -80,14 +71,14 @@ async function detalheDaVaga(
   staffId: string,
 ): Promise<{ funcaoNome?: string; horario?: string | null }> {
   const { data: vagas } = await admin
-    .from("jogo_vagas_staff")
+    .from("jogo_vagas_staff_base")
     .select("id, horario_apresentacao")
     .eq("token", token)
     .maybeSingle();
   if (!vagas) return {};
 
   const { data: inscricao } = await admin
-    .from("jogo_vagas_staff_inscricoes")
+    .from("jogo_vagas_staff_base_inscricoes")
     .select("vaga_funcao_id")
     .eq("vagas_id", (vagas as { id: string }).id)
     .eq("staff_id", staffId)
@@ -95,7 +86,7 @@ async function detalheDaVaga(
   if (!inscricao) return {};
 
   const { data: vagaFuncao } = await admin
-    .from("jogo_vagas_staff_funcoes")
+    .from("jogo_vagas_staff_base_funcoes")
     .select("funcao_id, horario_apresentacao")
     .eq("id", (inscricao as { vaga_funcao_id: string }).vaga_funcao_id)
     .maybeSingle();
@@ -116,9 +107,8 @@ async function detalheDaVaga(
   };
 }
 
-/** Desistir libera a vaga imediatamente — é o que faz a lista continuar valendo alguma coisa na
- * véspera do jogo. */
-export async function desistirVaga(
+/** Desistir libera a vaga imediatamente. */
+export async function desistirVagaBase(
   token: string,
   _prevState: VagaPublicaState,
   formData: FormData,
@@ -128,14 +118,14 @@ export async function desistirVaga(
   if (!staffId) return { error: "Escolha o seu nome na lista." };
 
   const admin = createAdminClient();
-  const { data: pessoa } = await admin.from("staff_operacional").select("cpf").eq("id", staffId).maybeSingle();
+  const { data: pessoa } = await admin.from("staff_operacional_base").select("cpf").eq("id", staffId).maybeSingle();
   if (!confereFinalCpf((pessoa as { cpf: string | null } | null)?.cpf, finalCpf)) {
     return { error: "Os 4 dígitos não conferem com esse nome." };
   }
 
-  const { error } = await admin.rpc("desistir_vaga_staff", { p_token: token, p_staff_id: staffId });
+  const { error } = await admin.rpc("desistir_vaga_staff_base", { p_token: token, p_staff_id: staffId });
   if (error) return { error: `Não foi possível desistir agora: ${error.message}` };
 
-  revalidatePath(`/vagas/${token}`);
+  revalidatePath(`/vagas-base/${token}`);
   return {};
 }
