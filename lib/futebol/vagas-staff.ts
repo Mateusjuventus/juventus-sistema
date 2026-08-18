@@ -70,6 +70,21 @@ export function rotuloVaga(resumo: VagaFuncaoResumo): string {
   return `${restantes} vagas`;
 }
 
+/**
+ * Horário que a pessoa realmente precisa saber: o da FUNÇÃO dela, caindo no horário geral do jogo
+ * quando aquela função não tem um próprio. Segurança chega às 12h30 e gandula às 13h30 — mostrar o
+ * horário geral pra todo mundo faria metade do grupo chegar na hora errada.
+ */
+export function horarioDaFuncao(
+  horarioDaVagaFuncao: string | null | undefined,
+  horarioGeral: string | null | undefined,
+): string | null {
+  const especifico = (horarioDaVagaFuncao ?? "").trim();
+  if (especifico) return especifico;
+  const geral = (horarioGeral ?? "").trim();
+  return geral || null;
+}
+
 /** Resposta da função `pegar_vaga_staff` do banco, traduzida para o que a pessoa lê na tela. */
 export type ResultadoPegarVaga =
   | "confirmado"

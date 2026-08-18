@@ -2,7 +2,7 @@ import { JuventusCrest } from "@/components/juventus-crest";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import { diaDaSemana, formatDataBr, formatHorario } from "@/lib/posters/relacionados-data";
-import { montarResumo, rotuloVaga, todasPreenchidas, vagasRestantes } from "@/lib/futebol/vagas-staff";
+import { horarioDaFuncao, montarResumo, todasPreenchidas, vagasRestantes } from "@/lib/futebol/vagas-staff";
 import type {
   JogoRow,
   JogoVagasStaffFuncaoRow,
@@ -12,7 +12,7 @@ import type {
   StaffOperacionalRow,
 } from "@/lib/supabase/types";
 import { desistirVaga, pegarVaga } from "./actions";
-import { VagaPublicaForm, type PessoaOpcao } from "./vaga-publica-form";
+import { VagaPublicaForm, type InscricaoDaPessoa, type PessoaOpcao } from "./vaga-publica-form";
 
 export const dynamic = "force-dynamic";
 
@@ -128,11 +128,22 @@ export default async function VagasPublicasPage({ params }: { params: { token: s
       funcaoNome: funcaoId ? (nomePorFuncaoId.get(funcaoId) ?? null) : null,
       temVaga: Boolean(resumo) && vagasRestantes(resumo!) > 0,
       vagasRestantes: resumo ? vagasRestantes(resumo) : 0,
+      horario: horarioDaFuncao(resumo?.horarioApresentacao, vagas.horario_apresentacao),
     };
   });
 
-  const jaInscrito: Record<string, "confirmado" | "espera"> = {};
-  for (const i of inscricoes) jaInscrito[i.staff_id] = i.situacao;
+  // Quem já está na lista volta ao link principalmente pra reconferir o horário — então o mapa
+  // carrega função e horário, não só a situação.
+  const resumoPorVagaFuncaoId = new Map(resumos.map((r) => [r.vagaFuncaoId, r]));
+  const inscricaoPorStaff: Record<string, InscricaoDaPessoa> = {};
+  for (const i of inscricoes) {
+    const resumo = resumoPorVagaFuncaoId.get(i.vaga_funcao_id);
+    inscricaoPorStaff[i.staff_id] = {
+      situacao: i.situacao,
+      funcaoNome: resumo?.funcaoNome ?? "—",
+      horario: horarioDaFuncao(resumo?.horarioApresentacao, vagas.horario_apresentacao),
+    };
+  }
 
   const pegarAction = pegarVaga.bind(null, params.token);
   const desistirAction = desistirVaga.bind(null, params.token);
@@ -149,21 +160,8 @@ export default async function VagasPublicasPage({ params }: { params: { token: s
             {formatHorario(jogo.horario) ? ` · ${formatHorario(jogo.horario)}` : ""}
           </p>
           {jogo.local_estadio ? <p className="text-sm text-neutral-500">{jogo.local_estadio}</p> : null}
-          {vagas.horario_apresentacao || vagas.local_apresentacao ? (
-            <p className="mt-2 border-t border-linha pt-2 text-sm text-neutral-600">
-              {vagas.horario_apresentacao ? (
-                <>
-                  <span className="font-semibold">Apresentar-se às:</span> {vagas.horario_apresentacao}
-                  <br />
-                </>
-              ) : null}
-              {vagas.local_apresentacao ? (
-                <>
-                  <span className="font-semibold">Local:</span> {vagas.local_apresentacao}
-                </>
-              ) : null}
-            </p>
-          ) : null}
+          {/* Horário e local NÃO aparecem aqui: o horário muda por função, e só faz sentido depois
+              que a pessoa se identifica e pega a vaga dela (ver `vaga-publica-form.tsx`). */}
           {vagas.observacoes ? (
             <p className="mt-2 whitespace-pre-wrap border-t border-linha pt-2 text-sm text-neutral-600">
               {vagas.observacoes}
@@ -186,47 +184,22 @@ export default async function VagasPublicasPage({ params }: { params: { token: s
         </div>
       ) : (
         <>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-grena">
-            {lotado ? "Vagas esgotadas" : `${totalRestantes} vaga${totalRestantes === 1 ? "" : "s"} restante${totalRestantes === 1 ? "" : "s"}`}
+          {/* Só o total, sem a grade por função: cada pessoa vê a vaga DELA depois de escolher o
+              nome (pedido do Mateus). O gandula não precisa saber quantos seguranças faltam, e o
+              horário de apresentação, que muda por função, não pode ser mostrado solto aqui. */}
+          <p className="mb-4 rounded-md bg-neutral-50 px-3 py-2 text-center text-sm font-semibold text-grena">
+            {lotado
+              ? "Vagas esgotadas neste jogo"
+              : `${totalRestantes} vaga${totalRestantes === 1 ? "" : "s"} aberta${totalRestantes === 1 ? "" : "s"} — selecione seu nome para ver a sua`}
           </p>
-          <div className="mb-4 space-y-2">
-            {resumos.map((r) => {
-              const esgotada = vagasRestantes(r) === 0;
-              return (
-                <div
-                  key={r.vagaFuncaoId}
-                  className={`flex items-center justify-between gap-3 rounded-md border border-linha p-3 ${
-                    esgotada ? "bg-neutral-50 opacity-70" : "bg-white"
-                  }`}
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-800">{r.funcaoNome}</p>
-                    {r.horarioApresentacao ? (
-                      <p className="text-xs text-neutral-500">Chegar {r.horarioApresentacao}</p>
-                    ) : null}
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                      esgotada
-                        ? "bg-neutral-100 text-neutral-400"
-                        : vagasRestantes(r) === 1
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-emerald-50 text-emerald-700"
-                    }`}
-                  >
-                    {rotuloVaga(r)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
 
           <div className="border-t border-linha pt-4">
             <VagaPublicaForm
               pessoas={pessoas}
               pegarAction={pegarAction}
               desistirAction={desistirAction}
-              jaInscrito={jaInscrito}
+              inscricaoPorStaff={inscricaoPorStaff}
+              localApresentacao={vagas.local_apresentacao}
             />
           </div>
         </>

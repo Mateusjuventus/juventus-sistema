@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { confereFinalCpf, MENSAGEM_RESULTADO, type ResultadoPegarVaga } from "@/lib/futebol/vagas-staff";
+import {
+  confereFinalCpf,
+  horarioDaFuncao,
+  MENSAGEM_RESULTADO,
+  type ResultadoPegarVaga,
+} from "@/lib/futebol/vagas-staff";
 
 /**
  * Ações da tela pública de vagas (`/vagas/[token]`) — sem login, igual ao autocadastro de Staff.
@@ -17,6 +22,10 @@ import { confereFinalCpf, MENSAGEM_RESULTADO, type ResultadoPegarVaga } from "@/
 export interface VagaPublicaState {
   error?: string;
   sucesso?: "confirmado" | "espera";
+  /** Função e horário DELA, devolvidos junto do sucesso pra a tela de confirmação dizer a que horas
+   * essa pessoa tem que chegar — o horário muda de uma função pra outra. */
+  funcaoNome?: string;
+  horario?: string | null;
 }
 
 /**
@@ -58,9 +67,57 @@ export async function pegarVaga(
   const resultado = data as ResultadoPegarVaga;
   if (resultado === "confirmado" || resultado === "espera") {
     revalidatePath(`/vagas/${token}`);
-    return { sucesso: resultado };
+    const detalhe = await detalheDaVaga(admin, token, staffId);
+    return { sucesso: resultado, ...detalhe };
   }
   return { error: MENSAGEM_RESULTADO[resultado] ?? "Não foi possível registrar agora." };
+}
+
+/**
+ * Busca a função e o horário da vaga que a pessoa acabou de pegar. É uma consulta a mais depois do
+ * sucesso, de propósito: a função do banco devolve só o resultado ('confirmado'/'espera'), e é
+ * melhor mantê-la assim — ela roda dentro de um lock e não deve carregar trabalho de exibição.
+ */
+async function detalheDaVaga(
+  admin: ReturnType<typeof createAdminClient>,
+  token: string,
+  staffId: string,
+): Promise<{ funcaoNome?: string; horario?: string | null }> {
+  const { data: vagas } = await admin
+    .from("jogo_vagas_staff")
+    .select("id, horario_apresentacao")
+    .eq("token", token)
+    .maybeSingle();
+  if (!vagas) return {};
+
+  const { data: inscricao } = await admin
+    .from("jogo_vagas_staff_inscricoes")
+    .select("vaga_funcao_id")
+    .eq("vagas_id", (vagas as { id: string }).id)
+    .eq("staff_id", staffId)
+    .maybeSingle();
+  if (!inscricao) return {};
+
+  const { data: vagaFuncao } = await admin
+    .from("jogo_vagas_staff_funcoes")
+    .select("funcao_id, horario_apresentacao")
+    .eq("id", (inscricao as { vaga_funcao_id: string }).vaga_funcao_id)
+    .maybeSingle();
+  if (!vagaFuncao) return {};
+
+  const { data: funcao } = await admin
+    .from("staff_funcoes_catalogo")
+    .select("nome")
+    .eq("id", (vagaFuncao as { funcao_id: string }).funcao_id)
+    .maybeSingle();
+
+  return {
+    funcaoNome: (funcao as { nome: string } | null)?.nome,
+    horario: horarioDaFuncao(
+      (vagaFuncao as { horario_apresentacao: string | null }).horario_apresentacao,
+      (vagas as { horario_apresentacao: string | null }).horario_apresentacao,
+    ),
+  };
 }
 
 /** Desistir libera a vaga imediatamente — é o que faz a lista continuar valendo alguma coisa na

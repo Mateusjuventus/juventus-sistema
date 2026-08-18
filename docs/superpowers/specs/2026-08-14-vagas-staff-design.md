@@ -16,9 +16,13 @@ demanda que ele abriu. Ninguém escolhe função no celular.
 4 gandulas, 2 maqueiros —, mais horário e local de apresentação. Ao salvar, o banco gera um token e
 a tela mostra o link com botões de copiar e mandar no WhatsApp.
 
-`/vagas/[token]` (público, sem login): mostra o jogo, as vagas restantes por função e um seletor de
-nome. Escolhido o nome, a tela já informa **qual vaga vai ser** — porque a função sai do cadastro —
-e se ainda há vaga para ela. A pessoa digita os 4 últimos dígitos do CPF e pega.
+`/vagas/[token]` (público, sem login): mostra o jogo, **só o total** de vagas abertas e um seletor
+de nome. Escolhido o nome, a tela mostra **a vaga dela** — porque a função sai do cadastro — e
+quantas restam naquela função. A pessoa digita os 4 últimos dígitos do CPF e pega.
+
+Cada um vê só a própria categoria (ajuste pedido depois da primeira versão, que listava todas as
+funções abertas). Dois motivos: o gandula não precisa saber quantos seguranças faltam, e a lista
+cheia empurrava a identificação para baixo da dobra no celular.
 
 Quem não está cadastrado tem link direto para `/cadastro-staff`, que já existia, e volta ao link
 para pegar a vaga — sem o Mateus no meio (decisão dele).
@@ -50,6 +54,20 @@ brincadeira. Detalhes que importam:
 - A mensagem de erro é **idêntica** para nome inexistente e dígito errado. Dizer "esse não é o CPF
   do Fulano" contaria a quem tentou que o Fulano está cadastrado.
 - `confereFinalCpf` compara só dígitos, então funciona com o CPF salvo com ou sem máscara.
+
+## O horário aparece na confirmação, não antes
+
+O horário de apresentação **muda por função** — segurança chega 12h30, gandula 13h30. Mostrar o
+horário geral do jogo no topo da página faria metade do grupo chegar na hora errada, então ele saiu
+de lá.
+
+Agora o horário aparece **depois de confirmar**, junto de função e local, no mesmo cartão que quem
+volta ao link mais tarde vê — porque reconferir o horário é justamente o motivo de a pessoa abrir o
+link de novo. `horarioDaFuncao` resolve qual mostrar: o da função, caindo no geral do jogo quando
+aquela função não tem um próprio.
+
+Antes de confirmar, o horário **não** é exibido de propósito: é informação de quem vai trabalhar, e
+mostrá-la antes convidaria alguém a anotar o horário sem pegar a vaga.
 
 ## Lista de espera
 

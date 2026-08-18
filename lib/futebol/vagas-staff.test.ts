@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   confereFinalCpf,
+  horarioDaFuncao,
   montarResumo,
   rotuloVaga,
   todasPreenchidas,
@@ -105,5 +106,21 @@ describe("confereFinalCpf", () => {
     expect(confereFinalCpf("12345678905", "905")).toBe(false);
     expect(confereFinalCpf(null, "8905")).toBe(false);
     expect(confereFinalCpf("123", "0123")).toBe(false);
+  });
+});
+
+describe("horarioDaFuncao", () => {
+  it("prefere o horário da função — é ele que muda de uma pra outra", () => {
+    expect(horarioDaFuncao("13h30", "12h30")).toBe("13h30");
+  });
+
+  it("cai no horário geral quando a função não tem um próprio", () => {
+    expect(horarioDaFuncao(null, "12h30")).toBe("12h30");
+    expect(horarioDaFuncao("   ", "12h30")).toBe("12h30");
+  });
+
+  it("devolve null quando nenhum dos dois foi preenchido", () => {
+    expect(horarioDaFuncao(null, null)).toBeNull();
+    expect(horarioDaFuncao("", "  ")).toBeNull();
   });
 });
