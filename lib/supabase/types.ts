@@ -1404,3 +1404,43 @@ export interface VeiculoRow {
   created_at: string;
   updated_at: string;
 }
+
+// ===== Vagas de Staff por jogo (ver supabase/migrations/0073_vagas_staff_jogo.sql) =====
+
+/** Abertura de vagas de um jogo. `token` é o que vai na URL pública `/vagas/<token>`. */
+export interface JogoVagasStaffRow {
+  id: string;
+  jogo_id: string;
+  token: string;
+  aberto: boolean;
+  horario_apresentacao: string | null;
+  local_apresentacao: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Uma função aberta e quantas vagas ela tem. A função vem do catálogo já usado pelo cadastro de
+ * Staff Operacional — é o que permite cruzar a demanda do jogo com o que cada pessoa faz. */
+export interface JogoVagasStaffFuncaoRow {
+  id: string;
+  vagas_id: string;
+  funcao_id: string;
+  quantidade: number;
+  horario_apresentacao: string | null;
+  created_at: string;
+}
+
+export type VagaStaffSituacao = "confirmado" | "espera";
+
+export interface JogoVagasStaffInscricaoRow {
+  id: string;
+  vagas_id: string;
+  vaga_funcao_id: string;
+  staff_id: string;
+  situacao: VagaStaffSituacao;
+  observacao: string | null;
+  /** Ordem de chegada — é o critério de tudo neste módulo. */
+  created_at: string;
+}

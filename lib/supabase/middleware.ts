@@ -9,7 +9,9 @@ import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
 // Operacional (Profissional e Futebol de Base, respectivamente — a pessoa preenche sem fazer
 // login). Não exigem sessão, mas também não dão acesso a mais nada do sistema: a gravação em si
 // roda com a service_role key (lib/supabase/admin.ts), não com a sessão anônima do Supabase.
-const PUBLIC_PATHS = ["/login", "/cadastro-staff", "/cadastro-staff-base"];
+// "/vagas" é o link que o Staff abre pra pegar vaga num jogo (ver 0073_vagas_staff_jogo.sql) —
+// mesma natureza dos autocadastros: sem login, protegido por um token na própria URL.
+const PUBLIC_PATHS = ["/login", "/cadastro-staff", "/cadastro-staff-base", "/vagas"];
 
 /**
  * Mantém a sessão do Supabase atualizada a cada request e bloqueia acesso

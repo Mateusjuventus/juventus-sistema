@@ -22,6 +22,7 @@ export function JogoTabs({
     | "onibus"
     | "credenciamento"
     | "checklist"
+    | "vagas"
     | "recibo"
     | "financeiro"
     | "ingressos";
@@ -51,6 +52,7 @@ export function JogoTabs({
       href: `/jogos/${jogoId}/checklist`,
       active: active === "checklist",
     },
+    { key: "vagas", label: "Vagas de Staff", href: `/jogos/${jogoId}/vagas`, active: active === "vagas" },
     { key: "recibo", label: "Recibo de Pagamento", href: `/jogos/${jogoId}/recibo`, active: active === "recibo" },
     {
       key: "financeiro",

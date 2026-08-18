@@ -18,7 +18,7 @@ import { saveRecibo } from "../operacao-actions";
 export default async function ReciboPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: recibosData }, { data: staffData }] = await Promise.all([
+  const [{ data: jogoData }, { data: recibosData }, { data: staffData }, { data: vagasData }] = await Promise.all([
     supabase.from("jogos").select("*").eq("id", params.id).single(),
     supabase.from("recibos_jogo").select("*").eq("jogo_id", params.id),
     supabase
@@ -28,6 +28,8 @@ export default async function ReciboPage({ params }: { params: { id: string } })
       )
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
+    // Quem pegou vaga na aba "Vagas de Staff" — usado só como sugestão inicial (ver ReciboForm).
+    supabase.from("jogo_vagas_staff").select("id").eq("jogo_id", params.id).maybeSingle(),
   ]);
 
   if (!jogoData) notFound();
@@ -35,6 +37,17 @@ export default async function ReciboPage({ params }: { params: { id: string } })
   const recibos = (recibosData ?? []) as ReciboJogoRow[];
   const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
   const temRecibos = recibos.length > 0;
+
+  let staffComVaga: string[] = [];
+  const vagasId = (vagasData?.id as string | undefined) ?? null;
+  if (vagasId) {
+    const { data: inscricoesData } = await supabase
+      .from("jogo_vagas_staff_inscricoes")
+      .select("staff_id")
+      .eq("vagas_id", vagasId)
+      .eq("situacao", "confirmado");
+    staffComVaga = ((inscricoesData ?? []) as { staff_id: string }[]).map((i) => i.staff_id);
+  }
 
   return (
     <AppShell>
@@ -72,7 +85,13 @@ export default async function ReciboPage({ params }: { params: { id: string } })
         pode ser ajustado aqui.
       </p>
 
-      <ReciboForm action={saveRecibo} jogoId={jogo.id} staff={staff} recibos={recibos} />
+      <ReciboForm
+        action={saveRecibo}
+        jogoId={jogo.id}
+        staff={staff}
+        recibos={recibos}
+        staffComVaga={staffComVaga}
+      />
     </AppShell>
   );
 }
