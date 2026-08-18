@@ -87,6 +87,20 @@ depois de gente inscrita, e o final de CPF com e sem máscara. Total do projeto:
 
 A tela pública foi renderizada no Chromium com perfil de iPhone 13 (390px, sem rolagem horizontal).
 
+## Erro cometido na primeira versão (14/08)
+
+A 0073 concedeu GRANT das tabelas novas só para `authenticated`. A tela pública usa a service_role,
+que **ignora RLS mas não ignora GRANT** — então o Postgres negava a consulta (42501) e a página, que
+tratava qualquer falha como token inexistente, dizia "Link não encontrado" com as vagas abertas e
+salvas do outro lado.
+
+É o mesmo erro já corrigido em `0027_grants_service_role_perfis.sql` e
+`0060_grants_service_role_staff_base.sql` — a terceira vez no projeto. Corrigido em
+`0074_grants_service_role_vagas.sql`.
+
+**Regra para tabela nova daqui pra frente: se alguma tela SEM LOGIN lê ou escreve nela, ela precisa
+de grant para o `service_role`, não só para o `authenticated`.**
+
 ## Fora de escopo por ora
 
 - Notificar por WhatsApp/e-mail quem está na espera quando abre vaga (hoje o Mateus chama e avisa).

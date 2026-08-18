@@ -55,13 +55,17 @@ export default async function VagasPublicasPage({ params }: { params: { token: s
   // cache não conhece a tabela.
   if (vagasError) {
     console.error("[vagas] erro ao buscar o link:", vagasError);
-    const tabelaFaltando = vagasError.code === "42P01" || vagasError.code === "PGRST205";
+    // 42501 = "permission denied for table": falta GRANT pro service_role (ver
+    // 0074_grants_service_role_vagas.sql). 42P01 / PGRST205 = a tabela não existe, no Postgres e no
+    // cache do PostgREST. Nos três casos o problema é de instalação, não do link que a pessoa abriu.
+    const problemaDeInstalacao =
+      vagasError.code === "42P01" || vagasError.code === "PGRST205" || vagasError.code === "42501";
     return (
       <Moldura>
         <div className="py-6 text-center">
           <p className="text-lg font-semibold text-grena-escuro">Vagas indisponíveis no momento</p>
           <p className="mt-2 text-sm text-neutral-500">
-            {tabelaFaltando
+            {problemaDeInstalacao
               ? "O recurso de vagas ainda não foi liberado neste sistema. Avise o Departamento de Futebol Profissional."
               : "Não foi possível carregar as vagas agora. Tente novamente em instantes."}
           </p>
