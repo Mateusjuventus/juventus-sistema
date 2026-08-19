@@ -30,7 +30,7 @@ export default async function CadastroStaffBasePublicoPage() {
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
 
   return (
-    <main className="min-h-screen bg-emerald-900 px-4 py-10">
+    <main className="min-h-screen bg-grena-escuro px-4 py-10">
       <div className="mx-auto w-full max-w-2xl">
         <div className="mb-6 flex flex-col items-center text-center">
           <JuventusCrest className="h-24 w-auto drop-shadow-lg" />

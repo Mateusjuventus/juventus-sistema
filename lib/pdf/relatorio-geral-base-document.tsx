@@ -18,10 +18,10 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     color: CORES.grenaEscuro,
     marginTop: 8,
+    marginBottom: 18,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-  subtitulo: { textAlign: "center", fontSize: 9, color: "#525252", marginTop: 4, marginBottom: 18 },
   statsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
   statBox: {
     width: "31.5%",
@@ -148,10 +148,6 @@ export function RelatorioGeralBaseDocument({
           <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Gasto Geral da Base</Text>
-        <Text style={styles.subtitulo}>
-          Salário da Comissão Técnica, ajuda de custo dos atletas e despesas avulsas — separado da
-          Prestação de Contas de jogos
-        </Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
