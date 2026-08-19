@@ -47,7 +47,7 @@ export const MODULOS: ModuloInfo[] = [
   { chave: "competicoes", label: "Competições", prefixo: "/competicoes" },
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/estoque" },
-  { chave: "financeiro", label: "Prestação de Contas", prefixo: "/financeiro" },
+  { chave: "financeiro", label: "Financeiro", prefixo: "/financeiro" },
   { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "veiculos", label: "Veículos / Placas", prefixo: "/veiculos", grupo: GRUPO_ADMINISTRATIVO },

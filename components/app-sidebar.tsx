@@ -68,7 +68,6 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
 const ROTULO_CURTO: Record<string, string> = {
   "Comissão Técnica / Diretoria": "Comissão",
   "Staff Operacional": "Staff",
-  "Prestação de Contas": "Contas",
   "Termos de Retirada": "Termos",
   "Veículos / Placas": "Veículos",
   "Relatório Avulso": "Relatório",

@@ -35,7 +35,7 @@ export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "jogos", label: "Jogos / Competições", prefixo: "/base/jogos" },
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/base/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/base/estoque" },
-  { chave: "financeiro", label: "Prestação de Contas", prefixo: "/base/financeiro" },
+  { chave: "financeiro", label: "Financeiro", prefixo: "/base/financeiro" },
   { chave: "relatorios_avulso", label: "Relatório Avulso", prefixo: "/base/relatorios/avulso" },
   { chave: "captacao", label: "Captação/Avaliação", prefixo: "/base/captacao" },
   { chave: "alojamento", label: "Alojamento", prefixo: "/base/alojamento" },

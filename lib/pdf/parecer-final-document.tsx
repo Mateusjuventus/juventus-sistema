@@ -11,39 +11,89 @@ import {
 } from "./logistica-shared";
 
 /**
- * Parecer Final de Avaliação da Captação/Avaliação — no molde do modelo do Corinthians enviado
- * pelo Mateus, com a marca do Juventus. Ver docs/superpowers/specs/
- * 2026-08-19-parecer-final-treinador-design.md. Reaproveita `logistica-shared.tsx` (cabeçalho de
- * cores, rodapé, bloco de assinaturas) do mesmo jeito que `captacao-document.tsx` já faz.
+ * Parecer Final de Avaliação da Captação/Avaliação — layout fiel ao modelo do Corinthians enviado
+ * pelo Mateus (grade de campos em caixas com rótulo + valor, notas em caixas, aprovado/reprovado
+ * como checkbox, assinaturas em duas fileiras), com a marca do Juventus. Ver docs/superpowers/
+ * specs/2026-08-19-parecer-final-treinador-design.md. Reaproveita `logistica-shared.tsx` (cores,
+ * rodapé, bloco de assinaturas) do mesmo jeito que os outros documentos oficiais.
  *
- * "Apelido" do modelo do Corinthians fica de fora de propósito: `captacao_base` não tem esse campo
- * hoje e não foi pedido.
+ * Duas diferenças deliberadas em relação ao modelo original, já decididas na spec:
+ * - "Apelido" fica de fora (não existe em `captacao_base`, não foi pedido) — a caixa "Nome do
+ *   jogador" ocupa a linha inteira sozinha em vez de dividir com Apelido.
+ * - O checkbox de veredito é só "Aprovado"/"Dispensado" — nunca "Reprovado" (mesma nomenclatura do
+ *   status da Captação em todo o resto do sistema). "Não compareceu" fica de fora do checkbox por
+ *   pedido explícito: não é uma decisão do parecer do Treinador, é algo que só o Mateus marca à
+ *   parte (ver a spec).
  */
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  logo: { width: 40, height: 45, objectFit: "contain", marginRight: 10 },
-  tituloBox: { flex: 1 },
+  headerRow: { flexDirection: "row", alignItems: "flex-start", gap: 14, marginBottom: 16 },
+  foto: { width: 84, height: 104, borderRadius: 3, objectFit: "cover", borderWidth: 0.75, borderColor: "#c4c4c4" },
+  fotoPlaceholder: {
+    width: 84,
+    height: 104,
+    borderRadius: 3,
+    backgroundColor: "#f5f5f5",
+    borderWidth: 0.75,
+    borderColor: "#c4c4c4",
+  },
+  tituloBox: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 8 },
   tituloTexto: {
-    fontSize: 14,
+    fontSize: 19,
     fontWeight: 700,
     color: CORES.grenaEscuro,
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
   },
-  subtituloTexto: { fontSize: 8.5, color: "#525252", marginTop: 2 },
+  subtituloTexto: { fontSize: 10, color: "#404040", marginTop: 4, textTransform: "uppercase", letterSpacing: 0.8 },
+  subtituloTextoSub: {
+    fontSize: 8,
+    color: "#737373",
+    marginTop: 3,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    textDecoration: "underline",
+  },
+  logo: { width: 52, height: 60, objectFit: "contain" },
 
-  candidatoRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 4 },
-  foto: { width: 70, height: 70, borderRadius: 6, objectFit: "cover" },
-  fotoPlaceholder: {
-    width: 70,
-    height: 70,
-    borderRadius: 6,
-    backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#d4d4d4",
+  // Grade de campos "em caixa": tira cinza com o rótulo em cima, valor centralizado embaixo — o
+  // mesmo padrão do modelo original, reaproveitado em toda a ficha (identidade, notas, legenda).
+  linhaCaixas: { flexDirection: "row", marginTop: -0.75 },
+  caixa: { flex: 1, borderWidth: 0.75, borderColor: "#1a1a1a", marginLeft: -0.75 },
+  caixaRotulo: {
+    backgroundColor: CORES.grena,
+    borderBottomWidth: 0.75,
+    borderBottomColor: "#1a1a1a",
+    paddingVertical: 3,
+    fontSize: 7,
+    fontWeight: 700,
+    color: "#ffffff",
+    textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
-  nomeCandidato: { fontSize: 15, fontWeight: 700, color: CORES.grenaEscuro },
+  caixaValor: { paddingVertical: 6, paddingHorizontal: 4, fontSize: 9, color: "#1a1a1a", textAlign: "center" },
+
+  // Notas: rótulo à esquerda em negrito, valor à direita — uma linha só dentro da caixa, igual ao
+  // modelo (em vez do rótulo-em-cima das caixas de identidade).
+  notaCaixa: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 0.75,
+    borderColor: "#1a1a1a",
+    marginLeft: -0.75,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+  },
+  notaRotulo: { fontSize: 8.5, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase" },
+  notaValor: { fontSize: 11, fontWeight: 700, color: CORES.grenaEscuro },
+
+  legendaBox: { borderWidth: 0.75, borderColor: "#1a1a1a", marginTop: 10 },
+  legendaColuna: { flex: 1, borderRightWidth: 0.75, borderRightColor: "#1a1a1a" },
+  legendaColunaUltima: { flex: 1 },
+  legendaTexto: { fontSize: 7.5, color: "#1a1a1a", textAlign: "center", paddingVertical: 5 },
 
   secaoTitulo: {
     fontSize: 10,
@@ -52,62 +102,68 @@ const styles = StyleSheet.create({
     backgroundColor: CORES.grena,
     paddingVertical: 5,
     paddingHorizontal: 8,
-    marginTop: 16,
+    marginTop: 14,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  dadosGrid: { flexDirection: "row", flexWrap: "wrap", marginTop: 10 },
-  dadoItem: { width: "33%", marginBottom: 8, paddingRight: 8 },
-  dadoLabel: { fontSize: 7.5, color: "#737373", textTransform: "uppercase", letterSpacing: 0.3 },
-  dadoValor: { fontSize: 9.5, color: "#1f1f1f", marginTop: 1 },
 
-  notasRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 10, gap: 10 },
-  notaBox: { width: 118, borderWidth: 0.5, borderColor: "#e5e5e5", borderRadius: 4, padding: 8 },
-  notaLabel: { fontSize: 7, color: "#737373", textTransform: "uppercase", letterSpacing: 0.3 },
-  notaValor: { fontSize: 18, fontWeight: 700, color: CORES.grenaEscuro, marginTop: 2 },
-  legenda: { fontSize: 7.5, color: "#a3a3a3", marginTop: 8 },
-
-  vereditoBox: {
-    marginTop: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: CORES.dourado,
-    backgroundColor: "#f5f5f5",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+  vereditoLinha: { flexDirection: "row", marginTop: 12, gap: 22 },
+  vereditoColEsquerda: { width: 150 },
+  vereditoOpcaoRow: { flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 8 },
+  vereditoCheckbox: {
+    width: 13,
+    height: 13,
+    borderWidth: 0.75,
+    borderColor: "#1a1a1a",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  vereditoTexto: { fontSize: 11, fontWeight: 700, color: CORES.grenaEscuro },
+  vereditoCheckboxMarca: { fontSize: 9, fontWeight: 700, color: CORES.grenaEscuro },
+  vereditoOpcaoTexto: { fontSize: 9, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase" },
 
-  comentariosTexto: { fontSize: 9.5, color: "#1f1f1f", marginTop: 6, lineHeight: 1.4 },
+  dataBox: { borderWidth: 0.75, borderColor: "#1a1a1a", marginTop: 10 },
+  dataBoxRotulo: {
+    backgroundColor: CORES.grena,
+    borderBottomWidth: 0.75,
+    borderBottomColor: "#1a1a1a",
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    fontSize: 7,
+    fontWeight: 700,
+    color: "#ffffff",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  dataBoxValor: { paddingVertical: 6, paddingHorizontal: 6, fontSize: 9, color: "#1a1a1a" },
+
+  comentariosColuna: { flex: 1 },
+  comentariosLabel: { fontSize: 8.5, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase" },
+  comentariosTexto: { fontSize: 9, color: "#1a1a1a", marginTop: 8, lineHeight: 1.5 },
+  comentariosVazio: { fontSize: 8.5, color: "#a3a3a3", marginTop: 8, fontStyle: "italic" },
 });
 
-function DadoItem({ label, valor }: { label: string; valor: string | null }) {
+function CaixaCampo({ label, valor, ultima }: { label: string; valor: string | null; ultima?: boolean }) {
   return (
-    <View style={styles.dadoItem}>
-      <Text style={styles.dadoLabel}>{label}</Text>
-      <Text style={styles.dadoValor}>{valor ?? "—"}</Text>
+    <View style={[styles.caixa, ultima ? { marginRight: -0.75 } : {}]}>
+      <Text style={styles.caixaRotulo}>{label}</Text>
+      <Text style={styles.caixaValor}>{valor ?? "—"}</Text>
     </View>
   );
 }
 
-function NotaBox({ label, valor }: { label: string; valor: number | null }) {
+function NotaCaixa({ label, valor, ultima }: { label: string; valor: number | null; ultima?: boolean }) {
   return (
-    <View style={styles.notaBox}>
-      <Text style={styles.notaLabel}>{label}</Text>
+    <View style={[styles.notaCaixa, ultima ? { marginRight: -0.75 } : {}]}>
+      <Text style={styles.notaRotulo}>{label}</Text>
       <Text style={styles.notaValor}>{valor ?? "—"}</Text>
     </View>
   );
 }
 
-/** Rótulo do veredito impresso no documento — usa a MESMA nomenclatura do status da Captação
- * ("Aprovado"/"Dispensado", nunca "Reprovado"). Quando o candidato ainda está "Em avaliação" (o
- * Treinador ainda não preencheu o parecer), o PDF pode ser gerado mesmo assim — sai com "Em
- * avaliação" aqui, pra o Mateus poder conferir o layout antes do preenchimento. */
-function veredicoLabel(status: string): string {
-  if (status === "aprovado") return "Aprovado";
-  if (status === "dispensado") return "Dispensado";
-  if (status === "nao_compareceu") return "Não compareceu";
-  return "Em avaliação (parecer ainda não preenchido)";
-}
+const OPCOES_VEREDITO = [
+  { valor: "aprovado", label: "Aprovado" },
+  { valor: "dispensado", label: "Dispensado" },
+] as const;
 
 export interface ParecerFinalCandidato {
   nome: string;
@@ -150,59 +206,103 @@ export function ParecerFinalDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <View style={styles.headerRow}>
-          {juventusLogoSrc ? (
-            // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
-          ) : null}
-          <View style={styles.tituloBox}>
-            <Text style={styles.tituloTexto}>Parecer Final de Avaliação</Text>
-            <Text style={styles.subtituloTexto}>Futebol de Base · Emitido em {formatCarimbo(emitidoEm)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.candidatoRow}>
           {fotoSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
             <Image style={styles.foto} src={fotoSrc as string} />
           ) : (
             <View style={styles.fotoPlaceholder} />
           )}
-          <Text style={styles.nomeCandidato}>{candidato.nome}</Text>
+          <View style={styles.tituloBox}>
+            <Text style={styles.tituloTexto}>Parecer Final</Text>
+            <Text style={styles.subtituloTexto}>Avaliação</Text>
+            <Text style={styles.subtituloTextoSub}>Departamento das Categorias de Base</Text>
+          </View>
+          {juventusLogoSrc ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image style={styles.logo} src={juventusLogoSrc as string} />
+          ) : null}
         </View>
 
-        <Text style={styles.secaoTitulo}>Dados do candidato</Text>
-        <View style={styles.dadosGrid}>
-          <DadoItem label="Data de nascimento" valor={formatDataBr(candidato.dataNascimento)} />
-          <DadoItem label="Categoria" valor={candidato.categoria} />
-          <DadoItem label="Posição" valor={candidato.posicao} />
-          <DadoItem label="Cidade" valor={cidadeTexto} />
-          <DadoItem label="Clube anterior" valor={candidato.clubeAnterior} />
-          <DadoItem label="Indicação" valor={candidato.indicacao} />
-          <DadoItem label="Início da avaliação" valor={formatDataBr(candidato.dataInicio)} />
-          <DadoItem label="Final da avaliação" valor={formatDataBr(candidato.dataTermino)} />
+        <View style={styles.linhaCaixas}>
+          <CaixaCampo label="Nome do jogador" valor={candidato.nome} ultima />
+        </View>
+        <View style={styles.linhaCaixas}>
+          <CaixaCampo label="Data de nascimento" valor={formatDataBr(candidato.dataNascimento)} />
+          <CaixaCampo label="Categoria" valor={candidato.categoria} />
+          <CaixaCampo label="Posição" valor={candidato.posicao} ultima />
+        </View>
+        <View style={styles.linhaCaixas}>
+          <CaixaCampo label="Clube anterior" valor={candidato.clubeAnterior} />
+          <CaixaCampo label="Cidade atual" valor={cidadeTexto} />
+          <CaixaCampo label="Indicação" valor={candidato.indicacao} ultima />
         </View>
 
-        <Text style={styles.secaoTitulo}>Avaliação</Text>
-        <View style={styles.notasRow}>
-          <NotaBox label="Técnica" valor={candidato.notaTecnica} />
-          <NotaBox label="Física" valor={candidato.notaFisica} />
-          <NotaBox label="Tática" valor={candidato.notaTatica} />
-          <NotaBox label="Comportamental" valor={candidato.notaComportamental} />
+        <View style={styles.legendaBox}>
+          <Text style={styles.caixaRotulo}>Legenda notas avaliativas</Text>
+          <View style={{ flexDirection: "row" }}>
+            <View style={styles.legendaColuna}>
+              <Text style={styles.legendaTexto}>3-4 Regular</Text>
+            </View>
+            <View style={styles.legendaColuna}>
+              <Text style={styles.legendaTexto}>5-6 Bom</Text>
+            </View>
+            <View style={styles.legendaColuna}>
+              <Text style={styles.legendaTexto}>7-8 Muito bom</Text>
+            </View>
+            <View style={styles.legendaColunaUltima}>
+              <Text style={styles.legendaTexto}>9 - Excelente</Text>
+            </View>
+          </View>
         </View>
-        <Text style={styles.legenda}>Legenda: 3-4 Regular · 5-6 Bom · 7-8 Muito Bom · 9 Excelente</Text>
 
-        <View style={styles.vereditoBox}>
-          <Text style={styles.vereditoTexto}>Parecer final: {veredicoLabel(candidato.status)}</Text>
+        <View style={[styles.linhaCaixas, { marginTop: 10 }]}>
+          <NotaCaixa label="Técnica" valor={candidato.notaTecnica} />
+          <NotaCaixa label="Física" valor={candidato.notaFisica} ultima />
+        </View>
+        <View style={[styles.linhaCaixas, { marginTop: -0.75 }]}>
+          <NotaCaixa label="Tática" valor={candidato.notaTatica} />
+          <NotaCaixa label="Comportamental" valor={candidato.notaComportamental} ultima />
         </View>
 
-        {candidato.comentarios ? (
-          <>
-            <Text style={styles.secaoTitulo}>Comentários finais</Text>
-            <Text style={styles.comentariosTexto}>{candidato.comentarios}</Text>
-          </>
-        ) : null}
+        <Text style={styles.secaoTitulo}>Parecer Final</Text>
+        <View style={styles.vereditoLinha} wrap={false}>
+          <View style={styles.vereditoColEsquerda}>
+            {OPCOES_VEREDITO.map((opcao) => (
+              <View style={styles.vereditoOpcaoRow} key={opcao.valor}>
+                <View style={styles.vereditoCheckbox}>
+                  {candidato.status === opcao.valor ? (
+                    <Text style={styles.vereditoCheckboxMarca}>X</Text>
+                  ) : null}
+                </View>
+                <Text style={styles.vereditoOpcaoTexto}>{opcao.label}</Text>
+              </View>
+            ))}
+
+            <View style={styles.dataBox}>
+              <Text style={styles.dataBoxRotulo}>Início da avaliação</Text>
+              <Text style={styles.dataBoxValor}>{formatDataBr(candidato.dataInicio)}</Text>
+            </View>
+            <View style={[styles.dataBox, { marginTop: 8 }]}>
+              <Text style={styles.dataBoxRotulo}>Final da avaliação</Text>
+              <Text style={styles.dataBoxValor}>{formatDataBr(candidato.dataTermino)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.comentariosColuna}>
+            <Text style={styles.comentariosLabel}>Comentários finais</Text>
+            {candidato.comentarios ? (
+              <Text style={styles.comentariosTexto}>{candidato.comentarios}</Text>
+            ) : (
+              <Text style={styles.comentariosVazio}>Ainda não preenchido.</Text>
+            )}
+          </View>
+        </View>
 
         <AssinaturasBlockDinamico assinaturas={assinaturas} />
+
+        <Text style={{ fontSize: 7, color: "#a3a3a3", textAlign: "center", marginTop: 10 }}>
+          Emitido em {formatCarimbo(emitidoEm)}
+        </Text>
 
         <DocumentoFooter geradoEm={emitidoEm} />
       </Page>

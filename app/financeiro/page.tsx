@@ -98,7 +98,7 @@ export default async function FinanceiroPage() {
       <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
-      <PageHeader title="Prestação de Contas" />
+      <PageHeader title="Financeiro" />
 
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {gastos.length > 0 || despesasAvulsas.length > 0 ? (

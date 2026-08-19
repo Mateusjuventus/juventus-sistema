@@ -252,8 +252,8 @@ export default async function BasePage() {
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
               <IconFinanceiro className="h-6 w-6" />
             </div>
-            <h2 className="text-lg font-bold text-grena-escuro">Prestação de Contas</h2>
-            <p className="text-sm font-medium text-neutral-500">Financeiro dos jogos</p>
+            <h2 className="text-lg font-bold text-grena-escuro">Financeiro</h2>
+            <p className="text-sm font-medium text-neutral-500">Prestação de contas dos jogos + gasto geral da Base</p>
           </Link>
         ) : null}
 
