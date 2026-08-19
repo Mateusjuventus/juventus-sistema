@@ -5,9 +5,15 @@ import { SearchBar } from "@/components/search-bar";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import { CAPTACAO_STATUS_OPTIONS, captacaoStatusLabel, contarPorStatus, corCaptacaoStatus } from "@/lib/futebol/captacao";
-import type { CaptacaoBaseRow, ConfiguracaoCadastroAtletaBaseRow } from "@/lib/supabase/types";
-import { alternarCadastroPublicoAtletaBase } from "./actions";
+import {
+  CAPTACAO_STATUS_OPTIONS,
+  captacaoStatusLabel,
+  contarInscricoesPendentes,
+  contarPorStatus,
+  corCaptacaoStatus,
+} from "@/lib/futebol/captacao";
+import type { CaptacaoBaseRow, ConfiguracaoInscricaoCaptacaoBaseRow } from "@/lib/supabase/types";
+import { alternarInscricaoCaptacao } from "./actions";
 
 function formatDataBr(iso: string | null): string {
   if (!iso) return "—";
@@ -16,10 +22,11 @@ function formatDataBr(iso: string | null): string {
 }
 
 /**
- * Banco de dados da Captação/Avaliação — todo candidato em teste passa por aqui antes de virar um
- * cadastro oficial em Atletas (ver docs/superpowers/specs/2026-08-19-captacao-base-design.md).
- * O dashboard com o mapa por estado fica em `/base/captacao/dashboard`, separado desta lista pra
- * não sobrecarregar a tela do dia a dia.
+ * Banco de dados da Captação/Avaliação — TOTALMENTE separado do cadastro de Atletas (ver
+ * docs/superpowers/specs/2026-08-19-captacao-atletas-separacao-design.md). Quem se inscreve pelo
+ * link público cai na fila de "Aprovações" antes de aparecer como "Em avaliação" aqui. O dashboard
+ * com o mapa por estado fica em `/base/captacao/dashboard`, separado desta lista pra não sobrecarregar
+ * a tela do dia a dia.
  */
 export default async function CaptacaoPage({
   searchParams,
@@ -36,16 +43,18 @@ export default async function CaptacaoPage({
 
   const [{ data, error }, { data: configData }] = await Promise.all([
     query,
-    supabase.from("configuracoes_cadastro_atleta_base").select("*").limit(1).maybeSingle(),
+    supabase.from("configuracoes_inscricao_captacao_base").select("*").limit(1).maybeSingle(),
   ]);
 
   const candidatos = (data ?? []) as CaptacaoBaseRow[];
-  const config = configData as ConfiguracaoCadastroAtletaBaseRow | null;
+  const config = configData as ConfiguracaoInscricaoCaptacaoBaseRow | null;
 
   // A contagem dos cartões é sobre TODO o banco (sem o filtro de busca/status da lista) — senão
   // filtrar por "Aprovado" faria os outros três cartões sumirem, o oposto do que um resumo serve.
   const { data: todosData } = await supabase.from("captacao_base").select("status");
-  const contagem = contarPorStatus((todosData ?? []) as { status: CaptacaoBaseRow["status"] }[]);
+  const todosStatus = (todosData ?? []) as { status: CaptacaoBaseRow["status"] }[];
+  const contagem = contarPorStatus(todosStatus);
+  const aguardandoAprovacao = contarInscricoesPendentes(todosStatus);
 
   return (
     <AppShell departamento="futebol_base">
@@ -54,11 +63,17 @@ export default async function CaptacaoPage({
       </Link>
       <PageHeader title="Captação/Avaliação" />
       <p className="mt-1 text-center text-sm text-neutral-500">
-        Todo candidato em teste passa por aqui. Ao aprovar, o sistema já cria o cadastro completo
-        dele em Atletas.
+        Banco de candidatos em teste — sem relação com o cadastro de Atletas já do clube.
       </p>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <Link
+          href="/base/captacao/aprovacoes"
+          className="card p-4 text-center transition-shadow hover:shadow-md"
+        >
+          <p className="text-2xl font-bold text-blue-700">{aguardandoAprovacao}</p>
+          <p className="mt-1 text-xs font-medium text-neutral-500">Aguardando aprovação</p>
+        </Link>
         {CAPTACAO_STATUS_OPTIONS.map((opcao) => (
           <div key={opcao.value} className="card p-4 text-center">
             <p className="text-2xl font-bold text-grena-escuro">{contagem[opcao.value]}</p>
@@ -68,6 +83,9 @@ export default async function CaptacaoPage({
       </div>
 
       <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <Link href="/base/captacao/aprovacoes" className="btn-secondary">
+          Ver Aprovações
+        </Link>
         <Link href="/base/captacao/dashboard" className="btn-secondary">
           Ver dashboard e mapa
         </Link>
@@ -84,8 +102,8 @@ export default async function CaptacaoPage({
           <CadastroPublicoToggle
             id={config.id}
             ativo={config.cadastro_publico_ativo}
-            linkPath="/cadastro-atleta-base"
-            action={alternarCadastroPublicoAtletaBase}
+            linkPath="/inscricao-captacao-base"
+            action={alternarInscricaoCaptacao}
           />
         </div>
       ) : null}
@@ -98,6 +116,7 @@ export default async function CaptacaoPage({
             </label>
             <select id="status" name="status" defaultValue={status} className="field-input">
               <option value="">Todos</option>
+              <option value="inscricao">{captacaoStatusLabel("inscricao")}</option>
               {CAPTACAO_STATUS_OPTIONS.map((opcao) => (
                 <option key={opcao.value} value={opcao.value}>
                   {opcao.label}

@@ -1,12 +1,21 @@
 import type { CaptacaoBaseRow, CaptacaoStatus } from "@/lib/supabase/types";
 
 /**
- * Regras puras da Captação/Avaliação (ver docs/superpowers/specs/2026-08-19-captacao-base-design.md
- * e 0076_captacao_alojamento_base.sql) — rótulos/cores do status, e as contagens que alimentam o
- * dashboard (`/base/captacao/dashboard`). Nada aqui toca banco, por isso é testável isoladamente.
+ * Regras puras da Captação/Avaliação (ver docs/superpowers/specs/
+ * 2026-08-19-captacao-atletas-separacao-design.md e 0077_captacao_atletas_separacao.sql) — rótulos/
+ * cores do status, e as contagens que alimentam o dashboard (`/base/captacao/dashboard`). Nada aqui
+ * toca banco, por isso é testável isoladamente.
+ *
+ * "inscricao" (quem chegou pelo link público e ainda não foi aprovado pra entrar em avaliação) fica
+ * FORA de `CAPTACAO_STATUS_OPTIONS`/`contarPorStatus`/`taxaAprovacao` de propósito — esses três
+ * continuam representando só os 4 status "decididos" (o funil pedido originalmente). A fila de
+ * inscrições tem tela própria (`/base/captacao/aprovacoes`) e sua própria contagem
+ * (`contarInscricoesPendentes`).
  */
 
-export const CAPTACAO_STATUS_OPTIONS: { value: CaptacaoStatus; label: string }[] = [
+type CaptacaoStatusDecidido = Exclude<CaptacaoStatus, "inscricao">;
+
+export const CAPTACAO_STATUS_OPTIONS: { value: CaptacaoStatusDecidido; label: string }[] = [
   { value: "avaliacao", label: "Em avaliação" },
   { value: "aprovado", label: "Aprovado" },
   { value: "dispensado", label: "Dispensado" },
@@ -14,6 +23,7 @@ export const CAPTACAO_STATUS_OPTIONS: { value: CaptacaoStatus; label: string }[]
 ];
 
 export const CAPTACAO_STATUS_LABEL: Record<CaptacaoStatus, string> = {
+  inscricao: "Inscrição enviada",
   avaliacao: "Em avaliação",
   aprovado: "Aprovado",
   dispensado: "Dispensado",
@@ -23,6 +33,7 @@ export const CAPTACAO_STATUS_LABEL: Record<CaptacaoStatus, string> = {
 /** Cor da tag/badge de cada status — mesmo espírito das cores por categoria de posição já usadas
  * na Convocação (ver lib/futebol/categoria-posicao.ts). */
 export const CAPTACAO_STATUS_COR: Record<CaptacaoStatus, string> = {
+  inscricao: "bg-blue-100 text-blue-800",
   avaliacao: "bg-amber-100 text-amber-800",
   aprovado: "bg-emerald-100 text-emerald-800",
   dispensado: "bg-neutral-100 text-neutral-500",
@@ -37,17 +48,29 @@ export function corCaptacaoStatus(status: CaptacaoStatus): string {
   return CAPTACAO_STATUS_COR[status];
 }
 
-/** Quantos candidatos existem em cada status — base dos cartões do dashboard. Sempre devolve as 4
- * chaves, mesmo com 0, pra o dashboard não precisar tratar "undefined" na hora de exibir. */
-export function contarPorStatus(candidatos: Pick<CaptacaoBaseRow, "status">[]): Record<CaptacaoStatus, number> {
-  const contagem: Record<CaptacaoStatus, number> = {
+/** Quantos candidatos existem em cada status "decidido" (fora "inscricao") — base dos cartões do
+ * dashboard. Sempre devolve as 4 chaves, mesmo com 0, pra o dashboard não precisar tratar
+ * "undefined" na hora de exibir. */
+export function contarPorStatus(
+  candidatos: Pick<CaptacaoBaseRow, "status">[],
+): Record<CaptacaoStatusDecidido, number> {
+  const contagem: Record<CaptacaoStatusDecidido, number> = {
     avaliacao: 0,
     aprovado: 0,
     dispensado: 0,
     nao_compareceu: 0,
   };
-  for (const c of candidatos) contagem[c.status] += 1;
+  for (const c of candidatos) {
+    if (c.status === "inscricao") continue;
+    contagem[c.status] += 1;
+  }
   return contagem;
+}
+
+/** Quantos candidatos estão na fila de "Aprovações" (inscritos pelo link público, aguardando o
+ * Mateus aprovar e informar a Data de Início) — ver `/base/captacao/aprovacoes`. */
+export function contarInscricoesPendentes(candidatos: Pick<CaptacaoBaseRow, "status">[]): number {
+  return candidatos.filter((c) => c.status === "inscricao").length;
 }
 
 /** Quantos candidatos vieram de cada UF — alimenta o mapa do Brasil do dashboard. Ignora quem não
@@ -65,7 +88,7 @@ export function contarPorUf(candidatos: Pick<CaptacaoBaseRow, "uf">[]): Record<s
 /** Taxa de aprovação (aprovados / total decidido), usada como um dos cartões do dashboard. Ignora
  * quem ainda está "em avaliação" — decisão pendente não deveria contar contra nem a favor da taxa.
  * Devolve `null` quando ninguém foi decidido ainda (evita divisão por zero e um "0%" enganoso). */
-export function taxaAprovacao(contagem: Record<CaptacaoStatus, number>): number | null {
+export function taxaAprovacao(contagem: Record<CaptacaoStatusDecidido, number>): number | null {
   const decididos = contagem.aprovado + contagem.dispensado + contagem.nao_compareceu;
   if (decididos === 0) return null;
   return Math.round((contagem.aprovado / decididos) * 100);

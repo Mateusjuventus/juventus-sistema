@@ -1505,15 +1505,22 @@ export interface JogoVagasStaffBaseInscricaoRow {
 // ===== Captação/Avaliação, Alojamento e cadastro de Atleta público — FUTEBOL DE BASE
 // (ver 0076_captacao_alojamento_base.sql e docs/superpowers/specs/2026-08-19-captacao-base-design.md) =====
 
-export type CaptacaoStatus = "avaliacao" | "aprovado" | "dispensado" | "nao_compareceu";
+/** "inscricao" é a fila de quem se inscreveu pelo link público, esperando o Mateus aprovar e
+ * informar a Data de Início (aba "Aprovações" — ver docs/superpowers/specs/
+ * 2026-08-19-captacao-atletas-separacao-design.md). Dali em diante segue pros mesmos 4 status de
+ * sempre — a Captação não cria mais nada em `atletas_base`, é um banco totalmente separado. */
+export type CaptacaoStatus = "inscricao" | "avaliacao" | "aprovado" | "dispensado" | "nao_compareceu";
 
-/** Um candidato em teste/avaliação, antes de virar um cadastro oficial em `atletas_base`. Ao
- * aprovar, a Server Action `aprovarCaptacao` cria o Atleta e preenche `atleta_gerado_id` aqui. */
+/** Um candidato em teste/avaliação — banco TOTALMENTE separado de `atletas_base` (ajuste de 19/08:
+ * a Captação não cria mais cadastro de Atleta nenhum). `atleta_gerado_id` é só um resquício
+ * histórico do fluxo antigo (ver 0076) — nenhuma tela lê ou grava mais essa coluna. */
 export interface CaptacaoBaseRow {
   id: string;
   /** Nº sequencial gerado pelo banco — é o que a listagem mostra como "Nº". */
   numero: number;
-  data_inicio: string;
+  /** Só preenchida quando o status sai de "inscricao" — quem chega pelo link público de inscrição
+   * ainda não tem uma data de início até o Mateus aprovar (ver `aprovarInscricaoCaptacao`). */
+  data_inicio: string | null;
   nome_completo: string;
   data_nascimento: string | null;
   posicao: string | null;
@@ -1548,9 +1555,18 @@ export interface CaptacaoBaseRow {
   updated_at: string;
 }
 
-/** Toggle do link público `/cadastro-atleta-base` — mesmo formato de
- * `ConfiguracaoCadastroStaffBaseRow`, tabela singleton própria. */
+/** Toggle da "Ficha de Cadastro" pública (`/cadastro-atleta-base`) — cria/atualiza direto em
+ * `atletas_base` desde o ajuste de 19/08. Mesmo formato de `ConfiguracaoCadastroStaffBaseRow`,
+ * tabela singleton própria. */
 export interface ConfiguracaoCadastroAtletaBaseRow {
+  id: string;
+  cadastro_publico_ativo: boolean;
+  updated_at: string;
+}
+
+/** Toggle do link público de INSCRIÇÃO da Captação (`/inscricao-captacao-base`) — totalmente
+ * separado do toggle acima (que é da Ficha de Cadastro de Atletas). */
+export interface ConfiguracaoInscricaoCaptacaoBaseRow {
   id: string;
   cadastro_publico_ativo: boolean;
   updated_at: string;

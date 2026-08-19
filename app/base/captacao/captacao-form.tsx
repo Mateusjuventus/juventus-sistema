@@ -5,16 +5,15 @@ import { FieldGroup, FormSection, SelectField, TextAreaField, TextField } from "
 import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
-import { CAPTACAO_STATUS_OPTIONS } from "@/lib/futebol/captacao";
+import { CAPTACAO_STATUS_OPTIONS, captacaoStatusLabel } from "@/lib/futebol/captacao";
 import type { CaptacaoFormState } from "./actions";
 
 const initialState: CaptacaoFormState = {};
 
 /**
- * Formulário da Captação/Avaliação — mesma tela serve pra criar e editar. Só o nome é obrigatório
- * de verdade (ver `captacaoBaseSchema`); categoria/posição/nascimento só passam a ser exigidos na
- * hora de Aprovar (ver `aprovarCaptacao`), porque um candidato pode chegar só com nome e telefone
- * e o resto entrar conforme a avaliação anda.
+ * Formulário da Captação/Avaliação — mesma tela serve pra criar e editar (uso interno, staff). Só o
+ * nome é obrigatório de verdade (ver `captacaoBaseSchema`) — um candidato pode chegar só com nome e
+ * telefone e o resto entrar conforme a avaliação anda. Banco totalmente separado de `atletas_base`.
  */
 export function CaptacaoForm({
   action,
@@ -87,6 +86,12 @@ export function CaptacaoForm({
             placeholder="Quem indicou o candidato"
           />
           <SelectField label="Status" name="status" defaultValue={values.status ?? "avaliacao"} error={errors.status}>
+            {/* "Inscrição enviada" só aparece aqui pra não quebrar quem já chegou pelo link público
+                com esse status — trocar pra ele manualmente não costuma fazer sentido (é só a
+                Aprovações, /base/captacao/aprovacoes, que tira alguém dessa fila). */}
+            {values.status === "inscricao" ? (
+              <option value="inscricao">{captacaoStatusLabel("inscricao")}</option>
+            ) : null}
             {CAPTACAO_STATUS_OPTIONS.map((opcao) => (
               <option key={opcao.value} value={opcao.value}>
                 {opcao.label}

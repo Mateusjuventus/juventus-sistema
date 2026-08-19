@@ -5,14 +5,16 @@ import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fi
 import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { CATEGORIA_POSICAO_OPTIONS } from "@/lib/futebol/categoria-posicao";
 import type { CadastroAtletaPublicoState } from "./actions";
 
 const initialState: CadastroAtletaPublicoState = {};
 
 /**
- * Formulário público pra pais/atletas se candidatarem ao Futebol de Base (ver
- * app/cadastro-atleta-base/actions.ts). Cria um registro em avaliação — não é o cadastro oficial
- * de Atleta ainda, que só nasce quando o Mateus aprova pela tela interna.
+ * Ficha de Cadastro pública de Atleta (ver app/cadastro-atleta-base/actions.ts) — pra atletas que já
+ * são (ou estão entrando) do clube, sem relação nenhuma com a Captação. Cria o cadastro completo
+ * direto em Atletas; campos administrativos do clube (número de camisa, tipo de contrato etc.) ficam
+ * de fora — isso o Mateus completa depois.
  */
 export function AtletaPublicoForm({
   action,
@@ -28,8 +30,7 @@ export function AtletaPublicoForm({
       <div className="py-8 text-center">
         <p className="text-lg font-semibold text-grena-escuro">Cadastro enviado com sucesso!</p>
         <p className="mt-2 text-sm text-neutral-500">
-          Obrigado por preencher os dados. O Departamento de Futebol de Base vai avaliar e entrar em
-          contato.
+          Obrigado por preencher a ficha. O Departamento de Futebol de Base já recebeu os dados.
         </p>
       </div>
     );
@@ -46,6 +47,7 @@ export function AtletaPublicoForm({
             defaultValue={values.nomeCompleto}
             error={errors.nomeCompleto}
           />
+          <TextField label="Apelido" name="apelido" defaultValue={values.apelido} error={errors.apelido} />
           <TextField
             label="Data de nascimento"
             name="dataNascimento"
@@ -54,6 +56,34 @@ export function AtletaPublicoForm({
             defaultValue={values.dataNascimento}
             error={errors.dataNascimento}
           />
+          <TextField label="RG" name="rg" defaultValue={values.rg} error={errors.rg} />
+          <TextField
+            label="CPF"
+            name="cpf"
+            placeholder="000.000.000-00"
+            defaultValue={values.cpf}
+            error={errors.cpf}
+          />
+          <TextField label="Telefone de contato" name="telefone" defaultValue={values.telefone} error={errors.telefone} />
+          <TextField
+            label="Cidade natal"
+            name="cidadeNatal"
+            defaultValue={values.cidadeNatal}
+            error={errors.cidadeNatal}
+          />
+          <TextField
+            label="UF natal"
+            name="ufNatal"
+            maxLength={2}
+            defaultValue={values.ufNatal}
+            error={errors.ufNatal}
+            placeholder="Ex: SP"
+          />
+        </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Dados esportivos">
+        <FieldGroup>
           <SelectField label="Categoria" name="categoria" required defaultValue={values.categoria} error={errors.categoria}>
             <option value="">Selecione</option>
             {CATEGORIAS_BASE.map((cat) => (
@@ -70,17 +100,31 @@ export function AtletaPublicoForm({
             error={errors.posicao}
             placeholder="Ex: Zagueiro, Atacante"
           />
-          <TextField label="Telefone de contato" name="telefone" defaultValue={values.telefone} error={errors.telefone} />
+          <SelectField
+            label="Categoria de posição"
+            name="categoriaPosicao"
+            required
+            defaultValue={values.categoriaPosicao}
+            error={errors.categoriaPosicao}
+          >
+            <option value="">Selecione</option>
+            {CATEGORIA_POSICAO_OPTIONS.map((opcao) => (
+              <option key={opcao.value} value={opcao.value}>
+                {opcao.label}
+              </option>
+            ))}
+          </SelectField>
+          <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
           <div className="flex items-center gap-2 sm:col-span-2">
             <input
-              id="desejaAlojamento"
-              name="desejaAlojamento"
+              id="alojado"
+              name="alojado"
               type="checkbox"
-              defaultChecked={values.desejaAlojamento === "on"}
+              defaultChecked={values.alojado === "on"}
               className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
             />
-            <label htmlFor="desejaAlojamento" className="text-sm font-medium text-neutral-700">
-              Precisa de alojamento
+            <label htmlFor="alojado" className="text-sm font-medium text-neutral-700">
+              Mora (ou vai morar) no alojamento do clube
             </label>
           </div>
         </FieldGroup>
@@ -102,7 +146,6 @@ export function AtletaPublicoForm({
             defaultValue={values.paiTelefone}
             error={errors.paiTelefone}
           />
-          <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
         </FieldGroup>
       </FormSection>
 
@@ -149,7 +192,7 @@ export function AtletaPublicoForm({
 
       {state.error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p> : null}
 
-      <SubmitButton label="Enviar cadastro" pendingLabel="Enviando..." />
+      <SubmitButton label="Enviar ficha de cadastro" pendingLabel="Enviando..." />
     </form>
   );
 }

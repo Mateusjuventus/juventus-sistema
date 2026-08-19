@@ -18,6 +18,7 @@ const PUBLIC_PATHS = [
   "/vagas",
   "/vagas-base",
   "/cadastro-atleta-base",
+  "/inscricao-captacao-base",
 ];
 
 /**

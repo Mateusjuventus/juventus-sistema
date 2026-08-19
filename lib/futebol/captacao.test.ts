@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contarPorStatus, contarPorUf, taxaAprovacao } from "./captacao";
+import { contarInscricoesPendentes, contarPorStatus, contarPorUf, taxaAprovacao } from "./captacao";
 
 describe("contarPorStatus", () => {
   it("conta cada status, incluindo os que não aparecem (ficam em 0)", () => {
@@ -13,6 +13,27 @@ describe("contarPorStatus", () => {
 
   it("lista vazia devolve tudo zerado", () => {
     expect(contarPorStatus([])).toEqual({ avaliacao: 0, aprovado: 0, dispensado: 0, nao_compareceu: 0 });
+  });
+
+  it("ignora quem está na fila de inscrição (ainda não decidido)", () => {
+    const contagem = contarPorStatus([{ status: "inscricao" }, { status: "inscricao" }, { status: "avaliacao" }]);
+    expect(contagem).toEqual({ avaliacao: 1, aprovado: 0, dispensado: 0, nao_compareceu: 0 });
+  });
+});
+
+describe("contarInscricoesPendentes", () => {
+  it("conta só quem está com status inscricao", () => {
+    const total = contarInscricoesPendentes([
+      { status: "inscricao" },
+      { status: "inscricao" },
+      { status: "avaliacao" },
+      { status: "aprovado" },
+    ]);
+    expect(total).toBe(2);
+  });
+
+  it("lista vazia devolve 0", () => {
+    expect(contarInscricoesPendentes([])).toBe(0);
   });
 });
 

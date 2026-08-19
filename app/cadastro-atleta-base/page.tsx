@@ -7,10 +7,10 @@ import { cadastrarAtletaPublicoBase } from "./actions";
 export const dynamic = "force-dynamic";
 
 /**
- * Link público pra pais/atletas se candidatarem ao Futebol de Base — espelha
- * `app/cadastro-staff-base/page.tsx`, mas grava em `captacao_base` (não cria Atleta direto: fica em
- * avaliação até o Mateus decidir, ver docs/superpowers/specs/2026-08-19-captacao-base-design.md).
- * Controlado por `configuracoes_cadastro_atleta_base`, sem login (ver PUBLIC_PATHS).
+ * Ficha de Cadastro pública de Atleta — espelha `app/cadastro-staff-base/page.tsx`, mas grava DIRETO
+ * em `atletas_base` (sem relação nenhuma com a Captação, ver docs/superpowers/specs/
+ * 2026-08-19-captacao-atletas-separacao-design.md). Controlado por
+ * `configuracoes_cadastro_atleta_base`, sem login (ver PUBLIC_PATHS).
  */
 export default async function CadastroAtletaBasePublicoPage() {
   const admin = createAdminClient();
@@ -32,7 +32,7 @@ export default async function CadastroAtletaBasePublicoPage() {
         <div className="mb-6 flex flex-col items-center text-center">
           <JuventusCrest className="h-24 w-auto drop-shadow-lg" />
           <h1 className="mt-4 text-2xl font-bold text-white">Juventus - SAF</h1>
-          <p className="mt-1 text-sm text-white/70">Candidatura ao Futebol de Base</p>
+          <p className="mt-1 text-sm text-white/70">Ficha de Cadastro — Futebol de Base</p>
         </div>
 
         <div className="card p-6 sm:p-8">
@@ -42,7 +42,7 @@ export default async function CadastroAtletaBasePublicoPage() {
             <div className="py-8 text-center">
               <p className="text-lg font-semibold text-grena-escuro">Cadastro temporariamente fechado</p>
               <p className="mt-2 text-sm text-neutral-500">
-                Fale com o responsável do Futebol de Base para saber como enviar a candidatura.
+                Fale com o responsável do Futebol de Base para saber como enviar a ficha.
               </p>
             </div>
           )}

@@ -1,21 +1,29 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
+import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
-import type { AtletaBaseRow, CategoriaBase } from "@/lib/supabase/types";
+import type { AtletaBaseRow, CategoriaBase, ConfiguracaoCadastroAtletaBaseRow } from "@/lib/supabase/types";
+import { alternarFichaCadastroAtletaBase } from "./actions";
 
 /**
  * Tela inicial do módulo Atletas (Futebol de Base): um cartão por categoria (Sub20 a Sub11), cada
  * um mostrando quantos atletas estão cadastrados ali. Clicar num cartão leva pra lista daquela
  * categoria (`/base/atletas/[categoria]`) — mesma tabela/ações de sempre (cadastrar, editar,
- * excluir, exportar), só filtrada pela categoria do cartão (ver a spec).
+ * excluir, exportar), só filtrada pela categoria do cartão (ver a spec). O toggle da Ficha de
+ * Cadastro pública mora aqui desde o ajuste de 19/08 (antes ficava na tela de Captação, o que
+ * misturava as duas coisas — ver docs/superpowers/specs/2026-08-19-captacao-atletas-separacao-design.md).
  */
 export default async function AtletasBasePage() {
   const supabase = createClient();
 
-  const { data } = await supabase.from("atletas_base").select("categoria");
+  const [{ data }, { data: configData }] = await Promise.all([
+    supabase.from("atletas_base").select("categoria"),
+    supabase.from("configuracoes_cadastro_atleta_base").select("*").limit(1).maybeSingle(),
+  ]);
   const todos = (data ?? []) as Pick<AtletaBaseRow, "categoria">[];
+  const config = configData as ConfiguracaoCadastroAtletaBaseRow | null;
 
   const contagemPorCategoria = todos.reduce(
     (acc, atleta) => {
@@ -37,6 +45,17 @@ export default async function AtletasBasePage() {
           Ver campograma por categoria
         </Link>
       </div>
+
+      {config ? (
+        <div className="mt-4">
+          <CadastroPublicoToggle
+            id={config.id}
+            ativo={config.cadastro_publico_ativo}
+            linkPath="/cadastro-atleta-base"
+            action={alternarFichaCadastroAtletaBase}
+          />
+        </div>
+      ) : null}
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CATEGORIAS_BASE.map((cat) => {

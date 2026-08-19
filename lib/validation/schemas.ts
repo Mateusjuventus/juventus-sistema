@@ -12,6 +12,17 @@ const cpfField = z
 
 const rgField = z.string().min(1, { message: "RG é obrigatório" });
 
+const rgFieldOpcional = z.string().optional().or(z.literal(""));
+
+/** CPF opcional: se vazio, passa; se preenchido, precisa ser válido de verdade. Usado na Ficha de
+ * Cadastro pública de Atleta (a família pode não ter o CPF do atleta em mãos ainda). */
+const cpfFieldOpcional = z
+  .string()
+  .optional()
+  .or(z.literal(""))
+  .refine((value) => !value || normalizeCPF(value).length === 11, { message: "CPF deve ter 11 dígitos" })
+  .refine((value) => !value || isValidCPF(normalizeCPF(value)), { message: "CPF inválido" });
+
 const telefoneField = z.string().optional().or(z.literal(""));
 
 const emailField = z.string().email({ message: "E-mail inválido" }).optional().or(z.literal(""));
@@ -114,8 +125,10 @@ export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;
 
 /**
  * Captação/Avaliação (banco dos candidatos em teste, ver `docs/superpowers/specs/
- * 2026-08-19-captacao-base-design.md`). Bem menos exigente que o cadastro de Atleta: um candidato
- * pode chegar só com nome e telefone, e o resto entra conforme a avaliação anda.
+ * 2026-08-19-captacao-atletas-separacao-design.md) — banco TOTALMENTE separado de `atletas_base`.
+ * Bem menos exigente que o cadastro de Atleta: um candidato pode chegar só com nome e telefone, e o
+ * resto entra conforme a avaliação anda. Usado pelo formulário interno (staff) — quem chega pelo
+ * link público de inscrição usa `captacaoInscricaoSchema`, mais enxuto.
  */
 export const captacaoBaseSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome é obrigatório" }).transform(normalizarNomeProprio),
@@ -129,7 +142,7 @@ export const captacaoBaseSchema = z.object({
     .or(z.literal("")),
   indicacao: z.string().optional().or(z.literal("")),
   desejaAlojamento: z.boolean().default(false),
-  status: z.enum(["avaliacao", "aprovado", "dispensado", "nao_compareceu"]).default("avaliacao"),
+  status: z.enum(["inscricao", "avaliacao", "aprovado", "dispensado", "nao_compareceu"]).default("avaliacao"),
   observacoes: z.string().optional().or(z.literal("")),
   telefone: telefoneField,
   maeNome: z.string().optional().or(z.literal("")),
@@ -146,11 +159,12 @@ export const captacaoBaseSchema = z.object({
 export type CaptacaoBaseInput = z.infer<typeof captacaoBaseSchema>;
 
 /**
- * Cadastro público de um candidato novo (`/cadastro-atleta-base`, link pra pais/atletas
- * preencherem) — cria sempre com `status: "avaliacao"`, decidido no servidor, nunca pelo formulário.
- * Pede o nome do responsável logo de cara: quem preenche geralmente é o pai/mãe de um menor.
+ * Inscrição pública pro teste/avaliação (`/inscricao-captacao-base`) — cria sempre com
+ * `status: "inscricao"` e `origem: "publico"`, decidido no servidor. Bem mais enxuto que o
+ * formulário interno: só o essencial pra agendar a avaliação (o resto — família, endereço, escola —
+ * é coisa do cadastro de Atleta, não da Captação, ver a spec).
  */
-export const captacaoPublicaSchema = z.object({
+export const captacaoInscricaoSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome do atleta é obrigatório" }).transform(normalizarNomeProprio),
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
   posicao: z.string().min(1, { message: "Posição é obrigatória" }),
@@ -158,18 +172,48 @@ export const captacaoPublicaSchema = z.object({
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
   telefone: telefoneField,
+  cidade: z.string().optional().or(z.literal("")),
+  uf: z.string().length(2).optional().or(z.literal("")),
+  indicacao: z.string().optional().or(z.literal("")),
   desejaAlojamento: z.boolean().default(false),
+});
+export type CaptacaoInscricaoInput = z.infer<typeof captacaoInscricaoSchema>;
+
+/**
+ * Ficha de Cadastro pública de Atleta (`/cadastro-atleta-base`) — pros atletas que já são (ou estão
+ * entrando) do clube, a família preenche o cadastro completo. Grava DIRETO em `atletas_base`, sem
+ * relação nenhuma com a Captação (ver a spec de 19/08). RG/CPF opcionais — a família pode não ter em
+ * mãos ainda; campos administrativos do clube (status, tipo de contrato, número de camisa/CBF/FPF,
+ * datas de contrato) ficam de fora — isso o Mateus preenche depois pela tela interna.
+ */
+export const fichaCadastroAtletaBaseSchema = z.object({
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+  nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }).transform(normalizarNomeProprio),
+  apelido: z.string().optional().or(z.literal("")),
+  rg: rgFieldOpcional,
+  cpf: cpfFieldOpcional,
+  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+  posicao: z.string().min(1, { message: "Posição é obrigatória" }),
+  categoriaPosicao: z.enum(["goleiro", "zagueiro", "lateral", "meia", "atacante"], {
+    errorMap: () => ({ message: "Categoria de posição é obrigatória" }),
+  }),
+  telefone: telefoneField,
+  cidadeNatal: z.string().optional().or(z.literal("")),
+  ufNatal: z.string().length(2).optional().or(z.literal("")),
+  alojado: z.boolean().default(false),
+  escola: z.string().optional().or(z.literal("")),
+  agencia: z.string().optional().or(z.literal("")),
+  empresarioNome: z.string().optional().or(z.literal("")),
+  empresarioTelefone: telefoneField,
   maeNome: z.string().optional().or(z.literal("")),
   maeTelefone: telefoneField,
   paiNome: z.string().optional().or(z.literal("")),
   paiTelefone: telefoneField,
-  empresarioNome: z.string().optional().or(z.literal("")),
-  empresarioTelefone: telefoneField,
-  agencia: z.string().optional().or(z.literal("")),
-  escola: z.string().optional().or(z.literal("")),
   ...enderecoFields,
 });
-export type CaptacaoPublicaInput = z.infer<typeof captacaoPublicaSchema>;
+export type FichaCadastroAtletaBaseInput = z.infer<typeof fichaCadastroAtletaBaseSchema>;
 
 /** Capacidade total do Alojamento (`/base/alojamento`) — "vagas disponíveis" é essa menos quem já
  * está com `atletas_base.alojado = true` (ver lib/futebol/alojamento.ts). */

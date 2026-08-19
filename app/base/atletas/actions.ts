@@ -279,3 +279,20 @@ export async function deleteAtletaBase(
   if (categoria) revalidatePath(`/base/atletas/${categoria}`);
   return {};
 }
+
+/** Liga/desliga a Ficha de Cadastro pública (`/cadastro-atleta-base`) — desde o ajuste de 19/08 essa
+ * tela mora aqui (Atletas), não mais na Captação: o link cria/edita atletas do clube direto, sem
+ * relação nenhuma com a Captação (ver docs/superpowers/specs/
+ * 2026-08-19-captacao-atletas-separacao-design.md). Mesmo formato de toggle já usado no resto do
+ * sistema. */
+export async function alternarFichaCadastroAtletaBase(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const novoValor = String(formData.get("novoValor") ?? "") === "true";
+  if (!id) return;
+
+  const supabase = createClient();
+  await supabase.from("configuracoes_cadastro_atleta_base").update({ cadastro_publico_ativo: novoValor }).eq("id", id);
+
+  revalidatePath("/base/atletas");
+  revalidatePath("/cadastro-atleta-base");
+}
