@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
+import { EnderecoFields } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
@@ -213,6 +214,58 @@ export function AtletaBaseForm({
             defaultValue={values.empresarioNome}
             error={errors.empresarioNome}
           />
+          <TextField
+            label="Telefone do empresário"
+            name="empresarioTelefone"
+            defaultValue={values.empresarioTelefone}
+            error={errors.empresarioTelefone}
+          />
+        </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Alojamento e ajuda de custo">
+        <FieldGroup>
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <input
+              id="alojado"
+              name="alojado"
+              type="checkbox"
+              defaultChecked={values.alojado === "on"}
+              className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+            />
+            <label htmlFor="alojado" className="text-sm font-medium text-neutral-700">
+              Mora no alojamento do clube
+            </label>
+          </div>
+          <TextField
+            label="Valor de ajuda de custo (R$)"
+            name="valorAjudaCusto"
+            type="number"
+            min={0}
+            step="0.01"
+            defaultValue={values.valorAjudaCusto}
+            error={errors.valorAjudaCusto}
+          />
+          <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
+        </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Responsáveis">
+        <FieldGroup>
+          <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
+          <TextField
+            label="Telefone da mãe"
+            name="maeTelefone"
+            defaultValue={values.maeTelefone}
+            error={errors.maeTelefone}
+          />
+          <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
+          <TextField
+            label="Telefone do pai"
+            name="paiTelefone"
+            defaultValue={values.paiTelefone}
+            error={errors.paiTelefone}
+          />
         </FieldGroup>
       </FormSection>
 
@@ -232,15 +285,30 @@ export function AtletaBaseForm({
             error={errors.ufNatal}
             placeholder="Ex: SP"
           />
-          <div className="sm:col-span-2">
-            <TextField
-              label="Endereço atual"
-              name="enderecoAtual"
-              defaultValue={values.enderecoAtual}
-              error={errors.enderecoAtual}
-            />
-          </div>
         </FieldGroup>
+        <div className="mt-4">
+          <p className="field-label">Endereço atual (com busca por CEP)</p>
+          <EnderecoFields
+            defaultValues={{
+              cep: values.cep,
+              logradouro: values.logradouro,
+              numero: values.numero,
+              complemento: values.complemento,
+              bairro: values.bairro,
+              cidade: values.cidade,
+              uf: values.uf,
+            }}
+            errors={{
+              cep: errors.cep,
+              logradouro: errors.logradouro,
+              numero: errors.numero,
+              complemento: errors.complemento,
+              bairro: errors.bairro,
+              cidade: errors.cidade,
+              uf: errors.uf,
+            }}
+          />
+        </div>
       </FormSection>
 
       {state.error ? (

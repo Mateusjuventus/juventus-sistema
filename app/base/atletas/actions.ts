@@ -45,10 +45,35 @@ function parseForm(formData: FormData) {
     dataFimContrato: String(formData.get("dataFimContrato") ?? ""),
     tipoContrato: String(formData.get("tipoContrato") ?? "") || undefined,
     possuiContratoFormacao: formData.get("possuiContratoFormacao") === "on",
+    // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis,
+    // empresário e endereço estruturado.
+    alojado: formData.get("alojado") === "on",
+    valorAjudaCusto: String(formData.get("valorAjudaCusto") ?? "") || undefined,
+    agencia: String(formData.get("agencia") ?? ""),
+    empresarioTelefone: String(formData.get("empresarioTelefone") ?? ""),
+    maeNome: String(formData.get("maeNome") ?? ""),
+    maeTelefone: String(formData.get("maeTelefone") ?? ""),
+    paiNome: String(formData.get("paiNome") ?? ""),
+    paiTelefone: String(formData.get("paiTelefone") ?? ""),
+    escola: String(formData.get("escola") ?? ""),
+    cep: String(formData.get("cep") ?? ""),
+    logradouro: String(formData.get("logradouro") ?? ""),
+    numero: String(formData.get("numero") ?? ""),
+    complemento: String(formData.get("complemento") ?? ""),
+    bairro: String(formData.get("bairro") ?? ""),
+    cidade: String(formData.get("cidade") ?? ""),
+    uf: String(formData.get("uf") ?? ""),
   };
 
   const result = atletaBaseSchema.safeParse(raw);
-  return { raw: { ...raw, possuiContratoFormacao: raw.possuiContratoFormacao ? "on" : "" }, result };
+  return {
+    raw: {
+      ...raw,
+      possuiContratoFormacao: raw.possuiContratoFormacao ? "on" : "",
+      alojado: raw.alojado ? "on" : "",
+    },
+    result,
+  };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -124,6 +149,22 @@ export async function createAtletaBase(
     data_fim_contrato: data.dataFimContrato || null,
     tipo_contrato: data.tipoContrato ?? null,
     possui_contrato_formacao: data.tipoContrato === "amador" ? data.possuiContratoFormacao : false,
+    alojado: data.alojado,
+    valor_ajuda_custo: data.valorAjudaCusto ?? null,
+    agencia: data.agencia || null,
+    empresario_telefone: data.empresarioTelefone || null,
+    mae_nome: data.maeNome || null,
+    mae_telefone: data.maeTelefone || null,
+    pai_nome: data.paiNome || null,
+    pai_telefone: data.paiTelefone || null,
+    escola: data.escola || null,
+    cep: data.cep || null,
+    logradouro: data.logradouro || null,
+    numero: data.numero || null,
+    complemento: data.complemento || null,
+    bairro: data.bairro || null,
+    cidade: data.cidade || null,
+    uf: data.uf ? data.uf.toUpperCase() : null,
   });
 
   if (error) {
@@ -178,6 +219,22 @@ export async function updateAtletaBase(
     data_fim_contrato: data.dataFimContrato || null,
     tipo_contrato: data.tipoContrato ?? null,
     possui_contrato_formacao: data.tipoContrato === "amador" ? data.possuiContratoFormacao : false,
+    alojado: data.alojado,
+    valor_ajuda_custo: data.valorAjudaCusto ?? null,
+    agencia: data.agencia || null,
+    empresario_telefone: data.empresarioTelefone || null,
+    mae_nome: data.maeNome || null,
+    mae_telefone: data.maeTelefone || null,
+    pai_nome: data.paiNome || null,
+    pai_telefone: data.paiTelefone || null,
+    escola: data.escola || null,
+    cep: data.cep || null,
+    logradouro: data.logradouro || null,
+    numero: data.numero || null,
+    complemento: data.complemento || null,
+    bairro: data.bairro || null,
+    cidade: data.cidade || null,
+    uf: data.uf ? data.uf.toUpperCase() : null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 

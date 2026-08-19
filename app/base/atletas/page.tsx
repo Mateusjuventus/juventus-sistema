@@ -32,6 +32,12 @@ export default async function AtletasBasePage() {
       </Link>
       <PageHeader title="Atletas" />
 
+      <div className="mt-3 flex justify-center">
+        <Link href="/base/atletas/campograma" className="btn-secondary">
+          Ver campograma por categoria
+        </Link>
+      </div>
+
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CATEGORIAS_BASE.map((cat) => {
           const total = contagemPorCategoria[cat.value] ?? 0;

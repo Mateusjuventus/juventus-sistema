@@ -55,8 +55,8 @@ export async function GET(request: NextRequest, { params }: { params: { categori
 
   const linhas = atletas.map((a) => ({
     "Nome completo": a.nome_completo,
-    RG: a.rg,
-    CPF: formatCPF(a.cpf),
+    RG: a.rg ?? "",
+    CPF: a.cpf ? formatCPF(a.cpf) : "",
     "Data de nascimento": formatData(a.data_nascimento),
     Posição: a.posicao,
     "Número da camisa": a.numero_camisa ?? "",

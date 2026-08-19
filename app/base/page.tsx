@@ -17,6 +17,8 @@ const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = [
   "estoque",
   "financeiro",
   "relatorios_avulso",
+  "captacao",
+  "alojamento",
 ];
 
 function IconAtletas({ className }: { className?: string }) {
@@ -93,6 +95,27 @@ function IconRelatorio({ className }: { className?: string }) {
   );
 }
 
+function IconCaptacao({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <circle cx="10" cy="8" r="3" />
+      <path d="M4.5 19c0-3 2.5-4.5 5.5-4.5" />
+      <circle cx="16.5" cy="16.5" r="3.2" />
+      <path d="M19 19l2.5 2.5" />
+    </svg>
+  );
+}
+
+function IconAlojamento({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M3 19v-8a1 1 0 011-1h16a1 1 0 011 1v8" />
+      <path d="M3 19v-3h18v3M3 16v-2.5a1 1 0 011-1h6.5V16M13.5 12.5H20a1 1 0 011 1V16" />
+      <circle cx="7" cy="10" r="1.3" />
+    </svg>
+  );
+}
+
 export default async function BasePage() {
   const supabase = createClient();
   const modulosPermitidos = await getModulosBasePermitidos(supabase);
@@ -105,6 +128,8 @@ export default async function BasePage() {
     { count: totalJogosCount },
     { count: totalSolicitacoesPendentesCount },
     { count: totalEstoqueItensCount },
+    { count: totalCaptacaoEmAvaliacaoCount },
+    { count: totalAlojadosCount },
   ] = await Promise.all([
     supabase.from("atletas_base").select("*", { count: "exact", head: true }),
     supabase.from("comissao_tecnica_base").select("*", { count: "exact", head: true }),
@@ -112,6 +137,8 @@ export default async function BasePage() {
     supabase.from("jogos_base").select("*", { count: "exact", head: true }),
     supabase.from("solicitacoes_base").select("*", { count: "exact", head: true }).eq("status", "pendente"),
     supabase.from("estoque_itens_base").select("*", { count: "exact", head: true }),
+    supabase.from("captacao_base").select("*", { count: "exact", head: true }).eq("status", "avaliacao"),
+    supabase.from("atletas_base").select("*", { count: "exact", head: true }).eq("alojado", true),
   ]);
   const totalAtletas = totalAtletasCount ?? 0;
   const totalComissao = totalComissaoCount ?? 0;
@@ -119,6 +146,8 @@ export default async function BasePage() {
   const totalJogos = totalJogosCount ?? 0;
   const totalSolicitacoesPendentes = totalSolicitacoesPendentesCount ?? 0;
   const totalEstoqueItens = totalEstoqueItensCount ?? 0;
+  const totalCaptacaoEmAvaliacao = totalCaptacaoEmAvaliacaoCount ?? 0;
+  const totalAlojados = totalAlojadosCount ?? 0;
 
   const emBreve = MODULOS_BASE.filter(
     (m) => !MODULOS_CONSTRUIDOS.includes(m.chave) && temModulo(m.chave),
@@ -284,6 +313,44 @@ export default async function BasePage() {
             </div>
             <h2 className="text-lg font-bold text-grena-escuro">Relatório Avulso</h2>
             <p className="text-sm font-medium text-neutral-500">Monte uma lista em PDF do seu jeito</p>
+          </Link>
+        ) : null}
+
+        {temModulo("captacao") ? (
+          <Link
+            href="/base/captacao"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-amber-500" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <IconCaptacao className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Captação/Avaliação</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalCaptacaoEmAvaliacao} em avaliação
+            </p>
+          </Link>
+        ) : null}
+
+        {temModulo("alojamento") ? (
+          <Link
+            href="/base/alojamento"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-sky-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+              <IconAlojamento className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Alojamento</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalAlojados} alojado{totalAlojados === 1 ? "" : "s"}
+            </p>
           </Link>
         ) : null}
       </div>

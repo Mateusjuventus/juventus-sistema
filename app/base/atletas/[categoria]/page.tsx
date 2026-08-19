@@ -129,6 +129,9 @@ export default async function AtletasBaseCategoriaPage({
       </Link>
       <PageHeader title={`Atletas — ${categoriaBaseLabel(categoria)}`} pendencia={pendenciaAtletas} />
       <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <Link href={`/base/atletas/campograma?categoria=${categoria}`} className="btn-secondary">
+          Ver campograma
+        </Link>
         <a
           href={`/base/atletas/${categoria}/export?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`}
           className="btn-secondary"
@@ -231,7 +234,7 @@ export default async function AtletasBaseCategoriaPage({
 
               <div className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-neutral-100 pt-3 text-sm">
                 <span className="text-neutral-400">CPF</span>
-                <span className="text-neutral-700">{formatCPF(atleta.cpf)}</span>
+                <span className="text-neutral-700">{atleta.cpf ? formatCPF(atleta.cpf) : "—"}</span>
                 <span className="text-neutral-400">Contrato até</span>
                 <span className={venceLogo ? "font-medium text-amber-700" : "text-neutral-700"}>
                   {formatData(atleta.data_fim_contrato)}

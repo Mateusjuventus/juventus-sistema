@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { JuventusCrestMark } from "@/components/juventus-crest";
-import { AppSidebar, type SidebarNavItem } from "@/components/app-sidebar";
+import { AppSidebar, type SidebarIconKey, type SidebarNavItem } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { getModulosPermitidos, getModulosBasePermitidos, isMaster } from "@/lib/auth/role";
 import { MODULOS, type ModuloChave } from "@/lib/auth/modulos";
@@ -52,7 +52,7 @@ export async function AppShell({
       navItems = MODULOS_BASE.filter((m) => modulosBasePermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
         label: m.label,
-        icone: m.chave as ModuloChave,
+        icone: m.chave as SidebarIconKey,
       }));
     } else {
       const [modulosPermitidos, master] = await Promise.all([

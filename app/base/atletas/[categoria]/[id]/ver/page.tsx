@@ -68,7 +68,7 @@ export default async function VerAtletaBasePage({
             <DetailField label="Nome completo" value={atleta.nome_completo} />
             <DetailField label="Apelido" value={atleta.apelido} />
             <DetailField label="RG" value={atleta.rg} />
-            <DetailField label="CPF" value={formatCPF(atleta.cpf)} />
+            <DetailField label="CPF" value={atleta.cpf ? formatCPF(atleta.cpf) : null} />
             <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
             <DetailField label="Telefone" value={atleta.telefone} />
           </FieldGroup>
@@ -99,6 +99,27 @@ export default async function VerAtletaBasePage({
             <DetailField label="Data de início no clube" value={formatData(atleta.data_inicio_clube)} />
             <DetailField label="Data de término do contrato" value={formatData(atleta.data_fim_contrato)} />
             <DetailField label="Empresário/representante" value={atleta.empresario_nome} />
+            <DetailField label="Telefone do empresário" value={atleta.empresario_telefone} />
+          </FieldGroup>
+        </FormSection>
+
+        <FormSection title="Alojamento e ajuda de custo">
+          <FieldGroup>
+            <DetailField label="Mora no alojamento do clube" value={atleta.alojado ? "Sim" : "Não"} />
+            <DetailField
+              label="Valor de ajuda de custo"
+              value={atleta.valor_ajuda_custo != null ? `R$ ${atleta.valor_ajuda_custo.toFixed(2)}` : null}
+            />
+            <DetailField label="Escola" value={atleta.escola} />
+          </FieldGroup>
+        </FormSection>
+
+        <FormSection title="Responsáveis">
+          <FieldGroup>
+            <DetailField label="Nome da mãe" value={atleta.mae_nome} />
+            <DetailField label="Telefone da mãe" value={atleta.mae_telefone} />
+            <DetailField label="Nome do pai" value={atleta.pai_nome} />
+            <DetailField label="Telefone do pai" value={atleta.pai_telefone} />
           </FieldGroup>
         </FormSection>
 
@@ -109,6 +130,13 @@ export default async function VerAtletaBasePage({
             <div className="sm:col-span-2">
               <DetailField label="Endereço atual" value={atleta.endereco_atual} />
             </div>
+            <DetailField label="Logradouro" value={atleta.logradouro} />
+            <DetailField label="Número" value={atleta.numero} />
+            <DetailField label="Complemento" value={atleta.complemento} />
+            <DetailField label="Bairro" value={atleta.bairro} />
+            <DetailField label="Cidade" value={atleta.cidade} />
+            <DetailField label="UF" value={atleta.uf} />
+            <DetailField label="CEP" value={atleta.cep} />
           </FieldGroup>
         </FormSection>
       </div>

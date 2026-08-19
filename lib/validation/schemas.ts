@@ -32,8 +32,10 @@ const chavePixTipoField = z
   .optional()
   .or(z.literal(""));
 
-/** Campos de endereço compartilhados entre o cadastro interno e o formulário público de Staff. */
-const enderecoFields = {
+/** Campos de endereço compartilhados entre o cadastro interno e o formulário público de Staff (e,
+ * desde a Captação/Avaliação da Base, também o Atleta — ver `atletaBaseSchema` e
+ * `captacaoBaseSchema`). Exportado pra ser reaproveitado por schemas de outros cadastros. */
+export const enderecoFields = {
   cep: z.string().optional().or(z.literal("")),
   logradouro: z.string().optional().or(z.literal("")),
   numero: z.string().optional().or(z.literal("")),
@@ -94,8 +96,88 @@ export const atletaBaseSchema = atletaSchema.extend({
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
   tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "iniciacao"]).optional().nullable(),
+  // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis,
+  // empresário e endereço estruturado (autopreenchido por CEP — ver EnderecoFields). Todos
+  // opcionais: a maioria chega aos poucos, não de uma vez.
+  alojado: z.boolean().default(false),
+  valorAjudaCusto: z.coerce.number().nonnegative().optional().nullable(),
+  agencia: z.string().optional().or(z.literal("")),
+  empresarioTelefone: telefoneField,
+  maeNome: z.string().optional().or(z.literal("")),
+  maeTelefone: telefoneField,
+  paiNome: z.string().optional().or(z.literal("")),
+  paiTelefone: telefoneField,
+  escola: z.string().optional().or(z.literal("")),
+  ...enderecoFields,
 });
 export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;
+
+/**
+ * Captação/Avaliação (banco dos candidatos em teste, ver `docs/superpowers/specs/
+ * 2026-08-19-captacao-base-design.md`). Bem menos exigente que o cadastro de Atleta: um candidato
+ * pode chegar só com nome e telefone, e o resto entra conforme a avaliação anda.
+ */
+export const captacaoBaseSchema = z.object({
+  nomeCompleto: z.string().min(1, { message: "Nome é obrigatório" }).transform(normalizarNomeProprio),
+  dataInicio: z.string().optional().or(z.literal("")),
+  dataNascimento: z.string().optional().or(z.literal("")),
+  posicao: z.string().optional().or(z.literal("")),
+  categoria: z
+    .enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"])
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  indicacao: z.string().optional().or(z.literal("")),
+  desejaAlojamento: z.boolean().default(false),
+  status: z.enum(["avaliacao", "aprovado", "dispensado", "nao_compareceu"]).default("avaliacao"),
+  observacoes: z.string().optional().or(z.literal("")),
+  telefone: telefoneField,
+  maeNome: z.string().optional().or(z.literal("")),
+  maeTelefone: telefoneField,
+  paiNome: z.string().optional().or(z.literal("")),
+  paiTelefone: telefoneField,
+  empresarioNome: z.string().optional().or(z.literal("")),
+  empresarioTelefone: telefoneField,
+  agencia: z.string().optional().or(z.literal("")),
+  valorAjudaCusto: z.coerce.number().nonnegative().optional().nullable(),
+  escola: z.string().optional().or(z.literal("")),
+  ...enderecoFields,
+});
+export type CaptacaoBaseInput = z.infer<typeof captacaoBaseSchema>;
+
+/**
+ * Cadastro público de um candidato novo (`/cadastro-atleta-base`, link pra pais/atletas
+ * preencherem) — cria sempre com `status: "avaliacao"`, decidido no servidor, nunca pelo formulário.
+ * Pede o nome do responsável logo de cara: quem preenche geralmente é o pai/mãe de um menor.
+ */
+export const captacaoPublicaSchema = z.object({
+  nomeCompleto: z.string().min(1, { message: "Nome do atleta é obrigatório" }).transform(normalizarNomeProprio),
+  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+  posicao: z.string().min(1, { message: "Posição é obrigatória" }),
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+  telefone: telefoneField,
+  desejaAlojamento: z.boolean().default(false),
+  maeNome: z.string().optional().or(z.literal("")),
+  maeTelefone: telefoneField,
+  paiNome: z.string().optional().or(z.literal("")),
+  paiTelefone: telefoneField,
+  empresarioNome: z.string().optional().or(z.literal("")),
+  empresarioTelefone: telefoneField,
+  agencia: z.string().optional().or(z.literal("")),
+  escola: z.string().optional().or(z.literal("")),
+  ...enderecoFields,
+});
+export type CaptacaoPublicaInput = z.infer<typeof captacaoPublicaSchema>;
+
+/** Capacidade total do Alojamento (`/base/alojamento`) — "vagas disponíveis" é essa menos quem já
+ * está com `atletas_base.alojado = true` (ver lib/futebol/alojamento.ts). */
+export const alojamentoConfigSchema = z.object({
+  capacidadeTotal: z.coerce.number().int().nonnegative({ message: "Informe um número válido de vagas" }),
+  observacoes: z.string().optional().or(z.literal("")),
+});
+export type AlojamentoConfigInput = z.infer<typeof alojamentoConfigSchema>;
 
 export const comissaoTecnicaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),

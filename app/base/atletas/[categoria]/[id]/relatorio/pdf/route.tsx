@@ -55,8 +55,8 @@ export async function GET(request: Request, { params }: { params: { categoria: s
 
   const dadosPessoais = incluirDadosPessoais
     ? {
-        rg: atleta.rg,
-        cpf: atleta.cpf,
+        rg: atleta.rg ?? "",
+        cpf: atleta.cpf ?? "",
         dataNascimento: atleta.data_nascimento,
         telefone: atleta.telefone,
         naturalidade: naturalidade(atleta.cidade_natal, atleta.uf_natal),

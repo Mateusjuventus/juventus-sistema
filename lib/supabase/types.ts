@@ -78,8 +78,10 @@ export interface AtletaBaseRow {
   id: string;
   categoria: CategoriaBase;
   nome_completo: string;
-  rg: string;
-  cpf: string;
+  /** Opcional desde a Captação/Avaliação (ver 0076_captacao_alojamento_base.sql) — quem é
+   * aprovado direto de lá normalmente ainda não tem RG/CPF à mão; o Mateus completa depois. */
+  rg: string | null;
+  cpf: string | null;
   data_nascimento: string;
   posicao: string;
   categoria_posicao: CategoriaPosicao | null;
@@ -90,6 +92,8 @@ export interface AtletaBaseRow {
   telefone: string | null;
   cidade_natal: string | null;
   uf_natal: string | null;
+  /** Texto livre antigo — os cadastros novos usam os campos estruturados abaixo (cep/logradouro/
+   * etc.), que alimentam o autopreenchimento por CEP. Mantido só pra não perder o que já tinha. */
   endereco_atual: string | null;
   data_inicio_clube: string | null;
   empresario_nome: string | null;
@@ -99,6 +103,23 @@ export interface AtletaBaseRow {
   apelido: string | null;
   tipo_contrato: AtletaBaseTipoContrato | null;
   possui_contrato_formacao: boolean;
+  /** Mora no alojamento do clube — alimenta `/base/alojamento` (ver lib/futebol/alojamento.ts). */
+  alojado: boolean;
+  valor_ajuda_custo: number | null;
+  agencia: string | null;
+  empresario_telefone: string | null;
+  mae_nome: string | null;
+  mae_telefone: string | null;
+  pai_nome: string | null;
+  pai_telefone: string | null;
+  escola: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1479,4 +1500,67 @@ export interface JogoVagasStaffBaseInscricaoRow {
   situacao: VagaStaffSituacao;
   observacao: string | null;
   created_at: string;
+}
+
+// ===== Captação/Avaliação, Alojamento e cadastro de Atleta público — FUTEBOL DE BASE
+// (ver 0076_captacao_alojamento_base.sql e docs/superpowers/specs/2026-08-19-captacao-base-design.md) =====
+
+export type CaptacaoStatus = "avaliacao" | "aprovado" | "dispensado" | "nao_compareceu";
+
+/** Um candidato em teste/avaliação, antes de virar um cadastro oficial em `atletas_base`. Ao
+ * aprovar, a Server Action `aprovarCaptacao` cria o Atleta e preenche `atleta_gerado_id` aqui. */
+export interface CaptacaoBaseRow {
+  id: string;
+  /** Nº sequencial gerado pelo banco — é o que a listagem mostra como "Nº". */
+  numero: number;
+  data_inicio: string;
+  nome_completo: string;
+  data_nascimento: string | null;
+  posicao: string | null;
+  categoria: CategoriaBase | null;
+  indicacao: string | null;
+  deseja_alojamento: boolean;
+  status: CaptacaoStatus;
+  observacoes: string | null;
+  telefone: string | null;
+  mae_nome: string | null;
+  mae_telefone: string | null;
+  pai_nome: string | null;
+  pai_telefone: string | null;
+  empresario_nome: string | null;
+  empresario_telefone: string | null;
+  agencia: string | null;
+  valor_ajuda_custo: number | null;
+  escola: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  /** Número do endereço — nome diferente de `numero` (que já é o Nº sequencial do candidato) de
+   * propósito, pra não colidir os dois campos. */
+  numero_endereco: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  origem: "interno" | "publico";
+  atleta_gerado_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Toggle do link público `/cadastro-atleta-base` — mesmo formato de
+ * `ConfiguracaoCadastroStaffBaseRow`, tabela singleton própria. */
+export interface ConfiguracaoCadastroAtletaBaseRow {
+  id: string;
+  cadastro_publico_ativo: boolean;
+  updated_at: string;
+}
+
+/** Capacidade total do alojamento (singleton) — quem está alojado vem de `atletas_base.alojado`,
+ * não desta tabela (ver lib/futebol/alojamento.ts). */
+export interface AlojamentoBaseConfigRow {
+  id: string;
+  capacidade_total: number;
+  observacoes: string | null;
+  updated_at: string;
 }

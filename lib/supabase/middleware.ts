@@ -11,7 +11,14 @@ import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
 // roda com a service_role key (lib/supabase/admin.ts), não com a sessão anônima do Supabase.
 // "/vagas" é o link que o Staff abre pra pegar vaga num jogo (ver 0073_vagas_staff_jogo.sql) —
 // mesma natureza dos autocadastros: sem login, protegido por um token na própria URL.
-const PUBLIC_PATHS = ["/login", "/cadastro-staff", "/cadastro-staff-base", "/vagas", "/vagas-base"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/cadastro-staff",
+  "/cadastro-staff-base",
+  "/vagas",
+  "/vagas-base",
+  "/cadastro-atleta-base",
+];
 
 /**
  * Mantém a sessão do Supabase atualizada a cada request e bloqueia acesso

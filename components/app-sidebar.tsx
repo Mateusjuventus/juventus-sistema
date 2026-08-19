@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { BellIcon, ChecklistIcon, HomeIcon } from "@/components/department-icon";
 import {
+  IconAlojamento,
   IconAtletas,
+  IconCaptacao,
   IconComissao,
   IconCompeticoes,
   IconEstoque,
@@ -25,8 +27,9 @@ import { PRIORIDADE_MOBILE, type ModuloChave } from "@/lib/auth/modulos";
 
 /** Chave de ícone que o item carrega — string simples, serializável na fronteira Server→Client
  * Component (ver comentário abaixo). "usuarios" não é um `ModuloChave` de verdade (ver
- * `components/app-shell.tsx`), por isso o tipo aceita ela à parte. */
-export type SidebarIconKey = ModuloChave | "usuarios";
+ * `components/app-shell.tsx`), assim como "captacao"/"alojamento" só existem em `ModuloBaseChave`
+ * (módulos exclusivos do Futebol de Base) — por isso o tipo aceita as três à parte. */
+export type SidebarIconKey = ModuloChave | "usuarios" | "captacao" | "alojamento";
 
 export interface SidebarNavItem {
   href: string;
@@ -55,6 +58,8 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
   financeiro: IconFinanceiro,
   relatorios_avulso: IconRelatorio,
   usuarios: IconUsuarios,
+  captacao: IconCaptacao,
+  alojamento: IconAlojamento,
 };
 
 /** Rótulos da sidebar são escritos por extenso ("Comissão Técnica / Diretoria") e não cabem embaixo
@@ -68,6 +73,7 @@ const ROTULO_CURTO: Record<string, string> = {
   "Veículos / Placas": "Veículos",
   "Relatório Avulso": "Relatório",
   "Jogos / Competições": "Jogos",
+  "Captação/Avaliação": "Captação",
 };
 
 function rotuloCurto(label: string): string {
