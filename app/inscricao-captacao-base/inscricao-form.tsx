@@ -12,7 +12,8 @@ const initialState: InscricaoCaptacaoState = {};
 /**
  * Formulário público de inscrição pro teste/avaliação (ver app/inscricao-captacao-base/actions.ts).
  * Mesmos campos do cadastro interno de Captação, exceto Data de início/término e Status — o Mateus
- * preenche isso na hora de aprovar (aba "Aprovações") ou trocar o status depois.
+ * preenche isso na hora de aprovar (aba "Aprovações") ou trocar o status depois. TODOS os campos
+ * são obrigatórios (pedido de 19/08) — ver `captacaoInscricaoSchema`.
  */
 export function InscricaoCaptacaoForm({
   action,
@@ -70,10 +71,17 @@ export function InscricaoCaptacaoForm({
             error={errors.posicao}
             placeholder="Ex: Zagueiro, Atacante"
           />
-          <TextField label="Telefone de contato" name="telefone" defaultValue={values.telefone} error={errors.telefone} />
+          <TextField
+            label="Telefone de contato"
+            name="telefone"
+            required
+            defaultValue={values.telefone}
+            error={errors.telefone}
+          />
           <TextField
             label="Indicação"
             name="indicacao"
+            required
             defaultValue={values.indicacao}
             error={errors.indicacao}
             placeholder="Quem indicou o candidato"
@@ -81,6 +89,7 @@ export function InscricaoCaptacaoForm({
           <TextField
             label="Clube anterior"
             name="clubeAnterior"
+            required
             defaultValue={values.clubeAnterior}
             error={errors.clubeAnterior}
           />
@@ -89,26 +98,41 @@ export function InscricaoCaptacaoForm({
 
       <FormSection title="Responsáveis e escola">
         <FieldGroup>
-          <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
+          <TextField
+            label="Nome da mãe"
+            name="maeNome"
+            required
+            defaultValue={values.maeNome}
+            error={errors.maeNome}
+          />
           <TextField
             label="Telefone da mãe"
             name="maeTelefone"
+            required
             defaultValue={values.maeTelefone}
             error={errors.maeTelefone}
           />
-          <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
+          <TextField
+            label="Nome do pai"
+            name="paiNome"
+            required
+            defaultValue={values.paiNome}
+            error={errors.paiNome}
+          />
           <TextField
             label="Telefone do pai"
             name="paiTelefone"
+            required
             defaultValue={values.paiTelefone}
             error={errors.paiTelefone}
           />
-          <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
+          <TextField label="Escola" name="escola" required defaultValue={values.escola} error={errors.escola} />
         </FieldGroup>
       </FormSection>
 
       <FormSection title="Endereço">
         <EnderecoFields
+          required
           defaultValues={{
             cep: values.cep,
             logradouro: values.logradouro,

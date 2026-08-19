@@ -14,7 +14,7 @@ import { normalizeCPF } from "@/lib/validation/cpf";
 export interface ComissaoBaseFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
-  values?: Record<string, string>;
+  values?: Record<string, string | undefined>;
 }
 
 function parseForm(formData: FormData) {
@@ -29,6 +29,7 @@ function parseForm(formData: FormData) {
     telefone: String(formData.get("telefone") ?? ""),
     email: String(formData.get("email") ?? ""),
     tipoQuartoPreferido: String(formData.get("tipoQuartoPreferido") ?? ""),
+    valorSalario: String(formData.get("valorSalario") ?? "") || undefined,
   };
 
   const result = comissaoTecnicaBaseSchema.safeParse(raw);
@@ -94,6 +95,7 @@ export async function createComissaoBase(
     email: data.email || null,
     foto_path: fotoPath ?? null,
     tipo_quarto_preferido: data.tipoQuartoPreferido || null,
+    valor_salario: data.valorSalario ?? null,
   });
 
   if (error) return { error: friendlyDbError(error), values: raw };
@@ -132,6 +134,7 @@ export async function updateComissaoBase(
     telefone: data.telefone || null,
     email: data.email || null,
     tipo_quarto_preferido: data.tipoQuartoPreferido || null,
+    valor_salario: data.valorSalario ?? null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 

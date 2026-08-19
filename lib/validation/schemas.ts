@@ -164,6 +164,12 @@ export const captacaoBaseSchema = z
   );
 export type CaptacaoBaseInput = z.infer<typeof captacaoBaseSchema>;
 
+/** Campo de texto obrigatório da inscrição pública de Captação — mensagem própria por campo pra o
+ * erro fazer sentido embaixo de cada um (ver `captacaoInscricaoSchema`). */
+function inscricaoRequiredField(mensagem: string) {
+  return z.string().min(1, { message: mensagem });
+}
+
 /**
  * Inscrição pública pro teste/avaliação (`/inscricao-captacao-base`) — cria sempre com
  * `status: "inscricao"` e `origem: "publico"`, decidido no servidor. Mesmos campos do formulário
@@ -171,23 +177,35 @@ export type CaptacaoBaseInput = z.infer<typeof captacaoBaseSchema>;
  * de aprovar/trocar o status), Status/Observações (internos) e Alojamento (ajuste de 19/08: fica só
  * no cadastro interno — "remover a parte de alojamento e deixar isso como opção para mim colocar",
  * o Mateus decide isso depois de conhecer o candidato, não é algo que a família preenche).
+ *
+ * TODOS os campos são obrigatórios (pedido de 19/08: "tornar obrigatório todas as informações") —
+ * diferente de `captacaoBaseSchema` (cadastro interno, onde o candidato pode chegar só com nome e
+ * telefone) e diferente também de `telefoneField`/`enderecoFields` (compartilhados com outros
+ * cadastros do sistema, onde continuam opcionais) — por isso este schema não reaproveita esses
+ * campos genéricos, define os seus próprios exigindo preenchimento.
  */
 export const captacaoInscricaoSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome do atleta é obrigatório" }).transform(normalizarNomeProprio),
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-  posicao: z.string().min(1, { message: "Posição é obrigatória" }),
+  posicao: inscricaoRequiredField("Posição é obrigatória"),
   categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
-  telefone: telefoneField,
-  indicacao: z.string().optional().or(z.literal("")),
-  clubeAnterior: z.string().optional().or(z.literal("")),
-  maeNome: z.string().optional().or(z.literal("")),
-  maeTelefone: telefoneField,
-  paiNome: z.string().optional().or(z.literal("")),
-  paiTelefone: telefoneField,
-  escola: z.string().optional().or(z.literal("")),
-  ...enderecoFields,
+  telefone: inscricaoRequiredField("Telefone é obrigatório"),
+  indicacao: inscricaoRequiredField("Indicação é obrigatória"),
+  clubeAnterior: inscricaoRequiredField("Clube anterior é obrigatório"),
+  maeNome: inscricaoRequiredField("Nome da mãe é obrigatório"),
+  maeTelefone: inscricaoRequiredField("Telefone da mãe é obrigatório"),
+  paiNome: inscricaoRequiredField("Nome do pai é obrigatório"),
+  paiTelefone: inscricaoRequiredField("Telefone do pai é obrigatório"),
+  escola: inscricaoRequiredField("Escola é obrigatória"),
+  cep: inscricaoRequiredField("CEP é obrigatório"),
+  logradouro: inscricaoRequiredField("Endereço é obrigatório"),
+  numero: inscricaoRequiredField("Número é obrigatório"),
+  complemento: inscricaoRequiredField("Complemento é obrigatório"),
+  bairro: inscricaoRequiredField("Bairro é obrigatório"),
+  cidade: inscricaoRequiredField("Cidade é obrigatória"),
+  uf: inscricaoRequiredField("UF é obrigatória"),
 });
 export type CaptacaoInscricaoInput = z.infer<typeof captacaoInscricaoSchema>;
 
@@ -288,6 +306,10 @@ export const comissaoTecnicaBaseSchema = comissaoTecnicaSchema.extend({
   categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
+  // Snapshot do valor atual (não um lançamento recorrente) — mesmo padrão de
+  // `valorAjudaCusto` em `atletaBaseSchema`, ver docs/superpowers/specs/
+  // 2026-08-19-financeiro-base-design.md.
+  valorSalario: z.coerce.number().nonnegative().optional().nullable(),
 });
 export type ComissaoTecnicaBaseInput = z.infer<typeof comissaoTecnicaBaseSchema>;
 
@@ -496,6 +518,28 @@ export const despesaAvulsaSchema = z
     path: ["novaCategoriaNome"],
   });
 export type DespesaAvulsaInput = z.infer<typeof despesaAvulsaSchema>;
+
+/** Mesmo formato de despesaAvulsaSchema, para despesas avulsas da Base — sem vínculo com jogos
+ * (fora de escopo), mais `categoria` (idade) opcional: vazio = despesa geral da Base, não amarrada
+ * a uma categoria específica (ver docs/superpowers/specs/2026-08-19-financeiro-base-design.md). */
+export const despesaAvulsaBaseSchema = z
+  .object({
+    categoriaId: z.string().min(1, { message: "Categoria é obrigatória" }),
+    novaCategoriaNome: z.string().optional().or(z.literal("")),
+    categoria: z
+      .enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"])
+      .optional()
+      .or(z.literal("")),
+    descricao: z.string().optional().or(z.literal("")),
+    valorPrevisto: z.coerce.number().nonnegative({ message: "Valor previsto não pode ser negativo" }),
+    valorEfetuado: z.coerce.number().nonnegative().optional().nullable(),
+    data: z.string().optional().or(z.literal("")),
+  })
+  .refine((data) => data.categoriaId !== NOVA_CATEGORIA_GASTO_VALUE || Boolean(data.novaCategoriaNome?.trim()), {
+    message: "Informe o nome da nova categoria",
+    path: ["novaCategoriaNome"],
+  });
+export type DespesaAvulsaBaseInput = z.infer<typeof despesaAvulsaBaseSchema>;
 
 /** Ordem fixa e numerada dos tipos de solicitação — a mesma ordem aparece no seletor do
  * formulário, no filtro da listagem e na própria listagem. */

@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { GastoJogoBaseComCategoriaRow, JogoBaseRow } from "@/lib/supabase/types";
+import { GeralBaseView } from "./geral-base-view";
 
 function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -23,11 +24,13 @@ function StatCard({ label, valor, destaque }: { label: string; valor: string; de
 }
 
 /**
- * Painel geral de Prestação de Contas do Futebol de Base — espelha `app/financeiro/page.tsx`,
- * somando previsto x efetuado de todos os jogos_base/gastos_jogo_base (totalmente independente do
- * Profissional).
+ * Aba "Jogos" — Prestação de Contas do Futebol de Base (espelha `app/financeiro/page.tsx`),
+ * somando previsto x efetuado de todos os jogos_base/gastos_jogo_base. Totalmente independente do
+ * Profissional e, por decisão explícita, também independente do Gasto Geral da Base (aba "Geral da
+ * Base", ver `./geral-base-view.tsx`) — gasto de jogo é tratado como coisa diferente de custo de
+ * manter a categoria rodando.
  */
-export default async function FinanceiroBasePage() {
+async function JogosView() {
   const supabase = createClient();
 
   const [{ data: jogosData }, { data: gastosData }] = await Promise.all([
@@ -70,12 +73,7 @@ export default async function FinanceiroBasePage() {
     });
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Prestação de Contas" />
-
+    <>
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {gastos.length > 0 ? (
           <>
@@ -180,6 +178,50 @@ export default async function FinanceiroBasePage() {
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+/**
+ * `/base/financeiro` — duas abas, sem trocar de rota (`?aba=`): "Jogos" (Prestação de Contas,
+ * inalterada) e "Geral da Base" (novo, Gasto Geral da Base — salário da Comissão Técnica + ajuda
+ * de custo dos Atletas + despesas avulsas). Ver
+ * docs/superpowers/specs/2026-08-19-financeiro-base-design.md.
+ */
+export default function FinanceiroBasePage({
+  searchParams,
+}: {
+  searchParams: { aba?: string };
+}) {
+  const aba = searchParams.aba === "geral" ? "geral" : "jogos";
+
+  return (
+    <AppShell departamento="futebol_base">
+      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
+        ← Voltar
+      </Link>
+      <PageHeader title="Financeiro" />
+
+      <div className="tab-bar mb-1 mt-4">
+        <Link
+          href="/base/financeiro"
+          className={`tab-item border-b-2 px-3 py-2.5 text-sm font-medium transition-colors sm:py-2 ${
+            aba === "jogos" ? "border-grena text-grena" : "border-transparent text-neutral-500 hover:text-grena"
+          }`}
+        >
+          Jogos
+        </Link>
+        <Link
+          href="/base/financeiro?aba=geral"
+          className={`tab-item border-b-2 px-3 py-2.5 text-sm font-medium transition-colors sm:py-2 ${
+            aba === "geral" ? "border-grena text-grena" : "border-transparent text-neutral-500 hover:text-grena"
+          }`}
+        >
+          Geral da Base
+        </Link>
+      </div>
+
+      {aba === "geral" ? <GeralBaseView /> : <JogosView />}
     </AppShell>
   );
 }

@@ -28,13 +28,20 @@ interface EnderecoErrors {
  * (serviço público, sem chave de acesso) e preenche rua/bairro/cidade/UF automaticamente — todos os
  * campos continuam editáveis manualmente depois, inclusive número e complemento (que o ViaCEP não
  * preenche).
+ *
+ * `required`: opcional, `false` por padrão (mantém o comportamento de sempre — endereço opcional
+ * nos cadastros que já usam este componente). A inscrição pública de Captação
+ * (`/inscricao-captacao-base`) passa `required`, já que lá TODOS os campos são obrigatórios (ver
+ * `captacaoInscricaoSchema`) — os outros usos deste componente continuam sem mexer.
  */
 export function EnderecoFields({
   defaultValues,
   errors,
+  required,
 }: {
   defaultValues?: EnderecoValues;
   errors?: EnderecoErrors;
+  required?: boolean;
 }) {
   const [cep, setCep] = useState(defaultValues?.cep ?? "");
   const [logradouro, setLogradouro] = useState(defaultValues?.logradouro ?? "");
@@ -74,7 +81,7 @@ export function EnderecoFields({
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
         <label htmlFor="cep" className="field-label">
-          CEP
+          CEP{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
           id="cep"
@@ -83,6 +90,7 @@ export function EnderecoFields({
           onChange={(e) => setCep(e.target.value)}
           onBlur={(e) => buscarCep(e.target.value)}
           placeholder="00000-000"
+          required={required}
           className="field-input"
         />
         {buscando ? <p className="mt-1 text-xs text-neutral-400">Buscando endereço...</p> : null}
@@ -99,13 +107,14 @@ export function EnderecoFields({
 
       <div>
         <label htmlFor="logradouro" className="field-label">
-          Rua / Logradouro
+          Rua / Logradouro{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
           id="logradouro"
           name="logradouro"
           value={logradouro}
           onChange={(e) => setLogradouro(e.target.value)}
+          required={required}
           className="field-input"
         />
         {errors?.logradouro ? <p className="field-error">{errors.logradouro}</p> : null}
@@ -113,13 +122,14 @@ export function EnderecoFields({
 
       <div>
         <label htmlFor="numero" className="field-label">
-          Número
+          Número{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
           id="numero"
           name="numero"
           value={numero}
           onChange={(e) => setNumero(e.target.value)}
+          required={required}
           className="field-input"
         />
         {errors?.numero ? <p className="field-error">{errors.numero}</p> : null}
@@ -127,13 +137,14 @@ export function EnderecoFields({
 
       <div>
         <label htmlFor="complemento" className="field-label">
-          Complemento
+          Complemento{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
           id="complemento"
           name="complemento"
           value={complemento}
           onChange={(e) => setComplemento(e.target.value)}
+          required={required}
           className="field-input"
         />
         {errors?.complemento ? <p className="field-error">{errors.complemento}</p> : null}
@@ -141,13 +152,14 @@ export function EnderecoFields({
 
       <div>
         <label htmlFor="bairro" className="field-label">
-          Bairro
+          Bairro{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
           id="bairro"
           name="bairro"
           value={bairro}
           onChange={(e) => setBairro(e.target.value)}
+          required={required}
           className="field-input"
         />
         {errors?.bairro ? <p className="field-error">{errors.bairro}</p> : null}
@@ -155,13 +167,14 @@ export function EnderecoFields({
 
       <div>
         <label htmlFor="cidade" className="field-label">
-          Cidade
+          Cidade{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
           id="cidade"
           name="cidade"
           value={cidade}
           onChange={(e) => setCidade(e.target.value)}
+          required={required}
           className="field-input"
         />
         {errors?.cidade ? <p className="field-error">{errors.cidade}</p> : null}
@@ -169,7 +182,7 @@ export function EnderecoFields({
 
       <div>
         <label htmlFor="uf" className="field-label">
-          UF
+          UF{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
           id="uf"
@@ -177,6 +190,7 @@ export function EnderecoFields({
           value={uf}
           onChange={(e) => setUf(e.target.value.toUpperCase().slice(0, 2))}
           maxLength={2}
+          required={required}
           className="field-input"
         />
         {errors?.uf ? <p className="field-error">{errors.uf}</p> : null}

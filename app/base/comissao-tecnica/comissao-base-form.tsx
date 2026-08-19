@@ -11,7 +11,8 @@ import type { ComissaoBaseFormState } from "./actions";
 const initialState: ComissaoBaseFormState = {};
 
 /** Espelha `app/comissao-tecnica/comissao-form.tsx`, com o campo Categoria a mais (obrigatório,
- * editável mesmo depois de criado). */
+ * editável mesmo depois de criado) e o campo Salário mensal (opcional — usado no Gasto Geral da
+ * Base, ver docs/superpowers/specs/2026-08-19-financeiro-base-design.md). */
 export function ComissaoBaseForm({
   action,
   entityId,
@@ -118,6 +119,15 @@ export function ComissaoBaseForm({
             <option value="single">Single</option>
             <option value="duplo">Duplo</option>
           </SelectField>
+          <TextField
+            label="Salário mensal (R$)"
+            name="valorSalario"
+            type="number"
+            min={0}
+            step="0.01"
+            defaultValue={values.valorSalario}
+            error={errors.valorSalario}
+          />
         </FieldGroup>
       </FormSection>
 

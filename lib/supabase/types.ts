@@ -167,6 +167,9 @@ export interface ComissaoTecnicaBaseRow {
   foto_path: string | null;
   tipo_quarto_preferido: TipoQuarto | null;
   apelido: string | null;
+  /** Salário mensal — snapshot do valor atual, não um lançamento recorrente (ver
+   * docs/superpowers/specs/2026-08-19-financeiro-base-design.md). `null` até o Mateus preencher. */
+  valor_salario: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -565,6 +568,28 @@ export interface DespesaAvulsaComCategoriaRow extends DespesaAvulsaRow {
 export interface DespesaAvulsaJogoRow {
   despesa_id: string;
   jogo_id: string;
+}
+
+/** Espelha `DespesaAvulsaRow`, mas para o Gasto Geral da Base — tabela `despesas_avulsas_base`,
+ * sem vínculo com jogos (fora de escopo, ver docs/superpowers/specs/2026-08-19-financeiro-base-
+ * design.md), mais `categoria` (idade): `null` = despesa geral da Base, não amarrada a uma
+ * categoria específica. */
+export interface DespesaAvulsaBaseRow {
+  id: string;
+  categoria_id: string;
+  categoria: CategoriaBase | null;
+  descricao: string | null;
+  data: string | null;
+  valor_previsto: number;
+  valor_efetuado: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Linha de despesas_avulsas_base já com o tipo de despesa embutido via join. */
+export interface DespesaAvulsaBaseComCategoriaRow extends DespesaAvulsaBaseRow {
+  categoria_gasto: { nome: string } | null;
 }
 
 /**
