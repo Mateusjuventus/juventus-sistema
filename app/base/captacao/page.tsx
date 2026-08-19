@@ -10,9 +10,14 @@ import {
   contarInscricoesPendentes,
   contarPorStatus,
 } from "@/lib/futebol/captacao";
-import type { CaptacaoBaseRow, ConfiguracaoInscricaoCaptacaoBaseRow } from "@/lib/supabase/types";
-import { alternarInscricaoCaptacao, mudarStatusCaptacao } from "./actions";
+import type {
+  CaptacaoBaseRow,
+  ConfiguracaoInscricaoCaptacaoBaseRow,
+  ConfiguracaoParecerCaptacaoBaseRow,
+} from "@/lib/supabase/types";
+import { alternarInscricaoCaptacao, atualizarAssinaturasParecer, mudarStatusCaptacao } from "./actions";
 import { CaptacaoLista } from "./captacao-lista";
+import { AssinaturasConfigForm } from "./assinaturas-config-form";
 
 /**
  * Banco de dados da Captação/Avaliação — TOTALMENTE separado do cadastro de Atletas (ver
@@ -45,13 +50,15 @@ export default async function CaptacaoPage({
   if (categoria) query = query.eq("categoria", categoria);
   if (uf) query = query.eq("uf", uf.toUpperCase());
 
-  const [{ data, error }, { data: configData }] = await Promise.all([
+  const [{ data, error }, { data: configData }, { data: configParecerData }] = await Promise.all([
     query,
     supabase.from("configuracoes_inscricao_captacao_base").select("*").limit(1).maybeSingle(),
+    supabase.from("configuracoes_parecer_captacao_base").select("*").limit(1).maybeSingle(),
   ]);
 
   const candidatos = (data ?? []) as CaptacaoBaseRow[];
   const config = configData as ConfiguracaoInscricaoCaptacaoBaseRow | null;
+  const configParecer = configParecerData as ConfiguracaoParecerCaptacaoBaseRow | null;
 
   // A contagem dos cartões é sobre TODO o banco (sem o filtro de busca/status da lista) — senão
   // filtrar por "Aprovado" faria os outros três cartões sumirem, o oposto do que um resumo serve.
@@ -113,6 +120,16 @@ export default async function CaptacaoPage({
             ativo={config.cadastro_publico_ativo}
             linkPath="/inscricao-captacao-base"
             action={alternarInscricaoCaptacao}
+          />
+        </div>
+      ) : null}
+
+      {configParecer ? (
+        <div className="card mt-4 p-4">
+          <AssinaturasConfigForm
+            id={configParecer.id}
+            assinaturasIniciais={configParecer.assinaturas}
+            action={atualizarAssinaturasParecer}
           />
         </div>
       ) : null}

@@ -9,6 +9,7 @@ import { TODOS_MODULOS_BASE, ehModuloBaseValido } from "@/lib/auth/modulos-base"
 import { TODOS_DEPARTAMENTOS, ehDepartamentoValido } from "@/lib/auth/departamentos";
 import { ehTarefaCategoriaValida } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS, ehEstoqueCategoriaValida } from "@/lib/auth/estoque-categorias";
+import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { PerfilRole } from "@/lib/supabase/types";
 import type { PermissaoActionState } from "@/components/permissao-checkboxes-form";
 
@@ -20,7 +21,19 @@ export interface UsuarioFormState {
 }
 
 function parseRole(formData: FormData): PerfilRole {
-  return formData.get("role") === "master" ? "master" : "regular";
+  const role = formData.get("role");
+  if (role === "master") return "master";
+  if (role === "treinador") return "treinador";
+  return "regular";
+}
+
+/** Categorias que um usuário "treinador" acompanha — só faz sentido pra esse papel (ver
+ * `lib/auth/role.ts`'s `getCategoriasTreinador`, que já ignora isso pra qualquer outro papel).
+ * Pode ter mais de uma: "o treinador pode fazer tipo de duas [...] o Fabinho selecionou Sub 11 e
+ * Sub 12 e pode fazer dos dois." */
+function parseCategoriasTreinador(formData: FormData, role: PerfilRole): string[] {
+  if (role !== "treinador") return [];
+  return formData.getAll("categoriasTreinador").map(String).filter(ehCategoriaBaseValida);
 }
 
 /** Lê os checkboxes de "Módulos liberados" marcados no formulário, validando contra a lista
@@ -87,6 +100,7 @@ export async function criarUsuario(
   const departamentos = parseDepartamentos(formData, role);
   const tarefasCategorias = parseCategoriasTarefas(formData);
   const estoqueCategorias = parseEstoqueCategorias(formData, role);
+  const categoriasTreinador = parseCategoriasTreinador(formData, role);
   const raw = { email, role };
 
   const fieldErrors: Record<string, string> = {};
@@ -117,6 +131,7 @@ export async function criarUsuario(
     departamentos_permitidos: departamentos,
     tarefas_categorias_visiveis: tarefasCategorias,
     estoque_categorias_permitidas: estoqueCategorias,
+    categorias_treinador: categoriasTreinador,
   });
   if (perfilError) {
     return {
@@ -221,6 +236,32 @@ export async function atualizarDepartamentos(
 
   revalidatePath("/usuarios");
   return { success: "Departamentos salvos." };
+}
+
+/** Salva as categorias que um usuário "treinador" já existente acompanha — espelha
+ * `atualizarDepartamentos`. Só master pode chamar. Não faz sentido pra quem não é treinador (a
+ * tela nem mostra os checkboxes nesse caso), mas a action confere de novo o papel atual no banco
+ * antes de gravar, por segurança — igual às outras `atualizarX` desta tela. */
+export async function atualizarCategoriasTreinador(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+
+  const admin = createAdminClient();
+  const { data: perfilAtual } = await admin.from("perfis").select("role").eq("id", id).maybeSingle();
+  const role = ((perfilAtual as { role?: PerfilRole } | null)?.role ?? "regular") as PerfilRole;
+  const categoriasTreinador = parseCategoriasTreinador(formData, role);
+
+  const { error } = await admin.from("perfis").update({ categorias_treinador: categoriasTreinador }).eq("id", id);
+  if (error) return { error: `Não foi possível salvar as categorias. Tente novamente. (${error.message})` };
+
+  revalidatePath("/usuarios");
+  return { success: "Categorias salvas." };
 }
 
 /** Salva quais categorias de Tarefas aparecem pra esse usuário em `/tarefas`. Só master pode

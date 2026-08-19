@@ -4,6 +4,7 @@ import {
   contarPorCategoriaEStatus,
   contarPorStatus,
   contarPorUf,
+  payloadMudancaStatusCaptacao,
   taxaAprovacao,
 } from "./captacao";
 
@@ -76,6 +77,36 @@ describe("contarPorUf", () => {
   it("agrupa por UF e ignora quem não tem UF preenchida", () => {
     const contagem = contarPorUf([{ uf: "SP" }, { uf: "sp" }, { uf: "RJ" }, { uf: null }, { uf: "" }]);
     expect(contagem).toEqual({ SP: 2, RJ: 1 });
+  });
+});
+
+describe("payloadMudancaStatusCaptacao", () => {
+  it("carimba a data de término com hoje quando vira um resultado final sem data ainda", () => {
+    expect(payloadMudancaStatusCaptacao("aprovado", null, "2026-08-19")).toEqual({
+      status: "aprovado",
+      data_termino: "2026-08-19",
+    });
+  });
+
+  it("não sobrescreve uma data de término já existente", () => {
+    expect(payloadMudancaStatusCaptacao("dispensado", "2026-08-01", "2026-08-19")).toEqual({
+      status: "dispensado",
+      data_termino: "2026-08-01",
+    });
+  });
+
+  it("limpa a data de término ao voltar pra 'avaliacao' (reabrir)", () => {
+    expect(payloadMudancaStatusCaptacao("avaliacao", "2026-08-01", "2026-08-19")).toEqual({
+      status: "avaliacao",
+      data_termino: null,
+    });
+  });
+
+  it("carimba também pra 'nao_compareceu', mesma regra dos outros resultados finais", () => {
+    expect(payloadMudancaStatusCaptacao("nao_compareceu", null, "2026-08-19")).toEqual({
+      status: "nao_compareceu",
+      data_termino: "2026-08-19",
+    });
   });
 });
 

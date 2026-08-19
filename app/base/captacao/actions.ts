@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { captacaoBaseSchema } from "@/lib/validation/schemas";
 import { hojeBrasilia } from "@/lib/data-brasil";
+import { payloadMudancaStatusCaptacao, type CaptacaoStatusDecidido } from "@/lib/futebol/captacao";
+import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
 import type { CaptacaoStatus } from "@/lib/supabase/types";
 
 /**
@@ -31,6 +34,7 @@ function parseForm(formData: FormData) {
     categoria: String(formData.get("categoria") ?? ""),
     indicacao: String(formData.get("indicacao") ?? ""),
     desejaAlojamento: formData.get("desejaAlojamento") === "on",
+    clubeAnterior: String(formData.get("clubeAnterior") ?? ""),
     status: String(formData.get("status") ?? "avaliacao"),
     observacoes: String(formData.get("observacoes") ?? ""),
     telefone: String(formData.get("telefone") ?? ""),
@@ -69,6 +73,7 @@ function dadosParaSalvar(data: ReturnType<typeof captacaoBaseSchema.parse>) {
     categoria: data.categoria || null,
     indicacao: data.indicacao || null,
     deseja_alojamento: data.desejaAlojamento,
+    clube_anterior: data.clubeAnterior || null,
     status: data.status,
     observacoes: data.observacoes || null,
     telefone: data.telefone || null,
@@ -87,6 +92,29 @@ function dadosParaSalvar(data: ReturnType<typeof captacaoBaseSchema.parse>) {
   };
 }
 
+/** Mesmo padrão de `uploadFotoIfPresent` em app/base/atletas/actions.ts: sobe a foto (se veio um
+ * arquivo no campo "foto") pro bucket privado compartilhado `entity-photos`, sempre com o mesmo
+ * nome por candidato (upsert), pra um novo upload substituir o anterior em vez de acumular
+ * arquivos órfãos. Usado tanto pelo cadastro interno (`criarCaptacao`/`atualizarCaptacao`) quanto,
+ * futuramente, por qualquer outro fluxo que precise trocar a foto do candidato. */
+async function uploadFotoIfPresent(
+  supabase: ReturnType<typeof createClient>,
+  formData: FormData,
+  captacaoId: string,
+): Promise<{ path?: string | null; error?: string }> {
+  const file = formData.get("foto");
+  if (!(file instanceof File) || file.size === 0) return {};
+
+  const path = buildPhotoPath("captacao-base", captacaoId, file.name);
+  const { error } = await supabase.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type || undefined,
+  });
+
+  if (error) return { error: "Não foi possível enviar a foto. O restante dos dados não foi salvo." };
+  return { path };
+}
+
 export async function criarCaptacao(_prevState: CaptacaoFormState, formData: FormData): Promise<CaptacaoFormState> {
   const { raw, result } = parseForm(formData);
   if (!result.success) {
@@ -96,9 +124,13 @@ export async function criarCaptacao(_prevState: CaptacaoFormState, formData: For
   }
 
   const supabase = createClient();
+  const id = randomUUID();
+  const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
+  if (uploadError) return { error: uploadError, values: raw };
+
   const { data, error } = await supabase
     .from("captacao_base")
-    .insert({ ...dadosParaSalvar(result.data), origem: "interno" })
+    .insert({ ...dadosParaSalvar(result.data), id, foto_path: fotoPath ?? null, origem: "interno" })
     .select("id")
     .single();
   if (error || !data) return { error: `Não foi possível salvar: ${error?.message ?? "erro desconhecido"}` };
@@ -120,7 +152,13 @@ export async function atualizarCaptacao(
   }
 
   const supabase = createClient();
-  const { error } = await supabase.from("captacao_base").update(dadosParaSalvar(result.data)).eq("id", captacaoId);
+  const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, captacaoId);
+  if (uploadError) return { error: uploadError, values: raw };
+
+  const updatePayload: Record<string, unknown> = { ...dadosParaSalvar(result.data) };
+  if (fotoPath) updatePayload.foto_path = fotoPath;
+
+  const { error } = await supabase.from("captacao_base").update(updatePayload).eq("id", captacaoId);
   if (error) return { error: `Não foi possível salvar: ${error.message}` };
 
   revalidatePath("/base/captacao");
@@ -167,12 +205,11 @@ export async function mudarStatusCaptacao(formData: FormData): Promise<void> {
     .single();
   if (!atual || atual.status === "inscricao") return;
 
-  const payload: Record<string, unknown> = { status };
-  if (status === "avaliacao") {
-    payload.data_termino = null;
-  } else if (!atual.data_termino) {
-    payload.data_termino = hojeBrasilia();
-  }
+  const payload = payloadMudancaStatusCaptacao(
+    status as CaptacaoStatusDecidido,
+    atual.data_termino,
+    hojeBrasilia(),
+  );
 
   await supabase.from("captacao_base").update(payload).eq("id", id);
   revalidatePath("/base/captacao");
@@ -211,6 +248,42 @@ export async function aprovarInscricaoCaptacao(
   revalidatePath("/base/captacao/aprovacoes");
   revalidatePath(`/base/captacao/${id}`);
   return {};
+}
+
+/** Estado da action de configuração das assinaturas do Parecer Final — mesmo formato de
+ * `PermissaoActionState` (components/permissao-checkboxes-form.tsx), mas não reaproveita aquele
+ * tipo porque este formulário não é de checkboxes. */
+export interface AssinaturasParecerState {
+  success?: string;
+  error?: string;
+}
+
+/**
+ * Salva a lista de assinaturas (nome + cargo) que aparecem em todo Parecer Final de Avaliação
+ * gerado — configuração fixa, uma tela só (ver `AssinaturasConfigForm`), reaproveitada em todo PDF.
+ * `assinaturaNome`/`assinaturaCargo` chegam como listas paralelas (um `<input>` de cada por linha,
+ * mesma ordem em que a tela renderizou) — o índice de uma corresponde ao da outra.
+ */
+export async function atualizarAssinaturasParecer(
+  _prevState: AssinaturasParecerState,
+  formData: FormData,
+): Promise<AssinaturasParecerState> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Configuração inválida." };
+
+  const nomes = formData.getAll("assinaturaNome").map(String);
+  const cargos = formData.getAll("assinaturaCargo").map(String);
+  const assinaturas = nomes.map((nome, i) => ({ nome: nome.trim(), cargo: (cargos[i] ?? "").trim() }));
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("configuracoes_parecer_captacao_base")
+    .update({ assinaturas })
+    .eq("id", id);
+  if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
+
+  revalidatePath("/base/captacao");
+  return { success: "Assinaturas salvas." };
 }
 
 /** Liga/desliga o link público de INSCRIÇÃO da Captação (`/inscricao-captacao-base`) — totalmente

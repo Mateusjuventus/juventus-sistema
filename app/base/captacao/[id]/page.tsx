@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
+import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
 import type { CaptacaoBaseRow } from "@/lib/supabase/types";
 import { atualizarCaptacao, excluirCaptacao, mudarStatusCaptacao } from "../actions";
@@ -21,6 +22,24 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
   const { data } = await supabase.from("captacao_base").select("*").eq("id", params.id).single();
   if (!data) notFound();
   const candidato = data as CaptacaoBaseRow;
+  const fotoUrl = await getSignedPhotoUrl(supabase, candidato.foto_path);
+
+  // "Quem preencheu" o Parecer — o sistema não tem um campo de nome separado em `perfis`, só
+  // e-mail (mesmo padrão usado em /usuarios), por isso mostra o e-mail do Treinador.
+  let emailTreinador: string | null = null;
+  if (candidato.parecer_preenchido_por) {
+    const { data: perfilTreinador } = await supabase
+      .from("perfis")
+      .select("email")
+      .eq("id", candidato.parecer_preenchido_por)
+      .maybeSingle();
+    emailTreinador = (perfilTreinador as { email?: string } | null)?.email ?? null;
+  }
+  const notasPreenchidas =
+    candidato.nota_tecnica !== null &&
+    candidato.nota_fisica !== null &&
+    candidato.nota_tatica !== null &&
+    candidato.nota_comportamental !== null;
 
   const defaultValues: Record<string, string> = {
     nomeCompleto: candidato.nome_completo,
@@ -30,6 +49,7 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
     posicao: candidato.posicao ?? "",
     categoria: candidato.categoria ?? "",
     indicacao: candidato.indicacao ?? "",
+    clubeAnterior: candidato.clube_anterior ?? "",
     desejaAlojamento: candidato.deseja_alojamento ? "on" : "",
     status: candidato.status,
     observacoes: candidato.observacoes ?? "",
@@ -101,11 +121,67 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
         </div>
       </section>
 
+      {candidato.status !== "inscricao" ? (
+        <section className="card mt-4 space-y-4 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-semibold text-neutral-900">Parecer Final de Avaliação</h2>
+            <a
+              href={`/base/captacao/${candidato.id}/parecer/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md bg-grena px-3 py-1.5 text-sm font-semibold text-white hover:bg-grena/90"
+            >
+              Gerar Parecer (PDF)
+            </a>
+          </div>
+
+          {notasPreenchidas ? (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div>
+                  <p className="text-xs font-medium text-neutral-500">Técnica</p>
+                  <p className="text-lg font-semibold text-neutral-900">{candidato.nota_tecnica}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-neutral-500">Física</p>
+                  <p className="text-lg font-semibold text-neutral-900">{candidato.nota_fisica}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-neutral-500">Tática</p>
+                  <p className="text-lg font-semibold text-neutral-900">{candidato.nota_tatica}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-neutral-500">Comportamental</p>
+                  <p className="text-lg font-semibold text-neutral-900">{candidato.nota_comportamental}</p>
+                </div>
+              </div>
+              {candidato.parecer_comentarios ? (
+                <div>
+                  <p className="text-xs font-medium text-neutral-500">Comentários do Treinador</p>
+                  <p className="whitespace-pre-line text-sm text-neutral-800">{candidato.parecer_comentarios}</p>
+                </div>
+              ) : null}
+              <p className="text-xs text-neutral-500">
+                Preenchido{emailTreinador ? ` por ${emailTreinador}` : ""}
+                {candidato.parecer_preenchido_em ? ` em ${formatDataBr(candidato.parecer_preenchido_em)}` : ""}.
+                Esse preenchimento é feito pelo Treinador, na tela dele — aqui é só consulta.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-neutral-600">
+              O Treinador ainda não preencheu as notas deste candidato. O PDF pode ser gerado a
+              qualquer momento, mas sai em branco até o preenchimento.
+            </p>
+          )}
+        </section>
+      ) : null}
+
       <div className="card mt-4 p-6">
         <CaptacaoForm
           action={atualizarAction}
           entityId={candidato.id}
           defaultValues={defaultValues}
+          fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"
         />
       </div>

@@ -78,18 +78,12 @@ export function InscricaoCaptacaoForm({
             error={errors.indicacao}
             placeholder="Quem indicou o candidato"
           />
-          <div className="flex items-center gap-2 sm:col-span-2">
-            <input
-              id="desejaAlojamento"
-              name="desejaAlojamento"
-              type="checkbox"
-              defaultChecked={values.desejaAlojamento === "on"}
-              className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
-            />
-            <label htmlFor="desejaAlojamento" className="text-sm font-medium text-neutral-700">
-              Precisa de alojamento
-            </label>
-          </div>
+          <TextField
+            label="Clube anterior"
+            name="clubeAnterior"
+            defaultValue={values.clubeAnterior}
+            error={errors.clubeAnterior}
+          />
         </FieldGroup>
       </FormSection>
 

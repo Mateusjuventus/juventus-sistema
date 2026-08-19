@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { EnderecoFields } from "@/components/endereco-fields";
+import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { CAPTACAO_STATUS_OPTIONS, captacaoStatusLabel } from "@/lib/futebol/captacao";
@@ -19,11 +20,13 @@ export function CaptacaoForm({
   action,
   entityId,
   defaultValues,
+  fotoUrl,
   submitLabel,
 }: {
   action: (prevState: CaptacaoFormState, formData: FormData) => Promise<CaptacaoFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
+  fotoUrl?: string | null;
   submitLabel: string;
 }) {
   const [state, formAction] = useFormState(action, initialState);
@@ -31,11 +34,14 @@ export function CaptacaoForm({
   const errors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} className="space-y-6" encType="multipart/form-data">
       {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
 
       <FormSection title="Candidato">
         <FieldGroup>
+          <div className="sm:col-span-2">
+            <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} />
+          </div>
           <TextField
             label="Nome completo"
             name="nomeCompleto"
@@ -91,6 +97,12 @@ export function CaptacaoForm({
             defaultValue={values.indicacao}
             error={errors.indicacao}
             placeholder="Quem indicou o candidato"
+          />
+          <TextField
+            label="Clube anterior"
+            name="clubeAnterior"
+            defaultValue={values.clubeAnterior}
+            error={errors.clubeAnterior}
           />
           <SelectField label="Status" name="status" defaultValue={values.status ?? "avaliacao"} error={errors.status}>
             {/* "Inscrição enviada" só aparece aqui pra não quebrar quem já chegou pelo link público

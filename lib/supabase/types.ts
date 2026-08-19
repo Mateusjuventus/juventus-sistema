@@ -1115,11 +1115,14 @@ export interface SolicitacaoItemBaseRow {
   created_at: string;
 }
 
-export type PerfilRole = "master" | "regular";
+export type PerfilRole = "master" | "regular" | "treinador";
 
 /** Papel de cada usuário logado — "master" pode excluir Entrada/Saída do Estoque, acessar a tela
  * de Usuários (/usuarios) e sempre tem acesso a todos os módulos, independente de
- * `modulos_permitidos`; "regular" usa só os módulos liberados pra ele (ver `lib/auth/modulos.ts`). */
+ * `modulos_permitidos`; "regular" usa só os módulos liberados pra ele (ver `lib/auth/modulos.ts`);
+ * "treinador" não usa nada disso — cai direto em `/treinador` (ver `lib/supabase/middleware.ts`) e
+ * só enxerga os candidatos da Captação nas categorias de `categorias_treinador`, pra preencher o
+ * Parecer Final (ver docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md). */
 export interface PerfilRow {
   id: string;
   email: string;
@@ -1129,6 +1132,9 @@ export interface PerfilRow {
   departamentos_permitidos: string[];
   tarefas_categorias_visiveis: string[];
   estoque_categorias_permitidas: string[];
+  /** Só usada quando `role = 'treinador'`. Cada item é uma `CategoriaBase`. Pode ter mais de uma
+   * (ex.: um treinador que cobre Sub-11 e Sub-12 ao mesmo tempo). */
+  categorias_treinador: string[];
   created_at: string;
 }
 
@@ -1553,6 +1559,19 @@ export interface CaptacaoBaseRow {
   uf: string | null;
   origem: "interno" | "publico";
   atleta_gerado_id: string | null;
+  /** Caminho no bucket `entity-photos` (mesmo padrão de `atletas_base.foto_path`). Upload feito
+   * pelo staff na tela interna — não pelo candidato no link público (ver spec do Parecer Final). */
+  foto_path: string | null;
+  clube_anterior: string | null;
+  /** As 4 notas do Parecer Final, preenchidas pelo Treinador — sempre entre 3 e 9 (mesma escala da
+   * legenda do documento: 3-4 Regular, 5-6 Bom, 7-8 Muito Bom, 9 Excelente). */
+  nota_tecnica: number | null;
+  nota_fisica: number | null;
+  nota_tatica: number | null;
+  nota_comportamental: number | null;
+  parecer_comentarios: string | null;
+  parecer_preenchido_em: string | null;
+  parecer_preenchido_por: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1572,6 +1591,22 @@ export interface ConfiguracaoCadastroAtletaBaseRow {
 export interface ConfiguracaoInscricaoCaptacaoBaseRow {
   id: string;
   cadastro_publico_ativo: boolean;
+  updated_at: string;
+}
+
+/** Uma linha de assinatura do Parecer Final (nome + cargo) — ver `AssinaturaCaptacao` abaixo. */
+export interface AssinaturaCaptacao {
+  nome: string;
+  cargo: string;
+}
+
+/** Configuração das assinaturas do Parecer Final de Avaliação (`/base/captacao/[id]/parecer/pdf`) —
+ * singleton, mesmo espírito dos outros toggles/configurações de Captação. `assinaturas` é uma
+ * lista (não colunas fixas tipo assinatura1/assinatura2 do Financeiro) porque o Mateus pediu "3 e
+ * se precisar adiciono mais" — ver docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md. */
+export interface ConfiguracaoParecerCaptacaoBaseRow {
+  id: string;
+  assinaturas: AssinaturaCaptacao[];
   updated_at: string;
 }
 

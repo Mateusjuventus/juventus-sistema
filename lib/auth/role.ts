@@ -13,6 +13,7 @@ interface PerfilPermissoes {
   departamentos_permitidos: string[] | null;
   tarefas_categorias_visiveis: string[] | null;
   estoque_categorias_permitidas: string[] | null;
+  categorias_treinador: string[] | null;
 }
 
 /** Uma única leitura de `perfis` com tudo que as funções abaixo precisam — evita repetir a mesma
@@ -28,7 +29,7 @@ async function getPerfilPermissoes(
   const { data } = await supabase
     .from("perfis")
     .select(
-      "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, tarefas_categorias_visiveis, estoque_categorias_permitidas",
+      "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -49,6 +50,20 @@ export async function getUserRole(supabase: ReturnType<typeof createClient>): Pr
 
 export async function isMaster(supabase: ReturnType<typeof createClient>): Promise<boolean> {
   return (await getUserRole(supabase)) === "master";
+}
+
+/**
+ * Categorias que o Treinador logado pode ver/agir na Captação — vazio se não estiver logado, ou
+ * se o papel não for "treinador" (evita um "regular" acidentalmente cair em telas de Treinador só
+ * porque `categorias_treinador` ficou preenchida de um uso anterior do perfil). Ver
+ * docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md.
+ */
+export async function getCategoriasTreinador(
+  supabase: ReturnType<typeof createClient>,
+): Promise<string[]> {
+  const perfil = await getPerfilPermissoes(supabase);
+  if (!perfil || perfil.role !== "treinador") return [];
+  return perfil.categorias_treinador ?? [];
 }
 
 /**

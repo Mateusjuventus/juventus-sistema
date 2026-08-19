@@ -7,10 +7,12 @@ import { isMaster } from "@/lib/auth/role";
 import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
+import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { ESTOQUE_CATEGORIAS, TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
 import type { PerfilRow } from "@/lib/supabase/types";
 import {
   atualizarCategoriasTarefas,
+  atualizarCategoriasTreinador,
   atualizarDepartamentos,
   atualizarEstoqueCategorias,
   atualizarModulos,
@@ -64,6 +66,9 @@ export default async function UsuariosPage() {
           const departamentosPermitidos = perfil.departamentos_permitidos ?? [];
           const categoriasTarefasVisiveis = perfil.tarefas_categorias_visiveis ?? [];
           const estoqueCategoriasPermitidas = perfil.estoque_categorias_permitidas ?? [];
+          const categoriasTreinador = perfil.categorias_treinador ?? [];
+          const roleLabel =
+            perfil.role === "master" ? "Master" : perfil.role === "treinador" ? "Treinador" : "Regular";
           return (
             <div key={perfil.id} className="card space-y-3 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -74,28 +79,48 @@ export default async function UsuariosPage() {
                   </p>
                   <p className="text-xs text-neutral-400">Desde {formatDataHora(perfil.created_at)}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       perfil.role === "master"
                         ? "bg-dourado/20 text-grena-escuro"
-                        : "bg-neutral-200 text-neutral-600"
+                        : perfil.role === "treinador"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-neutral-200 text-neutral-600"
                     }`}
                   >
-                    {perfil.role === "master" ? "Master" : "Regular"}
+                    {roleLabel}
                   </span>
                   {ehVocaMesmo ? null : (
-                    <form action={atualizarPapel}>
-                      <input type="hidden" name="id" value={perfil.id} />
-                      <input
-                        type="hidden"
-                        name="role"
-                        value={perfil.role === "master" ? "regular" : "master"}
-                      />
-                      <button type="submit" className="btn-secondary btn-sm">
-                        {perfil.role === "master" ? "Tornar regular" : "Tornar master"}
-                      </button>
-                    </form>
+                    <>
+                      {perfil.role !== "master" ? (
+                        <form action={atualizarPapel}>
+                          <input type="hidden" name="id" value={perfil.id} />
+                          <input type="hidden" name="role" value="master" />
+                          <button type="submit" className="btn-secondary btn-sm">
+                            Tornar master
+                          </button>
+                        </form>
+                      ) : null}
+                      {perfil.role !== "regular" ? (
+                        <form action={atualizarPapel}>
+                          <input type="hidden" name="id" value={perfil.id} />
+                          <input type="hidden" name="role" value="regular" />
+                          <button type="submit" className="btn-secondary btn-sm">
+                            Tornar regular
+                          </button>
+                        </form>
+                      ) : null}
+                      {perfil.role !== "treinador" ? (
+                        <form action={atualizarPapel}>
+                          <input type="hidden" name="id" value={perfil.id} />
+                          <input type="hidden" name="role" value="treinador" />
+                          <button type="submit" className="btn-secondary btn-sm">
+                            Tornar treinador
+                          </button>
+                        </form>
+                      ) : null}
+                    </>
                   )}
                 </div>
               </div>
@@ -121,6 +146,23 @@ export default async function UsuariosPage() {
                     <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
                       Acesso completo a todos os departamentos e módulos (papel Master).
                     </p>
+                  ) : perfil.role === "treinador" ? (
+                    <>
+                      <p className="text-xs text-neutral-400">
+                        Treinador não tem relação com o resto do sistema — só vê, na tela dele, os
+                        candidatos das categorias marcadas abaixo.
+                      </p>
+                      <PermissaoCheckboxesForm
+                        id={perfil.id}
+                        fieldName="categoriasTreinador"
+                        titulo="Categorias que esse Treinador acompanha"
+                        ajuda="Pode marcar mais de uma (ex.: um Treinador que cobre Sub-11 e Sub-12 ao mesmo tempo)."
+                        opcoes={CATEGORIAS_BASE.map((c) => ({ value: c.value, label: c.label }))}
+                        valoresIniciais={categoriasTreinador}
+                        action={atualizarCategoriasTreinador}
+                        submitLabel="Salvar categorias"
+                      />
+                    </>
                   ) : (
                     <>
                       <PermissaoCheckboxesForm
@@ -173,16 +215,18 @@ export default async function UsuariosPage() {
                     </>
                   )}
 
-                  <PermissaoCheckboxesForm
-                    id={perfil.id}
-                    fieldName="tarefasCategorias"
-                    titulo="Categorias de Tarefas visíveis"
-                    opcoes={TAREFA_CATEGORIAS}
-                    valoresIniciais={categoriasTarefasVisiveis}
-                    action={atualizarCategoriasTarefas}
-                    submitLabel="Salvar categorias de tarefas"
-                    className="border-t border-neutral-100 pt-3"
-                  />
+                  {perfil.role === "treinador" ? null : (
+                    <PermissaoCheckboxesForm
+                      id={perfil.id}
+                      fieldName="tarefasCategorias"
+                      titulo="Categorias de Tarefas visíveis"
+                      opcoes={TAREFA_CATEGORIAS}
+                      valoresIniciais={categoriasTarefasVisiveis}
+                      action={atualizarCategoriasTarefas}
+                      submitLabel="Salvar categorias de tarefas"
+                      className="border-t border-neutral-100 pt-3"
+                    />
+                  )}
                 </div>
               </details>
             </div>

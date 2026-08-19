@@ -7,6 +7,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
+import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { TAREFA_CATEGORIAS, ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import { criarUsuario, type UsuarioFormState } from "./actions";
 
@@ -67,9 +68,33 @@ export function UsuarioForm() {
           >
             <option value="regular">Regular</option>
             <option value="master">Master</option>
+            <option value="treinador">Treinador</option>
           </SelectField>
         </FieldGroup>
 
+        {role === "treinador" ? (
+          <div className="border-t border-neutral-100 pt-3">
+            <p className="field-label">Categorias que esse Treinador acompanha</p>
+            <p className="-mt-0.5 text-xs text-neutral-400">
+              O Treinador só vê, na tela dele, os candidatos das categorias marcadas aqui — dá pra
+              marcar mais de uma (ex.: um Treinador que cobre Sub-11 e Sub-12 ao mesmo tempo). Ele
+              não tem acesso a mais nada do sistema: nem Home, nem outros módulos.
+            </p>
+            <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {CATEGORIAS_BASE.map((cat) => (
+                <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    name="categoriasTreinador"
+                    value={cat.value}
+                    className={CHECKBOX_CLASS}
+                  />
+                  {cat.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : (
         <details className="border-t border-neutral-100 pt-3">
           <summary className="cursor-pointer select-none text-sm font-medium text-grena">
             Exibir permissões
@@ -193,6 +218,7 @@ export function UsuarioForm() {
             </div>
           </div>
         </details>
+        )}
       </FormSection>
 
       {state.error ? (

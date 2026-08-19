@@ -18,7 +18,7 @@ import type { CaptacaoBaseRow, CaptacaoStatus } from "@/lib/supabase/types";
  * (`contarInscricoesPendentes`).
  */
 
-type CaptacaoStatusDecidido = Exclude<CaptacaoStatus, "inscricao">;
+export type CaptacaoStatusDecidido = Exclude<CaptacaoStatus, "inscricao">;
 
 export const CAPTACAO_STATUS_OPTIONS: { value: CaptacaoStatusDecidido; label: string }[] = [
   { value: "avaliacao", label: "Em avaliação" },
@@ -116,4 +116,23 @@ export function taxaAprovacao(contagem: Record<CaptacaoStatusDecidido, number>):
   const decididos = contagem.aprovado + contagem.dispensado + contagem.nao_compareceu;
   if (decididos === 0) return null;
   return Math.round((contagem.aprovado / decididos) * 100);
+}
+
+/**
+ * Monta o payload de update de status compartilhado por `mudarStatusCaptacao` (troca rápida na
+ * lista/tela do candidato) e `salvarParecerCaptacao` (o Treinador salvando o Parecer Final) — os
+ * dois precisam da MESMA regra pra Data de término: carimba com `hoje` só quando o novo status é um
+ * resultado final (Aprovado/Dispensado/Não compareceu) e ainda não tem uma data de término salva
+ * (não sobrescreve uma correção manual já feita); limpa a Data de término ao voltar pra "Em
+ * avaliação" (reabrir), já que nesse caso a avaliação não terminou de verdade. Extraído aqui — ver
+ * docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md — pra não duplicar a regra
+ * nos dois lugares que trocam status.
+ */
+export function payloadMudancaStatusCaptacao(
+  novoStatus: CaptacaoStatusDecidido,
+  dataTerminoAtual: string | null,
+  hoje: string,
+): { status: CaptacaoStatusDecidido; data_termino: string | null } {
+  if (novoStatus === "avaliacao") return { status: novoStatus, data_termino: null };
+  return { status: novoStatus, data_termino: dataTerminoAtual ?? hoje };
 }

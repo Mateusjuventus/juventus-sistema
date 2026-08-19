@@ -280,6 +280,37 @@ export interface AssinaturaInfo {
   cargo: string;
 }
 
+/** Mesmo espírito de `financeiroStyles.assinatura*`, mas pra uma LISTA de tamanho variável (o
+ * Parecer Final de Avaliação, ver `AssinaturasBlockDinamico` abaixo) em vez das 2 colunas fixas do
+ * Financeiro. `assinaturaColDinamica` usa `flexBasis` em vez de `width` fixo pra caber 1, 2, 3 ou
+ * mais assinaturas na mesma linha (quebrando pra próxima linha via `flexWrap` quando não couber). */
+const assinaturasDinamicasStyles = StyleSheet.create({
+  row: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", marginTop: 36, gap: 16 },
+  col: { flexBasis: "28%", alignItems: "center" },
+});
+
+/** Bloco de assinaturas de tamanho variável — usado pelo Parecer Final de Avaliação da Captação/
+ * Avaliação (ver `lib/pdf/parecer-final-document.tsx` e `configuracoes_parecer_captacao_base`), que
+ * pediu "3 e se precisar adiciono mais" em vez do número fixo de 2 do Financeiro. Assinaturas sem
+ * nome preenchido (configuração ainda em branco) não aparecem — não faz sentido imprimir uma linha
+ * de assinatura vazia. */
+export function AssinaturasBlockDinamico({ assinaturas }: { assinaturas: AssinaturaInfo[] }) {
+  const preenchidas = assinaturas.filter((a) => a.nome.trim().length > 0);
+  if (preenchidas.length === 0) return null;
+
+  return (
+    <View style={assinaturasDinamicasStyles.row} wrap={false}>
+      {preenchidas.map((assinatura, i) => (
+        <View style={assinaturasDinamicasStyles.col} key={i}>
+          <View style={financeiroStyles.assinaturaLinha} />
+          <Text style={financeiroStyles.assinaturaNome}>{assinatura.nome}</Text>
+          <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Bloco com as duas assinaturas (nome + cargo) vindas de configuracoes_financeiro. */
 export function AssinaturasBlock({
   assinatura1,

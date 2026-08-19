@@ -144,6 +144,7 @@ export const captacaoBaseSchema = z
       .or(z.literal("")),
     indicacao: z.string().optional().or(z.literal("")),
     desejaAlojamento: z.boolean().default(false),
+    clubeAnterior: z.string().optional().or(z.literal("")),
     status: z.enum(["inscricao", "avaliacao", "aprovado", "dispensado", "nao_compareceu"]).default("avaliacao"),
     observacoes: z.string().optional().or(z.literal("")),
     telefone: telefoneField,
@@ -167,9 +168,9 @@ export type CaptacaoBaseInput = z.infer<typeof captacaoBaseSchema>;
  * Inscrição pública pro teste/avaliação (`/inscricao-captacao-base`) — cria sempre com
  * `status: "inscricao"` e `origem: "publico"`, decidido no servidor. Mesmos campos do formulário
  * interno (`captacaoBaseSchema`), EXCETO Data de início/Data de término (o Mateus preenche na hora
- * de aprovar/trocar o status) e Status/Observações (internos) — pedido de 19/08: "neste link, neste
- * banco de dados irão aparecer todos os dados de cadastro de avaliação, exceto Data de inicio que
- * eu irei preencher".
+ * de aprovar/trocar o status), Status/Observações (internos) e Alojamento (ajuste de 19/08: fica só
+ * no cadastro interno — "remover a parte de alojamento e deixar isso como opção para mim colocar",
+ * o Mateus decide isso depois de conhecer o candidato, não é algo que a família preenche).
  */
 export const captacaoInscricaoSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome do atleta é obrigatório" }).transform(normalizarNomeProprio),
@@ -180,7 +181,7 @@ export const captacaoInscricaoSchema = z.object({
   }),
   telefone: telefoneField,
   indicacao: z.string().optional().or(z.literal("")),
-  desejaAlojamento: z.boolean().default(false),
+  clubeAnterior: z.string().optional().or(z.literal("")),
   maeNome: z.string().optional().or(z.literal("")),
   maeTelefone: telefoneField,
   paiNome: z.string().optional().or(z.literal("")),
@@ -189,6 +190,33 @@ export const captacaoInscricaoSchema = z.object({
   ...enderecoFields,
 });
 export type CaptacaoInscricaoInput = z.infer<typeof captacaoInscricaoSchema>;
+
+/** Nota do Parecer Final — sempre inteira, entre 3 e 9 (mesma escala da legenda impressa no
+ * documento: 3-4 Regular, 5-6 Bom, 7-8 Muito Bom, 9 Excelente). */
+const notaParecerField = z.coerce
+  .number({ invalid_type_error: "Escolha uma nota" })
+  .int()
+  .min(3, { message: "Nota deve ser de 3 a 9" })
+  .max(9, { message: "Nota deve ser de 3 a 9" });
+
+/**
+ * Parecer Final de Avaliação (`/treinador/[id]`) — preenchido pelo Treinador, nunca pelo Mateus
+ * (ver docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md). O veredito usa a
+ * mesma nomenclatura do status da Captação ("aprovado"/"dispensado", não "reprovado") porque ao
+ * salvar o parecer o status do candidato muda pra esse valor direto — não existe um conceito de
+ * veredito separado do status administrativo.
+ */
+export const parecerCaptacaoSchema = z.object({
+  notaTecnica: notaParecerField,
+  notaFisica: notaParecerField,
+  notaTatica: notaParecerField,
+  notaComportamental: notaParecerField,
+  comentarios: z.string().optional().or(z.literal("")),
+  veredito: z.enum(["aprovado", "dispensado"], {
+    errorMap: () => ({ message: "Selecione o resultado da avaliação" }),
+  }),
+});
+export type ParecerCaptacaoInput = z.infer<typeof parecerCaptacaoSchema>;
 
 /**
  * Ficha de Cadastro pública de Atleta (`/cadastro-atleta-base`) — pros atletas que já são (ou estão

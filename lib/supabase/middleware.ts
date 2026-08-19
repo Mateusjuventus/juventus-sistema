@@ -68,6 +68,23 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // Treinador: tela própria, mínima, sem relação com o resto do sistema (departamentos, módulos,
+  // Home) — ver docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md. Checado ANTES
+  // do bloqueio por departamento/módulo abaixo, porque cobre TUDO — inclusive "/", "/profissional"
+  // e "/base", que não são "módulo" nenhum pro código abaixo.
+  let roleDoUsuario: string | null = null;
+  if (user) {
+    const { data: perfilRole } = await supabase.from("perfis").select("role").eq("id", user.id).maybeSingle();
+    roleDoUsuario = (perfilRole as { role?: string } | null)?.role ?? "regular";
+
+    if (roleDoUsuario === "treinador" && !request.nextUrl.pathname.startsWith("/treinador")) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/treinador";
+      redirectUrl.search = "";
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   // Bloqueio por departamento + módulo. "Master" nunca é bloqueado. Rotas que entram aqui:
   //  - o hub de um departamento (/profissional, /base) — precisa ter aquele departamento liberado;
   //  - a rota de um módulo do Profissional (ver lib/auth/modulos.ts) — precisa ter o departamento

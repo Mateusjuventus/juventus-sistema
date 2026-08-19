@@ -31,7 +31,7 @@ function parseForm(formData: FormData) {
     categoria: String(formData.get("categoria") ?? ""),
     telefone: String(formData.get("telefone") ?? ""),
     indicacao: String(formData.get("indicacao") ?? ""),
-    desejaAlojamento: formData.get("desejaAlojamento") === "on",
+    clubeAnterior: String(formData.get("clubeAnterior") ?? ""),
     maeNome: String(formData.get("maeNome") ?? ""),
     maeTelefone: String(formData.get("maeTelefone") ?? ""),
     paiNome: String(formData.get("paiNome") ?? ""),
@@ -49,7 +49,7 @@ function parseForm(formData: FormData) {
   };
 
   const result = captacaoInscricaoSchema.safeParse(raw);
-  return { raw: { ...raw, desejaAlojamento: raw.desejaAlojamento ? "on" : "" }, result };
+  return { raw, result };
 }
 
 export async function inscreverCaptacao(
@@ -82,7 +82,7 @@ export async function inscreverCaptacao(
     categoria: data.categoria,
     telefone: data.telefone || null,
     indicacao: data.indicacao || null,
-    deseja_alojamento: data.desejaAlojamento,
+    clube_anterior: data.clubeAnterior || null,
     mae_nome: data.maeNome || null,
     mae_telefone: data.maeTelefone || null,
     pai_nome: data.paiNome || null,
