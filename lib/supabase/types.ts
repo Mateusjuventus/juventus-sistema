@@ -1521,6 +1521,9 @@ export interface CaptacaoBaseRow {
   /** Só preenchida quando o status sai de "inscricao" — quem chega pelo link público de inscrição
    * ainda não tem uma data de início até o Mateus aprovar (ver `aprovarInscricaoCaptacao`). */
   data_inicio: string | null;
+  /** Preenchida junto do resultado final (Aprovado/Dispensado/Não compareceu — ver
+   * `mudarStatusCaptacao`). Volta a null se a avaliação for reaberta. */
+  data_termino: string | null;
   nome_completo: string;
   data_nascimento: string | null;
   posicao: string | null;

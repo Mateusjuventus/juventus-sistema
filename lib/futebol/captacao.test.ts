@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { contarInscricoesPendentes, contarPorStatus, contarPorUf, taxaAprovacao } from "./captacao";
+import {
+  contarInscricoesPendentes,
+  contarPorCategoriaEStatus,
+  contarPorStatus,
+  contarPorUf,
+  taxaAprovacao,
+} from "./captacao";
 
 describe("contarPorStatus", () => {
   it("conta cada status, incluindo os que não aparecem (ficam em 0)", () => {
@@ -34,6 +40,35 @@ describe("contarInscricoesPendentes", () => {
 
   it("lista vazia devolve 0", () => {
     expect(contarInscricoesPendentes([])).toBe(0);
+  });
+});
+
+describe("contarPorCategoriaEStatus", () => {
+  it("agrupa por categoria e status, com as 7 categorias sempre presentes", () => {
+    const contagem = contarPorCategoriaEStatus([
+      { status: "avaliacao", categoria: "sub17" },
+      { status: "avaliacao", categoria: "sub17" },
+      { status: "aprovado", categoria: "sub17" },
+      { status: "dispensado", categoria: "sub11" },
+    ]);
+    expect(contagem.sub17).toEqual({ avaliacao: 2, aprovado: 1, dispensado: 0, nao_compareceu: 0 });
+    expect(contagem.sub11).toEqual({ avaliacao: 0, aprovado: 0, dispensado: 1, nao_compareceu: 0 });
+    expect(contagem.sub20).toEqual({ avaliacao: 0, aprovado: 0, dispensado: 0, nao_compareceu: 0 });
+  });
+
+  it("ignora quem não tem categoria preenchida e quem ainda está na fila de inscrição", () => {
+    const contagem = contarPorCategoriaEStatus([
+      { status: "avaliacao", categoria: null },
+      { status: "inscricao", categoria: "sub15" },
+      { status: "aprovado", categoria: "sub15" },
+    ]);
+    expect(contagem.sub15).toEqual({ avaliacao: 0, aprovado: 1, dispensado: 0, nao_compareceu: 0 });
+  });
+
+  it("lista vazia devolve tudo zerado nas 7 categorias", () => {
+    const contagem = contarPorCategoriaEStatus([]);
+    expect(Object.keys(contagem)).toHaveLength(7);
+    expect(contagem.sub20).toEqual({ avaliacao: 0, aprovado: 0, dispensado: 0, nao_compareceu: 0 });
   });
 });
 

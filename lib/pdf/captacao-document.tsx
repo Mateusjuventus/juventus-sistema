@@ -75,10 +75,15 @@ export function CaptacaoDocument({
   juventusLogoSrc,
   emitidoEm,
   candidatos,
+  filtrado,
 }: {
   juventusLogoSrc: LogoSrc;
   emitidoEm: string;
   candidatos: CaptacaoPdfLinha[];
+  /** true quando a lista veio com busca/status/categoria/UF aplicados (ver
+   * app/base/captacao/pdf/route.tsx) — mostra um aviso no subtítulo pra não parecer o banco
+   * completo por engano. */
+  filtrado?: boolean;
 }) {
   return (
     <Document>
@@ -90,7 +95,10 @@ export function CaptacaoDocument({
           ) : null}
           <View style={styles.tituloBox}>
             <Text style={styles.tituloTexto}>Relação de Captação/Avaliação</Text>
-            <Text style={styles.subtituloTexto}>Futebol de Base · Emitido em {formatDataBr(emitidoEm)}</Text>
+            <Text style={styles.subtituloTexto}>
+              Futebol de Base · Emitido em {formatDataBr(emitidoEm)}
+              {filtrado ? " · Lista filtrada" : ""}
+            </Text>
           </View>
         </View>
 

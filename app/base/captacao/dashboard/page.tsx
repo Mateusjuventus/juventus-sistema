@@ -3,9 +3,11 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { MapaBrasilUf } from "@/components/mapa-brasil-uf";
 import { createClient } from "@/lib/supabase/server";
+import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import {
   CAPTACAO_STATUS_OPTIONS,
   contarInscricoesPendentes,
+  contarPorCategoriaEStatus,
   contarPorStatus,
   contarPorUf,
   taxaAprovacao,
@@ -27,6 +29,7 @@ export default async function CaptacaoDashboardPage() {
   const contagemStatus = contarPorStatus(candidatos);
   const aguardandoAprovacao = contarInscricoesPendentes(candidatos);
   const contagemUf = contarPorUf(candidatos);
+  const contagemCategoria = contarPorCategoriaEStatus(candidatos);
   const taxa = taxaAprovacao(contagemStatus);
   const totalCandidatos = candidatos.length;
 
@@ -61,6 +64,47 @@ export default async function CaptacaoDashboardPage() {
             {taxa === null ? "sem candidatos decididos ainda" : `${taxa}%`}
           </span>
         </p>
+      </div>
+
+      <div className="card mt-4 p-5">
+        <h2 className="text-center text-sm font-bold uppercase tracking-wide text-grena-escuro">
+          Candidatos por categoria
+        </h2>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead className="bg-neutral-50 text-neutral-600">
+              <tr>
+                <th className="px-4 py-3">Categoria</th>
+                {CAPTACAO_STATUS_OPTIONS.map((opcao) => (
+                  <th key={opcao.value} className="px-4 py-3 text-center">
+                    {opcao.label}
+                  </th>
+                ))}
+                <th className="px-4 py-3 text-center">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {CATEGORIAS_BASE.map((cat) => {
+                const porStatus = contagemCategoria[cat.value];
+                const totalCategoria = CAPTACAO_STATUS_OPTIONS.reduce(
+                  (soma, opcao) => soma + porStatus[opcao.value],
+                  0,
+                );
+                return (
+                  <tr key={cat.value} className="hover:bg-neutral-50">
+                    <td className="px-4 py-3 font-medium text-neutral-800">{cat.label}</td>
+                    {CAPTACAO_STATUS_OPTIONS.map((opcao) => (
+                      <td key={opcao.value} className="px-4 py-3 text-center text-neutral-600">
+                        {porStatus[opcao.value]}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-center font-semibold text-grena-escuro">{totalCategoria}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="card mt-4 p-5">

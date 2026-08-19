@@ -4,21 +4,16 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
-import type { CaptacaoBaseRow, CaptacaoStatus } from "@/lib/supabase/types";
+import type { CaptacaoBaseRow } from "@/lib/supabase/types";
 import { atualizarCaptacao, excluirCaptacao, mudarStatusCaptacao } from "../actions";
 import { CaptacaoForm } from "../captacao-form";
+import { CaptacaoStatusSelect } from "../captacao-status-select";
 import { AprovarInscricaoForm } from "../aprovacoes/aprovar-inscricao-form";
 
-function botaoStatus(candidatoId: string, status: CaptacaoStatus, label: string) {
-  return (
-    <form action={mudarStatusCaptacao} key={status}>
-      <input type="hidden" name="id" value={candidatoId} />
-      <input type="hidden" name="status" value={status} />
-      <button type="submit" className="btn-secondary text-sm">
-        {label}
-      </button>
-    </form>
-  );
+function formatDataBr(iso: string | null): string {
+  if (!iso) return "—";
+  const [ano, mes, dia] = iso.split("-");
+  return `${dia}/${mes}/${ano}`;
 }
 
 export default async function EditarCandidatoPage({ params }: { params: { id: string } }) {
@@ -30,6 +25,7 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
   const defaultValues: Record<string, string> = {
     nomeCompleto: candidato.nome_completo,
     dataInicio: candidato.data_inicio ?? "",
+    dataTermino: candidato.data_termino ?? "",
     dataNascimento: candidato.data_nascimento ?? "",
     posicao: candidato.posicao ?? "",
     categoria: candidato.categoria ?? "",
@@ -42,10 +38,6 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
     maeTelefone: candidato.mae_telefone ?? "",
     paiNome: candidato.pai_nome ?? "",
     paiTelefone: candidato.pai_telefone ?? "",
-    empresarioNome: candidato.empresario_nome ?? "",
-    empresarioTelefone: candidato.empresario_telefone ?? "",
-    agencia: candidato.agencia ?? "",
-    valorAjudaCusto: candidato.valor_ajuda_custo != null ? String(candidato.valor_ajuda_custo) : "",
     escola: candidato.escola ?? "",
     cep: candidato.cep ?? "",
     logradouro: candidato.logradouro ?? "",
@@ -66,10 +58,20 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
       <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
         <PageHeader title={`Candidato Nº ${candidato.numero}`} />
       </div>
-      <div className="mt-1 flex justify-center">
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${corCaptacaoStatus(candidato.status)}`}>
-          {captacaoStatusLabel(candidato.status)}
-        </span>
+      <div className="mt-1 flex flex-col items-center gap-2">
+        {candidato.status === "inscricao" ? (
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${corCaptacaoStatus(candidato.status)}`}>
+            {captacaoStatusLabel(candidato.status)}
+          </span>
+        ) : (
+          <CaptacaoStatusSelect id={candidato.id} status={candidato.status} action={mudarStatusCaptacao} />
+        )}
+        {candidato.data_inicio ? (
+          <p className="text-xs text-neutral-500">
+            Início {formatDataBr(candidato.data_inicio)}
+            {candidato.data_termino ? ` · Término ${formatDataBr(candidato.data_termino)}` : ""}
+          </p>
+        ) : null}
       </div>
 
       <section className="card mt-6 space-y-4 p-5">
@@ -82,14 +84,11 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
             <AprovarInscricaoForm candidatoId={candidato.id} />
           </>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {candidato.status !== "aprovado" ? botaoStatus(candidato.id, "aprovado", "Marcar como Aprovado") : null}
-            {candidato.status !== "dispensado" ? botaoStatus(candidato.id, "dispensado", "Dispensar") : null}
-            {candidato.status !== "nao_compareceu"
-              ? botaoStatus(candidato.id, "nao_compareceu", "Marcar não compareceu")
-              : null}
-            {candidato.status !== "avaliacao" ? botaoStatus(candidato.id, "avaliacao", "Reabrir avaliação") : null}
-          </div>
+          <p className="text-sm text-neutral-600">
+            Troque o status ali em cima a qualquer momento. Ao marcar Aprovado, Dispensado ou Não
+            compareceu, a Data de término é preenchida automaticamente com a data de hoje — dá pra
+            ajustar no formulário abaixo, se precisar.
+          </p>
         )}
 
         <div className="flex flex-wrap gap-2 border-t border-linha pt-4">

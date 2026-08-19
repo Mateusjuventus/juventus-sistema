@@ -51,6 +51,13 @@ export function CaptacaoForm({
             error={errors.dataInicio}
           />
           <TextField
+            label="Data de término"
+            name="dataTermino"
+            type="date"
+            defaultValue={values.dataTermino}
+            error={errors.dataTermino}
+          />
+          <TextField
             label="Data de nascimento"
             name="dataNascimento"
             type="date"
@@ -122,7 +129,9 @@ export function CaptacaoForm({
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Responsáveis e empresário">
+      {/* Empresário, Ajuda de custo e Agência saem daqui (19/08) — são dados do cadastro de Atleta
+          (Ficha de Cadastro), não da Captação. */}
+      <FormSection title="Responsáveis e escola">
         <FieldGroup>
           <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
           <TextField
@@ -137,28 +146,6 @@ export function CaptacaoForm({
             name="paiTelefone"
             defaultValue={values.paiTelefone}
             error={errors.paiTelefone}
-          />
-          <TextField
-            label="Empresário/representante"
-            name="empresarioNome"
-            defaultValue={values.empresarioNome}
-            error={errors.empresarioNome}
-          />
-          <TextField
-            label="Telefone do empresário"
-            name="empresarioTelefone"
-            defaultValue={values.empresarioTelefone}
-            error={errors.empresarioTelefone}
-          />
-          <TextField label="Agência" name="agencia" defaultValue={values.agencia} error={errors.agencia} />
-          <TextField
-            label="Valor de ajuda de custo (R$)"
-            name="valorAjudaCusto"
-            type="number"
-            min={0}
-            step="0.01"
-            defaultValue={values.valorAjudaCusto}
-            error={errors.valorAjudaCusto}
           />
           <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
         </FieldGroup>

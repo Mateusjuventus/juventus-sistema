@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { captacaoBaseSchema } from "@/lib/validation/schemas";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import type { CaptacaoStatus } from "@/lib/supabase/types";
 
 /**
@@ -24,6 +25,7 @@ function parseForm(formData: FormData) {
   const raw = {
     nomeCompleto: String(formData.get("nomeCompleto") ?? ""),
     dataInicio: String(formData.get("dataInicio") ?? ""),
+    dataTermino: String(formData.get("dataTermino") ?? ""),
     dataNascimento: String(formData.get("dataNascimento") ?? ""),
     posicao: String(formData.get("posicao") ?? ""),
     categoria: String(formData.get("categoria") ?? ""),
@@ -36,10 +38,6 @@ function parseForm(formData: FormData) {
     maeTelefone: String(formData.get("maeTelefone") ?? ""),
     paiNome: String(formData.get("paiNome") ?? ""),
     paiTelefone: String(formData.get("paiTelefone") ?? ""),
-    empresarioNome: String(formData.get("empresarioNome") ?? ""),
-    empresarioTelefone: String(formData.get("empresarioTelefone") ?? ""),
-    agencia: String(formData.get("agencia") ?? ""),
-    valorAjudaCusto: String(formData.get("valorAjudaCusto") ?? "") || undefined,
     escola: String(formData.get("escola") ?? ""),
     cep: String(formData.get("cep") ?? ""),
     logradouro: String(formData.get("logradouro") ?? ""),
@@ -65,6 +63,7 @@ function dadosParaSalvar(data: ReturnType<typeof captacaoBaseSchema.parse>) {
   return {
     nome_completo: data.nomeCompleto,
     data_inicio: data.dataInicio || null,
+    data_termino: data.dataTermino || null,
     data_nascimento: data.dataNascimento || null,
     posicao: data.posicao || null,
     categoria: data.categoria || null,
@@ -77,10 +76,6 @@ function dadosParaSalvar(data: ReturnType<typeof captacaoBaseSchema.parse>) {
     mae_telefone: data.maeTelefone || null,
     pai_nome: data.paiNome || null,
     pai_telefone: data.paiTelefone || null,
-    empresario_nome: data.empresarioNome || null,
-    empresario_telefone: data.empresarioTelefone || null,
-    agencia: data.agencia || null,
-    valor_ajuda_custo: data.valorAjudaCusto ?? null,
     escola: data.escola || null,
     cep: data.cep || null,
     logradouro: data.logradouro || null,
@@ -142,9 +137,22 @@ export async function excluirCaptacao(formData: FormData): Promise<void> {
   redirect("/base/captacao");
 }
 
-/** Troca simples de status — "Aprovado" aqui é só um status administrativo (não cria mais nada em
- * `atletas_base`, ver o comentário no topo do arquivo). Não serve pra tirar alguém da fila de
- * "Aprovações" (status "inscricao"): isso exige uma Data de Início, ver `aprovarInscricaoCaptacao`. */
+/**
+ * Troca de status embutida na lista/tela do candidato (Em avaliação/Aprovado/Dispensado/Não
+ * compareceu) — mesma assinatura de `updateSolicitacaoStatus` (app/solicitacoes/actions.ts), por
+ * isso dá pra reaproveitar o mesmo padrão de `<select>` que já manda o form ao trocar de opção (ver
+ * `CaptacaoStatusSelect`, mesmo espírito do `SolicitacaoStatusSelect`). Pedido de 19/08: "lá em
+ * status consigo definir se ele foi aprovado, dispensado ou não compareceu. e ai vai agrupando
+ * conforme for trocando de status igual vc faz hoje na solicitações."
+ *
+ * "Inscrição enviada" nunca passa por aqui — só sai da fila pela Aprovação (`aprovarInscricaoCaptacao`,
+ * que também pede a Data de Início), senão viraria "Em avaliação" sem data nenhuma.
+ *
+ * Ao marcar um resultado final (Aprovado/Dispensado/Não compareceu), a Data de término é carimbada
+ * com a data de hoje automaticamente quando ainda não tiver uma — dá pra corrigir depois pelo
+ * formulário completo do candidato. Voltar pra "Em avaliação" limpa a Data de término, já que a
+ * avaliação não terminou de verdade.
+ */
 export async function mudarStatusCaptacao(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "") as CaptacaoStatus;
@@ -152,7 +160,21 @@ export async function mudarStatusCaptacao(formData: FormData): Promise<void> {
   if (!id || !statusValidos.includes(status)) return;
 
   const supabase = createClient();
-  await supabase.from("captacao_base").update({ status }).eq("id", id);
+  const { data: atual } = await supabase
+    .from("captacao_base")
+    .select("status, data_termino")
+    .eq("id", id)
+    .single();
+  if (!atual || atual.status === "inscricao") return;
+
+  const payload: Record<string, unknown> = { status };
+  if (status === "avaliacao") {
+    payload.data_termino = null;
+  } else if (!atual.data_termino) {
+    payload.data_termino = hojeBrasilia();
+  }
+
+  await supabase.from("captacao_base").update(payload).eq("id", id);
   revalidatePath("/base/captacao");
   revalidatePath("/base/captacao/aprovacoes");
   revalidatePath(`/base/captacao/${id}`);

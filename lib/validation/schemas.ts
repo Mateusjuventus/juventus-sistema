@@ -130,39 +130,46 @@ export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;
  * resto entra conforme a avaliação anda. Usado pelo formulário interno (staff) — quem chega pelo
  * link público de inscrição usa `captacaoInscricaoSchema`, mais enxuto.
  */
-export const captacaoBaseSchema = z.object({
-  nomeCompleto: z.string().min(1, { message: "Nome é obrigatório" }).transform(normalizarNomeProprio),
-  dataInicio: z.string().optional().or(z.literal("")),
-  dataNascimento: z.string().optional().or(z.literal("")),
-  posicao: z.string().optional().or(z.literal("")),
-  categoria: z
-    .enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"])
-    .optional()
-    .nullable()
-    .or(z.literal("")),
-  indicacao: z.string().optional().or(z.literal("")),
-  desejaAlojamento: z.boolean().default(false),
-  status: z.enum(["inscricao", "avaliacao", "aprovado", "dispensado", "nao_compareceu"]).default("avaliacao"),
-  observacoes: z.string().optional().or(z.literal("")),
-  telefone: telefoneField,
-  maeNome: z.string().optional().or(z.literal("")),
-  maeTelefone: telefoneField,
-  paiNome: z.string().optional().or(z.literal("")),
-  paiTelefone: telefoneField,
-  empresarioNome: z.string().optional().or(z.literal("")),
-  empresarioTelefone: telefoneField,
-  agencia: z.string().optional().or(z.literal("")),
-  valorAjudaCusto: z.coerce.number().nonnegative().optional().nullable(),
-  escola: z.string().optional().or(z.literal("")),
-  ...enderecoFields,
-});
+export const captacaoBaseSchema = z
+  .object({
+    nomeCompleto: z.string().min(1, { message: "Nome é obrigatório" }).transform(normalizarNomeProprio),
+    dataInicio: z.string().optional().or(z.literal("")),
+    dataTermino: z.string().optional().or(z.literal("")),
+    dataNascimento: z.string().optional().or(z.literal("")),
+    posicao: z.string().optional().or(z.literal("")),
+    categoria: z
+      .enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"])
+      .optional()
+      .nullable()
+      .or(z.literal("")),
+    indicacao: z.string().optional().or(z.literal("")),
+    desejaAlojamento: z.boolean().default(false),
+    status: z.enum(["inscricao", "avaliacao", "aprovado", "dispensado", "nao_compareceu"]).default("avaliacao"),
+    observacoes: z.string().optional().or(z.literal("")),
+    telefone: telefoneField,
+    maeNome: z.string().optional().or(z.literal("")),
+    maeTelefone: telefoneField,
+    paiNome: z.string().optional().or(z.literal("")),
+    paiTelefone: telefoneField,
+    escola: z.string().optional().or(z.literal("")),
+    ...enderecoFields,
+  })
+  // Resultado final (Aprovado/Dispensado/Não compareceu) sempre exige a Data de término — é o que
+  // faz "falta o termino da avaliação" (pedido de 19/08) valer tanto pra quem usa o botão rápido de
+  // finalizar (`mudarStatusCaptacao`) quanto pra quem edita o status direto por este formulário.
+  .refine(
+    (data) => !["aprovado", "dispensado", "nao_compareceu"].includes(data.status) || Boolean(data.dataTermino),
+    { message: "Informe a data de término da avaliação", path: ["dataTermino"] },
+  );
 export type CaptacaoBaseInput = z.infer<typeof captacaoBaseSchema>;
 
 /**
  * Inscrição pública pro teste/avaliação (`/inscricao-captacao-base`) — cria sempre com
- * `status: "inscricao"` e `origem: "publico"`, decidido no servidor. Bem mais enxuto que o
- * formulário interno: só o essencial pra agendar a avaliação (o resto — família, endereço, escola —
- * é coisa do cadastro de Atleta, não da Captação, ver a spec).
+ * `status: "inscricao"` e `origem: "publico"`, decidido no servidor. Mesmos campos do formulário
+ * interno (`captacaoBaseSchema`), EXCETO Data de início/Data de término (o Mateus preenche na hora
+ * de aprovar/trocar o status) e Status/Observações (internos) — pedido de 19/08: "neste link, neste
+ * banco de dados irão aparecer todos os dados de cadastro de avaliação, exceto Data de inicio que
+ * eu irei preencher".
  */
 export const captacaoInscricaoSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome do atleta é obrigatório" }).transform(normalizarNomeProprio),
@@ -172,10 +179,14 @@ export const captacaoInscricaoSchema = z.object({
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
   telefone: telefoneField,
-  cidade: z.string().optional().or(z.literal("")),
-  uf: z.string().length(2).optional().or(z.literal("")),
   indicacao: z.string().optional().or(z.literal("")),
   desejaAlojamento: z.boolean().default(false),
+  maeNome: z.string().optional().or(z.literal("")),
+  maeTelefone: telefoneField,
+  paiNome: z.string().optional().or(z.literal("")),
+  paiTelefone: telefoneField,
+  escola: z.string().optional().or(z.literal("")),
+  ...enderecoFields,
 });
 export type CaptacaoInscricaoInput = z.infer<typeof captacaoInscricaoSchema>;
 

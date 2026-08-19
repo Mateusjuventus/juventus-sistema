@@ -2,6 +2,7 @@
 
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
+import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type { InscricaoCaptacaoState } from "./actions";
@@ -10,8 +11,8 @@ const initialState: InscricaoCaptacaoState = {};
 
 /**
  * Formulário público de inscrição pro teste/avaliação (ver app/inscricao-captacao-base/actions.ts).
- * Bem mais enxuto que a Ficha de Cadastro de Atleta — é só o suficiente pra agendar a avaliação; o
- * Mateus aprova pela aba "Aprovações" antes de virar "Em avaliação" de verdade.
+ * Mesmos campos do cadastro interno de Captação, exceto Data de início/término e Status — o Mateus
+ * preenche isso na hora de aprovar (aba "Aprovações") ou trocar o status depois.
  */
 export function InscricaoCaptacaoForm({
   action,
@@ -70,15 +71,6 @@ export function InscricaoCaptacaoForm({
             placeholder="Ex: Zagueiro, Atacante"
           />
           <TextField label="Telefone de contato" name="telefone" defaultValue={values.telefone} error={errors.telefone} />
-          <TextField label="Cidade" name="cidade" defaultValue={values.cidade} error={errors.cidade} />
-          <TextField
-            label="UF"
-            name="uf"
-            maxLength={2}
-            defaultValue={values.uf}
-            error={errors.uf}
-            placeholder="Ex: SP"
-          />
           <TextField
             label="Indicação"
             name="indicacao"
@@ -99,6 +91,49 @@ export function InscricaoCaptacaoForm({
             </label>
           </div>
         </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Responsáveis e escola">
+        <FieldGroup>
+          <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
+          <TextField
+            label="Telefone da mãe"
+            name="maeTelefone"
+            defaultValue={values.maeTelefone}
+            error={errors.maeTelefone}
+          />
+          <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
+          <TextField
+            label="Telefone do pai"
+            name="paiTelefone"
+            defaultValue={values.paiTelefone}
+            error={errors.paiTelefone}
+          />
+          <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
+        </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Endereço">
+        <EnderecoFields
+          defaultValues={{
+            cep: values.cep,
+            logradouro: values.logradouro,
+            numero: values.numero,
+            complemento: values.complemento,
+            bairro: values.bairro,
+            cidade: values.cidade,
+            uf: values.uf,
+          }}
+          errors={{
+            cep: errors.cep,
+            logradouro: errors.logradouro,
+            numero: errors.numero,
+            complemento: errors.complemento,
+            bairro: errors.bairro,
+            cidade: errors.cidade,
+            uf: errors.uf,
+          }}
+        />
       </FormSection>
 
       {state.error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p> : null}

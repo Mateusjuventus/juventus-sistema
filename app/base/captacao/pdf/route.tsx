@@ -12,14 +12,34 @@ import { CaptacaoDocument, type CaptacaoPdfLinha } from "@/lib/pdf/captacao-docu
 import type { CaptacaoBaseRow } from "@/lib/supabase/types";
 
 /**
- * PDF (paisagem) da Relação de Captação/Avaliação — a mesma lista da tela `/base/captacao`, sem
- * filtro nenhum (o Mateus pediu "me gera um PDF também" pro banco completo). Ordena por Nº, do
- * primeiro candidato ao mais recente.
+ * PDF (paisagem) da Relação de Captação/Avaliação — a mesma lista da tela `/base/captacao`, com os
+ * MESMOS filtros que estiverem aplicados lá (busca por nome, status, categoria, UF — o botão "Gerar
+ * PDF" já manda esses parâmetros na URL, ver app/base/captacao/page.tsx). Sem filtro nenhum na URL,
+ * sai o banco completo. Ordena por Nº, do primeiro candidato ao mais recente.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get("q")?.trim() ?? "";
+  const status = searchParams.get("status")?.trim() ?? "";
+  const categoria = searchParams.get("categoria")?.trim() ?? "";
+  const uf = searchParams.get("uf")?.trim() ?? "";
+
   const supabase = createClient();
-  const { data } = await supabase.from("captacao_base").select("*").order("numero", { ascending: true });
+  // Mesmo filtro do que a lista principal (/base/captacao): "Inscrição enviada" nunca sai no PDF —
+  // fica só na fila de Aprovações até ser decidida.
+  let query = supabase
+    .from("captacao_base")
+    .select("*")
+    .neq("status", "inscricao")
+    .order("numero", { ascending: true });
+  if (q) query = query.ilike("nome_completo", `%${q}%`);
+  if (status) query = query.eq("status", status);
+  if (categoria) query = query.eq("categoria", categoria);
+  if (uf) query = query.eq("uf", uf.toUpperCase());
+
+  const { data } = await query;
   const candidatos = (data ?? []) as CaptacaoBaseRow[];
+  const filtrado = Boolean(q || status || categoria || uf);
 
   const linhas: CaptacaoPdfLinha[] = candidatos.map((c) => ({
     numero: c.numero,
@@ -38,7 +58,12 @@ export async function GET() {
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(
-    <CaptacaoDocument juventusLogoSrc={juventusLogoSrc} emitidoEm={hojeBrasilia()} candidatos={linhas} />,
+    <CaptacaoDocument
+      juventusLogoSrc={juventusLogoSrc}
+      emitidoEm={hojeBrasilia()}
+      candidatos={linhas}
+      filtrado={filtrado}
+    />,
   );
 
   return new NextResponse(new Uint8Array(buffer), {

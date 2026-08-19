@@ -1,3 +1,8 @@
+// Import relativo (não "@/...") de propósito: é o único import "de verdade" (não só de tipo) que
+// este arquivo faz de outro módulo de lib/, e o alias "@/" não é resolvido pelo vitest (só o
+// Next.js resolve — ver tsconfig.json). Os outros imports deste arquivo são só `import type`, que o
+// esbuild elimina antes de precisar resolver o caminho, por isso nunca deu problema até agora.
+import { TODAS_CATEGORIAS_BASE, type CategoriaBase } from "../auth/categorias-base";
 import type { CaptacaoBaseRow, CaptacaoStatus } from "@/lib/supabase/types";
 
 /**
@@ -71,6 +76,25 @@ export function contarPorStatus(
  * Mateus aprovar e informar a Data de Início) — ver `/base/captacao/aprovacoes`. */
 export function contarInscricoesPendentes(candidatos: Pick<CaptacaoBaseRow, "status">[]): number {
   return candidatos.filter((c) => c.status === "inscricao").length;
+}
+
+/** Quantos candidatos existem por categoria × status "decidido" — tabela do dashboard pedida em
+ * 19/08 ("tipo uma tabela principal de quantos atletas em avaliação, dispensados, aprovados por
+ * categoria"). Sempre devolve as 7 categorias (Sub20 a Sub11), mesmo com tudo zerado, pelo mesmo
+ * motivo de `contarPorStatus`. Ignora quem não tem categoria preenchida (a Captação não exige) e
+ * "inscricao" (só os 4 status decididos entram, igual `contarPorStatus`). */
+export function contarPorCategoriaEStatus(
+  candidatos: Pick<CaptacaoBaseRow, "status" | "categoria">[],
+): Record<CategoriaBase, Record<CaptacaoStatusDecidido, number>> {
+  const contagem = {} as Record<CategoriaBase, Record<CaptacaoStatusDecidido, number>>;
+  for (const categoria of TODAS_CATEGORIAS_BASE) {
+    contagem[categoria] = { avaliacao: 0, aprovado: 0, dispensado: 0, nao_compareceu: 0 };
+  }
+  for (const c of candidatos) {
+    if (c.status === "inscricao" || !c.categoria) continue;
+    contagem[c.categoria][c.status] += 1;
+  }
+  return contagem;
 }
 
 /** Quantos candidatos vieram de cada UF — alimenta o mapa do Brasil do dashboard. Ignora quem não
