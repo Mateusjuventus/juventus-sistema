@@ -3,6 +3,8 @@ import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { calcularGeralBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
+import { DonutComposicao, type FatiaComposicao } from "@/components/charts/donut-composicao";
+import { BarrasCategoria } from "@/components/charts/barras-categoria";
 import type {
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
@@ -26,37 +28,6 @@ function StatCard({ label, valor, ajuda }: { label: string; valor: string; ajuda
       <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</p>
       <p className="mt-1 text-2xl font-bold text-grena-escuro">{valor}</p>
       {ajuda ? <p className="mt-1 text-xs text-neutral-400">{ajuda}</p> : null}
-    </div>
-  );
-}
-
-/** Uma linha da quebra por categoria — barra horizontal proporcional ao maior valor entre as 8
- * categorias, em grená, com destaque dourado na categoria de maior custo (elemento visual
- * principal da aba, ver docs/superpowers/specs/2026-08-19-financeiro-base-design.md). */
-function BarraCategoria({
-  label,
-  valor,
-  maximo,
-  destaque,
-}: {
-  label: string;
-  valor: number;
-  maximo: number;
-  destaque: boolean;
-}) {
-  const largura = maximo > 0 ? Math.max((valor / maximo) * 100, valor > 0 ? 2 : 0) : 0;
-  return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className="w-16 shrink-0 text-sm font-medium text-neutral-600">{label}</span>
-      <div className="h-3 flex-1 overflow-hidden rounded-full bg-pagina">
-        <div
-          className={`h-full rounded-full ${destaque ? "bg-dourado" : "bg-grena"}`}
-          style={{ width: `${largura}%` }}
-        />
-      </div>
-      <span className="w-28 shrink-0 text-right text-sm font-semibold text-neutral-800">
-        {formatMoeda(valor)}
-      </span>
     </div>
   );
 }
@@ -89,7 +60,15 @@ export async function GeralBaseView() {
 
   const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =
     calcularGeralBase(comissao, atletasComAjuda, despesas);
-  const maiorValor = Math.max(...linhasCategoria.map((l) => l.valor), 0);
+
+  // As mesmas 3 cores da marca (grená / dourado / cinza neutro já usado no resto do app) — nada
+  // inventado só pro gráfico. `grenaEscuro` fica de fora de propósito: é reservado só pra texto
+  // pequeno, não pra preenchimento de área (ver CLAUDE.md).
+  const composicao: FatiaComposicao[] = [
+    { label: "Comissão Técnica", valor: custoComissao, cor: "#5C0A35" },
+    { label: "Atletas (ajuda de custo)", valor: custoAtletas, cor: "#B98F1E" },
+    { label: "Despesas avulsas", valor: despesasTotal, cor: "#a3a3a3" },
+  ];
 
   return (
     <>
@@ -118,20 +97,21 @@ export async function GeralBaseView() {
         <StatCard label="Total geral da Base" valor={formatMoeda(totalGeral)} />
       </div>
 
+      <h2 className="mt-8 text-lg font-bold text-grena-escuro">Composição do gasto</h2>
+      <p className="mt-1 text-sm text-neutral-500">
+        Passe o mouse numa fatia ou na legenda pra ver o valor exato.
+      </p>
+      <div className="card mt-3 p-5">
+        <DonutComposicao fatias={composicao} total={totalGeral} />
+      </div>
+
       <h2 className="mt-8 text-lg font-bold text-grena-escuro">Por categoria</h2>
       <p className="mt-1 text-sm text-neutral-500">
-        Quem atua em mais de uma categoria tem o salário dividido igual entre elas aqui.
+        Quem atua em mais de uma categoria tem o salário dividido igual entre elas aqui. Passe o
+        mouse numa barra pra ver o % do total geral.
       </p>
       <div className="card mt-3 p-4">
-        {linhasCategoria.map((linha) => (
-          <BarraCategoria
-            key={linha.key}
-            label={linha.label}
-            valor={linha.valor}
-            maximo={maiorValor}
-            destaque={linha.valor === maiorValor && maiorValor > 0}
-          />
-        ))}
+        <BarrasCategoria linhas={linhasCategoria} />
       </div>
 
       <h2 className="mt-8 text-lg font-bold text-grena-escuro">Comissão Técnica</h2>

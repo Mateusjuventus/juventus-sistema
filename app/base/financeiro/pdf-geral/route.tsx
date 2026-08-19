@@ -13,6 +13,7 @@ import {
   type RelatorioGeralBaseAtleta,
   type RelatorioGeralBaseComissao,
   type RelatorioGeralBaseDespesa,
+  type RelatorioGeralBaseFatia,
 } from "@/lib/pdf/relatorio-geral-base-document";
 import type {
   AtletaBaseRow,
@@ -47,11 +48,17 @@ export async function GET() {
     return new NextResponse("Ainda não há nada cadastrado no Gasto Geral da Base.", { status: 400 });
   }
 
-  const { custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } = calcularGeralBase(
-    comissao,
-    atletasComAjuda,
-    despesas,
-  );
+  const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =
+    calcularGeralBase(comissao, atletasComAjuda, despesas);
+
+  // Mesmas 3 cores e mesma leitura (Comissão / Atletas / Despesas) do gráfico da tela
+  // (`geral-base-view.tsx`) — só o desenho em si muda entre os dois (ver comentário em
+  // `caminhoFatiaDonut` no documento do PDF).
+  const composicaoPdf: RelatorioGeralBaseFatia[] = [
+    { label: "Comissão Técnica", valor: custoComissao, cor: "#5C0A35" },
+    { label: "Atletas (ajuda de custo)", valor: custoAtletas, cor: "#B98F1E" },
+    { label: "Despesas avulsas", valor: despesasTotal, cor: "#a3a3a3" },
+  ];
 
   const comissaoPdf: RelatorioGeralBaseComissao[] = comissao.map((c) => ({
     nome: c.nome_completo,
@@ -85,6 +92,7 @@ export async function GET() {
       custoMensalFixo={custoMensalFixo}
       despesasTotal={despesasTotal}
       totalGeral={totalGeral}
+      composicao={composicaoPdf}
       categorias={linhasCategoria}
       comissao={comissaoPdf}
       atletas={atletasPdf}

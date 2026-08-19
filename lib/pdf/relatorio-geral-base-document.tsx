@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image, StyleSheet, Svg, Path } from "@react-pdf/renderer";
 import {
   AssinaturasBlock,
   type AssinaturaInfo,
@@ -71,10 +71,61 @@ const styles = StyleSheet.create({
   despesaTitulo: { fontSize: 8, fontWeight: 700, color: "#1f1f1f" },
   despesaSub: { fontSize: 7, color: "#737373", marginTop: 1 },
   legenda: { fontSize: 7.5, color: "#a3a3a3", marginTop: 2, marginBottom: 2 },
+  donutLinha: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  donutLegenda: { flex: 1, marginLeft: 22 },
+  donutLegendaLinha: { flexDirection: "row", alignItems: "center", paddingVertical: 3 },
+  donutBolinha: { width: 7, height: 7, borderRadius: 3.5, marginRight: 6 },
+  donutRotulo: { flex: 1, fontSize: 8.5, color: "#404040" },
+  donutPct: { width: 30, fontSize: 8, color: "#a3a3a3", textAlign: "right" },
+  donutValor: { width: 66, fontSize: 8.5, fontWeight: 700, color: "#1f1f1f", textAlign: "right" },
 });
 
 function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/**
+ * Caminho SVG de uma fatia de donut, de `fracaoInicio` até `fracaoFim` (0 a 1 do círculo
+ * completo), começando no topo e girando no sentido horário. O react-pdf só suporta
+ * `stroke-dasharray` em `<Circle>` (não `stroke-dashoffset`), então a técnica usada na tela
+ * (`components/charts/donut-composicao.tsx`) não funciona aqui — em vez de tentar posicionar
+ * arcos por offset, desenhamos cada fatia como um `<Path>` fechado (arco externo + arco interno
+ * de volta), que é suportado. Cola-se numa margem de 0.02% do total pra evitar o caso degenerado
+ * de uma fatia de 100% (ponto inicial e final coincidindo faz alguns leitores de PDF não
+ * desenharem nada).
+ */
+function caminhoFatiaDonut(
+  cx: number,
+  cy: number,
+  rExterno: number,
+  rInterno: number,
+  fracaoInicioBruta: number,
+  fracaoFimBruta: number,
+): string {
+  const fracaoInicio = fracaoInicioBruta;
+  const fracaoFim = Math.min(fracaoFimBruta, fracaoInicio + 0.9998);
+  const ponto = (r: number, fracao: number) => {
+    const angulo = -Math.PI / 2 + fracao * 2 * Math.PI;
+    return [cx + r * Math.cos(angulo), cy + r * Math.sin(angulo)];
+  };
+  const largeArc = fracaoFim - fracaoInicio > 0.5 ? 1 : 0;
+  const [x1, y1] = ponto(rExterno, fracaoInicio);
+  const [x2, y2] = ponto(rExterno, fracaoFim);
+  const [x3, y3] = ponto(rInterno, fracaoFim);
+  const [x4, y4] = ponto(rInterno, fracaoInicio);
+  return [
+    `M ${x1} ${y1}`,
+    `A ${rExterno} ${rExterno} 0 ${largeArc} 1 ${x2} ${y2}`,
+    `L ${x3} ${y3}`,
+    `A ${rInterno} ${rInterno} 0 ${largeArc} 0 ${x4} ${y4}`,
+    "Z",
+  ].join(" ");
+}
+
+export interface RelatorioGeralBaseFatia {
+  label: string;
+  valor: number;
+  cor: string;
 }
 
 export interface RelatorioGeralBaseCategoria {
@@ -118,6 +169,7 @@ export function RelatorioGeralBaseDocument({
   custoMensalFixo,
   despesasTotal,
   totalGeral,
+  composicao,
   categorias,
   comissao,
   atletas,
@@ -130,6 +182,7 @@ export function RelatorioGeralBaseDocument({
   custoMensalFixo: number;
   despesasTotal: number;
   totalGeral: number;
+  composicao: RelatorioGeralBaseFatia[];
   categorias: RelatorioGeralBaseCategoria[];
   comissao: RelatorioGeralBaseComissao[];
   atletas: RelatorioGeralBaseAtleta[];
@@ -138,6 +191,20 @@ export function RelatorioGeralBaseDocument({
   assinatura2: AssinaturaInfo;
 }) {
   const maiorValor = Math.max(...categorias.map((c) => c.valor), 0);
+
+  const rExterno = 30;
+  const rInterno = 15;
+  const cx = 32;
+  const cy = 32;
+  let acumuladoFracao = 0;
+  const fatiasComFracao = composicao
+    .filter((f) => f.valor > 0)
+    .map((f) => {
+      const fracao = totalGeral > 0 ? f.valor / totalGeral : 0;
+      const inicio = acumuladoFracao;
+      acumuladoFracao += fracao;
+      return { ...f, inicio, fim: acumuladoFracao };
+    });
 
   return (
     <Document>
@@ -161,6 +228,28 @@ export function RelatorioGeralBaseDocument({
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Total geral da Base</Text>
             <Text style={styles.statValor}>{formatMoeda(totalGeral)}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitulo}>Composição do Gasto</Text>
+        <View style={styles.donutLinha} wrap={false}>
+          <Svg width={64} height={64} viewBox="0 0 64 64">
+            {fatiasComFracao.map((f) => (
+              <Path key={f.label} d={caminhoFatiaDonut(cx, cy, rExterno, rInterno, f.inicio, f.fim)} fill={f.cor} />
+            ))}
+          </Svg>
+          <View style={styles.donutLegenda}>
+            {composicao.map((f) => {
+              const pct = totalGeral > 0 ? Math.round((f.valor / totalGeral) * 100) : 0;
+              return (
+                <View style={styles.donutLegendaLinha} key={f.label}>
+                  <View style={[styles.donutBolinha, { backgroundColor: f.cor }]} />
+                  <Text style={styles.donutRotulo}>{f.label}</Text>
+                  <Text style={styles.donutPct}>{pct}%</Text>
+                  <Text style={styles.donutValor}>{formatMoeda(f.valor)}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
 
