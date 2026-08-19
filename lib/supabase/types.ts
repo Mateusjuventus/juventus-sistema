@@ -156,7 +156,10 @@ export interface ComissaoTecnicaRow {
  * `categoria` (ver `lib/auth/categorias-base.ts`). */
 export interface ComissaoTecnicaBaseRow {
   id: string;
-  categoria: CategoriaBase;
+  /** Uma pessoa pode atuar em mais de uma categoria (ex.: mesmo treinador no Sub-11 e no Sub-12) —
+   * ver docs/superpowers/specs/2026-08-19-comissao-tecnica-multi-categoria-design.md. Sempre pelo
+   * menos 1 item. */
+  categorias: CategoriaBase[];
   nome_completo: string;
   rg: string;
   cpf: string;

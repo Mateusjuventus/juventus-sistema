@@ -9,17 +9,20 @@ import { comissaoTecnicaBaseSchema } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 
 /** Espelha `app/comissao-tecnica/actions.ts`, mas grava em `comissao_tecnica_base` e inclui
- * `categoria` — mesmo padrão de `app/base/atletas/actions.ts` (categoria pode ser trocada no
- * formulário, então cria/edita redirecionam pra lista da categoria enviada, não a da URL). */
+ * `categorias` (lista — uma pessoa pode atuar em mais de uma, ver docs/superpowers/specs/
+ * 2026-08-19-comissao-tecnica-multi-categoria-design.md). Diferente do padrão de
+ * `app/base/atletas/actions.ts`, aqui não existe mais lista por categoria (a Comissão Técnica virou
+ * lista única, ver a mesma spec) — cria/edita/exclui sempre voltam pra `/base/comissao-tecnica`. */
 export interface ComissaoBaseFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
+  categoriasSelecionadas?: string[];
 }
 
 function parseForm(formData: FormData) {
+  const categorias = formData.getAll("categorias").map(String);
   const raw = {
-    categoria: String(formData.get("categoria") ?? ""),
     nomeCompleto: String(formData.get("nomeCompleto") ?? ""),
     apelido: String(formData.get("apelido") ?? ""),
     rg: String(formData.get("rg") ?? ""),
@@ -32,8 +35,8 @@ function parseForm(formData: FormData) {
     valorSalario: String(formData.get("valorSalario") ?? "") || undefined,
   };
 
-  const result = comissaoTecnicaBaseSchema.safeParse(raw);
-  return { raw, result };
+  const result = comissaoTecnicaBaseSchema.safeParse({ ...raw, categorias });
+  return { raw, categorias, result };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -67,12 +70,12 @@ export async function createComissaoBase(
   _prevState: ComissaoBaseFormState,
   formData: FormData,
 ): Promise<ComissaoBaseFormState> {
-  const { raw, result } = parseForm(formData);
+  const { raw, categorias, result } = parseForm(formData);
 
   if (!result.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
-    return { fieldErrors, values: raw };
+    return { fieldErrors, values: raw, categoriasSelecionadas: categorias };
   }
 
   const supabase = createClient();
@@ -80,11 +83,11 @@ export async function createComissaoBase(
   const data = result.data;
 
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
-  if (uploadError) return { error: uploadError, values: raw };
+  if (uploadError) return { error: uploadError, values: raw, categoriasSelecionadas: categorias };
 
   const { error } = await supabase.from("comissao_tecnica_base").insert({
     id,
-    categoria: data.categoria,
+    categorias: data.categorias,
     nome_completo: data.nomeCompleto,
     apelido: data.apelido || null,
     rg: data.rg,
@@ -98,10 +101,10 @@ export async function createComissaoBase(
     valor_salario: data.valorSalario ?? null,
   });
 
-  if (error) return { error: friendlyDbError(error), values: raw };
+  if (error) return { error: friendlyDbError(error), values: raw, categoriasSelecionadas: categorias };
 
   revalidatePath("/base/comissao-tecnica");
-  redirect(`/base/comissao-tecnica/${data.categoria}`);
+  redirect("/base/comissao-tecnica");
 }
 
 export async function updateComissaoBase(
@@ -109,22 +112,22 @@ export async function updateComissaoBase(
   formData: FormData,
 ): Promise<ComissaoBaseFormState> {
   const id = String(formData.get("id") ?? "");
-  const { raw, result } = parseForm(formData);
+  const { raw, categorias, result } = parseForm(formData);
 
   if (!result.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
-    return { fieldErrors, values: raw };
+    return { fieldErrors, values: raw, categoriasSelecionadas: categorias };
   }
 
   const supabase = createClient();
   const data = result.data;
 
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
-  if (uploadError) return { error: uploadError, values: raw };
+  if (uploadError) return { error: uploadError, values: raw, categoriasSelecionadas: categorias };
 
   const updatePayload: Record<string, unknown> = {
-    categoria: data.categoria,
+    categorias: data.categorias,
     nome_completo: data.nomeCompleto,
     apelido: data.apelido || null,
     rg: data.rg,
@@ -140,27 +143,17 @@ export async function updateComissaoBase(
 
   const { error } = await supabase.from("comissao_tecnica_base").update(updatePayload).eq("id", id);
 
-  if (error) return { error: friendlyDbError(error), values: raw };
+  if (error) return { error: friendlyDbError(error), values: raw, categoriasSelecionadas: categorias };
 
   revalidatePath("/base/comissao-tecnica");
-  redirect(`/base/comissao-tecnica/${data.categoria}`);
+  redirect("/base/comissao-tecnica");
 }
 
-/** Antes de excluir, lê a categoria da linha pra revalidar a lista certa — mesmo motivo de
- * `deleteAtletaBase` em `app/base/atletas/actions.ts`. */
 export async function deleteComissaoBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
 
-  const { data } = await supabase
-    .from("comissao_tecnica_base")
-    .select("categoria")
-    .eq("id", id)
-    .maybeSingle();
-  const categoria = (data as { categoria?: string } | null)?.categoria;
-
   await supabase.from("comissao_tecnica_base").delete().eq("id", id);
 
   revalidatePath("/base/comissao-tecnica");
-  if (categoria) revalidatePath(`/base/comissao-tecnica/${categoria}`);
 }

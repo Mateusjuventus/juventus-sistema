@@ -182,7 +182,7 @@ export async function POST(request: Request) {
       empresarioNome: null,
       status: null,
       tipoQuartoPreferido: c.tipo_quarto_preferido ? TIPO_QUARTO_LABEL[c.tipo_quarto_preferido] ?? c.tipo_quarto_preferido : null,
-      categoria: categoriaBaseLabel(c.categoria),
+      categoria: c.categorias.map(categoriaBaseLabel).join(" · "),
     }));
 
   const staff: RelatorioAvulsoPessoa[] = ((staffData ?? []) as StaffOperacionalBaseComFuncaoRow[])

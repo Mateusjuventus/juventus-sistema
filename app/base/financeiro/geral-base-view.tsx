@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
-import { CATEGORIAS_BASE, categoriaBaseLabel, type CategoriaBase } from "@/lib/auth/categorias-base";
+import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { calcularGeralBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
 import type {
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
@@ -64,22 +65,16 @@ function BarraCategoria({
  * Conteúdo da aba "Geral da Base" de `/base/financeiro` (`?aba=geral`) — soma salário da Comissão
  * Técnica + ajuda de custo dos Atletas (valores cadastrados agora, não um histórico) + despesas
  * avulsas da Base. Totalmente separado da Prestação de Contas de jogos (aba "Jogos"), por decisão
- * explícita. Ver docs/superpowers/specs/2026-08-19-financeiro-base-design.md.
+ * explícita. Ver docs/superpowers/specs/2026-08-19-financeiro-base-design.md — o cálculo em si
+ * (inclusive a divisão do salário de quem atua em mais de uma categoria) vive em
+ * `lib/futebol/financeiro-base.ts`, reaproveitado pelo relatório em PDF desta mesma aba.
  */
 export async function GeralBaseView() {
   const supabase = createClient();
 
   const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }] = await Promise.all([
-    supabase
-      .from("comissao_tecnica_base")
-      .select("*")
-      .order("categoria", { ascending: true })
-      .order("nome_completo", { ascending: true }),
-    supabase
-      .from("atletas_base")
-      .select("*")
-      .order("categoria", { ascending: true })
-      .order("nome_completo", { ascending: true }),
+    supabase.from("comissao_tecnica_base").select("*").order("nome_completo", { ascending: true }),
+    supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
     supabase
       .from("despesas_avulsas_base")
       .select("*, categoria_gasto:categorias_gasto(nome)")
@@ -90,41 +85,25 @@ export async function GeralBaseView() {
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
-
   const atletasComAjuda = atletas.filter((a) => (a.valor_ajuda_custo ?? 0) > 0);
 
-  const custoComissao = comissao.reduce((soma, c) => soma + (c.valor_salario ?? 0), 0);
-  const custoAtletas = atletasComAjuda.reduce((soma, a) => soma + (a.valor_ajuda_custo ?? 0), 0);
-  const custoMensalFixo = custoComissao + custoAtletas;
-
-  const valorDespesa = (d: DespesaAvulsaBaseComCategoriaRow) => d.valor_efetuado ?? d.valor_previsto;
-  const despesasTotal = despesas.reduce((soma, d) => soma + valorDespesa(d), 0);
-
-  const totalGeral = custoMensalFixo + despesasTotal;
-
-  const linhasCategoria: { key: CategoriaBase | "geral"; label: string; valor: number }[] = [
-    ...CATEGORIAS_BASE.map((cat) => {
-      const salarios = comissao
-        .filter((c) => c.categoria === cat.value)
-        .reduce((soma, c) => soma + (c.valor_salario ?? 0), 0);
-      const ajudas = atletasComAjuda
-        .filter((a) => a.categoria === cat.value)
-        .reduce((soma, a) => soma + (a.valor_ajuda_custo ?? 0), 0);
-      const despesasCat = despesas
-        .filter((d) => d.categoria === cat.value)
-        .reduce((soma, d) => soma + valorDespesa(d), 0);
-      return { key: cat.value, label: cat.label, valor: salarios + ajudas + despesasCat };
-    }),
-    {
-      key: "geral" as const,
-      label: "Geral",
-      valor: despesas.filter((d) => d.categoria === null).reduce((soma, d) => soma + valorDespesa(d), 0),
-    },
-  ];
+  const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =
+    calcularGeralBase(comissao, atletasComAjuda, despesas);
   const maiorValor = Math.max(...linhasCategoria.map((l) => l.valor), 0);
 
   return (
     <>
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <a
+          href="/base/financeiro/pdf-geral"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-secondary"
+        >
+          Gerar Relatório PDF
+        </a>
+      </div>
+
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard
           label="Custo mensal fixo"
@@ -140,6 +119,9 @@ export async function GeralBaseView() {
       </div>
 
       <h2 className="mt-8 text-lg font-bold text-grena-escuro">Por categoria</h2>
+      <p className="mt-1 text-sm text-neutral-500">
+        Quem atua em mais de uma categoria tem o salário dividido igual entre elas aqui.
+      </p>
       <div className="card mt-3 p-4">
         {linhasCategoria.map((linha) => (
           <BarraCategoria
@@ -154,12 +136,12 @@ export async function GeralBaseView() {
 
       <h2 className="mt-8 text-lg font-bold text-grena-escuro">Comissão Técnica</h2>
       <div className="card tabela-rolavel mt-3">
-        <table className="w-full min-w-[560px] text-left text-sm">
+        <table className="w-full min-w-[620px] text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Função</th>
-              <th className="px-4 py-3">Categoria</th>
+              <th className="px-4 py-3">Categoria(s)</th>
               <th className="px-4 py-3">Salário mensal</th>
             </tr>
           </thead>
@@ -168,7 +150,7 @@ export async function GeralBaseView() {
               <tr key={c.id}>
                 <td className="px-4 py-3 font-medium text-neutral-800">{c.nome_completo}</td>
                 <td className="px-4 py-3">{c.funcao}</td>
-                <td className="px-4 py-3">{categoriaBaseLabel(c.categoria)}</td>
+                <td className="px-4 py-3">{c.categorias.map(categoriaBaseLabel).join(" · ")}</td>
                 <td className="px-4 py-3">{c.valor_salario ? formatMoeda(c.valor_salario) : "—"}</td>
               </tr>
             ))}
@@ -261,7 +243,7 @@ export async function GeralBaseView() {
                 <td className="px-4 py-3">{d.categoria_gasto?.nome ?? "—"}</td>
                 <td className="px-4 py-3">{d.descricao ?? "—"}</td>
                 <td className="px-4 py-3">
-                  {formatMoeda(valorDespesa(d))}
+                  {formatMoeda(valorDespesaBase(d))}
                   {d.valor_efetuado === null ? (
                     <span className="ml-1 text-xs text-neutral-400">(previsto)</span>
                   ) : null}

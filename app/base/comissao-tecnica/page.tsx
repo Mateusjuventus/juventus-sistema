@@ -1,25 +1,44 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
+import { SearchBar } from "@/components/search-bar";
+import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
-import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
-import type { CategoriaBase, ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
+import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { formatCPF } from "@/lib/validation/cpf";
+import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import type { ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
+import { deleteComissaoBase } from "./actions";
 
-/** Tela inicial do módulo Comissão Técnica (Futebol de Base) — mesmo padrão de
- * `app/base/atletas/page.tsx`: um cartão por categoria, com a contagem de pessoas cadastradas. */
-export default async function ComissaoTecnicaBasePage() {
+/**
+ * Lista única de Comissão Técnica/Diretoria (Futebol de Base) — sem divisão em cards por
+ * categoria (uma pessoa pode atuar em mais de uma, ver docs/superpowers/specs/
+ * 2026-08-19-comissao-tecnica-multi-categoria-design.md). Mesmo padrão do Staff Operacional da
+ * Base (`/base/staff-operacional`): lista única, com um filtro de categoria opcional.
+ */
+export default async function ComissaoTecnicaBasePage({
+  searchParams,
+}: {
+  searchParams: { q?: string; categoria?: string };
+}) {
+  const q = searchParams.q?.trim() ?? "";
+  const categoria = ehCategoriaBaseValida(searchParams.categoria ?? "") ? searchParams.categoria! : "";
   const supabase = createClient();
 
-  const { data } = await supabase.from("comissao_tecnica_base").select("categoria");
-  const todos = (data ?? []) as Pick<ComissaoTecnicaBaseRow, "categoria">[];
+  let query = supabase
+    .from("comissao_tecnica_base")
+    .select("*")
+    .order("nome_completo", { ascending: true });
+  if (q) query = query.ilike("nome_completo", `%${q}%`);
+  if (categoria) query = query.contains("categorias", [categoria]);
 
-  const contagemPorCategoria = todos.reduce(
-    (acc, pessoa) => {
-      acc[pessoa.categoria] = (acc[pessoa.categoria] ?? 0) + 1;
-      return acc;
-    },
-    {} as Record<CategoriaBase, number>,
-  );
+  const { data, error } = await query;
+  const pessoas = (data ?? []) as ComissaoTecnicaBaseRow[];
+  const fotoUrls = await Promise.all(pessoas.map((p) => getSignedPhotoUrl(supabase, p.foto_path)));
+
+  const novaPessoaHref = categoria
+    ? `/base/comissao-tecnica/novo?categoria=${categoria}`
+    : "/base/comissao-tecnica/novo";
 
   return (
     <AppShell departamento="futebol_base">
@@ -27,27 +46,92 @@ export default async function ComissaoTecnicaBasePage() {
         ← Voltar
       </Link>
       <PageHeader title="Comissão Técnica / Diretoria" />
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <a
+          href={`/base/comissao-tecnica/export?q=${encodeURIComponent(q)}&categoria=${encodeURIComponent(categoria)}`}
+          className="btn-secondary"
+        >
+          Exportar para Excel
+        </a>
+        <Link href={novaPessoaHref} className="btn-primary">
+          + Nova pessoa
+        </Link>
+      </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {CATEGORIAS_BASE.map((cat) => {
-          const total = contagemPorCategoria[cat.value] ?? 0;
-          return (
-            <Link
-              key={cat.value}
-              href={`/base/comissao-tecnica/${cat.value}`}
-              className="card group relative flex flex-col gap-2 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <span className="absolute inset-x-0 top-0 h-1 bg-emerald-600" />
-              <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
-                →
-              </span>
-              <h2 className="text-lg font-bold text-grena-escuro">{cat.label}</h2>
-              <p className="text-sm font-medium text-neutral-500">
-                {total} pessoa{total === 1 ? "" : "s"} cadastrada{total === 1 ? "" : "s"}
-              </p>
-            </Link>
-          );
-        })}
+      <div className="card mt-4 p-4">
+        <SearchBar action="/base/comissao-tecnica" defaultValue={q} placeholder="Buscar por nome...">
+          <div className="min-w-[180px]">
+            <label htmlFor="categoria" className="field-label">
+              Categoria
+            </label>
+            <select id="categoria" name="categoria" defaultValue={categoria} className="field-input">
+              <option value="">Todas</option>
+              {CATEGORIAS_BASE.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </SearchBar>
+      </div>
+
+      {error ? (
+        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          Não foi possível carregar os registros. Verifique a conexão com o Supabase.
+        </p>
+      ) : null}
+
+      <div className="card tabela-rolavel mt-4">
+        <table className="w-full min-w-[820px] text-left text-sm">
+          <thead className="bg-neutral-50 text-neutral-600">
+            <tr>
+              <th className="px-4 py-3">Foto</th>
+              <th className="px-4 py-3">Nome</th>
+              <th className="px-4 py-3">Função</th>
+              <th className="px-4 py-3">Categoria(s)</th>
+              <th className="px-4 py-3">CPF</th>
+              <th className="px-4 py-3">Telefone</th>
+              <th className="px-4 py-3">E-mail</th>
+              <th className="px-4 py-3 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-neutral-100">
+            {pessoas.map((p, i) => (
+              <tr key={p.id}>
+                <td className="px-4 py-3">
+                  {fotoUrls[i] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={fotoUrls[i]!} alt={p.nome_completo} className="h-10 w-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-neutral-100" />
+                  )}
+                </td>
+                <td className="px-4 py-3 font-medium text-neutral-800">{p.nome_completo}</td>
+                <td className="px-4 py-3">{p.funcao}</td>
+                <td className="px-4 py-3">{p.categorias.map(categoriaBaseLabel).join(" · ")}</td>
+                <td className="px-4 py-3">{formatCPF(p.cpf)}</td>
+                <td className="px-4 py-3">{p.telefone ?? "—"}</td>
+                <td className="px-4 py-3">{p.email ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-end gap-2">
+                    <Link href={`/base/comissao-tecnica/${p.id}`} className="btn-secondary">
+                      Editar
+                    </Link>
+                    <DeleteButton action={deleteComissaoBase} id={p.id} entityLabel="registro" />
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {pessoas.length === 0 && !error ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-neutral-400">
+                  Nenhum registro encontrado.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
       </div>
     </AppShell>
   );

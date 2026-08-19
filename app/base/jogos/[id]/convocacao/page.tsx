@@ -41,7 +41,7 @@ export default async function ConvocacaoBasePage({
       supabase
         .from("comissao_tecnica_base")
         .select("*")
-        .eq("categoria", categoria)
+        .contains("categorias", [categoria])
         .order("nome_completo", { ascending: true }),
       supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);

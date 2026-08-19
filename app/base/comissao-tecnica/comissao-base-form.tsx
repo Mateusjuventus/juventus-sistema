@@ -10,25 +10,29 @@ import type { ComissaoBaseFormState } from "./actions";
 
 const initialState: ComissaoBaseFormState = {};
 
-/** Espelha `app/comissao-tecnica/comissao-form.tsx`, com o campo Categoria a mais (obrigatório,
- * editável mesmo depois de criado) e o campo Salário mensal (opcional — usado no Gasto Geral da
- * Base, ver docs/superpowers/specs/2026-08-19-financeiro-base-design.md). */
+/** Espelha `app/comissao-tecnica/comissao-form.tsx`, com os campos Categoria(s) (uma pessoa pode
+ * atuar em mais de uma — checkboxes, não um único `<select>`, ver docs/superpowers/specs/
+ * 2026-08-19-comissao-tecnica-multi-categoria-design.md) e Salário mensal (opcional — usado no
+ * Gasto Geral da Base, ver docs/superpowers/specs/2026-08-19-financeiro-base-design.md). */
 export function ComissaoBaseForm({
   action,
   entityId,
   defaultValues,
+  categoriasIniciais,
   fotoUrl,
   submitLabel,
 }: {
   action: (prevState: ComissaoBaseFormState, formData: FormData) => Promise<ComissaoBaseFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
+  categoriasIniciais?: string[];
   fotoUrl?: string | null;
   submitLabel: string;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
+  const categoriasSelecionadas = state.categoriasSelecionadas ?? categoriasIniciais ?? [];
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -87,20 +91,31 @@ export function ComissaoBaseForm({
 
       <FormSection title="Função">
         <FieldGroup>
-          <SelectField
-            label="Categoria"
-            name="categoria"
-            required
-            defaultValue={values.categoria}
-            error={errors.categoria}
-          >
-            <option value="">Selecione</option>
-            {CATEGORIAS_BASE.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </SelectField>
+          <div className="sm:col-span-2">
+            <p className="field-label">
+              Categoria(s)<span className="text-red-700"> *</span>
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {CATEGORIAS_BASE.map((cat) => (
+                <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    name="categorias"
+                    value={cat.value}
+                    defaultChecked={categoriasSelecionadas.includes(cat.value)}
+                    className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                  />
+                  {cat.label}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-neutral-400">
+              Marque mais de uma se a pessoa atua em mais de uma categoria (ex.: mesmo treinador no
+              Sub-11 e no Sub-12) — o salário mensal abaixo é dividido igualmente entre elas no
+              Financeiro.
+            </p>
+            {errors.categorias ? <p className="field-error">{errors.categorias}</p> : null}
+          </div>
           <SuggestionField
             label="Função/cargo"
             name="funcao"

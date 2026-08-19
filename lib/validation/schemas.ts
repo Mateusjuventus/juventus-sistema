@@ -303,12 +303,15 @@ export type ComissaoTecnicaInput = z.infer<typeof comissaoTecnicaSchema>;
 /** Mesmo formulário de `comissaoTecnicaSchema`, mais a categoria de idade do Futebol de Base
  * (obrigatória — ver `lib/auth/categorias-base.ts`). */
 export const comissaoTecnicaBaseSchema = comissaoTecnicaSchema.extend({
-  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
-    errorMap: () => ({ message: "Categoria é obrigatória" }),
-  }),
+  // Uma pessoa pode atuar em mais de uma categoria (ex.: mesmo treinador no Sub-11 e no Sub-12) —
+  // ver docs/superpowers/specs/2026-08-19-comissao-tecnica-multi-categoria-design.md.
+  categorias: z
+    .array(z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"]))
+    .min(1, { message: "Selecione ao menos uma categoria" }),
   // Snapshot do valor atual (não um lançamento recorrente) — mesmo padrão de
   // `valorAjudaCusto` em `atletaBaseSchema`, ver docs/superpowers/specs/
-  // 2026-08-19-financeiro-base-design.md.
+  // 2026-08-19-financeiro-base-design.md. Se a pessoa atuar em mais de uma categoria, o Financeiro
+  // divide esse valor igualmente entre elas na quebra "Por categoria".
   valorSalario: z.coerce.number().nonnegative().optional().nullable(),
 });
 export type ComissaoTecnicaBaseInput = z.infer<typeof comissaoTecnicaBaseSchema>;
