@@ -125,13 +125,18 @@ export default async function CaptacaoPage({
       ) : null}
 
       {configParecer ? (
-        <div className="card mt-4 p-4">
-          <AssinaturasConfigForm
-            id={configParecer.id}
-            assinaturasIniciais={configParecer.assinaturas}
-            action={atualizarAssinaturasParecer}
-          />
-        </div>
+        <details className="card mt-4">
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-600">
+            Assinaturas do Parecer Final ({configParecer.assinaturas.length})
+          </summary>
+          <div className="border-t border-neutral-100 p-4">
+            <AssinaturasConfigForm
+              id={configParecer.id}
+              assinaturasIniciais={configParecer.assinaturas}
+              action={atualizarAssinaturasParecer}
+            />
+          </div>
+        </details>
       ) : null}
 
       <div className="card mt-4 p-4">

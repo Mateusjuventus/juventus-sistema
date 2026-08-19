@@ -52,12 +52,7 @@ export function AssinaturasConfigForm({
   return (
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="id" value={id} />
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-        Assinaturas do Parecer Final
-      </p>
-      <p className="-mt-1 text-xs text-neutral-400">
-        Aparecem em todo Parecer Final gerado, na ordem abaixo.
-      </p>
+      <p className="text-xs text-neutral-400">Aparecem em todo Parecer Final gerado, na ordem abaixo.</p>
 
       {linhas.length === 0 ? (
         <p className="text-sm text-neutral-400">Nenhuma assinatura configurada.</p>
