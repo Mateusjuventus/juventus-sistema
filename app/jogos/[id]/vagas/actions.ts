@@ -157,3 +157,18 @@ export async function chamarDaEspera(jogoId: string, formData: FormData): Promis
   await supabase.from("jogo_vagas_staff_inscricoes").update({ situacao: "confirmado" }).eq("id", id);
   revalidatePath(`/jogos/${jogoId}/vagas`);
 }
+
+/**
+ * Move alguém pra outra função do mesmo jogo — a pessoa pegou a vaga errada, ou o Mateus precisa
+ * remanejar pra cobrir um buraco. Não trava por limite de vaga da função de destino: a tela já
+ * mostra quantas vagas cada função tem preenchidas, então quem decide com essa informação na mão é
+ * o Mateus, não o sistema (mesmo raciocínio de `chamarDaEspera` acima).
+ */
+export async function trocarFuncaoInscricao(jogoId: string, formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const vagaFuncaoId = String(formData.get("vagaFuncaoId") ?? "");
+  if (!id || !vagaFuncaoId) return;
+  const supabase = createClient();
+  await supabase.from("jogo_vagas_staff_inscricoes").update({ vaga_funcao_id: vagaFuncaoId }).eq("id", id);
+  revalidatePath(`/jogos/${jogoId}/vagas`);
+}

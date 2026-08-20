@@ -155,3 +155,16 @@ export async function chamarDaEsperaBase(jogoId: string, formData: FormData): Pr
   await supabase.from("jogo_vagas_staff_base_inscricoes").update({ situacao: "confirmado" }).eq("id", id);
   revalidatePath(`/base/jogos/${jogoId}/vagas`);
 }
+
+/**
+ * Move alguém pra outra função do mesmo jogo — ver o comentário equivalente no Profissional
+ * (`app/jogos/[id]/vagas/actions.ts`).
+ */
+export async function trocarFuncaoInscricaoBase(jogoId: string, formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const vagaFuncaoId = String(formData.get("vagaFuncaoId") ?? "");
+  if (!id || !vagaFuncaoId) return;
+  const supabase = createClient();
+  await supabase.from("jogo_vagas_staff_base_inscricoes").update({ vaga_funcao_id: vagaFuncaoId }).eq("id", id);
+  revalidatePath(`/base/jogos/${jogoId}/vagas`);
+}

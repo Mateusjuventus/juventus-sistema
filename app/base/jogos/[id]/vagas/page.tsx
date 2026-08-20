@@ -23,6 +23,7 @@ import {
   chamarDaEsperaBase,
   removerInscricaoBase,
   salvarVagasBase,
+  trocarFuncaoInscricaoBase,
 } from "./actions";
 import { LinkVagas } from "@/components/link-vagas";
 import { VagasForm, type FuncaoInicial } from "@/components/vagas-form";
@@ -82,7 +83,21 @@ export default async function VagasStaffBasePage({ params }: { params: { id: str
   const ocupadas = totalOcupadas(resumos);
   const confirmados = inscricoes.filter((i) => i.situacao === "confirmado");
   const espera = inscricoes.filter((i) => i.situacao === "espera");
-  const nomeDaVagaFuncao = new Map(resumos.map((r) => [r.vagaFuncaoId, r.funcaoNome]));
+
+  // Agrupa quem já pegou vaga por função — ver o comentário equivalente no Profissional
+  // (`app/jogos/[id]/vagas/page.tsx`).
+  const confirmadosPorFuncao = new Map<string, JogoVagasStaffBaseInscricaoRow[]>();
+  const esperaPorFuncao = new Map<string, JogoVagasStaffBaseInscricaoRow[]>();
+  for (const i of confirmados) {
+    const lista = confirmadosPorFuncao.get(i.vaga_funcao_id) ?? [];
+    lista.push(i);
+    confirmadosPorFuncao.set(i.vaga_funcao_id, lista);
+  }
+  for (const i of espera) {
+    const lista = esperaPorFuncao.get(i.vaga_funcao_id) ?? [];
+    lista.push(i);
+    esperaPorFuncao.set(i.vaga_funcao_id, lista);
+  }
 
   const funcoesIniciais: FuncaoInicial[] = funcoes.map((f) => ({
     funcaoId: f.funcao_id,
@@ -95,6 +110,7 @@ export default async function VagasStaffBasePage({ params }: { params: { id: str
   const alternarAction = alternarVagasAbertasBase.bind(null, jogo.id);
   const removerAction = removerInscricaoBase.bind(null, jogo.id);
   const chamarAction = chamarDaEsperaBase.bind(null, jogo.id);
+  const trocarAction = trocarFuncaoInscricaoBase.bind(null, jogo.id);
 
   const dataTexto = `${formatDataBr(jogo.data_jogo)}${formatHorario(jogo.horario) ? ` · ${formatHorario(jogo.horario)}` : ""}`;
   const mensagemWhatsapp = `Vagas de trabalho — ${buildConfrontoTexto(jogo)} (${dataTexto}). Pegue a sua:`;
@@ -175,82 +191,131 @@ export default async function VagasStaffBasePage({ params }: { params: { id: str
       />
 
       {inscricoes.length > 0 ? (
-        <section className="card tabela-rolavel mt-4">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3">#</th>
-                <th className="px-4 py-3">Pessoa</th>
-                <th className="px-4 py-3">Vaga</th>
-                <th className="px-4 py-3">Pegou em</th>
-                <th className="px-4 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {confirmados.map((i, indice) => {
-                const pessoa = staffPorId.get(i.staff_id);
-                return (
-                  <tr key={i.id}>
-                    <td className="px-4 py-3">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-grena text-xs font-bold text-white">
-                        {indice + 1}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-neutral-800">{pessoa?.nome_completo ?? "—"}</p>
-                      <p className="text-xs text-neutral-500">{pessoa?.telefone ?? ""}</p>
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{nomeDaVagaFuncao.get(i.vaga_funcao_id) ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-400">{formatQuando(i.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <form action={removerAction}>
-                        <input type="hidden" name="id" value={i.id} />
-                        <button type="submit" className="text-xs font-semibold text-red-700 hover:underline">
-                          Remover
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                );
-              })}
+        <div className="mt-4 space-y-4">
+          {resumos.map((r) => {
+            const confirmadosDaFuncao = confirmadosPorFuncao.get(r.vagaFuncaoId) ?? [];
+            const esperaDaFuncao = esperaPorFuncao.get(r.vagaFuncaoId) ?? [];
+            if (confirmadosDaFuncao.length === 0 && esperaDaFuncao.length === 0) return null;
 
-              {espera.map((i) => {
-                const pessoa = staffPorId.get(i.staff_id);
-                return (
-                  <tr key={i.id} className="bg-indigo-50/40">
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
-                        espera
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-neutral-800">{pessoa?.nome_completo ?? "—"}</p>
-                      <p className="text-xs text-neutral-500">{pessoa?.telefone ?? ""}</p>
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{nomeDaVagaFuncao.get(i.vaga_funcao_id) ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-400">{formatQuando(i.created_at)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-3">
-                        <form action={chamarAction}>
-                          <input type="hidden" name="id" value={i.id} />
-                          <button type="submit" className="text-xs font-semibold text-emerald-700 hover:underline">
-                            Chamar
-                          </button>
-                        </form>
-                        <form action={removerAction}>
-                          <input type="hidden" name="id" value={i.id} />
-                          <button type="submit" className="text-xs font-semibold text-red-700 hover:underline">
-                            Remover
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </section>
+            return (
+              <section key={r.vagaFuncaoId} className="card tabela-rolavel">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-linha px-4 py-3">
+                  <h3 className="text-sm font-bold text-grena-escuro">{r.funcaoNome}</h3>
+                  <span className="text-xs font-semibold text-neutral-500">
+                    {r.ocupadas} de {r.quantidade} preenchidas
+                  </span>
+                </div>
+                <table className="w-full min-w-[560px] text-left text-sm">
+                  <thead className="bg-neutral-50 text-neutral-600">
+                    <tr>
+                      <th className="px-4 py-3">#</th>
+                      <th className="px-4 py-3">Pessoa</th>
+                      <th className="px-4 py-3">Pegou em</th>
+                      <th className="px-4 py-3 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100">
+                    {confirmadosDaFuncao.map((i, indice) => {
+                      const pessoa = staffPorId.get(i.staff_id);
+                      return (
+                        <tr key={i.id}>
+                          <td className="px-4 py-3">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-grena text-xs font-bold text-white">
+                              {indice + 1}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-neutral-800">{pessoa?.nome_completo ?? "—"}</p>
+                            <p className="text-xs text-neutral-500">{pessoa?.telefone ?? ""}</p>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-neutral-400">{formatQuando(i.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <form action={trocarAction} className="flex items-center gap-1.5">
+                                <input type="hidden" name="id" value={i.id} />
+                                <select
+                                  name="vagaFuncaoId"
+                                  defaultValue={i.vaga_funcao_id}
+                                  className="rounded-md border border-linha px-2 py-1 text-xs focus:border-grena focus:outline-none focus:ring-1 focus:ring-grena"
+                                >
+                                  {resumos.map((opcao) => (
+                                    <option key={opcao.vagaFuncaoId} value={opcao.vagaFuncaoId}>
+                                      {opcao.funcaoNome} ({opcao.ocupadas}/{opcao.quantidade})
+                                    </option>
+                                  ))}
+                                </select>
+                                <button type="submit" className="text-xs font-semibold text-grena hover:underline">
+                                  Trocar
+                                </button>
+                              </form>
+                              <form action={removerAction}>
+                                <input type="hidden" name="id" value={i.id} />
+                                <button type="submit" className="text-xs font-semibold text-red-700 hover:underline">
+                                  Remover
+                                </button>
+                              </form>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {esperaDaFuncao.map((i) => {
+                      const pessoa = staffPorId.get(i.staff_id);
+                      return (
+                        <tr key={i.id} className="bg-indigo-50/40">
+                          <td className="px-4 py-3">
+                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+                              espera
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-neutral-800">{pessoa?.nome_completo ?? "—"}</p>
+                            <p className="text-xs text-neutral-500">{pessoa?.telefone ?? ""}</p>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-neutral-400">{formatQuando(i.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <form action={chamarAction}>
+                                <input type="hidden" name="id" value={i.id} />
+                                <button type="submit" className="text-xs font-semibold text-emerald-700 hover:underline">
+                                  Chamar
+                                </button>
+                              </form>
+                              <form action={trocarAction} className="flex items-center gap-1.5">
+                                <input type="hidden" name="id" value={i.id} />
+                                <select
+                                  name="vagaFuncaoId"
+                                  defaultValue={i.vaga_funcao_id}
+                                  className="rounded-md border border-linha px-2 py-1 text-xs focus:border-grena focus:outline-none focus:ring-1 focus:ring-grena"
+                                >
+                                  {resumos.map((opcao) => (
+                                    <option key={opcao.vagaFuncaoId} value={opcao.vagaFuncaoId}>
+                                      {opcao.funcaoNome} ({opcao.ocupadas}/{opcao.quantidade})
+                                    </option>
+                                  ))}
+                                </select>
+                                <button type="submit" className="text-xs font-semibold text-grena hover:underline">
+                                  Trocar
+                                </button>
+                              </form>
+                              <form action={removerAction}>
+                                <input type="hidden" name="id" value={i.id} />
+                                <button type="submit" className="text-xs font-semibold text-red-700 hover:underline">
+                                  Remover
+                                </button>
+                              </form>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </section>
+            );
+          })}
+        </div>
       ) : vagas ? (
         <p className="card mt-4 p-6 text-center text-sm text-neutral-400">
           Ninguém pegou vaga ainda. Mande o link no grupo.
