@@ -36,22 +36,34 @@ export default async function ParecerCandidatoPage({ params }: { params: { id: s
   const action = salvarParecerCaptacao.bind(null, candidato.id);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8">
-      <Link href="/treinador" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-
-      <div className="mt-2 text-center">
-        <h1 className="font-display text-xl font-bold text-grena-escuro">{candidato.nome_completo}</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          {categoriaBaseLabel(candidato.categoria)} · {candidato.posicao ?? "posição não informada"} · Nascimento{" "}
-          {formatDataBr(candidato.data_nascimento)}
-        </p>
+    <div className="min-h-screen bg-pagina">
+      <div className="bg-grena">
+        <div className="mx-auto max-w-2xl px-4 py-4">
+          <Link
+            href="/treinador"
+            className="inline-flex items-center gap-1 text-sm font-medium text-white/80 transition-colors hover:text-white"
+          >
+            ← Voltar
+          </Link>
+        </div>
       </div>
 
-      <div className="card mt-6 p-6">
-        <ParecerForm action={action} />
-      </div>
-    </main>
+      <main className="mx-auto max-w-2xl px-4 py-8">
+        <div className="text-center">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-grena/10 text-sm font-bold text-grena-escuro">
+            {candidato.numero}
+          </span>
+          <h1 className="mt-3 text-xl font-bold text-grena-escuro">{candidato.nome_completo}</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            {categoriaBaseLabel(candidato.categoria)} · {candidato.posicao ?? "posição não informada"} · Nascimento{" "}
+            {formatDataBr(candidato.data_nascimento)}
+          </p>
+        </div>
+
+        <div className="card mt-6 p-6">
+          <ParecerForm action={action} />
+        </div>
+      </main>
+    </div>
   );
 }

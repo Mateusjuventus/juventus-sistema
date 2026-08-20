@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasTreinador } from "@/lib/auth/role";
 import { logout } from "@/app/actions";
+import { JuventusCrestMark } from "@/components/juventus-crest";
 import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import type { CaptacaoBaseRow } from "@/lib/supabase/types";
@@ -26,12 +27,13 @@ export default async function TreinadorPage() {
 
   if (categorias.length === 0) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-10">
-        <p className="text-center text-neutral-600">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-pagina px-4 py-10">
+        <JuventusCrestMark className="h-12 w-12" />
+        <p className="mt-4 max-w-sm text-center text-neutral-600">
           Você ainda não tem nenhuma categoria vinculada ao seu acesso. Fale com o responsável do
           Futebol de Base.
         </p>
-        <form action={logout} className="mt-4 flex justify-center">
+        <form action={logout} className="mt-4">
           <button type="submit" className="btn-secondary btn-sm">
             Sair
           </button>
@@ -57,104 +59,140 @@ export default async function TreinadorPage() {
   const decididos = (decididosData ?? []) as CaptacaoBaseRow[];
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-grena-escuro">Avaliação de candidatos</h1>
-          <p className="mt-1 flex flex-wrap gap-1.5">
-            {categorias.map((cat) => (
-              <span
-                key={cat}
-                className="rounded-full bg-grena/10 px-2.5 py-0.5 text-xs font-semibold text-grena-escuro"
+    <div className="min-h-screen bg-pagina">
+      <div className="bg-grena">
+        <div className="mx-auto max-w-3xl px-4 py-5 sm:py-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <JuventusCrestMark className="h-9 w-9 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                  Juventus - SAF · Futebol de Base
+                </p>
+                <h1 className="text-xl font-bold text-white sm:text-2xl">Avaliação de candidatos</h1>
+              </div>
+            </div>
+            <form action={logout}>
+              <button
+                type="submit"
+                className="rounded-md border border-white/25 px-3 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
               >
+                Sair
+              </button>
+            </form>
+          </div>
+          <p className="mt-3 flex flex-wrap gap-1.5">
+            {categorias.map((cat) => (
+              <span key={cat} className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white">
                 {categoriaBaseLabel(cat)}
               </span>
             ))}
           </p>
         </div>
-        <form action={logout}>
-          <button type="submit" className="btn-secondary btn-sm">
-            Sair
-          </button>
-        </form>
       </div>
 
-      <section className="mt-6">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-          Aguardando avaliação
-          <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-neutral-500">
-            {pendentes.length}
-          </span>
-        </h2>
-        {pendentes.length === 0 ? (
-          <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
-            Nenhum candidato aguardando avaliação no momento.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {pendentes.map((candidato) => (
-              <Link
-                key={candidato.id}
-                href={`/treinador/${candidato.id}`}
-                className="card block p-4 hover:border-grena"
-              >
-                <p className="font-medium text-neutral-800">
-                  {candidato.nome_completo}
-                  {candidato.categoria ? (
-                    <span className="ml-2 text-sm font-normal text-neutral-500">
-                      {categoriaBaseLabel(candidato.categoria)}
-                    </span>
-                  ) : null}
-                </p>
-                <p className="mt-0.5 text-sm text-neutral-500">
-                  Nascimento {formatDataBr(candidato.data_nascimento)} ·{" "}
-                  {candidato.posicao ?? "posição não informada"} · Início{" "}
-                  {formatDataBr(candidato.data_inicio)}
-                </p>
-              </Link>
-            ))}
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:py-8">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Aguardando avaliação</p>
+            <p className="mt-1 text-2xl font-bold text-grena-escuro">{pendentes.length}</p>
           </div>
-        )}
-      </section>
+          <div className="card p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Já avaliados</p>
+            <p className="mt-1 text-2xl font-bold text-grena-escuro">{decididos.length}</p>
+          </div>
+        </div>
 
-      <section className="mt-8">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-          Já avaliados
-        </h2>
-        {decididos.length === 0 ? (
-          <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
-            Nenhum candidato avaliado ainda.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {decididos.map((candidato) => (
-              <div key={candidato.id} className="card p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-medium text-neutral-800">
-                    {candidato.nome_completo}
-                    {candidato.categoria ? (
-                      <span className="ml-2 text-sm font-normal text-neutral-500">
-                        {categoriaBaseLabel(candidato.categoria)}
-                      </span>
-                    ) : null}
-                  </p>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${corCaptacaoStatus(candidato.status)}`}
-                  >
-                    {captacaoStatusLabel(candidato.status)}
+        <section className="mt-8">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            Aguardando avaliação
+          </h2>
+          {pendentes.length === 0 ? (
+            <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+              Nenhum candidato aguardando avaliação no momento.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {pendentes.map((candidato) => (
+                <Link
+                  key={candidato.id}
+                  href={`/treinador/${candidato.id}`}
+                  className="card group flex items-center gap-3 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-dourado"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-grena/10 text-sm font-bold text-grena-escuro">
+                    {candidato.numero}
                   </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-neutral-800">
+                      {candidato.nome_completo}
+                      {candidato.categoria ? (
+                        <span className="ml-2 text-sm font-normal text-neutral-500">
+                          {categoriaBaseLabel(candidato.categoria)}
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 truncate text-sm text-neutral-500">
+                      Nascimento {formatDataBr(candidato.data_nascimento)} ·{" "}
+                      {candidato.posicao ?? "posição não informada"} · Início{" "}
+                      {formatDataBr(candidato.data_inicio)}
+                    </p>
+                  </div>
+                  <span
+                    aria-hidden
+                    className="shrink-0 text-neutral-300 transition-colors group-hover:text-grena"
+                  >
+                    →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-8">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            Já avaliados
+          </h2>
+          {decididos.length === 0 ? (
+            <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+              Nenhum candidato avaliado ainda.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {decididos.map((candidato) => (
+                <div key={candidato.id} className="card flex items-center gap-3 p-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-sm font-bold text-neutral-500">
+                    {candidato.numero}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="truncate font-medium text-neutral-800">
+                        {candidato.nome_completo}
+                        {candidato.categoria ? (
+                          <span className="ml-2 text-sm font-normal text-neutral-500">
+                            {categoriaBaseLabel(candidato.categoria)}
+                          </span>
+                        ) : null}
+                      </p>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${corCaptacaoStatus(candidato.status)}`}
+                      >
+                        {captacaoStatusLabel(candidato.status)}
+                      </span>
+                    </div>
+                    {candidato.nota_tecnica !== null ? (
+                      <p className="mt-1 text-sm text-neutral-500">
+                        Técnica {candidato.nota_tecnica} · Física {candidato.nota_fisica} · Tática{" "}
+                        {candidato.nota_tatica} · Comportamental {candidato.nota_comportamental}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
-                {candidato.nota_tecnica !== null ? (
-                  <p className="mt-1 text-sm text-neutral-500">
-                    Técnica {candidato.nota_tecnica} · Física {candidato.nota_fisica} · Tática{" "}
-                    {candidato.nota_tatica} · Comportamental {candidato.nota_comportamental}
-                  </p>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </main>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
   );
 }
