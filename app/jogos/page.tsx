@@ -41,9 +41,10 @@ export default async function JogosPage({
 }) {
   const q = searchParams.q?.trim() ?? "";
   const mandanteFiltro = searchParams.mandante ?? "";
-  // "proximidade" (padrão) = jogo mais próximo de hoje primeiro; "cronologico" = ordem cronológica
-  // normal, do mais antigo pro mais recente — alternável pelo botão "Ordenar" na tela.
-  const ordem = searchParams.ordem === "cronologico" ? "cronologico" : "proximidade";
+  // "cronologico" (padrão) = ordenado pela data do jogo, do mais antigo pro mais recente;
+  // "proximidade" = jogo mais próximo de hoje primeiro (mistura passado/futuro por distância) —
+  // vira uma opção alternável pelo botão "Ordenar" na tela, não mais o padrão.
+  const ordem = searchParams.ordem === "proximidade" ? "proximidade" : "cronologico";
   const supabase = createClient();
 
   let query = supabase.from("jogos").select("*").order("data_jogo", { ascending: false });
@@ -175,7 +176,9 @@ export default async function JogosPage({
         <div className="card mt-4 p-8 text-center text-neutral-400">Nenhum jogo encontrado.</div>
       ) : null}
 
-      <div className="mt-4 space-y-3">
+      {/* Grid em vez de coluna única cheia: cartão mais estreito, vários lado a lado — cabem mais
+          jogos na mesma tela em vez de um por linha esticado na largura toda. */}
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {jogos.map((j, i) => {
           const horario = formatHorario(j.horario);
           const selo = formatSeloData(j.data_jogo);

@@ -46,7 +46,9 @@ export default async function JogosBasePage({
   const q = searchParams.q?.trim() ?? "";
   const mandanteFiltro = searchParams.mandante ?? "";
   const categoriaFiltro = searchParams.categoria ?? "";
-  const ordem = searchParams.ordem === "cronologico" ? "cronologico" : "proximidade";
+  // "cronologico" (padrão) = ordenado pela data do jogo — ver o comentário equivalente no
+  // Profissional (`app/jogos/page.tsx`).
+  const ordem = searchParams.ordem === "proximidade" ? "proximidade" : "cronologico";
   const supabase = createClient();
 
   let query = supabase.from("jogos_base").select("*").order("data_jogo", { ascending: false });
@@ -145,7 +147,9 @@ export default async function JogosBasePage({
         <div className="card mt-4 p-8 text-center text-neutral-400">Nenhum jogo encontrado.</div>
       ) : null}
 
-      <div className="mt-4 space-y-3">
+      {/* Grid em vez de coluna única cheia — ver o comentário equivalente no Profissional
+          (`app/jogos/page.tsx`). */}
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {jogos.map((j, i) => {
           const horario = formatHorario(j.horario);
           const selo = formatSeloData(j.data_jogo);
