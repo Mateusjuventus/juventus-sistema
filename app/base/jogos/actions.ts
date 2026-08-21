@@ -155,4 +155,7 @@ export async function deleteJogoBase(formData: FormData): Promise<void> {
   await supabase.from("jogos_base").delete().eq("id", id);
 
   revalidatePath("/base/jogos");
+  // Chamado agora de dentro do próprio jogo (`/base/jogos/[id]`) — ver comentário equivalente no
+  // Profissional (`app/jogos/actions.ts`).
+  redirect("/base/jogos");
 }

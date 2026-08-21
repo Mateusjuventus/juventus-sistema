@@ -143,4 +143,7 @@ export async function deleteJogo(formData: FormData): Promise<void> {
   const supabase = createClient();
   await supabase.from("jogos").delete().eq("id", id);
   revalidatePath("/jogos");
+  // Chamado agora de dentro do próprio jogo (`/jogos/[id]`, ver DeleteButton no fim do formulário de
+  // edição) — sem o redirect, a pessoa ficava numa tela de um jogo que acabou de apagar.
+  redirect("/jogos");
 }

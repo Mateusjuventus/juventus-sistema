@@ -2,13 +2,11 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
-import { DeleteButton } from "@/components/delete-button";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { JogoBaseRow } from "@/lib/supabase/types";
-import { deleteJogoBase } from "./actions";
 
 function formatData(data: string): string {
   const [ano, mes, dia] = data.split("-");
@@ -18,6 +16,20 @@ function formatData(data: string): string {
 function formatHorario(horario: string | null): string | null {
   if (!horario) return null;
   return horario.slice(0, 5);
+}
+
+const DIAS_SEMANA_ABREV = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+const MESES_ABREV = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+/** Selo de data compacto do cartão de jogo — ver o comentário equivalente no Profissional
+ * (`app/jogos/page.tsx`). */
+function formatSeloData(dataIso: string): { diaSemana: string; dia: string; mes: string } {
+  const data = new Date(`${dataIso}T12:00:00`);
+  return {
+    diaSemana: DIAS_SEMANA_ABREV[data.getDay()],
+    dia: String(data.getDate()).padStart(2, "0"),
+    mes: MESES_ABREV[data.getMonth()],
+  };
 }
 
 /**
@@ -133,23 +145,24 @@ export default async function JogosBasePage({
         <div className="card mt-4 p-8 text-center text-neutral-400">Nenhum jogo encontrado.</div>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 space-y-3">
         {jogos.map((j, i) => {
           const horario = formatHorario(j.horario);
+          const selo = formatSeloData(j.data_jogo);
           const adversarioLogo = logoUrls[i] ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logoUrls[i]!}
               alt={j.adversario_nome}
-              className="h-14 w-14 rounded-full border border-neutral-200 bg-white object-contain p-1"
+              className="h-11 w-11 rounded-full border border-neutral-200 bg-white object-contain p-1"
             />
           ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 text-xs text-neutral-400">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 text-xs text-neutral-400">
               {j.adversario_nome.slice(0, 3).toUpperCase()}
             </div>
           );
           const juventusLogo = (
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-200 bg-white p-1">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 bg-white p-1">
               <JuventusCrestMark className="h-full w-full" />
             </div>
           );
@@ -175,70 +188,86 @@ export default async function JogosBasePage({
           const placarDireita = j.mandante ? j.gols_contra : j.gols_pro;
 
           return (
-            <div key={j.id} className="card flex flex-col gap-4 p-5">
-              <div className="flex items-center justify-between text-xs font-medium text-neutral-500">
-                <span>
-                  {categoriaBaseLabel(j.categoria)} · {j.competicao}
-                  {j.rodada_fase ? ` · ${j.rodada_fase}` : ""}
-                </span>
-                <div className="flex gap-1.5">
-                  {resultado ? (
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${resultado.classe}`}>
-                      {resultado.label}
+            <div key={j.id} className="card overflow-hidden">
+              <Link
+                href={`/base/jogos/${j.id}`}
+                className="flex items-stretch transition-colors hover:bg-neutral-50"
+              >
+                <div className="flex w-16 shrink-0 flex-col items-center justify-center bg-grena px-1 py-3 text-white sm:w-20">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-white/70">
+                    {selo.diaSemana}
+                  </span>
+                  <span className="text-2xl font-black leading-none">{selo.dia}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-white/70">
+                    {selo.mes}
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium text-neutral-500">
+                    <span className="truncate">
+                      {categoriaBaseLabel(j.categoria)} · {j.competicao}
+                      {j.rodada_fase ? ` · ${j.rodada_fase}` : ""}
                     </span>
-                  ) : null}
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      j.mandante ? "bg-dourado/20 text-grena-escuro" : "bg-neutral-200 text-neutral-600"
-                    }`}
-                  >
-                    {j.mandante ? "Em casa" : "Fora"}
-                  </span>
-                </div>
-              </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      {resultado ? (
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${resultado.classe}`}>
+                          {resultado.label}
+                        </span>
+                      ) : null}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          j.mandante ? "bg-dourado/20 text-grena-escuro" : "bg-neutral-200 text-neutral-600"
+                        }`}
+                      >
+                        {j.mandante ? "Em casa" : "Fora"}
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                <div className="flex flex-col items-center gap-1.5">
-                  {ladoEsquerdo.logo}
-                  <span className="text-center text-sm font-semibold text-grena-escuro">
-                    {ladoEsquerdo.nome}
-                  </span>
-                </div>
-                {temResultado ? (
-                  <span className="text-lg font-bold text-grena-escuro">
-                    {placarEsquerda} × {placarDireita}
-                  </span>
-                ) : (
-                  <span className="text-lg font-bold text-neutral-300">×</span>
-                )}
-                <div className="flex flex-col items-center gap-1.5">
-                  {ladoDireito.logo}
-                  <span className="text-center text-sm font-semibold text-grena-escuro">
-                    {ladoDireito.nome}
-                  </span>
-                </div>
-              </div>
+                  <div className="mt-2 flex items-center justify-center gap-3 sm:gap-4">
+                    <div className="flex min-w-0 flex-col items-center gap-1">
+                      {ladoEsquerdo.logo}
+                      <span className="max-w-[90px] truncate text-center text-xs font-semibold text-grena-escuro sm:max-w-[140px] sm:text-sm">
+                        {ladoEsquerdo.nome}
+                      </span>
+                    </div>
+                    {temResultado ? (
+                      <span className="shrink-0 text-lg font-bold text-grena-escuro">
+                        {placarEsquerda} × {placarDireita}
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-lg font-bold text-neutral-300">×</span>
+                    )}
+                    <div className="flex min-w-0 flex-col items-center gap-1">
+                      {ladoDireito.logo}
+                      <span className="max-w-[90px] truncate text-center text-xs font-semibold text-grena-escuro sm:max-w-[140px] sm:text-sm">
+                        {ladoDireito.nome}
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="text-center text-sm text-neutral-600">
-                {formatData(j.data_jogo)}
-                {horario ? ` · ${horario}` : ""}
-                {j.local_estadio ? ` · ${j.local_estadio}` : ""}
-              </div>
+                  <div className="mt-2 text-center text-xs text-neutral-500 sm:text-sm">
+                    {formatData(j.data_jogo)}
+                    {horario ? ` · ${horario}` : ""}
+                    {j.local_estadio ? ` · ${j.local_estadio}` : ""}
+                  </div>
+                </div>
+              </Link>
 
-              <div className="flex flex-wrap justify-center gap-2 border-t border-neutral-100 pt-3">
-                <Link href={`/base/jogos/${j.id}/convocacao`} className="btn-secondary">
-                  Entrar
-                </Link>
-                <Link href={`/base/jogos/${j.id}/sumula`} className="btn-secondary">
+              <div className="flex divide-x divide-linha border-t border-linha">
+                <Link
+                  href={`/base/jogos/${j.id}/sumula`}
+                  className="flex-1 py-2.5 text-center text-xs font-semibold text-grena transition-colors hover:bg-grena hover:text-white"
+                >
                   Súmula
                 </Link>
-                <Link href={`/base/jogos/${j.id}/checklist`} className="btn-secondary">
+                <Link
+                  href={`/base/jogos/${j.id}/checklist`}
+                  className="flex-1 py-2.5 text-center text-xs font-semibold text-grena transition-colors hover:bg-grena hover:text-white"
+                >
                   Checklist
                 </Link>
-                <Link href={`/base/jogos/${j.id}`} className="btn-secondary">
-                  Editar
-                </Link>
-                <DeleteButton action={deleteJogoBase} id={j.id} entityLabel="jogo" />
               </div>
             </div>
           );

@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
+import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { JogoRow } from "@/lib/supabase/types";
 import { JogoForm } from "../jogo-form";
-import { updateJogo } from "../actions";
+import { updateJogo, deleteJogo } from "../actions";
 
 export default async function EditarJogoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -41,6 +42,10 @@ export default async function EditarJogoPage({ params }: { params: { id: string 
           logoUrl={logoUrl}
           submitLabel="Salvar alterações"
         />
+
+        <div className="mt-8 flex justify-end border-t border-linha pt-4">
+          <DeleteButton action={deleteJogo} id={jogo.id} entityLabel="jogo (com toda a convocação, súmula e logística dele)" />
+        </div>
       </div>
     </AppShell>
   );

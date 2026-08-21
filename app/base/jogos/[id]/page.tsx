@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
+import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { JogoBaseRow } from "@/lib/supabase/types";
 import { JogoBaseForm } from "../jogo-form-base";
-import { updateJogoBase } from "../actions";
+import { updateJogoBase, deleteJogoBase } from "../actions";
 
 export default async function EditarJogoBasePage({
   params,
@@ -46,6 +47,10 @@ export default async function EditarJogoBasePage({
           logoUrl={logoUrl}
           submitLabel="Salvar alterações"
         />
+
+        <div className="mt-8 flex justify-end border-t border-linha pt-4">
+          <DeleteButton action={deleteJogoBase} id={jogo.id} entityLabel="jogo (com toda a convocação, súmula e logística dele)" />
+        </div>
       </div>
     </AppShell>
   );
