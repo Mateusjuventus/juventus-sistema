@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
-import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import { calcularGeralBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
+import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { calcularGeralBase, tipoPagamentoAtletaBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
 import { DonutComposicao, type FatiaComposicao } from "@/components/charts/donut-composicao";
 import { BarrasCategoria } from "@/components/charts/barras-categoria";
 import type {
@@ -56,17 +56,25 @@ export async function GeralBaseView() {
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
-  const atletasComAjuda = atletas.filter((a) => (a.valor_ajuda_custo ?? 0) > 0);
 
   const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =
-    calcularGeralBase(comissao, atletasComAjuda, despesas);
+    calcularGeralBase(comissao, atletas, despesas);
+
+  // Todo atleta cadastrado, agrupado por categoria de idade (mesma ordem de CATEGORIAS_BASE) — o
+  // pedido do Mateus foi listar todo mundo (não só quem recebe), com o tipo de pagamento
+  // (Salário/Ajuda de custo/Empréstimo/Sem contrato) vindo do tipo de contrato de cada um.
+  const atletasPorCategoria = CATEGORIAS_BASE.map((cat) => {
+    const doGrupo = atletas.filter((a) => a.categoria === cat.value);
+    const subtotal = doGrupo.reduce((soma, a) => soma + (a.valor_ajuda_custo ?? 0), 0);
+    return { ...cat, atletas: doGrupo, subtotal };
+  });
 
   // As mesmas 3 cores da marca (grená / dourado / cinza neutro já usado no resto do app) — nada
   // inventado só pro gráfico. `grenaEscuro` fica de fora de propósito: é reservado só pra texto
   // pequeno, não pra preenchimento de área (ver CLAUDE.md).
   const composicao: FatiaComposicao[] = [
     { label: "Comissão Técnica", valor: custoComissao, cor: "#5C0A35" },
-    { label: "Atletas (ajuda de custo)", valor: custoAtletas, cor: "#B98F1E" },
+    { label: "Atletas", valor: custoAtletas, cor: "#B98F1E" },
     { label: "Despesas avulsas", valor: despesasTotal, cor: "#a3a3a3" },
   ];
 
@@ -87,7 +95,7 @@ export async function GeralBaseView() {
         <StatCard
           label="Custo mensal fixo"
           valor={formatMoeda(custoMensalFixo)}
-          ajuda="Salários da Comissão Técnica + ajuda de custo dos atletas cadastrados agora"
+          ajuda="Salários da Comissão Técnica + pagamentos aos atletas (salário, ajuda de custo ou empréstimo) cadastrados agora"
         />
         <StatCard
           label="Despesas avulsas"
@@ -156,43 +164,59 @@ export async function GeralBaseView() {
       </div>
 
       <h2 className="mt-8 text-lg font-bold text-grena-escuro">Atletas</h2>
-      <p className="mt-1 text-sm text-neutral-500">Só aparecem aqui os atletas com ajuda de custo cadastrada.</p>
-      <div className="card tabela-rolavel mt-3">
-        <table className="w-full min-w-[420px] text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3">Categoria</th>
-              <th className="px-4 py-3">Ajuda de custo</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {atletasComAjuda.map((a) => (
-              <tr key={a.id}>
-                <td className="px-4 py-3 font-medium text-neutral-800">{a.nome_completo}</td>
-                <td className="px-4 py-3">{categoriaBaseLabel(a.categoria)}</td>
-                <td className="px-4 py-3">{formatMoeda(a.valor_ajuda_custo ?? 0)}</td>
-              </tr>
-            ))}
-            {atletasComAjuda.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-neutral-400">
-                  Nenhum atleta com ajuda de custo cadastrada.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-          {atletasComAjuda.length > 0 ? (
-            <tfoot>
-              <tr className="border-t-2 border-neutral-200 bg-neutral-50 font-semibold text-neutral-800">
-                <td className="px-4 py-3" colSpan={2}>
-                  Total
-                </td>
-                <td className="px-4 py-3">{formatMoeda(custoAtletas)}</td>
-              </tr>
-            </tfoot>
-          ) : null}
-        </table>
+      <p className="mt-1 text-sm text-neutral-500">
+        Todo atleta cadastrado aparece aqui, agrupado por categoria — &ldquo;—&rdquo; quando não há
+        valor cadastrado. O Tipo (Salário/Ajuda de custo/Empréstimo/Sem contrato) vem do tipo de
+        contrato de cada um: contrato profissional &ldquo;Definitivo&rdquo; é Salário, contrato de
+        formação &ldquo;Amador&rdquo; é Ajuda de custo.
+      </p>
+      <div className="mt-3 space-y-3">
+        {atletasPorCategoria.map((grupo) => (
+          <details key={grupo.value} open className="card overflow-hidden">
+            <summary className="flex cursor-pointer select-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-neutral-600">
+              <span>
+                {grupo.label}{" "}
+                <span className="font-normal text-neutral-400">
+                  ({grupo.atletas.length} atleta{grupo.atletas.length === 1 ? "" : "s"})
+                </span>
+              </span>
+              <span className="text-grena-escuro">{formatMoeda(grupo.subtotal)}</span>
+            </summary>
+            <div className="border-t border-neutral-100 tabela-rolavel">
+              <table className="w-full min-w-[420px] text-left text-sm">
+                <thead className="bg-neutral-50 text-neutral-600">
+                  <tr>
+                    <th className="px-4 py-3">Nome</th>
+                    <th className="px-4 py-3">Tipo</th>
+                    <th className="px-4 py-3">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {grupo.atletas.map((a) => (
+                    <tr key={a.id}>
+                      <td className="px-4 py-3 font-medium text-neutral-800">{a.nome_completo}</td>
+                      <td className="px-4 py-3">{tipoPagamentoAtletaBase(a.tipo_contrato)}</td>
+                      <td className="px-4 py-3">
+                        {a.valor_ajuda_custo ? formatMoeda(a.valor_ajuda_custo) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  {grupo.atletas.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-6 text-center text-neutral-400">
+                        Nenhum atleta cadastrado nessa categoria.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        ))}
+        <div className="card flex items-center justify-between px-4 py-3 text-sm font-semibold text-neutral-800">
+          <span>Total (Atletas)</span>
+          <span>{formatMoeda(custoAtletas)}</span>
+        </div>
       </div>
 
       <div className="mb-4 mt-8 flex flex-wrap items-center justify-between gap-2">

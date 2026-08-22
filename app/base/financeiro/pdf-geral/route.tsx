@@ -6,11 +6,11 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getAssinaturasFinanceiroBase } from "@/lib/pdf/assinaturas";
-import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import { calcularGeralBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
+import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { calcularGeralBase, tipoPagamentoAtletaBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
 import {
   RelatorioGeralBaseDocument,
-  type RelatorioGeralBaseAtleta,
+  type RelatorioGeralBaseAtletasCategoria,
   type RelatorioGeralBaseComissao,
   type RelatorioGeralBaseDespesa,
   type RelatorioGeralBaseFatia,
@@ -42,21 +42,20 @@ export async function GET() {
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
-  const atletasComAjuda = atletas.filter((a) => (a.valor_ajuda_custo ?? 0) > 0);
 
-  if (comissao.length === 0 && atletasComAjuda.length === 0 && despesas.length === 0) {
+  if (comissao.length === 0 && atletas.length === 0 && despesas.length === 0) {
     return new NextResponse("Ainda não há nada cadastrado no Gasto Geral da Base.", { status: 400 });
   }
 
   const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =
-    calcularGeralBase(comissao, atletasComAjuda, despesas);
+    calcularGeralBase(comissao, atletas, despesas);
 
   // Mesmas 3 cores e mesma leitura (Comissão / Atletas / Despesas) do gráfico da tela
   // (`geral-base-view.tsx`) — só o desenho em si muda entre os dois (ver comentário em
   // `caminhoFatiaDonut` no documento do PDF).
   const composicaoPdf: RelatorioGeralBaseFatia[] = [
     { label: "Comissão Técnica", valor: custoComissao, cor: "#5C0A35" },
-    { label: "Atletas (ajuda de custo)", valor: custoAtletas, cor: "#B98F1E" },
+    { label: "Atletas", valor: custoAtletas, cor: "#B98F1E" },
     { label: "Despesas avulsas", valor: despesasTotal, cor: "#a3a3a3" },
   ];
 
@@ -67,11 +66,20 @@ export async function GET() {
     valorSalario: c.valor_salario,
   }));
 
-  const atletasPdf: RelatorioGeralBaseAtleta[] = atletasComAjuda.map((a) => ({
-    nome: a.nome_completo,
-    categoria: categoriaBaseLabel(a.categoria),
-    valorAjudaCusto: a.valor_ajuda_custo ?? 0,
-  }));
+  // Todo atleta cadastrado, agrupado por categoria — espelha a mesma listagem da tela
+  // (`geral-base-view.tsx`), com o tipo de pagamento vindo do tipo de contrato de cada um.
+  const atletasPorCategoria: RelatorioGeralBaseAtletasCategoria[] = CATEGORIAS_BASE.map((cat) => {
+    const doGrupo = atletas.filter((a) => a.categoria === cat.value);
+    return {
+      categoriaLabel: cat.label,
+      subtotal: doGrupo.reduce((soma, a) => soma + (a.valor_ajuda_custo ?? 0), 0),
+      atletas: doGrupo.map((a) => ({
+        nome: a.nome_completo,
+        tipoPagamento: tipoPagamentoAtletaBase(a.tipo_contrato),
+        valor: a.valor_ajuda_custo,
+      })),
+    };
+  });
 
   const despesasPdf: RelatorioGeralBaseDespesa[] = despesas.map((d) => ({
     categoria: d.categoria ? categoriaBaseLabel(d.categoria) : "Geral",
@@ -95,7 +103,7 @@ export async function GET() {
       composicao={composicaoPdf}
       categorias={linhasCategoria}
       comissao={comissaoPdf}
-      atletas={atletasPdf}
+      atletasPorCategoria={atletasPorCategoria}
       despesas={despesasPdf}
       assinatura1={assinatura1}
       assinatura2={assinatura2}

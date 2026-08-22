@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularGeralBase, valorDespesaBase } from "./financeiro-base";
+import { calcularGeralBase, tipoPagamentoAtletaBase, valorDespesaBase } from "./financeiro-base";
 import type { AtletaBaseRow, ComissaoTecnicaBaseRow, DespesaAvulsaBaseComCategoriaRow } from "../supabase/types";
 
 /** Só os campos que `calcularGeralBase` de fato lê — o resto do shape de cada Row não importa
@@ -81,5 +81,35 @@ describe("calcularGeralBase", () => {
     const sub13 = resumo.linhasCategoria.find((l) => l.key === "sub13")!;
     expect(sub13.valor).toBe(150); // usa o efetuado, não o previsto
     expect(resumo.despesasTotal).toBe(150);
+  });
+
+  it("soma o valor de atletas sem contrato definido normalmente (não precisa vir pré-filtrado)", () => {
+    // Reflete o novo uso: a tela/PDF agora passam TODOS os atletas (não só quem recebe), e o `?? 0`
+    // já garante que quem não tem valor não afeta a soma.
+    const resumo = calcularGeralBase(
+      [],
+      [atleta("sub11", null), atleta("sub11", 500), atleta("sub12", 0)],
+      [],
+    );
+    expect(resumo.custoAtletas).toBe(500);
+  });
+});
+
+describe("tipoPagamentoAtletaBase", () => {
+  it("Definitivo é Salário", () => {
+    expect(tipoPagamentoAtletaBase("definitivo")).toBe("Salário");
+  });
+
+  it("Amador é Ajuda de custo, com ou sem o flag de contrato de formação", () => {
+    expect(tipoPagamentoAtletaBase("amador")).toBe("Ajuda de custo");
+  });
+
+  it("Empréstimo tem rótulo próprio", () => {
+    expect(tipoPagamentoAtletaBase("emprestimo")).toBe("Empréstimo");
+  });
+
+  it("Iniciação e nulo caem em 'Sem contrato'", () => {
+    expect(tipoPagamentoAtletaBase("iniciacao")).toBe("Sem contrato");
+    expect(tipoPagamentoAtletaBase(null)).toBe("Sem contrato");
   });
 });

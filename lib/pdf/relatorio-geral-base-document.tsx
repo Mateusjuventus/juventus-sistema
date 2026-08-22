@@ -66,7 +66,17 @@ const styles = StyleSheet.create({
   colNome: { flex: 1.6 },
   colFuncao: { flex: 1.1 },
   colCategoria: { flex: 1.1 },
+  colTipo: { flex: 1.1 },
   colValor: { width: 76, textAlign: "right" },
+  atletasSubtitulo: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: "#404040",
+    backgroundColor: "#EEF0F2",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginTop: 10,
+  },
   colDespesa: { flex: 1.8 },
   despesaTitulo: { fontSize: 8, fontWeight: 700, color: "#1f1f1f" },
   despesaSub: { fontSize: 7, color: "#737373", marginTop: 1 },
@@ -142,8 +152,14 @@ export interface RelatorioGeralBaseComissao {
 
 export interface RelatorioGeralBaseAtleta {
   nome: string;
-  categoria: string;
-  valorAjudaCusto: number;
+  tipoPagamento: string;
+  valor: number | null;
+}
+
+export interface RelatorioGeralBaseAtletasCategoria {
+  categoriaLabel: string;
+  atletas: RelatorioGeralBaseAtleta[];
+  subtotal: number;
 }
 
 export interface RelatorioGeralBaseDespesa {
@@ -172,7 +188,7 @@ export function RelatorioGeralBaseDocument({
   composicao,
   categorias,
   comissao,
-  atletas,
+  atletasPorCategoria,
   despesas,
   assinatura1,
   assinatura2,
@@ -185,7 +201,7 @@ export function RelatorioGeralBaseDocument({
   composicao: RelatorioGeralBaseFatia[];
   categorias: RelatorioGeralBaseCategoria[];
   comissao: RelatorioGeralBaseComissao[];
-  atletas: RelatorioGeralBaseAtleta[];
+  atletasPorCategoria: RelatorioGeralBaseAtletasCategoria[];
   despesas: RelatorioGeralBaseDespesa[];
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
@@ -302,25 +318,35 @@ export function RelatorioGeralBaseDocument({
         )}
 
         <Text style={styles.sectionTitulo}>Atletas</Text>
-        <Text style={styles.legenda}>Só aparecem aqui os atletas com ajuda de custo cadastrada.</Text>
-        {atletas.length === 0 ? (
-          <Text style={sharedStyles.emptyState}>Nenhum atleta com ajuda de custo cadastrada.</Text>
-        ) : (
-          <View style={sharedStyles.table}>
-            <View style={sharedStyles.tableHeaderRow}>
-              <Text style={[styles.colNome, sharedStyles.headerCell]}>Nome</Text>
-              <Text style={[styles.colCategoria, sharedStyles.headerCell]}>Categoria</Text>
-              <Text style={[styles.colValor, sharedStyles.headerCell]}>Ajuda de custo</Text>
-            </View>
-            {atletas.map((a, i) => (
-              <View style={sharedStyles.tableRow} key={i} wrap={false}>
-                <Text style={styles.colNome}>{a.nome}</Text>
-                <Text style={styles.colCategoria}>{a.categoria}</Text>
-                <Text style={styles.colValor}>{formatMoeda(a.valorAjudaCusto)}</Text>
+        <Text style={styles.legenda}>
+          Todo atleta cadastrado aparece aqui, por categoria — &ldquo;—&rdquo; quando não há valor
+          cadastrado. Tipo vem do tipo de contrato (Definitivo = Salário, Amador = Ajuda de custo).
+        </Text>
+        {atletasPorCategoria.map((grupo, gi) => (
+          <View key={gi}>
+            <Text style={styles.atletasSubtitulo}>
+              {grupo.categoriaLabel} ({grupo.atletas.length}) · {formatMoeda(grupo.subtotal)}
+            </Text>
+            {grupo.atletas.length === 0 ? (
+              <Text style={sharedStyles.emptyState}>Nenhum atleta cadastrado nessa categoria.</Text>
+            ) : (
+              <View style={sharedStyles.table}>
+                <View style={sharedStyles.tableHeaderRow}>
+                  <Text style={[styles.colNome, sharedStyles.headerCell]}>Nome</Text>
+                  <Text style={[styles.colTipo, sharedStyles.headerCell]}>Tipo</Text>
+                  <Text style={[styles.colValor, sharedStyles.headerCell]}>Valor</Text>
+                </View>
+                {grupo.atletas.map((a, i) => (
+                  <View style={sharedStyles.tableRow} key={i} wrap={false}>
+                    <Text style={styles.colNome}>{a.nome}</Text>
+                    <Text style={styles.colTipo}>{a.tipoPagamento}</Text>
+                    <Text style={styles.colValor}>{a.valor ? formatMoeda(a.valor) : "—"}</Text>
+                  </View>
+                ))}
               </View>
-            ))}
+            )}
           </View>
-        )}
+        ))}
 
         <Text style={styles.sectionTitulo}>Despesas Avulsas da Base</Text>
         {despesas.length === 0 ? (
