@@ -1,7 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
-import { JuventusCrestMark } from "@/components/juventus-crest";
 import { AppSidebar, type SidebarIconKey, type SidebarNavItem } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { getModulosPermitidos, getModulosBasePermitidos, isMaster } from "@/lib/auth/role";
@@ -84,17 +82,14 @@ export async function AppShell({
   const departamentoLabel = departamento === "futebol_base" ? "Futebol de Base" : "Futebol Profissional";
 
   if (nav === "none") {
+    // Só a tela de escolha de departamento usa `nav="none"` hoje (ver app/page.tsx) — por isso o
+    // fundo grená cobre a tela inteira aqui, sem cabeçalho separado: a própria tela já abre com o
+    // brasão e "Juventus - SAF" em destaque, então repetir isso numa barra fininha no topo era
+    // redundante. É a mesma cor de preenchimento grande da sidebar/login, só que ocupando a
+    // primeira tela inteira.
     return (
-      <div className="min-h-screen">
-        <header className="border-b border-linha bg-white">
-          <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
-            <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-wide text-grena-escuro">
-              <JuventusCrestMark className="h-8 w-8" />
-              Juventus - SAF
-            </Link>
-          </div>
-        </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">{children}</main>
+      <div className="min-h-screen bg-grena">
+        <main className="mx-auto max-w-6xl px-4">{children}</main>
       </div>
     );
   }
