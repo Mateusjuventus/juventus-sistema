@@ -52,18 +52,30 @@ export default async function OrganogramaBasePage() {
   }));
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" largura="total">
       <Link href="/base" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
       <PageHeader title="Comissão Técnica / Diretoria" />
       <ComissaoTecnicaBaseTabs active="organograma" />
 
-      <p className="mb-4 text-sm text-neutral-500">
-        Arraste as caixas pra organizar do seu jeito. Clique numa caixa pra editar, ou em &quot;+ Nova
-        caixa&quot; pra adicionar alguém — vinculada a um cadastro da Comissão Técnica, ou preenchida
-        na mão (Presidente, Diretor, vaga em aberto).
-      </p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <p className="max-w-2xl text-sm text-neutral-500">
+          Arraste as caixas pra organizar do seu jeito. Clique numa caixa pra editar, ou em &quot;+ Nova
+          caixa&quot; pra adicionar alguém — vinculada a um cadastro da Comissão Técnica, ou preenchida
+          na mão (Presidente, Diretor, vaga em aberto).
+        </p>
+        {nos.length > 0 ? (
+          <a
+            href="/base/comissao-tecnica/organograma/pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary shrink-0"
+          >
+            Exportar PDF
+          </a>
+        ) : null}
+      </div>
 
       <OrganogramaEditor
         nos={nos}

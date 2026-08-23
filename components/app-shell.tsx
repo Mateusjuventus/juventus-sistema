@@ -30,6 +30,7 @@ export async function AppShell({
   nav = "full",
   departamento = "futebol_profissional",
   breadcrumb,
+  largura = "padrao",
 }: {
   children: ReactNode;
   nav?: "full" | "none";
@@ -40,6 +41,11 @@ export async function AppShell({
    * redesign visual) — as demais páginas continuam com seu próprio link de volta até serem
    * tocadas. */
   breadcrumb?: string;
+  /** "padrao" (default) mantém a largura de conteúdo de sempre (`max-w-6xl`, ~40 telas do sistema).
+   * "total" usa a largura inteira disponível — pra telas que precisam de mais espaço horizontal em
+   * vez de vertical, como o Organograma da Base (desenhado em modo paisagem, várias colunas lado a
+   * lado). Opt-in por tela, não muda nada nas demais. */
+  largura?: "padrao" | "total";
 }) {
   const supabase = createClient();
 
@@ -125,7 +131,7 @@ export async function AppShell({
         {/* `pb-24` no celular reserva a altura da barra inferior fixa — sem isso o último botão de
             cada tela ficava escondido atrás dela. */}
         <main className="min-w-0 flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-6 lg:pt-6">
-          <div className="mx-auto min-w-0 max-w-6xl">{children}</div>
+          <div className={`min-w-0 ${largura === "total" ? "" : "mx-auto max-w-6xl"}`}>{children}</div>
         </main>
       </div>
     </div>
