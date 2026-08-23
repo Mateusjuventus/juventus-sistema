@@ -2,9 +2,53 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { calcularLayoutAutomatico, type OrganogramaNo } from "@/lib/futebol/organograma";
 import type { OrganogramaNoFormState } from "@/components/organograma-editor";
 
 const CAMINHO = "/base/comissao-tecnica/organograma";
+
+/**
+ * Toda caixa que ainda não tem `pos_x`/`pos_y` salvo fica recalculando a posição toda vez que a
+ * lista de caixas muda (é o layout automático, ver `lib/futebol/organograma.ts`) — na prática, isso
+ * fazia caixa já organizada "pular" de lugar toda vez que o Mateus adicionava uma caixa nova em
+ * outro canto do organograma, mesmo sem mexer nela. Chamada depois de qualquer criação/edição, essa
+ * função "congela": calcula a posição automática de quem ainda está sem posição salva (com o
+ * conjunto JÁ incluindo a caixa que acabou de ser salva) e grava esse valor de uma vez — dali em
+ * diante só uma caixa nova entra no cálculo, nunca mais empurra quem já existia.
+ */
+async function congelarPosicoesAutomaticas(supabase: ReturnType<typeof createClient>): Promise<void> {
+  const { data } = await supabase
+    .from("organograma_base")
+    .select("id, reporta_para, grupo, linha, ordem, pos_x, pos_y");
+  const linhas = (data ?? []) as {
+    id: string;
+    reporta_para: string | null;
+    grupo: string | null;
+    linha: string | null;
+    ordem: number;
+    pos_x: number | null;
+    pos_y: number | null;
+  }[];
+  const semPosicao = linhas.filter((l) => l.pos_x === null || l.pos_y === null);
+  if (semPosicao.length === 0) return;
+
+  const layout = calcularLayoutAutomatico(
+    linhas.map(
+      (l): OrganogramaNo => ({ id: l.id, reportaPara: l.reporta_para, grupo: l.grupo, linha: l.linha, ordem: l.ordem }),
+    ),
+  );
+
+  await Promise.all(
+    semPosicao.map((l) => {
+      const pos = layout.get(l.id);
+      if (!pos) return null;
+      return supabase
+        .from("organograma_base")
+        .update({ pos_x: Math.round(pos.x), pos_y: Math.round(pos.y) })
+        .eq("id", l.id);
+    }),
+  );
+}
 
 function texto(formData: FormData, campo: string): string {
   return String(formData.get(campo) ?? "").trim();
@@ -60,6 +104,7 @@ export async function salvarNoOrganograma(
     if (error) return { error: `Não foi possível criar: ${error.message}` };
   }
 
+  await congelarPosicoesAutomaticas(supabase);
   revalidatePath(CAMINHO);
   return { success: true };
 }

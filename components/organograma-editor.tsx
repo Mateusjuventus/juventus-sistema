@@ -76,6 +76,8 @@ function PainelEdicao({
 }) {
   const [state, formAction] = useFormState(salvarAction, {} as OrganogramaNoFormState);
   const [vinculada, setVinculada] = useState(no?.comissaoTecnicaBaseId ?? "");
+  const [grupoValor, setGrupoValor] = useState(no?.grupo ?? "");
+  const [linhaValor, setLinhaValor] = useState(no?.linha ?? "");
 
   // Fecha sozinho ao salvar com sucesso — o dado novo já aparece no organograma atrás do painel.
   useEffect(() => {
@@ -84,6 +86,17 @@ function PainelEdicao({
   }, [state.success]);
 
   const opcoesReportaPara = todosOsNos.filter((n) => n.id !== no?.id);
+
+  // Sugestões de autocompletar (via <datalist>) com os valores de Grupo/Linha já usados nas outras
+  // caixas — sem isso é fácil digitar "Comissão Sub20" numa caixa e "comissao sub 20" noutra e as
+  // duas nunca se alinharem na grade por serem textos diferentes pro código.
+  const gruposExistentes = [...new Set(todosOsNos.map((n) => n.grupo).filter((g): g is string => !!g))].sort();
+  const linhasExistentes = [...new Set(todosOsNos.map((n) => n.linha).filter((l): l is string => !!l))].sort();
+
+  // Preencheu Linha mas esqueceu Grupo — sem os dois juntos a caixa não vira célula da grade, cai
+  // na árvore de liderança. Avisa na hora em vez de deixar a pessoa descobrir só depois de salvar
+  // (foi exatamente o que aconteceu com o Igor Silvério).
+  const faltaGrupo = linhaValor.trim() !== "" && grupoValor.trim() === "";
 
   return (
     <div className="card w-full max-w-sm shrink-0 p-4">
@@ -149,9 +162,20 @@ function PainelEdicao({
           <input
             name="grupo"
             className="field-input"
+            list="organograma-grupos"
             placeholder="Ex.: Head de Goleiros — deixe em branco pra caixa de liderança"
-            defaultValue={no?.grupo ?? ""}
+            value={grupoValor}
+            onChange={(e) => setGrupoValor(e.target.value)}
           />
+          <datalist id="organograma-grupos">
+            {gruposExistentes.map((g) => (
+              <option key={g} value={g} />
+            ))}
+          </datalist>
+          <p className="mt-1 text-xs text-neutral-400">
+            Preencha junto com a Linha abaixo pra essa caixa virar uma célula da grade (coluna × linha) —
+            sem os dois, ela vira caixa de liderança.
+          </p>
         </div>
 
         <div>
@@ -159,10 +183,24 @@ function PainelEdicao({
           <input
             name="linha"
             className="field-input"
+            list="organograma-linhas"
             placeholder="Ex.: Comissão Sub20 — alinha com quem usar a mesma linha nas outras colunas"
-            defaultValue={no?.linha ?? ""}
+            value={linhaValor}
+            onChange={(e) => setLinhaValor(e.target.value)}
           />
-          <p className="mt-1 text-xs text-neutral-400">Só faz sentido junto com um Grupo preenchido.</p>
+          <datalist id="organograma-linhas">
+            {linhasExistentes.map((l) => (
+              <option key={l} value={l} />
+            ))}
+          </datalist>
+          {faltaGrupo ? (
+            <p className="mt-1 text-xs font-medium text-amber-600">
+              Falta preencher o Grupo acima — sem ele, essa caixa não entra na grade, mesmo com a Linha
+              preenchida.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-neutral-400">Só faz sentido junto com um Grupo preenchido.</p>
+          )}
         </div>
 
         <div>
