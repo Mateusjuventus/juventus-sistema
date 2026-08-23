@@ -129,7 +129,11 @@ function calcularDiagrama(nos: OrganogramaBaseNoDocumento[]) {
   );
   const posicoes = new Map<string, Ponto>();
   for (const no of nos) {
-    if (no.posX !== null && no.posY !== null) posicoes.set(no.id, { x: no.posX, y: no.posY });
+    // Célula de grade (Grupo E Linha) sempre usa a posição calculada — mesma regra da tela (ver
+    // `components/organograma-editor.tsx`), pra nunca sair do alinhamento mesmo que ainda tenha uma
+    // posição arrastada salva de antes dessa regra existir.
+    if (no.grupo && no.linha) posicoes.set(no.id, layoutAutomatico.get(no.id) ?? { x: 0, y: 0 });
+    else if (no.posX !== null && no.posY !== null) posicoes.set(no.id, { x: no.posX, y: no.posY });
     else posicoes.set(no.id, layoutAutomatico.get(no.id) ?? { x: 0, y: 0 });
   }
 
@@ -191,10 +195,14 @@ function calcularDiagrama(nos: OrganogramaBaseNoDocumento[]) {
     ...cabecalhosGrupo.map((c) => ({ x: c.x, y: c.y })),
     ...rotulosLinha.map((r) => ({ x: r.x, y: r.y })),
   ];
-  const minX = Math.min(0, ...todasAsPosicoes.map((p) => p.x));
-  const minY = Math.min(0, ...todasAsPosicoes.map((p) => p.y));
-  const maxX = Math.max(LARGURA_CAIXA, ...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
-  const maxY = Math.max(ALTURA_CAIXA, ...todasAsPosicoes.map((p) => p.y + ALTURA_CAIXA));
+  // Diferente da tela (que ancora em x=0/y=0 pra dar um referencial estável pro arrasto), o PDF não
+  // tem arrasto — o retângulo precisa envolver só o conteúdo de verdade, sem sobra de espaço vazio
+  // de um lado. Incluir 0 à força (como a tela faz) deixava o diagrama fora do centro da página
+  // quando o conteúdo real não passava perto da origem.
+  const minX = Math.min(...todasAsPosicoes.map((p) => p.x));
+  const minY = Math.min(...todasAsPosicoes.map((p) => p.y));
+  const maxX = Math.max(...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
+  const maxY = Math.max(...todasAsPosicoes.map((p) => p.y + ALTURA_CAIXA));
 
   return { posicoes, cabecalhosGrupo, rotulosLinha, conectores, minX, minY, maxX, maxY };
 }

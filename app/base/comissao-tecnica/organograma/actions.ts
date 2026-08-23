@@ -8,15 +8,22 @@ import type { OrganogramaNoFormState } from "@/components/organograma-editor";
 const CAMINHO = "/base/comissao-tecnica/organograma";
 
 /**
- * Toda caixa que ainda não tem `pos_x`/`pos_y` salvo fica recalculando a posição toda vez que a
- * lista de caixas muda (é o layout automático, ver `lib/futebol/organograma.ts`) — na prática, isso
- * fazia caixa já organizada "pular" de lugar toda vez que o Mateus adicionava uma caixa nova em
- * outro canto do organograma, mesmo sem mexer nela. Chamada depois de qualquer criação/edição, essa
- * função "congela": calcula a posição automática de quem ainda está sem posição salva (com o
- * conjunto JÁ incluindo a caixa que acabou de ser salva) e grava esse valor de uma vez — dali em
- * diante só uma caixa nova entra no cálculo, nunca mais empurra quem já existia.
+ * Ajusta `pos_x`/`pos_y` de todo mundo depois de qualquer criação/edição — duas regras diferentes
+ * pra dois tipos de caixa:
+ *
+ * - Célula de grade (Grupo E Linha preenchidos): NUNCA tem posição salva — sempre usa o cálculo
+ *   automático da grade (ver `lib/futebol/organograma.ts`), então ela nunca sai do alinhamento por
+ *   arrasto (a tela nem deixa mais arrastar essas). Se alguma já tinha `pos_x`/`pos_y` de antes
+ *   (arrastada ou congelada por uma versão anterior desta função), essa posição é apagada aqui —
+ *   ela "volta" pra grade.
+ * - Qualquer outra caixa (liderança, ou Grupo sem Linha): sem posição salva, ficava recalculando a
+ *   cada mudança na lista e "pulando de lugar" toda vez que uma caixa nova era adicionada em
+ *   qualquer canto do organograma. Essa função congela: calcula a posição automática de quem ainda
+ *   está sem posição salva (já considerando a caixa que acabou de ser criada/editada) e grava esse
+ *   valor de uma vez — dali em diante só uma caixa nova entra no cálculo, nunca mais empurra quem já
+ *   existia.
  */
-async function congelarPosicoesAutomaticas(supabase: ReturnType<typeof createClient>): Promise<void> {
+async function ajustarPosicoesAutomaticas(supabase: ReturnType<typeof createClient>): Promise<void> {
   const { data } = await supabase
     .from("organograma_base")
     .select("id, reporta_para, grupo, linha, ordem, pos_x, pos_y");
@@ -29,25 +36,34 @@ async function congelarPosicoesAutomaticas(supabase: ReturnType<typeof createCli
     pos_x: number | null;
     pos_y: number | null;
   }[];
-  const semPosicao = linhas.filter((l) => l.pos_x === null || l.pos_y === null);
-  if (semPosicao.length === 0) return;
 
-  const layout = calcularLayoutAutomatico(
-    linhas.map(
-      (l): OrganogramaNo => ({ id: l.id, reportaPara: l.reporta_para, grupo: l.grupo, linha: l.linha, ordem: l.ordem }),
-    ),
+  const naGrade = (l: (typeof linhas)[number]) => Boolean(l.grupo && l.linha);
+  const paraDescongelar = linhas.filter((l) => naGrade(l) && (l.pos_x !== null || l.pos_y !== null));
+  const paraCongelar = linhas.filter((l) => !naGrade(l) && (l.pos_x === null || l.pos_y === null));
+
+  const atualizacoes = paraDescongelar.map((l) =>
+    supabase.from("organograma_base").update({ pos_x: null, pos_y: null }).eq("id", l.id),
   );
 
-  await Promise.all(
-    semPosicao.map((l) => {
+  if (paraCongelar.length > 0) {
+    const layout = calcularLayoutAutomatico(
+      linhas.map(
+        (l): OrganogramaNo => ({ id: l.id, reportaPara: l.reporta_para, grupo: l.grupo, linha: l.linha, ordem: l.ordem }),
+      ),
+    );
+    for (const l of paraCongelar) {
       const pos = layout.get(l.id);
-      if (!pos) return null;
-      return supabase
-        .from("organograma_base")
-        .update({ pos_x: Math.round(pos.x), pos_y: Math.round(pos.y) })
-        .eq("id", l.id);
-    }),
-  );
+      if (!pos) continue;
+      atualizacoes.push(
+        supabase
+          .from("organograma_base")
+          .update({ pos_x: Math.round(pos.x), pos_y: Math.round(pos.y) })
+          .eq("id", l.id),
+      );
+    }
+  }
+
+  await Promise.all(atualizacoes);
 }
 
 function texto(formData: FormData, campo: string): string {
@@ -77,6 +93,8 @@ export async function salvarNoOrganograma(
   const grupo = textoOuNull(formData, "grupo");
   const linha = textoOuNull(formData, "linha");
   const reportaPara = textoOuNull(formData, "reportaPara");
+  const ordemTexto = textoOuNull(formData, "ordem");
+  const ordem = ordemTexto !== null ? Number(ordemTexto) : null;
 
   if (!comissaoTecnicaBaseId && !cargo) {
     return { error: "Escolha uma pessoa da Comissão Técnica ou preencha ao menos o cargo da caixa." };
@@ -93,6 +111,7 @@ export async function salvarNoOrganograma(
     grupo,
     linha,
     reporta_para: reportaPara,
+    ...(ordem !== null && !Number.isNaN(ordem) ? { ordem } : {}),
   };
 
   if (id) {
@@ -100,11 +119,13 @@ export async function salvarNoOrganograma(
     if (error) return { error: `Não foi possível salvar: ${error.message}` };
   } else {
     const { count } = await supabase.from("organograma_base").select("id", { count: "exact", head: true });
-    const { error } = await supabase.from("organograma_base").insert({ ...dados, ordem: count ?? 0 });
+    const { error } = await supabase
+      .from("organograma_base")
+      .insert({ ordem: count ?? 0, ...dados });
     if (error) return { error: `Não foi possível criar: ${error.message}` };
   }
 
-  await congelarPosicoesAutomaticas(supabase);
+  await ajustarPosicoesAutomaticas(supabase);
   revalidatePath(CAMINHO);
   return { success: true };
 }

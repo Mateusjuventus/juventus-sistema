@@ -204,6 +204,21 @@ function PainelEdicao({
         </div>
 
         <div>
+          <label className="field-label">Ordem</label>
+          <input
+            type="number"
+            name="ordem"
+            className="field-input"
+            defaultValue={no?.ordem ?? todosOsNos.length}
+          />
+          <p className="mt-1 text-xs text-neutral-400">
+            Decide a posição — pra uma célula da grade (Grupo + Linha preenchidos), controla em que
+            altura a Linha aparece (menor número, mais acima). É o único jeito de reordenar essas
+            caixas: elas não se arrastam, pra nunca saírem do alinhamento.
+          </p>
+        </div>
+
+        <div>
           <label className="field-label">Reporta para</label>
           <select name="reportaPara" className="field-input" defaultValue={no?.reportaPara ?? ""}>
             <option value="">— topo do organograma —</option>
@@ -258,16 +273,21 @@ function Caixa({
   onClick: () => void;
 }) {
   const lideranca = !no.grupo;
+  // Célula de grade (Grupo E Linha) não se arrasta — fica sempre alinhada, só a Ordem (no painel de
+  // edição) decide sua posição na grade. Só liderança e "grupo sem linha" continuam arrastáveis.
+  const naGrade = Boolean(no.grupo && no.linha);
   return (
     <div
       role="button"
       tabIndex={0}
-      onPointerDown={onPointerDownCaixa}
+      onPointerDown={naGrade ? undefined : onPointerDownCaixa}
       onClick={onClick}
       style={{ left: x, top: y, width: LARGURA_CAIXA, height: ALTURA_CAIXA }}
-      className={`absolute flex cursor-grab select-none flex-col justify-center rounded-md p-3 shadow-sm active:cursor-grabbing ${
-        lideranca ? "bg-grena text-white" : "bg-white text-neutral-800 border border-linha"
-      } ${selecionada ? "ring-2 ring-dourado" : ""} ${no.vaga ? "opacity-60" : ""}`}
+      className={`absolute flex select-none flex-col justify-center rounded-md p-3 shadow-sm ${
+        naGrade ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+      } ${lideranca ? "bg-grena text-white" : "bg-white text-neutral-800 border border-linha"} ${
+        selecionada ? "ring-2 ring-dourado" : ""
+      } ${no.vaga ? "opacity-60" : ""}`}
     >
       <p className={`truncate text-sm font-bold ${lideranca ? "text-white" : "text-grena-escuro"}`}>
         {no.nomeExibido}
@@ -331,6 +351,13 @@ export function OrganogramaEditor({
   const posicoes = useMemo(() => {
     const mapa = new Map<string, { x: number; y: number }>();
     for (const no of nos) {
+      // Célula de grade (Grupo E Linha preenchidos) sempre usa a posição calculada da grade — nunca
+      // arrasto nem posição salva. É o que garante que ela nunca "sai do alinhamento": o Mateus só
+      // controla onde ela cai através do campo Ordem (linha) e do Grupo (coluna), nunca arrastando.
+      if (no.grupo && no.linha) {
+        mapa.set(no.id, layoutAutomatico.get(no.id) ?? { x: 0, y: 0 });
+        continue;
+      }
       const override = overrides[no.id];
       if (override) {
         mapa.set(no.id, override);
