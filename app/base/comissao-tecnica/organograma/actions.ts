@@ -78,11 +78,21 @@ export async function moverNoOrganograma(id: string, x: number, y: number): Prom
 
 /** Exclui a caixa. Não cascateia: quem reportava pra ela (`reporta_para`, `on delete set null`) fica
  * sem líder direto em vez de ser apagado junto — o painel já avisa quantas pessoas isso afeta antes
- * de confirmar. */
-export async function excluirNoOrganograma(formData: FormData): Promise<void> {
+ * de confirmar.
+ *
+ * Usa o formato "com erro" do `DeleteButton` (em vez de "executa e esquece") — antes, um erro do
+ * Supabase na exclusão desaparecia em silêncio: a linha continuava lá, mas a tela não avisava nada,
+ * então parecia que o clique em "Sim, excluir" simplesmente não fazia nada. Agora qualquer erro
+ * aparece pro Mateus em vez de sumir. */
+export async function excluirNoOrganograma(
+  _prevState: { error?: string },
+  formData: FormData,
+): Promise<{ error?: string }> {
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
+  if (!id) return {};
   const supabase = createClient();
-  await supabase.from("organograma_base").delete().eq("id", id);
+  const { error } = await supabase.from("organograma_base").delete().eq("id", id);
+  if (error) return { error: `Não foi possível excluir: ${error.message}` };
   revalidatePath(CAMINHO);
+  return {};
 }

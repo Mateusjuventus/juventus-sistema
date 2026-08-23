@@ -71,7 +71,7 @@ function PainelEdicao({
   pessoasDisponiveis: PessoaComissao[];
   filhosCount: number;
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
-  excluirAction: (formData: FormData) => Promise<void>;
+  excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
   aoFechar: () => void;
 }) {
   const [state, formAction] = useFormState(salvarAction, {} as OrganogramaNoFormState);
@@ -180,7 +180,7 @@ function PainelEdicao({
         <div className="flex items-center justify-between border-t border-linha pt-3">
           {no ? (
             <DeleteButton
-              action={excluirAction}
+              errorAction={excluirAction}
               id={no.id}
               entityLabel={
                 filhosCount > 0
@@ -256,9 +256,19 @@ export function OrganogramaEditor({
   pessoasComissao: PessoaComissao[];
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
   moverAction: (id: string, x: number, y: number) => Promise<void>;
-  excluirAction: (formData: FormData) => Promise<void>;
+  excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
 }) {
   const [selecionado, setSelecionado] = useState<string | "novo" | null>(null);
+
+  // Depois de excluir com sucesso, a página revalida e `nos` chega sem aquela caixa — se o painel
+  // ainda estiver aberto nela, fecha sozinho (é o sinal visual de que a exclusão realmente
+  // aconteceu). Se a exclusão falhar, a caixa continua em `nos` e o painel fica aberto mostrando o
+  // erro do `DeleteButton` normalmente.
+  useEffect(() => {
+    if (selecionado && selecionado !== "novo" && !nos.some((n) => n.id === selecionado)) {
+      setSelecionado(null);
+    }
+  }, [nos, selecionado]);
   const [overrides, setOverrides] = useState<Record<string, { x: number; y: number }>>({});
   const arrastoRef = useRef<{ id: string; inicioX: number; inicioY: number; origemX: number; origemY: number } | null>(
     null,
@@ -331,6 +341,50 @@ export function OrganogramaEditor({
     });
   }, [nos, posicoes]);
 
+  // Conectores em ângulo reto (tronco descendo do pai, barramento horizontal, pé descendo até
+  // cada filho) — igual à imagem de referência do Mateus. Uma linha diagonal direta (o que tinha
+  // antes) não é fiel ao desenho de organograma que ele mandou.
+  const conectores = useMemo(() => {
+    const porPai = new Map<string, { x: number; y: number }[]>();
+    for (const no of nos) {
+      if (!no.reportaPara) continue;
+      const pos = posicoes.get(no.id);
+      if (!pos) continue;
+      porPai.set(no.reportaPara, [...(porPai.get(no.reportaPara) ?? []), pos]);
+    }
+    const segmentos: { key: string; x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (const [paiId, filhos] of porPai) {
+      const pai = posicoes.get(paiId);
+      if (!pai || filhos.length === 0) continue;
+      const paiCentroX = pai.x + LARGURA_CAIXA / 2;
+      const paiBaixoY = pai.y + ALTURA_CAIXA;
+      const filhosCentroX = filhos.map((f) => f.x + LARGURA_CAIXA / 2);
+      const menorTopoFilho = Math.min(...filhos.map((f) => f.y));
+      const busY = paiBaixoY + Math.max(16, (menorTopoFilho - paiBaixoY) / 2);
+
+      // Tronco: do pé do pai até o barramento.
+      segmentos.push({ key: `${paiId}-tronco`, x1: paiCentroX, y1: paiBaixoY, x2: paiCentroX, y2: busY });
+      // Barramento horizontal, cobrindo do filho mais à esquerda ao mais à direita (e o tronco do
+      // pai, se ele cair fora desse intervalo).
+      const minX = Math.min(paiCentroX, ...filhosCentroX);
+      const maxX = Math.max(paiCentroX, ...filhosCentroX);
+      if (maxX > minX) {
+        segmentos.push({ key: `${paiId}-barramento`, x1: minX, y1: busY, x2: maxX, y2: busY });
+      }
+      // Um pé descendo do barramento até cada filho.
+      filhos.forEach((f, i) => {
+        segmentos.push({
+          key: `${paiId}-pe-${i}`,
+          x1: filhosCentroX[i],
+          y1: busY,
+          x2: filhosCentroX[i],
+          y2: f.y,
+        });
+      });
+    }
+    return segmentos;
+  }, [nos, posicoes]);
+
   const todasAsPosicoes = [
     ...[...posicoes.values()],
     ...cabecalhosGrupo.map((c) => ({ x: c.x, y: c.y })),
@@ -394,26 +448,11 @@ export function OrganogramaEditor({
         <div className="card overflow-auto" style={{ maxHeight: "75vh" }}>
           <div className="relative" style={{ width: largura, height: altura }}>
             <svg className="pointer-events-none absolute inset-0" width={largura} height={altura}>
-              {nos
-                .filter((no) => no.reportaPara)
-                .map((no) => {
-                  const pai = posicoes.get(no.reportaPara!);
-                  const minha = posicoes.get(no.id);
-                  if (!pai || !minha) return null;
-                  const de = tela({ x: pai.x + LARGURA_CAIXA / 2, y: pai.y + ALTURA_CAIXA });
-                  const para = tela({ x: minha.x + LARGURA_CAIXA / 2, y: minha.y });
-                  return (
-                    <line
-                      key={no.id}
-                      x1={de.x}
-                      y1={de.y}
-                      x2={para.x}
-                      y2={para.y}
-                      stroke="#B98F1E"
-                      strokeWidth={1.5}
-                    />
-                  );
-                })}
+              {conectores.map((s) => {
+                const de = tela({ x: s.x1, y: s.y1 });
+                const para = tela({ x: s.x2, y: s.y2 });
+                return <line key={s.key} x1={de.x} y1={de.y} x2={para.x} y2={para.y} stroke="#B98F1E" strokeWidth={1.5} />;
+              })}
             </svg>
 
             {cabecalhosGrupo.map((c) => {
@@ -422,7 +461,7 @@ export function OrganogramaEditor({
                 <div
                   key={c.grupo}
                   style={{ left: pos.x, top: pos.y, width: LARGURA_CAIXA, height: ALTURA_CABECALHO_GRUPO }}
-                  className="absolute flex items-center justify-center rounded-md bg-grena-escuro px-2 text-center text-xs font-bold uppercase tracking-wide text-white"
+                  className="absolute flex items-center justify-center rounded-md bg-grena px-2 text-center text-xs font-bold uppercase tracking-wide text-white"
                 >
                   {c.grupo}
                 </div>
@@ -435,7 +474,7 @@ export function OrganogramaEditor({
                 <div
                   key={r.linha}
                   style={{ left: pos.x, top: pos.y, width: LARGURA_ROTULO_LINHA, height: ALTURA_CAIXA }}
-                  className="absolute flex items-center justify-center rounded-md bg-grena px-2 text-center text-xs font-bold uppercase tracking-wide text-white"
+                  className="absolute flex items-center justify-center rounded-md border border-grena/30 bg-white px-2 text-center text-xs font-bold uppercase tracking-wide text-grena-escuro"
                 >
                   {r.linha}
                 </div>
