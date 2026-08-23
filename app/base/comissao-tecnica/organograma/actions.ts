@@ -130,6 +130,49 @@ export async function salvarNoOrganograma(
   return { success: true };
 }
 
+/**
+ * Move uma `linha` inteira da grade (ex.: "Comissão Sub20") um degrau pra cima ou pra baixo entre
+ * as outras linhas — chamada direto pelo componente cliente, como `moverNoOrganograma`. É o jeito de
+ * reordenar célula de grade "na mão" sem digitar número: como todas as colunas daquela linha viram
+ * juntas (o valor de `ordem` de cada uma soma o mesmo deslocamento), a linha troca de posição com a
+ * vizinha sem desalinhar nada.
+ */
+export async function moverLinhaOrganograma(linha: string, direcao: "cima" | "baixo"): Promise<void> {
+  if (!linha) return;
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("organograma_base")
+    .select("id, ordem, linha, grupo")
+    .not("grupo", "is", null)
+    .not("linha", "is", null);
+  const nos = (data ?? []) as { id: string; ordem: number; linha: string; grupo: string }[];
+
+  const porLinha = new Map<string, typeof nos>();
+  for (const n of nos) porLinha.set(n.linha, [...(porLinha.get(n.linha) ?? []), n]);
+
+  // Mesma regra de ordenação de linha que `calcularLayoutAutomatico` usa: menor `ordem` entre quem
+  // usa aquela linha, em qualquer coluna.
+  const ordenadas = [...porLinha.entries()].sort(
+    (a, b) => Math.min(...a[1].map((n) => n.ordem)) - Math.min(...b[1].map((n) => n.ordem)),
+  );
+  const indiceAtual = ordenadas.findIndex(([l]) => l === linha);
+  if (indiceAtual === -1) return;
+  const indiceAlvo = direcao === "cima" ? indiceAtual - 1 : indiceAtual + 1;
+  if (indiceAlvo < 0 || indiceAlvo >= ordenadas.length) return; // já é a primeira/última, não faz nada
+
+  const [, nosA] = ordenadas[indiceAtual];
+  const [, nosB] = ordenadas[indiceAlvo];
+  const minA = Math.min(...nosA.map((n) => n.ordem));
+  const minB = Math.min(...nosB.map((n) => n.ordem));
+  const deslocamento = minB - minA;
+
+  await Promise.all([
+    ...nosA.map((n) => supabase.from("organograma_base").update({ ordem: n.ordem + deslocamento }).eq("id", n.id)),
+    ...nosB.map((n) => supabase.from("organograma_base").update({ ordem: n.ordem - deslocamento }).eq("id", n.id)),
+  ]);
+  revalidatePath(CAMINHO);
+}
+
 /** Salva a posição arrastada. Chamada direto pelo componente cliente (não é um `<form>`), disparada
  * a cada soltar de arrasto — por isso não devolve estado nenhum pra tela, só grava. */
 export async function moverNoOrganograma(id: string, x: number, y: number): Promise<void> {

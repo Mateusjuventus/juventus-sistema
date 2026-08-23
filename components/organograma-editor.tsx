@@ -60,30 +60,49 @@ function SalvarButton() {
 function PainelEdicao({
   no,
   todosOsNos,
+  linhasOrdenadas,
   pessoasDisponiveis,
   filhosCount,
   salvarAction,
   excluirAction,
+  moverLinhaAction,
   aoFechar,
 }: {
   no: OrganogramaNoData | null;
   todosOsNos: OrganogramaNoData[];
+  linhasOrdenadas: string[];
   pessoasDisponiveis: PessoaComissao[];
   filhosCount: number;
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
   excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
+  moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<void>;
   aoFechar: () => void;
 }) {
   const [state, formAction] = useFormState(salvarAction, {} as OrganogramaNoFormState);
   const [vinculada, setVinculada] = useState(no?.comissaoTecnicaBaseId ?? "");
   const [grupoValor, setGrupoValor] = useState(no?.grupo ?? "");
   const [linhaValor, setLinhaValor] = useState(no?.linha ?? "");
+  // Muda toda vez que uma caixa NOVA de grade é criada com sucesso — força o `<form>` a remontar
+  // (limpando os campos não-controlados: Nome, Cargo, Reporta para) sem mexer em Grupo/Linha, que
+  // ficam controlados por `grupoValor`/`linhaValor` e continuam preenchidos de propósito.
+  const [formResetKey, setFormResetKey] = useState(0);
 
-  // Fecha sozinho ao salvar com sucesso — o dado novo já aparece no organograma atrás do painel.
+  // Depois de salvar com sucesso: editando uma caixa existente, fecha o painel (sinal de que salvou).
+  // Criando uma caixa NOVA de grade (Grupo + Linha preenchidos), em vez de fechar, mantém o painel
+  // aberto com o mesmo Grupo/Linha — só limpa a pessoa — pra adicionar a próxima coluna da mesma
+  // linha em seguida, sem reabrir "+ Nova caixa" e redigitar tudo de novo. Depende de `state` (não
+  // de `state.success`) porque duas criações seguidas dão o mesmo `success: true` — só a referência
+  // do objeto muda a cada envio, então é isso que precisa disparar o efeito de novo.
   useEffect(() => {
-    if (state.success) aoFechar();
+    if (!state.success) return;
+    if (!no && grupoValor.trim() && linhaValor.trim()) {
+      setVinculada("");
+      setFormResetKey((k) => k + 1);
+    } else {
+      aoFechar();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.success]);
+  }, [state]);
 
   const opcoesReportaPara = todosOsNos.filter((n) => n.id !== no?.id);
 
@@ -98,6 +117,12 @@ function PainelEdicao({
   // (foi exatamente o que aconteceu com o Igor Silvério).
   const faltaGrupo = linhaValor.trim() !== "" && grupoValor.trim() === "";
 
+  // Só uma célula de grade JÁ EXISTENTE (Grupo + Linha preenchidos) tem "mover linha" — é a única
+  // situação em que `moverLinhaAction` sabe o que fazer (existe uma linha salva pra mover). Caixa
+  // nova, liderança e "grupo sem linha" continuam usando o campo Ordem numérico de antes.
+  const ehCelulaDeGradeExistente = Boolean(no && no.grupo && no.linha);
+  const posicaoDaLinha = no?.linha ? linhasOrdenadas.indexOf(no.linha) : -1;
+
   return (
     <div className="card w-full max-w-sm shrink-0 p-4">
       <div className="flex items-center justify-between">
@@ -111,7 +136,7 @@ function PainelEdicao({
         <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}
 
-      <form action={formAction} className="mt-3 space-y-3">
+      <form key={formResetKey} action={formAction} className="mt-3 space-y-3">
         {no ? <input type="hidden" name="id" value={no.id} /> : null}
 
         <div>
@@ -203,20 +228,48 @@ function PainelEdicao({
           )}
         </div>
 
-        <div>
-          <label className="field-label">Ordem</label>
-          <input
-            type="number"
-            name="ordem"
-            className="field-input"
-            defaultValue={no?.ordem ?? todosOsNos.length}
-          />
-          <p className="mt-1 text-xs text-neutral-400">
-            Decide a posição — pra uma célula da grade (Grupo + Linha preenchidos), controla em que
-            altura a Linha aparece (menor número, mais acima). É o único jeito de reordenar essas
-            caixas: elas não se arrastam, pra nunca saírem do alinhamento.
-          </p>
-        </div>
+        {ehCelulaDeGradeExistente ? (
+          <div>
+            <label className="field-label">Posição da linha &quot;{no!.linha}&quot;</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={posicaoDaLinha <= 0}
+                onClick={() => void moverLinhaAction(no!.linha!, "cima")}
+              >
+                ▲ Mover linha pra cima
+              </button>
+              <button
+                type="button"
+                className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={posicaoDaLinha === -1 || posicaoDaLinha >= linhasOrdenadas.length - 1}
+                onClick={() => void moverLinhaAction(no!.linha!, "baixo")}
+              >
+                ▼ Mover linha pra baixo
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-neutral-400">
+              Move a linha inteira &quot;{no!.linha}&quot; — todas as colunas dessa linha sobem ou descem
+              juntas, sem sair do alinhamento. Não precisa digitar número nem salvar: já move na hora.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className="field-label">Ordem</label>
+            <input
+              type="number"
+              name="ordem"
+              className="field-input"
+              defaultValue={no?.ordem ?? todosOsNos.length}
+            />
+            <p className="mt-1 text-xs text-neutral-400">
+              Decide a posição entre caixas que reportam pro mesmo lugar (liderança) ou empilhadas na
+              mesma coluna sem Linha. Célula de grade (Grupo + Linha) usa os botões de mover linha em
+              vez desse campo.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="field-label">Reporta para</label>
@@ -309,12 +362,14 @@ export function OrganogramaEditor({
   salvarAction,
   moverAction,
   excluirAction,
+  moverLinhaAction,
 }: {
   nos: OrganogramaNoData[];
   pessoasComissao: PessoaComissao[];
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
   moverAction: (id: string, x: number, y: number) => Promise<void>;
   excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
+  moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<void>;
 }) {
   const [selecionado, setSelecionado] = useState<string | "novo" | null>(null);
 
@@ -405,6 +460,13 @@ export function OrganogramaEditor({
       return { linha, x: minXColunas - LARGURA_ROTULO_LINHA - GAP_ROTULO_LINHA, y };
     });
   }, [nos, posicoes]);
+
+  // Mesma ordem em que as linhas aparecem na tela (de cima pra baixo) — usada só pra saber se a
+  // linha selecionada já está no topo/base (desabilitar o botão correspondente no painel).
+  const linhasOrdenadas = useMemo(
+    () => [...rotulosLinha].sort((a, b) => a.y - b.y).map((r) => r.linha),
+    [rotulosLinha],
+  );
 
   // Conectores em ângulo reto (tronco descendo do pai, barramento horizontal, pé descendo até
   // cada filho) — igual à imagem de referência do Mateus. Uma linha diagonal direta (o que tinha
@@ -576,12 +638,14 @@ export function OrganogramaEditor({
         <PainelEdicao
           no={noSelecionado}
           todosOsNos={nos}
+          linhasOrdenadas={linhasOrdenadas}
           pessoasDisponiveis={pessoasComissao.filter(
             (p) => p.id === noSelecionado?.comissaoTecnicaBaseId || !nos.some((n) => n.comissaoTecnicaBaseId === p.id),
           )}
           filhosCount={filhosDoSelecionado}
           salvarAction={salvarAction}
           excluirAction={excluirAction}
+          moverLinhaAction={moverLinhaAction}
           aoFechar={() => setSelecionado(null)}
         />
       ) : null}
