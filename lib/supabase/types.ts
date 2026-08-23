@@ -178,6 +178,28 @@ export interface ComissaoTecnicaBaseRow {
   updated_at: string;
 }
 
+/** Uma caixa do Organograma do Futebol de Base (ver
+ * docs/superpowers/specs/2026-08-23-organograma-base-design.md). Com `comissao_tecnica_base_id`
+ * preenchido, nome/função exibidos vêm sempre do cadastro vinculado — `nome`/`cargo` aqui só valem
+ * pra caixa sem pessoa vinculada (Presidente, Diretor, vaga em aberto). */
+export interface OrganogramaBaseRow {
+  id: string;
+  comissao_tecnica_base_id: string | null;
+  nome: string | null;
+  cargo: string | null;
+  grupo: string | null;
+  /** Rótulo da linha (ex. "Comissão Sub20") — cruza com `grupo` (coluna) pra formar uma grade;
+   * caixas com a mesma `linha` alinham na mesma altura em colunas diferentes. Só faz sentido junto
+   * com `grupo` preenchido. */
+  linha: string | null;
+  reporta_para: string | null;
+  ordem: number;
+  pos_x: number | null;
+  pos_y: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StaffFuncaoCatalogoRow {
   id: string;
   nome: string;
