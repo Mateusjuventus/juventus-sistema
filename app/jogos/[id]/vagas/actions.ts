@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 // pela Base — reexportado aqui pra quem já importava daqui não quebrar.
 export type { VagasFormState } from "@/components/vagas-form";
 import type { VagasFormState } from "@/components/vagas-form";
+import type { AdicionarStaffVagaState } from "@/components/adicionar-staff-vaga-form";
 
 function texto(formData: FormData, campo: string): string {
   return String(formData.get(campo) ?? "").trim();
@@ -156,6 +157,43 @@ export async function chamarDaEspera(jogoId: string, formData: FormData): Promis
   const supabase = createClient();
   await supabase.from("jogo_vagas_staff_inscricoes").update({ situacao: "confirmado" }).eq("id", id);
   revalidatePath(`/jogos/${jogoId}/vagas`);
+}
+
+/**
+ * Coloca alguém na lista direto, sem passar pelo link público — ver a explicação em
+ * `components/adicionar-staff-vaga-form.tsx`. A pessoa e a função/vaga são escolhidas à mão pelo
+ * Mateus, então não faz o cruzamento automático de função que o link público faz (é justamente
+ * esse cruzamento que pode falhar). Igual à troca de função e ao "Chamar" da espera, não trava por
+ * limite de vaga — entra como 'confirmado' mesmo se a função já estiver cheia, porque quem está
+ * usando esta porta já sabe o que está fazendo.
+ */
+export async function adicionarStaffManual(
+  jogoId: string,
+  _prevState: AdicionarStaffVagaState,
+  formData: FormData,
+): Promise<AdicionarStaffVagaState> {
+  const staffId = texto(formData, "staffId");
+  const vagaFuncaoId = texto(formData, "vagaFuncaoId");
+  if (!staffId || !vagaFuncaoId) return { error: "Escolha a pessoa e a função." };
+
+  const supabase = createClient();
+  const vagasId = await idDasVagas(supabase, jogoId);
+  if (!vagasId) return { error: "Abra as vagas deste jogo antes de adicionar alguém." };
+
+  const { error } = await supabase.from("jogo_vagas_staff_inscricoes").insert({
+    vagas_id: vagasId,
+    vaga_funcao_id: vagaFuncaoId,
+    staff_id: staffId,
+    situacao: "confirmado",
+  });
+
+  if (error) {
+    if (error.code === "23505") return { error: "Essa pessoa já está na lista deste jogo." };
+    return { error: `Não foi possível adicionar: ${error.message}` };
+  }
+
+  revalidatePath(`/jogos/${jogoId}/vagas`);
+  return { success: true };
 }
 
 /**

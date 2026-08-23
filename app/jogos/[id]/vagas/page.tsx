@@ -19,6 +19,7 @@ import type {
   StaffOperacionalRow,
 } from "@/lib/supabase/types";
 import {
+  adicionarStaffManual,
   alternarVagasAbertas,
   chamarDaEspera,
   removerInscricao,
@@ -27,6 +28,7 @@ import {
 } from "./actions";
 import { LinkVagas } from "@/components/link-vagas";
 import { VagasForm, type FuncaoInicial } from "@/components/vagas-form";
+import { AdicionarStaffVagaForm, type PessoaSemVaga } from "@/components/adicionar-staff-vaga-form";
 
 function formatQuando(iso: string): string {
   const [data, hora] = iso.split("T");
@@ -57,6 +59,7 @@ export default async function VagasStaffPage({ params }: { params: { id: string 
   let funcoes: JogoVagasStaffFuncaoRow[] = [];
   let inscricoes: JogoVagasStaffInscricaoRow[] = [];
   let staffPorId = new Map<string, StaffOperacionalRow>();
+  let staffSemVaga: PessoaSemVaga[] = [];
 
   if (vagas) {
     const [{ data: funcoesData }, { data: inscricoesData }] = await Promise.all([
@@ -75,6 +78,18 @@ export default async function VagasStaffPage({ params }: { params: { id: string 
       const { data: staffData } = await supabase.from("staff_operacional").select("*").in("id", staffIds);
       staffPorId = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s]));
     }
+
+    // Pra "Adicionar pessoa manualmente": todo o Staff Operacional ativo que AINDA não está nesta
+    // lista (nem confirmado, nem na espera) — cada pessoa só pode ter uma vaga por jogo.
+    const { data: todoStaffData } = await supabase
+      .from("staff_operacional")
+      .select("id, nome_completo")
+      .eq("ativo", true)
+      .order("nome_completo", { ascending: true });
+    const jaNaLista = new Set(inscricoes.map((i) => i.staff_id));
+    staffSemVaga = ((todoStaffData ?? []) as { id: string; nome_completo: string }[])
+      .filter((s) => !jaNaLista.has(s.id))
+      .map((s) => ({ id: s.id, nome: s.nome_completo }));
   }
 
   const resumos = montarResumo(funcoes, inscricoes, nomePorFuncaoId);
@@ -111,6 +126,7 @@ export default async function VagasStaffPage({ params }: { params: { id: string 
   const removerAction = removerInscricao.bind(null, jogo.id);
   const chamarAction = chamarDaEspera.bind(null, jogo.id);
   const trocarAction = trocarFuncaoInscricao.bind(null, jogo.id);
+  const adicionarManualAction = adicionarStaffManual.bind(null, jogo.id);
 
   const dataTexto = `${formatDataBr(jogo.data_jogo)}${formatHorario(jogo.horario) ? ` · ${formatHorario(jogo.horario)}` : ""}`;
   const mensagemWhatsapp = `Vagas de trabalho — ${buildConfrontoTexto(jogo)} (${dataTexto}). Pegue a sua:`;
@@ -189,6 +205,19 @@ export default async function VagasStaffPage({ params }: { params: { id: string 
         localInicial={vagas?.local_apresentacao ?? ""}
         observacoesIniciais={vagas?.observacoes ?? ""}
       />
+
+      {vagas ? (
+        <AdicionarStaffVagaForm
+          action={adicionarManualAction}
+          pessoas={staffSemVaga}
+          funcoesAbertas={resumos.map((r) => ({
+            vagaFuncaoId: r.vagaFuncaoId,
+            funcaoNome: r.funcaoNome,
+            ocupadas: r.ocupadas,
+            quantidade: r.quantidade,
+          }))}
+        />
+      ) : null}
 
       {inscricoes.length > 0 ? (
         <div className="mt-4 space-y-4">
