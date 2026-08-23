@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import { ComissaoTecnicaBaseTabs } from "@/components/comissao-tecnica-base-tabs";
 import type { ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
 import { deleteComissaoBase } from "./actions";
 
@@ -46,6 +47,7 @@ export default async function ComissaoTecnicaBasePage({
         ← Voltar
       </Link>
       <PageHeader title="Comissão Técnica / Diretoria" />
+      <ComissaoTecnicaBaseTabs active="lista" />
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <a
           href={`/base/comissao-tecnica/export?q=${encodeURIComponent(q)}&categoria=${encodeURIComponent(categoria)}`}
