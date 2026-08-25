@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
-import { corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
+import { categoriaDaPosicao, corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
 import type { AtletaRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
 import { nomeExibido, ordenarPorNomeExibido } from "@/lib/futebol/nome-atleta";
 import type { ConvocacaoFormState } from "./actions";
@@ -45,11 +45,12 @@ function Avatar({ atleta, className = "h-10 w-10" }: { atleta: AtletaComFoto; cl
 }
 
 function TagPosicao({ atleta }: { atleta: AtletaComFoto }) {
+  const categoria = categoriaDaPosicao(atleta.posicao);
   return (
     <span
-      className={`inline-flex w-11 shrink-0 items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold ${corCategoriaPosicao(atleta.categoria_posicao)}`}
+      className={`inline-flex w-11 shrink-0 items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold ${corCategoriaPosicao(categoria)}`}
     >
-      {siglaCategoriaPosicao(atleta.categoria_posicao)}
+      {siglaCategoriaPosicao(categoria)}
     </span>
   );
 }

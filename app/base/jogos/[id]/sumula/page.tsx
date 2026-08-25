@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
-import { corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
+import { categoriaDaPosicao, corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
 import { SUMULA_EVENTO_TIPO_ICONE, SUMULA_EVENTO_TIPO_LABEL } from "@/lib/futebol/sumula-eventos";
 import { calcularMinutoAbsoluto } from "@/lib/futebol/estatisticas-atleta";
 import type {
@@ -26,7 +26,7 @@ function paraOpcao(atleta: AtletaBaseRow): ConvocadoOption {
     id: atleta.id,
     nome: atleta.nome_completo,
     numeroCamisa: atleta.numero_camisa,
-    sigla: siglaCategoriaPosicao(atleta.categoria_posicao),
+    sigla: siglaCategoriaPosicao(categoriaDaPosicao(atleta.posicao)),
   };
 }
 
@@ -235,9 +235,9 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
                 {titulares.map((a) => (
                   <div key={a.id} className="flex items-center gap-2 text-sm">
                     <span
-                      className={`inline-flex w-10 shrink-0 items-center justify-center rounded px-1 py-0.5 text-[10px] font-bold ${corCategoriaPosicao(a.categoria_posicao)}`}
+                      className={`inline-flex w-10 shrink-0 items-center justify-center rounded px-1 py-0.5 text-[10px] font-bold ${corCategoriaPosicao(categoriaDaPosicao(a.posicao))}`}
                     >
-                      {siglaCategoriaPosicao(a.categoria_posicao)}
+                      {siglaCategoriaPosicao(categoriaDaPosicao(a.posicao))}
                     </span>
                     <span className="text-neutral-800">{nomeAtletaEvento(a)}</span>
                   </div>
@@ -252,9 +252,9 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
                 {reservasAtletas.map((a) => (
                   <div key={a.id} className="flex items-center gap-2 text-sm">
                     <span
-                      className={`inline-flex w-10 shrink-0 items-center justify-center rounded px-1 py-0.5 text-[10px] font-bold ${corCategoriaPosicao(a.categoria_posicao)}`}
+                      className={`inline-flex w-10 shrink-0 items-center justify-center rounded px-1 py-0.5 text-[10px] font-bold ${corCategoriaPosicao(categoriaDaPosicao(a.posicao))}`}
                     >
-                      {siglaCategoriaPosicao(a.categoria_posicao)}
+                      {siglaCategoriaPosicao(categoriaDaPosicao(a.posicao))}
                     </span>
                     <span className="text-neutral-800">{nomeAtletaEvento(a)}</span>
                   </div>

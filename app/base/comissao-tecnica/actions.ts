@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
 import { comissaoTecnicaBaseSchema } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
+import { normalizeTelefone } from "@/lib/validation/telefone";
 
 /** Espelha `app/comissao-tecnica/actions.ts`, mas grava em `comissao_tecnica_base` e inclui
  * `categorias` (lista — uma pessoa pode atuar em mais de uma, ver docs/superpowers/specs/
@@ -31,8 +32,9 @@ function parseForm(formData: FormData) {
     funcao: String(formData.get("funcao") ?? ""),
     telefone: String(formData.get("telefone") ?? ""),
     email: String(formData.get("email") ?? ""),
-    tipoQuartoPreferido: String(formData.get("tipoQuartoPreferido") ?? ""),
+    tipoContrato: String(formData.get("tipoContrato") ?? ""),
     valorSalario: String(formData.get("valorSalario") ?? "") || undefined,
+    dataInicio: String(formData.get("dataInicio") ?? ""),
   };
 
   const result = comissaoTecnicaBaseSchema.safeParse({ ...raw, categorias });
@@ -94,11 +96,12 @@ export async function createComissaoBase(
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,
     funcao: data.funcao,
-    telefone: data.telefone || null,
+    telefone: data.telefone ? normalizeTelefone(data.telefone) : null,
     email: data.email || null,
     foto_path: fotoPath ?? null,
-    tipo_quarto_preferido: data.tipoQuartoPreferido || null,
+    tipo_contrato: data.tipoContrato || null,
     valor_salario: data.valorSalario ?? null,
+    data_inicio: data.dataInicio || null,
   });
 
   if (error) return { error: friendlyDbError(error), values: raw, categoriasSelecionadas: categorias };
@@ -134,10 +137,11 @@ export async function updateComissaoBase(
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,
     funcao: data.funcao,
-    telefone: data.telefone || null,
+    telefone: data.telefone ? normalizeTelefone(data.telefone) : null,
     email: data.email || null,
-    tipo_quarto_preferido: data.tipoQuartoPreferido || null,
+    tipo_contrato: data.tipoContrato || null,
     valor_salario: data.valorSalario ?? null,
+    data_inicio: data.dataInicio || null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 

@@ -5,6 +5,7 @@ import { CampogramaPitch } from "@/components/campograma-pitch";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { agruparPorPosicao, type AtletaCampograma } from "@/lib/futebol/campograma";
+import { categoriaDaPosicao } from "@/lib/futebol/categoria-posicao";
 import type { AtletaBaseRow } from "@/lib/supabase/types";
 
 /**
@@ -22,13 +23,13 @@ export default async function CampogramaPage({
   const supabase = createClient();
   const { data } = await supabase
     .from("atletas_base")
-    .select("id, nome_completo, apelido, numero_camisa, categoria_posicao")
+    .select("id, nome_completo, apelido, numero_camisa, posicao")
     .eq("categoria", categoria)
     .order("nome_completo", { ascending: true });
 
   const atletas = (data ?? []) as Pick<
     AtletaBaseRow,
-    "id" | "nome_completo" | "apelido" | "numero_camisa" | "categoria_posicao"
+    "id" | "nome_completo" | "apelido" | "numero_camisa" | "posicao"
   >[];
 
   const paraCampograma: AtletaCampograma[] = atletas.map((a) => ({
@@ -36,7 +37,7 @@ export default async function CampogramaPage({
     nome: a.nome_completo,
     apelido: a.apelido,
     numeroCamisa: a.numero_camisa,
-    categoriaPosicao: a.categoria_posicao,
+    categoriaPosicao: categoriaDaPosicao(a.posicao),
   }));
 
   const grupos = agruparPorPosicao(paraCampograma);

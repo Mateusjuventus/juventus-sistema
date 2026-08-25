@@ -2,44 +2,47 @@
 
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, SuggestionField, TextField } from "@/components/fields";
-import { PhotoField } from "@/components/photo-field";
 import { CpfField } from "@/components/cpf-field";
 import { TelefoneField } from "@/components/telefone-field";
 import { CurrencyField } from "@/components/currency-field";
+import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS, SUGESTOES_FUNCAO_COMISSAO } from "@/lib/validation/schemas";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
-import type { ComissaoBaseFormState } from "./actions";
+import type { CadastroPublicoComissaoTecnicaBaseFormState } from "./actions";
 
-const initialState: ComissaoBaseFormState = {};
+const initialState: CadastroPublicoComissaoTecnicaBaseFormState = {};
 
-/** Espelha `app/comissao-tecnica/comissao-form.tsx`, com os campos Categoria(s) (uma pessoa pode
- * atuar em mais de uma — checkboxes, não um único `<select>`, ver docs/superpowers/specs/
- * 2026-08-19-comissao-tecnica-multi-categoria-design.md) e Salário mensal (opcional — usado no
- * Gasto Geral da Base, ver docs/superpowers/specs/2026-08-19-financeiro-base-design.md). */
-export function ComissaoBaseForm({
+/** Espelha `app/cadastro-comissao-tecnica/comissao-publico-form.tsx` (Profissional), mais
+ * Categoria(s) obrigatórias (checkboxes, mesmo padrão de `ComissaoBaseForm`). TODOS os campos são
+ * obrigatórios aqui. */
+export function ComissaoPublicoBaseForm({
   action,
-  entityId,
-  defaultValues,
-  categoriasIniciais,
-  fotoUrl,
-  submitLabel,
 }: {
-  action: (prevState: ComissaoBaseFormState, formData: FormData) => Promise<ComissaoBaseFormState>;
-  entityId?: string;
-  defaultValues?: Record<string, string>;
-  categoriasIniciais?: string[];
-  fotoUrl?: string | null;
-  submitLabel: string;
+  action: (
+    prevState: CadastroPublicoComissaoTecnicaBaseFormState,
+    formData: FormData,
+  ) => Promise<CadastroPublicoComissaoTecnicaBaseFormState>;
 }) {
   const [state, formAction] = useFormState(action, initialState);
-  const values = state.values ?? defaultValues ?? {};
+  const values = state.values ?? {};
   const errors = state.fieldErrors ?? {};
-  const categoriasSelecionadas = state.categoriasSelecionadas ?? categoriasIniciais ?? [];
+  const categoriasSelecionadas = state.categoriasSelecionadas ?? [];
+
+  if (state.success) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-lg font-semibold text-grena-escuro">Cadastro enviado com sucesso!</p>
+        <p className="mt-2 text-sm text-neutral-500">
+          Obrigado por preencher seus dados. O responsável do Futebol de Base já tem acesso ao seu
+          cadastro.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
-      {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados pessoais">
         <FieldGroup>
           <TextField
@@ -52,9 +55,10 @@ export function ComissaoBaseForm({
           <TextField
             label="Apelido"
             name="apelido"
+            required
             defaultValue={values.apelido}
             error={errors.apelido}
-            placeholder="Como a pessoa é chamada no dia a dia"
+            placeholder="Como você é chamado no dia a dia"
           />
           <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
           <CpfField label="CPF" name="cpf" required defaultValue={values.cpf} error={errors.cpf} />
@@ -66,21 +70,28 @@ export function ComissaoBaseForm({
             defaultValue={values.dataNascimento}
             error={errors.dataNascimento}
           />
-          <TelefoneField label="Telefone" name="telefone" defaultValue={values.telefone} error={errors.telefone} />
+          <TelefoneField
+            label="Telefone"
+            name="telefone"
+            required
+            defaultValue={values.telefone}
+            error={errors.telefone}
+          />
           <TextField
             label="E-mail"
             name="email"
             type="email"
+            required
             defaultValue={values.email}
             error={errors.email}
           />
           <div className="sm:col-span-2">
-            <PhotoField label="Foto (opcional)" name="foto" currentUrl={fotoUrl} />
+            <PhotoField label="Sua foto" name="foto" required error={errors.foto} />
           </div>
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Função">
+      <FormSection title="Função e contrato">
         <FieldGroup>
           <div className="sm:col-span-2">
             <p className="field-label">
@@ -101,9 +112,8 @@ export function ComissaoBaseForm({
               ))}
             </div>
             <p className="mt-1 text-xs text-neutral-400">
-              Marque mais de uma se a pessoa atua em mais de uma categoria (ex.: mesmo treinador no
-              Sub-11 e no Sub-12) — o salário mensal abaixo é dividido igualmente entre elas no
-              Financeiro.
+              Marque mais de uma se você atua em mais de uma categoria (ex.: mesmo treinador no
+              Sub-11 e no Sub-12).
             </p>
             {errors.categorias ? <p className="field-error">{errors.categorias}</p> : null}
           </div>
@@ -118,10 +128,13 @@ export function ComissaoBaseForm({
           <SelectField
             label="Tipo de contrato"
             name="tipoContrato"
+            required
             defaultValue={values.tipoContrato}
             error={errors.tipoContrato}
           >
-            <option value="">Não definido</option>
+            <option value="" disabled>
+              Selecione
+            </option>
             {COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -138,6 +151,7 @@ export function ComissaoBaseForm({
             label="Quando iniciou"
             name="dataInicio"
             type="date"
+            required
             defaultValue={values.dataInicio}
             error={errors.dataInicio}
           />
@@ -149,7 +163,7 @@ export function ComissaoBaseForm({
       ) : null}
 
       <div className="flex gap-3">
-        <SubmitButton label={submitLabel} />
+        <SubmitButton label="Enviar cadastro" />
       </div>
     </form>
   );

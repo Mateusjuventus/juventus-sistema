@@ -1,20 +1,36 @@
-import type { CategoriaPosicao } from "@/lib/supabase/types";
+import type { AtletaPosicao, CategoriaPosicao } from "@/lib/supabase/types";
 
 /**
  * Classificação fixa de posição (Goleiro/Zagueiro/Lateral/Meia/Atacante), usada pra gerar a tag
  * curta e colorida (GOL/ZAG/LAT/MEI/ATA) na grade de Convocação — ver spec
- * `docs/superpowers/specs/2026-08-04-convocacao-redesign-design.md`. Diferente do campo de texto
- * livre "posicao" (mais descritivo, usado em listagens/PDFs — ver `lib/futebol/ordem-posicao.ts`
- * pra ordenação tática por palavra-chave), este é um campo cadastrado (enum fixo), não inferido.
+ * `docs/superpowers/specs/2026-08-04-convocacao-redesign-design.md` — e pra agrupar o Campograma
+ * (`lib/futebol/campograma.ts`). Até 25/08 era um campo cadastrado à parte ("Categoria de
+ * posição"); desde a spec `2026-08-25-atleta-contrato-posicao-cpf-design.md` deixou de existir
+ * como campo — é calculada a partir da posição única de 9 valores (`AtletaPosicao`), ver
+ * `categoriaDaPosicao` abaixo.
  */
 
-export const CATEGORIA_POSICAO_OPTIONS: { value: CategoriaPosicao; label: string }[] = [
-  { value: "goleiro", label: "Goleiro" },
-  { value: "zagueiro", label: "Zagueiro" },
-  { value: "lateral", label: "Lateral" },
-  { value: "meia", label: "Meia" },
-  { value: "atacante", label: "Atacante" },
-];
+/** Mapeia cada uma das 9 posições fixas pro seu grupo de tag/cor. Volante entra em MEI, as duas
+ * Pontas entram em ATA — decisão do Mateus, mantendo as mesmas 5 cores/tags de sempre na
+ * Convocação e no Campograma. */
+const CATEGORIA_DA_POSICAO: Record<AtletaPosicao, CategoriaPosicao> = {
+  Goleiro: "goleiro",
+  Zagueiro: "zagueiro",
+  "Lateral Direito": "lateral",
+  "Lateral Esquerdo": "lateral",
+  Volante: "meia",
+  Meia: "meia",
+  Atacante: "atacante",
+  "Ponta Direita": "atacante",
+  "Ponta Esquerda": "atacante",
+};
+
+/** Calcula o grupo (GOL/ZAG/LAT/MEI/ATA) a partir da posição cadastrada. `null` só acontece pra
+ * cadastros muito antigos que por algum motivo ainda não tenham uma das 9 posições válidas. */
+export function categoriaDaPosicao(posicao: string | null | undefined): CategoriaPosicao | null {
+  if (!posicao) return null;
+  return CATEGORIA_DA_POSICAO[posicao as AtletaPosicao] ?? null;
+}
 
 /** Sigla curta (3 letras) exibida na tag da grade de Convocação. */
 export const CATEGORIA_POSICAO_SIGLA: Record<CategoriaPosicao, string> = {

@@ -3,10 +3,12 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 /**
  * Cliente Supabase com a service_role key — ignora todas as políticas de RLS (linha a linha).
  *
- * Usos permitidos, e só estes dois:
- * 1. Fluxo de cadastro público de Staff Operacional (app/cadastro-staff), que precisa ler o
- *    catálogo de funções e gravar o cadastro sem uma sessão de usuário autenticado (a pessoa
- *    preenche o link sem fazer login).
+ * Usos permitidos, e só estes três:
+ * 1. Fluxo de cadastro público de Staff Operacional (app/cadastro-staff, app/cadastro-staff-base) e
+ *    de Comissão Técnica/Diretoria (app/cadastro-comissao-tecnica, app/cadastro-comissao-tecnica-base
+ *    — ver docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md), que
+ *    precisam ler configuração/catálogo e gravar o cadastro sem uma sessão de usuário autenticado
+ *    (a pessoa preenche o link sem fazer login).
  * 2. Gerenciamento de usuários (app/usuarios/actions.ts) — criar login de um novo usuário
  *    (supabase.auth.admin.createUser) e gravar/alterar o papel dele em `perfis`, já que essa
  *    tabela de propósito não tem política de insert/update para usuários autenticados comuns (só

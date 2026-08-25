@@ -3,11 +3,13 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { DeleteButton } from "@/components/delete-button";
+import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
-import type { ComissaoTecnicaRow } from "@/lib/supabase/types";
+import type { ComissaoTecnicaRow, ConfiguracaoCadastroComissaoTecnicaRow } from "@/lib/supabase/types";
 import { deleteComissao } from "./actions";
+import { alternarCadastroPublicoComissaoTecnica } from "./cadastro-publico-actions";
 
 export default async function ComissaoTecnicaPage({
   searchParams,
@@ -20,8 +22,12 @@ export default async function ComissaoTecnicaPage({
   let query = supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
 
-  const { data, error } = await query;
+  const [{ data, error }, { data: configData }] = await Promise.all([
+    query,
+    supabase.from("configuracoes_cadastro_comissao_tecnica").select("*").limit(1).maybeSingle(),
+  ]);
   const pessoas = (data ?? []) as ComissaoTecnicaRow[];
+  const config = configData as ConfiguracaoCadastroComissaoTecnicaRow | null;
   const fotoUrls = await Promise.all(pessoas.map((p) => getSignedPhotoUrl(supabase, p.foto_path)));
 
   return (
@@ -38,6 +44,17 @@ export default async function ComissaoTecnicaPage({
           + Nova pessoa
         </Link>
       </div>
+
+      {config ? (
+        <div className="mt-4">
+          <CadastroPublicoToggle
+            id={config.id}
+            ativo={config.cadastro_publico_ativo}
+            linkPath="/cadastro-comissao-tecnica"
+            action={alternarCadastroPublicoComissaoTecnica}
+          />
+        </div>
+      ) : null}
 
       <div className="card mt-4 p-4">
         <SearchBar action="/comissao-tecnica" defaultValue={q} placeholder="Buscar por nome..." />

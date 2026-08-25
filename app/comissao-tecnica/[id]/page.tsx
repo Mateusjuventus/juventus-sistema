@@ -26,7 +26,9 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
     funcao: pessoa.funcao,
     telefone: pessoa.telefone ?? "",
     email: pessoa.email ?? "",
-    tipoQuartoPreferido: pessoa.tipo_quarto_preferido ?? "",
+    tipoContrato: pessoa.tipo_contrato ?? "",
+    valorSalario: pessoa.valor_salario?.toString() ?? "",
+    dataInicio: pessoa.data_inicio ?? "",
   };
 
   return (

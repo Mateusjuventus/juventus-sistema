@@ -15,6 +15,8 @@ const PUBLIC_PATHS = [
   "/login",
   "/cadastro-staff",
   "/cadastro-staff-base",
+  "/cadastro-comissao-tecnica",
+  "/cadastro-comissao-tecnica-base",
   "/vagas",
   "/vagas-base",
   "/cadastro-atleta-base",

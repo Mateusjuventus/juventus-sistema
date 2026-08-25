@@ -2,10 +2,11 @@
 
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
+import { CpfField } from "@/components/cpf-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
-import { CATEGORIA_POSICAO_OPTIONS } from "@/lib/futebol/categoria-posicao";
+import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
 import type { CadastroAtletaPublicoState } from "./actions";
 
 const initialState: CadastroAtletaPublicoState = {};
@@ -47,7 +48,13 @@ export function AtletaPublicoForm({
             defaultValue={values.nomeCompleto}
             error={errors.nomeCompleto}
           />
-          <TextField label="Apelido" name="apelido" defaultValue={values.apelido} error={errors.apelido} />
+          <TextField
+            label="Apelido"
+            name="apelido"
+            required
+            defaultValue={values.apelido}
+            error={errors.apelido}
+          />
           <TextField
             label="Data de nascimento"
             name="dataNascimento"
@@ -56,24 +63,26 @@ export function AtletaPublicoForm({
             defaultValue={values.dataNascimento}
             error={errors.dataNascimento}
           />
-          <TextField label="RG" name="rg" defaultValue={values.rg} error={errors.rg} />
+          <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
+          <CpfField label="CPF" name="cpf" required defaultValue={values.cpf} error={errors.cpf} />
           <TextField
-            label="CPF"
-            name="cpf"
-            placeholder="000.000.000-00"
-            defaultValue={values.cpf}
-            error={errors.cpf}
+            label="Telefone de contato"
+            name="telefone"
+            required
+            defaultValue={values.telefone}
+            error={errors.telefone}
           />
-          <TextField label="Telefone de contato" name="telefone" defaultValue={values.telefone} error={errors.telefone} />
           <TextField
             label="Cidade natal"
             name="cidadeNatal"
+            required
             defaultValue={values.cidadeNatal}
             error={errors.cidadeNatal}
           />
           <TextField
             label="UF natal"
             name="ufNatal"
+            required
             maxLength={2}
             defaultValue={values.ufNatal}
             error={errors.ufNatal}
@@ -92,29 +101,27 @@ export function AtletaPublicoForm({
               </option>
             ))}
           </SelectField>
-          <TextField
+          <SelectField
             label="Posição"
             name="posicao"
             required
             defaultValue={values.posicao}
             error={errors.posicao}
-            placeholder="Ex: Zagueiro, Atacante"
-          />
-          <SelectField
-            label="Categoria de posição"
-            name="categoriaPosicao"
-            required
-            defaultValue={values.categoriaPosicao}
-            error={errors.categoriaPosicao}
           >
             <option value="">Selecione</option>
-            {CATEGORIA_POSICAO_OPTIONS.map((opcao) => (
-              <option key={opcao.value} value={opcao.value}>
-                {opcao.label}
+            {ATLETA_POSICAO_OPTIONS.map((posicao) => (
+              <option key={posicao} value={posicao}>
+                {posicao}
               </option>
             ))}
           </SelectField>
-          <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
+          <TextField
+            label="Escola"
+            name="escola"
+            required
+            defaultValue={values.escola}
+            error={errors.escola}
+          />
           <div className="flex items-center gap-2 sm:col-span-2">
             <input
               id="alojado"
@@ -132,43 +139,70 @@ export function AtletaPublicoForm({
 
       <FormSection title="Responsáveis">
         <FieldGroup>
-          <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
+          <TextField
+            label="Nome da mãe"
+            name="maeNome"
+            required
+            defaultValue={values.maeNome}
+            error={errors.maeNome}
+          />
           <TextField
             label="Telefone da mãe"
             name="maeTelefone"
+            required
             defaultValue={values.maeTelefone}
             error={errors.maeTelefone}
           />
-          <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
+          <TextField
+            label="Nome do pai"
+            name="paiNome"
+            required
+            defaultValue={values.paiNome}
+            error={errors.paiNome}
+          />
           <TextField
             label="Telefone do pai"
             name="paiTelefone"
+            required
             defaultValue={values.paiTelefone}
             error={errors.paiTelefone}
           />
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Empresário/representante (se houver)">
+      <FormSection title="Empresário/representante">
+        <p className="mb-3 text-sm text-neutral-500">
+          Se o atleta não tem empresário/representante, preencha os campos abaixo com &quot;Não
+          possui&quot;.
+        </p>
         <FieldGroup>
           <TextField
             label="Nome do empresário"
             name="empresarioNome"
+            required
             defaultValue={values.empresarioNome}
             error={errors.empresarioNome}
           />
           <TextField
             label="Telefone do empresário"
             name="empresarioTelefone"
+            required
             defaultValue={values.empresarioTelefone}
             error={errors.empresarioTelefone}
           />
-          <TextField label="Agência" name="agencia" defaultValue={values.agencia} error={errors.agencia} />
+          <TextField
+            label="Agência"
+            name="agencia"
+            required
+            defaultValue={values.agencia}
+            error={errors.agencia}
+          />
         </FieldGroup>
       </FormSection>
 
       <FormSection title="Endereço">
         <EnderecoFields
+          required
           defaultValues={{
             cep: values.cep,
             logradouro: values.logradouro,

@@ -3,8 +3,11 @@
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, TextField, SuggestionField, SelectField } from "@/components/fields";
 import { PhotoField } from "@/components/photo-field";
+import { CpfField } from "@/components/cpf-field";
+import { TelefoneField } from "@/components/telefone-field";
+import { CurrencyField } from "@/components/currency-field";
 import { SubmitButton } from "@/components/submit-button";
-import { SUGESTOES_FUNCAO_COMISSAO } from "@/lib/validation/schemas";
+import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS, SUGESTOES_FUNCAO_COMISSAO } from "@/lib/validation/schemas";
 import type { ComissaoFormState } from "./actions";
 
 const initialState: ComissaoFormState = {};
@@ -46,14 +49,7 @@ export function ComissaoForm({
             placeholder="Como a pessoa é chamada no dia a dia"
           />
           <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
-          <TextField
-            label="CPF"
-            name="cpf"
-            required
-            placeholder="000.000.000-00"
-            defaultValue={values.cpf}
-            error={errors.cpf}
-          />
+          <CpfField label="CPF" name="cpf" required defaultValue={values.cpf} error={errors.cpf} />
           <TextField
             label="Data de nascimento"
             name="dataNascimento"
@@ -62,12 +58,7 @@ export function ComissaoForm({
             defaultValue={values.dataNascimento}
             error={errors.dataNascimento}
           />
-          <TextField
-            label="Telefone"
-            name="telefone"
-            defaultValue={values.telefone}
-            error={errors.telefone}
-          />
+          <TelefoneField label="Telefone" name="telefone" defaultValue={values.telefone} error={errors.telefone} />
           <TextField
             label="E-mail"
             name="email"
@@ -92,15 +83,31 @@ export function ComissaoForm({
             suggestions={SUGESTOES_FUNCAO_COMISSAO}
           />
           <SelectField
-            label="Tipo de quarto preferido (jogos fora)"
-            name="tipoQuartoPreferido"
-            defaultValue={values.tipoQuartoPreferido}
-            error={errors.tipoQuartoPreferido}
+            label="Tipo de contrato"
+            name="tipoContrato"
+            defaultValue={values.tipoContrato}
+            error={errors.tipoContrato}
           >
             <option value="">Não definido</option>
-            <option value="single">Single</option>
-            <option value="duplo">Duplo</option>
+            {COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </SelectField>
+          <CurrencyField
+            label="Salário mensal"
+            name="valorSalario"
+            defaultValue={values.valorSalario}
+            error={errors.valorSalario}
+          />
+          <TextField
+            label="Quando iniciou"
+            name="dataInicio"
+            type="date"
+            defaultValue={values.dataInicio}
+            error={errors.dataInicio}
+          />
         </FieldGroup>
       </FormSection>
 

@@ -2,16 +2,25 @@ import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
+import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import type { ComissaoTecnicaRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
-
-const QUARTO_LABEL: Record<string, string> = { single: "Single", duplo: "Duplo" };
 
 function formatData(data: string | null): string {
   if (!data) return "";
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
+}
+
+function formatMoeda(valor: number | null): string {
+  if (valor === null) return "";
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function tipoContratoLabel(valor: string | null): string {
+  if (!valor) return "";
+  return COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS.find((o) => o.value === valor)?.label ?? valor;
 }
 
 /** Exporta a lista de Comissão Técnica / Diretoria para Excel, respeitando o filtro de busca da tela. */
@@ -34,7 +43,9 @@ export async function GET(request: NextRequest) {
     "Função/cargo": p.funcao,
     Telefone: p.telefone ?? "",
     "E-mail": p.email ?? "",
-    "Tipo de quarto preferido": p.tipo_quarto_preferido ? QUARTO_LABEL[p.tipo_quarto_preferido] ?? "" : "",
+    "Tipo de contrato": tipoContratoLabel(p.tipo_contrato),
+    "Salário mensal": formatMoeda(p.valor_salario),
+    "Quando iniciou": formatData(p.data_inicio),
   }));
 
   return buildXlsxResponse("comissao-tecnica.xlsx", [{ nome: "Comissão Técnica", linhas }]);

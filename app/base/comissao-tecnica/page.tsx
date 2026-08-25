@@ -3,13 +3,15 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { DeleteButton } from "@/components/delete-button";
+import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { ComissaoTecnicaBaseTabs } from "@/components/comissao-tecnica-base-tabs";
-import type { ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
+import type { ComissaoTecnicaBaseRow, ConfiguracaoCadastroComissaoTecnicaBaseRow } from "@/lib/supabase/types";
 import { deleteComissaoBase } from "./actions";
+import { alternarCadastroPublicoComissaoTecnicaBase } from "./cadastro-publico-actions";
 
 /**
  * Lista única de Comissão Técnica/Diretoria (Futebol de Base) — sem divisão em cards por
@@ -33,8 +35,12 @@ export default async function ComissaoTecnicaBasePage({
   if (q) query = query.ilike("nome_completo", `%${q}%`);
   if (categoria) query = query.contains("categorias", [categoria]);
 
-  const { data, error } = await query;
+  const [{ data, error }, { data: configData }] = await Promise.all([
+    query,
+    supabase.from("configuracoes_cadastro_comissao_tecnica_base").select("*").limit(1).maybeSingle(),
+  ]);
   const pessoas = (data ?? []) as ComissaoTecnicaBaseRow[];
+  const config = configData as ConfiguracaoCadastroComissaoTecnicaBaseRow | null;
   const fotoUrls = await Promise.all(pessoas.map((p) => getSignedPhotoUrl(supabase, p.foto_path)));
 
   const novaPessoaHref = categoria
@@ -59,6 +65,17 @@ export default async function ComissaoTecnicaBasePage({
           + Nova pessoa
         </Link>
       </div>
+
+      {config ? (
+        <div className="mt-4">
+          <CadastroPublicoToggle
+            id={config.id}
+            ativo={config.cadastro_publico_ativo}
+            linkPath="/cadastro-comissao-tecnica-base"
+            action={alternarCadastroPublicoComissaoTecnicaBase}
+          />
+        </div>
+      ) : null}
 
       <div className="card mt-4 p-4">
         <SearchBar action="/base/comissao-tecnica" defaultValue={q} placeholder="Buscar por nome...">

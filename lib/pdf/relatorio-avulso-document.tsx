@@ -126,7 +126,6 @@ export interface RelatorioAvulsoPessoa {
   contratoFormacao: boolean | null;
   empresarioNome: string | null;
   status: string | null;
-  tipoQuartoPreferido: string | null;
   /** Categoria de idade do Futebol de Base (Sub-20 etc.) — sempre `null` no Futebol Profissional. */
   categoria: string | null;
 }
@@ -151,7 +150,6 @@ export interface RelatorioAvulsoColunas {
   contratoFormacao: boolean;
   empresarioNome: boolean;
   status: boolean;
-  tipoQuartoPreferido: boolean;
   categoria: boolean;
 }
 
@@ -246,11 +244,6 @@ const COLUNA_EMPRESARIO: ColunaDef = {
   valor: (p) => p.empresarioNome ?? "—",
 };
 const COLUNA_STATUS: ColunaDef = { chave: "status", label: "Situação", valor: (p) => p.status ?? "—" };
-const COLUNA_QUARTO: ColunaDef = {
-  chave: "tipoQuartoPreferido",
-  label: "Quarto preferido",
-  valor: (p) => p.tipoQuartoPreferido ?? "—",
-};
 
 /** Colunas que fazem sentido pra cada tipo de pessoa — cada `TabelaPessoas` só mostra, entre as
  * marcadas pelo usuário em `colunas`, as que estão nesta lista (ex.: Posição nunca aparece na
@@ -284,7 +277,6 @@ const COLUNAS_COMISSAO: ColunaDef[] = [
   COLUNA_TELEFONE,
   COLUNA_EMAIL,
   COLUNA_FUNCAO,
-  COLUNA_QUARTO,
   COLUNA_CATEGORIA,
 ];
 

@@ -9,10 +9,24 @@ export type AtletaStatus = "liberado" | "suspenso" | "departamento_medico";
 export type TipoQuarto = "single" | "duplo" | "triplo";
 
 /** Classificação fixa de posição, usada pra gerar a tag colorida (GOL/ZAG/LAT/MEI/ATA) na grade de
- * Convocação — ver `lib/futebol/categoria-posicao.ts`. Diferente do campo de texto livre
- * "posicao" (mais descritivo), que continua existindo como está. `null` quando o cadastro é
- * antigo e a migração de backfill não conseguiu classificar por palavra-chave. */
+ * Convocação e agrupar o Campograma — ver `lib/futebol/categoria-posicao.ts`. Desde 25/08 não é
+ * mais um campo do banco: é calculada a partir de `posicao` (`categoriaDaPosicao`). */
 export type CategoriaPosicao = "goleiro" | "zagueiro" | "lateral" | "meia" | "atacante";
+
+/** As 9 posições fixas do cadastro de Atleta (Profissional e Base) — ver
+ * `docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md`. Mesmo valor gravado
+ * em `AtletaRow.posicao`/`AtletaBaseRow.posicao` (texto legível, não um código) — o tipo aqui é só
+ * usado como chave de `categoriaDaPosicao`, as colunas continuam tipadas como `string`. */
+export type AtletaPosicao =
+  | "Goleiro"
+  | "Zagueiro"
+  | "Lateral Direito"
+  | "Lateral Esquerdo"
+  | "Volante"
+  | "Meia"
+  | "Atacante"
+  | "Ponta Direita"
+  | "Ponta Esquerda";
 
 /** Tipo de contrato do atleta no Futebol Profissional — Amador libera o campo "possui contrato de
  * formação" no formulário (ver `AtletaForm`). O Futebol de Base tem uma opção a mais (Iniciação),
@@ -26,7 +40,6 @@ export interface AtletaRow {
   cpf: string;
   data_nascimento: string;
   posicao: string;
-  categoria_posicao: CategoriaPosicao | null;
   numero_camisa: number | null;
   numero_cbf: number | null;
   numero_fpf: number | null;
@@ -36,6 +49,9 @@ export interface AtletaRow {
   uf_natal: string | null;
   endereco_atual: string | null;
   data_inicio_clube: string | null;
+  /** Distinto de `data_inicio_clube` — quando o vínculo de contrato começou, não quando o atleta
+   * entrou no clube. Só cadastro interno, nunca vem do link público. */
+  data_inicio_contrato: string | null;
   empresario_nome: string | null;
   foto_path: string | null;
   status: AtletaStatus;
@@ -84,7 +100,6 @@ export interface AtletaBaseRow {
   cpf: string | null;
   data_nascimento: string;
   posicao: string;
-  categoria_posicao: CategoriaPosicao | null;
   numero_camisa: number | null;
   numero_cbf: number | null;
   numero_fpf: number | null;
@@ -96,6 +111,9 @@ export interface AtletaBaseRow {
    * etc.), que alimentam o autopreenchimento por CEP. Mantido só pra não perder o que já tinha. */
   endereco_atual: string | null;
   data_inicio_clube: string | null;
+  /** Distinto de `data_inicio_clube` — quando o vínculo de contrato começou, não quando o atleta
+   * entrou no clube. Só cadastro interno, nunca vem do link público. */
+  data_inicio_contrato: string | null;
   empresario_nome: string | null;
   foto_path: string | null;
   status: AtletaStatus;
@@ -135,6 +153,10 @@ export interface AtletaDocumentoBaseRow {
   created_at: string;
 }
 
+/** Tipo de contrato da Comissão Técnica/Diretoria (Profissional e Base) — ver
+ * `COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS` em `lib/validation/schemas.ts`. */
+export type ComissaoTecnicaTipoContrato = "clt" | "pj" | "sem_contrato";
+
 export interface ComissaoTecnicaRow {
   id: string;
   nome_completo: string;
@@ -145,8 +167,15 @@ export interface ComissaoTecnicaRow {
   telefone: string | null;
   email: string | null;
   foto_path: string | null;
+  /** Não é mais exibido/editado em lugar nenhum do sistema (cadastro ou Relatórios Avulsos) desde
+   * 25/08 — coluna mantida só pelo histórico de quem já preenchia (ver a spec de 25/08). */
   tipo_quarto_preferido: TipoQuarto | null;
   apelido: string | null;
+  tipo_contrato: ComissaoTecnicaTipoContrato | null;
+  data_inicio: string | null;
+  /** Salário mensal — mesmo campo que já existia em `ComissaoTecnicaBaseRow` (ver
+   * docs/superpowers/specs/2026-08-19-financeiro-base-design.md), agora também no Profissional. */
+  valor_salario: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -168,8 +197,12 @@ export interface ComissaoTecnicaBaseRow {
   telefone: string | null;
   email: string | null;
   foto_path: string | null;
+  /** Não é mais exibido/editado em lugar nenhum do sistema (cadastro ou Relatórios Avulsos) desde
+   * 25/08 — coluna mantida só pelo histórico de quem já preenchia (ver a spec de 25/08). */
   tipo_quarto_preferido: TipoQuarto | null;
   apelido: string | null;
+  tipo_contrato: ComissaoTecnicaTipoContrato | null;
+  data_inicio: string | null;
   /** Salário mensal — snapshot do valor atual, não um lançamento recorrente (ver
    * docs/superpowers/specs/2026-08-19-financeiro-base-design.md). `null` até o Mateus preencher. */
   valor_salario: number | null;
@@ -643,6 +676,23 @@ export interface ConfiguracaoCadastroStaffRow {
 /** Mesma coisa, mas pro autocadastro de Staff Operacional do Futebol de Base (/cadastro-staff-base)
  * — tabela totalmente independente da do Profissional. */
 export interface ConfiguracaoCadastroStaffBaseRow {
+  id: string;
+  cadastro_publico_ativo: boolean;
+  updated_at: string;
+}
+
+/** Liga/desliga o link público de autocadastro da Comissão Técnica/Diretoria — Profissional
+ * (/cadastro-comissao-tecnica) — tabela singleton, totalmente independente das de Staff Operacional
+ * (ver docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md). */
+export interface ConfiguracaoCadastroComissaoTecnicaRow {
+  id: string;
+  cadastro_publico_ativo: boolean;
+  updated_at: string;
+}
+
+/** Mesma coisa, mas pro autocadastro da Comissão Técnica/Diretoria do Futebol de Base
+ * (/cadastro-comissao-tecnica-base). */
+export interface ConfiguracaoCadastroComissaoTecnicaBaseRow {
   id: string;
   cadastro_publico_ativo: boolean;
   updated_at: string;

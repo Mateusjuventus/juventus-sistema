@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidCPF, normalizeCPF } from "./cpf";
+import { isValidTelefone } from "./telefone";
 import { chavePixValida } from "./chave-pix";
 import { normalizarNomeProprio } from "./nome";
 
@@ -12,18 +13,19 @@ const cpfField = z
 
 const rgField = z.string().min(1, { message: "RG é obrigatório" });
 
-const rgFieldOpcional = z.string().optional().or(z.literal(""));
+const telefoneField = z.string().optional().or(z.literal(""));
 
-/** CPF opcional: se vazio, passa; se preenchido, precisa ser válido de verdade. Usado na Ficha de
- * Cadastro pública de Atleta (a família pode não ter o CPF do atleta em mãos ainda). */
-const cpfFieldOpcional = z
+/** Telefone validado no formato (10 ou 11 dígitos) quando preenchido — usado nos cadastros de
+ * Comissão Técnica (Profissional e Base), que ganharam campo com máscara em tempo real (ver
+ * `components/telefone-field.tsx`). Continua opcional no cadastro manual do admin; só é obrigatório
+ * no link público (ver `cadastroPublicoComissaoTecnicaSchema` mais abaixo). Diferente do
+ * `telefoneField` genérico (usado pelo resto do sistema, sem campo com máscara ainda), por isso não
+ * reaproveitamos o mesmo campo aqui. */
+const telefoneFieldValidado = z
   .string()
   .optional()
   .or(z.literal(""))
-  .refine((value) => !value || normalizeCPF(value).length === 11, { message: "CPF deve ter 11 dígitos" })
-  .refine((value) => !value || isValidCPF(normalizeCPF(value)), { message: "CPF inválido" });
-
-const telefoneField = z.string().optional().or(z.literal(""));
+  .refine((value) => !value || isValidTelefone(value), { message: "Telefone inválido" });
 
 const emailField = z.string().email({ message: "E-mail inválido" }).optional().or(z.literal(""));
 
@@ -69,6 +71,30 @@ export const ATLETA_BASE_TIPO_CONTRATO_OPTIONS = [
   { value: "iniciacao", label: "Iniciação" },
 ] as const;
 
+/**
+ * Lista fixa de posição — um campo só, substituindo os antigos "Posição" (texto livre) +
+ * "Categoria de posição" (5 grupos). O valor gravado é o próprio texto legível (não um código),
+ * porque é assim que o campo já é lido hoje em ~50 lugares do sistema (listagens, PDFs,
+ * exportações) — trocar pra um código exigiria traduzir em todos esses lugares. A tag colorida
+ * GOL/ZAG/LAT/MEI/ATA da Convocação e o agrupamento do Campograma continuam existindo, mas agora
+ * calculados a partir desta posição — ver `categoriaDaPosicao` em `lib/futebol/categoria-posicao.ts`.
+ */
+export const ATLETA_POSICAO_OPTIONS = [
+  "Goleiro",
+  "Zagueiro",
+  "Lateral Direito",
+  "Lateral Esquerdo",
+  "Volante",
+  "Meia",
+  "Atacante",
+  "Ponta Direita",
+  "Ponta Esquerda",
+] as const;
+
+const posicaoField = z.enum(ATLETA_POSICAO_OPTIONS, {
+  errorMap: () => ({ message: "Posição é obrigatória" }),
+});
+
 export const atletaSchema = z.object({
   nomeCompleto: z
     .string()
@@ -78,10 +104,7 @@ export const atletaSchema = z.object({
   rg: rgField,
   cpf: cpfField,
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-  posicao: z.string().min(1, { message: "Posição é obrigatória" }),
-  categoriaPosicao: z.enum(["goleiro", "zagueiro", "lateral", "meia", "atacante"], {
-    errorMap: () => ({ message: "Categoria de posição é obrigatória" }),
-  }),
+  posicao: posicaoField,
   numeroCamisa: z.coerce.number().int().positive().optional().nullable(),
   numeroCbf: z.coerce.number().int().positive().optional().nullable(),
   numeroFpf: z.coerce.number().int().positive().optional().nullable(),
@@ -91,6 +114,10 @@ export const atletaSchema = z.object({
   ufNatal: z.string().length(2).optional().or(z.literal("")),
   enderecoAtual: z.string().optional().or(z.literal("")),
   dataInicioClube: z.string().optional().or(z.literal("")),
+  // Distinto de `dataInicioClube` (quando o atleta entrou no clube) — restrito ao cadastro
+  // interno, nunca aparece na Ficha de Cadastro pública (`fichaCadastroAtletaBaseSchema`), mesmo
+  // raciocínio dos demais campos administrativos de contrato.
+  dataInicioContrato: z.string().optional().or(z.literal("")),
   empresarioNome: z.string().optional().or(z.literal("")),
   status: z.enum(["liberado", "suspenso", "departamento_medico"]).default("liberado"),
   dataFimContrato: z.string().optional().or(z.literal("")),
@@ -236,39 +263,56 @@ export const parecerCaptacaoSchema = z.object({
 });
 export type ParecerCaptacaoInput = z.infer<typeof parecerCaptacaoSchema>;
 
+/** Campo de texto obrigatório da Ficha de Cadastro pública de Atleta — mesmo padrão de
+ * `inscricaoRequiredField`/`comissaoPublicoRequiredField`: TODOS os dados são obrigatórios aqui
+ * (pedido de 25/08: "o link publico deve ser obrigatórios todos os dados"), mesmo raciocínio já
+ * aplicado ao link público de Comissão Técnica. Os campos de Empresário/Mãe/Pai usam este helper
+ * (texto não vazio) em vez de validação estrita de telefone, pra quem não tem empresário poder
+ * preencher "Não possui" em vez de travar o envio — ver instrução na própria tela. */
+function atletaPublicoRequiredField(mensagem: string) {
+  return z.string().min(1, { message: mensagem });
+}
+
 /**
  * Ficha de Cadastro pública de Atleta (`/cadastro-atleta-base`) — pros atletas que já são (ou estão
  * entrando) do clube, a família preenche o cadastro completo. Grava DIRETO em `atletas_base`, sem
- * relação nenhuma com a Captação (ver a spec de 19/08). RG/CPF opcionais — a família pode não ter em
- * mãos ainda; campos administrativos do clube (status, tipo de contrato, número de camisa/CBF/FPF,
- * datas de contrato) ficam de fora — isso o Mateus preenche depois pela tela interna.
+ * relação nenhuma com a Captação (ver a spec de 19/08). Campos administrativos do clube (status,
+ * tipo de contrato, número de camisa/CBF/FPF, datas de contrato — incluindo a nova "Data de início
+ * do contrato") ficam de fora — isso o Mateus preenche depois pela tela interna.
+ *
+ * Desde 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md) TODOS
+ * os campos são obrigatórios aqui, inclusive RG/CPF — que antes ficavam opcionais porque "a família
+ * pode não ter em mãos ainda". Pedido explícito do Mateus overrida essa exceção pra este link.
  */
 export const fichaCadastroAtletaBaseSchema = z.object({
   categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }).transform(normalizarNomeProprio),
-  apelido: z.string().optional().or(z.literal("")),
-  rg: rgFieldOpcional,
-  cpf: cpfFieldOpcional,
+  apelido: atletaPublicoRequiredField("Apelido é obrigatório"),
+  rg: rgField,
+  cpf: cpfField,
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-  posicao: z.string().min(1, { message: "Posição é obrigatória" }),
-  categoriaPosicao: z.enum(["goleiro", "zagueiro", "lateral", "meia", "atacante"], {
-    errorMap: () => ({ message: "Categoria de posição é obrigatória" }),
-  }),
-  telefone: telefoneField,
-  cidadeNatal: z.string().optional().or(z.literal("")),
-  ufNatal: z.string().length(2).optional().or(z.literal("")),
+  posicao: posicaoField,
+  telefone: atletaPublicoRequiredField("Telefone é obrigatório"),
+  cidadeNatal: atletaPublicoRequiredField("Cidade natal é obrigatória"),
+  ufNatal: atletaPublicoRequiredField("UF natal é obrigatória"),
   alojado: z.boolean().default(false),
-  escola: z.string().optional().or(z.literal("")),
-  agencia: z.string().optional().or(z.literal("")),
-  empresarioNome: z.string().optional().or(z.literal("")),
-  empresarioTelefone: telefoneField,
-  maeNome: z.string().optional().or(z.literal("")),
-  maeTelefone: telefoneField,
-  paiNome: z.string().optional().or(z.literal("")),
-  paiTelefone: telefoneField,
-  ...enderecoFields,
+  escola: atletaPublicoRequiredField("Escola é obrigatória"),
+  agencia: atletaPublicoRequiredField("Agência é obrigatória"),
+  empresarioNome: atletaPublicoRequiredField("Nome do empresário é obrigatório"),
+  empresarioTelefone: atletaPublicoRequiredField("Telefone do empresário é obrigatório"),
+  maeNome: atletaPublicoRequiredField("Nome da mãe é obrigatório"),
+  maeTelefone: atletaPublicoRequiredField("Telefone da mãe é obrigatório"),
+  paiNome: atletaPublicoRequiredField("Nome do pai é obrigatório"),
+  paiTelefone: atletaPublicoRequiredField("Telefone do pai é obrigatório"),
+  cep: atletaPublicoRequiredField("CEP é obrigatório"),
+  logradouro: atletaPublicoRequiredField("Endereço é obrigatório"),
+  numero: atletaPublicoRequiredField("Número é obrigatório"),
+  complemento: atletaPublicoRequiredField("Complemento é obrigatório"),
+  bairro: atletaPublicoRequiredField("Bairro é obrigatório"),
+  cidade: atletaPublicoRequiredField("Cidade é obrigatória"),
+  uf: atletaPublicoRequiredField("UF é obrigatória"),
 });
 export type FichaCadastroAtletaBaseInput = z.infer<typeof fichaCadastroAtletaBaseSchema>;
 
@@ -280,6 +324,15 @@ export const alojamentoConfigSchema = z.object({
 });
 export type AlojamentoConfigInput = z.infer<typeof alojamentoConfigSchema>;
 
+/** Tipo de contrato da Comissão Técnica/Diretoria (Profissional e Base) — ver
+ * docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md. Opcional no
+ * cadastro manual do admin, obrigatório no link público. */
+export const COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS = [
+  { value: "clt", label: "CLT" },
+  { value: "pj", label: "PJ" },
+  { value: "sem_contrato", label: "Sem contrato" },
+] as const;
+
 export const comissaoTecnicaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
   apelido: z.string().optional().or(z.literal("")),
@@ -287,16 +340,11 @@ export const comissaoTecnicaSchema = z.object({
   cpf: cpfField,
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
   funcao: z.string().min(1, { message: "Função/cargo é obrigatório" }),
-  telefone: telefoneField,
+  telefone: telefoneFieldValidado,
   email: z.string().email({ message: "E-mail inválido" }).optional().or(z.literal("")),
-  // ".or(z.literal(''))" é necessário aqui: o <select> de "Tipo de quarto preferido" tem "Não
-  // definido" (value="") como opção padrão, e o parseForm deste cadastro (app/comissao-tecnica/
-  // actions.ts e app/base/comissao-tecnica/actions.ts) manda essa string vazia direto pro
-  // schema, sem converter pra undefined antes (diferente do parseForm de Atleta, que já faz essa
-  // conversão). Bug real de produção: deixar no padrão (o caso mais comum, já que a maioria não
-  // tem preferência de quarto) fazia TODO o cadastro falhar com "Invalid enum value. Expected
-  // 'single' | 'duplo', received ''" — encontrado ao cadastrar a Comissão Técnica em massa.
-  tipoQuartoPreferido: z.enum(["single", "duplo"]).optional().nullable().or(z.literal("")),
+  tipoContrato: z.enum(["clt", "pj", "sem_contrato"]).optional().nullable().or(z.literal("")),
+  valorSalario: z.coerce.number().nonnegative().optional().nullable(),
+  dataInicio: z.string().optional().or(z.literal("")),
 });
 export type ComissaoTecnicaInput = z.infer<typeof comissaoTecnicaSchema>;
 
@@ -308,13 +356,57 @@ export const comissaoTecnicaBaseSchema = comissaoTecnicaSchema.extend({
   categorias: z
     .array(z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"]))
     .min(1, { message: "Selecione ao menos uma categoria" }),
-  // Snapshot do valor atual (não um lançamento recorrente) — mesmo padrão de
-  // `valorAjudaCusto` em `atletaBaseSchema`, ver docs/superpowers/specs/
-  // 2026-08-19-financeiro-base-design.md. Se a pessoa atuar em mais de uma categoria, o Financeiro
-  // divide esse valor igualmente entre elas na quebra "Por categoria".
-  valorSalario: z.coerce.number().nonnegative().optional().nullable(),
 });
 export type ComissaoTecnicaBaseInput = z.infer<typeof comissaoTecnicaBaseSchema>;
+
+/** Campo obrigatório do formulário público de Comissão Técnica — TODOS os campos são obrigatórios
+ * aqui (pedido do Mateus: "para o preenchimento da comissão, todos os dados devem ser
+ * obrigatórios"), diferente do cadastro interno (`comissaoTecnicaSchema`), onde a maioria continua
+ * opcional. Mesmo padrão de `inscricaoRequiredField`, usado na inscrição pública de Captação. */
+function comissaoPublicoRequiredField(mensagem: string) {
+  return z.string().min(1, { message: mensagem });
+}
+
+/** Formulário público de auto-cadastro da Comissão Técnica (`/cadastro-comissao-tecnica`,
+ * Profissional) — ver seção 4 da spec de 25/08. Link único, sempre cria um cadastro novo. */
+export const cadastroPublicoComissaoTecnicaSchema = z.object({
+  nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }).transform(normalizarNomeProprio),
+  apelido: comissaoPublicoRequiredField("Apelido é obrigatório"),
+  rg: comissaoPublicoRequiredField("RG é obrigatório"),
+  cpf: cpfField,
+  dataNascimento: comissaoPublicoRequiredField("Data de nascimento é obrigatória"),
+  funcao: comissaoPublicoRequiredField("Função/cargo é obrigatória"),
+  telefone: z
+    .string()
+    .min(1, { message: "Telefone é obrigatório" })
+    .refine(isValidTelefone, { message: "Telefone inválido" }),
+  email: z.string().min(1, { message: "E-mail é obrigatório" }).email({ message: "E-mail inválido" }),
+  tipoContrato: z.enum(["clt", "pj", "sem_contrato"], {
+    errorMap: () => ({ message: "Tipo de contrato é obrigatório" }),
+  }),
+  // Não usamos `z.coerce.number()` direto: o campo vem de um `CurrencyField` (ver
+  // `components/currency-field.tsx`), cujo `<input type="hidden">` manda "" quando nada foi
+  // digitado — e `Number("")` é 0, não NaN, então `z.coerce.number()` aceitaria silenciosamente um
+  // salário em branco como R$ 0,00 em vez de barrar o envio. Validamos a string primeiro (vazio =
+  // erro "obrigatório") e só then convertemos pra número.
+  valorSalario: z
+    .string()
+    .min(1, { message: "Salário é obrigatório" })
+    .refine((v) => !Number.isNaN(Number(v)), { message: "Informe um salário válido" })
+    .transform((v) => Number(v))
+    .refine((v) => v >= 0, { message: "Informe um salário válido" }),
+  dataInicio: comissaoPublicoRequiredField("Data de início é obrigatória"),
+});
+export type CadastroPublicoComissaoTecnicaInput = z.infer<typeof cadastroPublicoComissaoTecnicaSchema>;
+
+/** Mesmo formulário do público Profissional, mais categoria(s) obrigatórias — usado em
+ * `/cadastro-comissao-tecnica-base`. */
+export const cadastroPublicoComissaoTecnicaBaseSchema = cadastroPublicoComissaoTecnicaSchema.extend({
+  categorias: z
+    .array(z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"]))
+    .min(1, { message: "Selecione ao menos uma categoria" }),
+});
+export type CadastroPublicoComissaoTecnicaBaseInput = z.infer<typeof cadastroPublicoComissaoTecnicaBaseSchema>;
 
 const NOVA_FUNCAO_VALUE = "__nova__";
 

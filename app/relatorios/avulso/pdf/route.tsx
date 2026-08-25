@@ -26,12 +26,6 @@ const STATUS_LABEL: Record<string, string> = {
   departamento_medico: "Departamento Médico",
 };
 
-const TIPO_QUARTO_LABEL: Record<string, string> = {
-  single: "Single",
-  duplo: "Duplo",
-  triplo: "Triplo",
-};
-
 function naturalidade(cidade: string | null, uf: string | null): string | null {
   if (cidade && uf) return `${cidade}/${uf}`;
   if (cidade) return cidade;
@@ -99,7 +93,6 @@ export async function POST(request: Request) {
     contratoFormacao: formData.get("colContratoFormacao") === "on",
     empresarioNome: formData.get("colEmpresarioNome") === "on",
     status: formData.get("colStatus") === "on",
-    tipoQuartoPreferido: formData.get("colTipoQuartoPreferido") === "on",
     categoria: formData.get("colCategoria") === "on",
   };
 
@@ -153,7 +146,6 @@ export async function POST(request: Request) {
       contratoFormacao: a.possui_contrato_formacao,
       empresarioNome: a.empresario_nome,
       status: STATUS_LABEL[a.status] ?? a.status,
-      tipoQuartoPreferido: null,
       categoria: null,
     }));
 
@@ -180,7 +172,6 @@ export async function POST(request: Request) {
       contratoFormacao: null,
       empresarioNome: null,
       status: null,
-      tipoQuartoPreferido: c.tipo_quarto_preferido ? TIPO_QUARTO_LABEL[c.tipo_quarto_preferido] ?? c.tipo_quarto_preferido : null,
       categoria: null,
     }));
 
@@ -207,7 +198,6 @@ export async function POST(request: Request) {
       contratoFormacao: null,
       empresarioNome: null,
       status: null,
-      tipoQuartoPreferido: null,
       categoria: null,
     }));
 

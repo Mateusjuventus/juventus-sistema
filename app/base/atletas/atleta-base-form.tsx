@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
+import { CpfField } from "@/components/cpf-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
-import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import { CATEGORIA_POSICAO_OPTIONS } from "@/lib/futebol/categoria-posicao";
+import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS, ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaBaseFormState } from "./actions";
 
 const initialState: AtletaBaseFormState = {};
@@ -55,14 +55,7 @@ export function AtletaBaseForm({
             placeholder="Como aparece nos pôsteres (ex: Thomas Kayck)"
           />
           <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
-          <TextField
-            label="CPF"
-            name="cpf"
-            required
-            placeholder="000.000.000-00"
-            defaultValue={values.cpf}
-            error={errors.cpf}
-          />
+          <CpfField label="CPF" name="cpf" required defaultValue={values.cpf} error={errors.cpf} />
           <TextField
             label="Data de nascimento"
             name="dataNascimento"
@@ -99,25 +92,17 @@ export function AtletaBaseForm({
               </option>
             ))}
           </SelectField>
-          <TextField
+          <SelectField
             label="Posição"
             name="posicao"
             required
             defaultValue={values.posicao}
             error={errors.posicao}
-            placeholder="Ex: Goleiro, Zagueiro, Atacante"
-          />
-          <SelectField
-            label="Categoria de posição"
-            name="categoriaPosicao"
-            required
-            defaultValue={values.categoriaPosicao}
-            error={errors.categoriaPosicao}
           >
             <option value="">Selecione</option>
-            {CATEGORIA_POSICAO_OPTIONS.map((opcao) => (
-              <option key={opcao.value} value={opcao.value}>
-                {opcao.label}
+            {ATLETA_POSICAO_OPTIONS.map((posicao) => (
+              <option key={posicao} value={posicao}>
+                {posicao}
               </option>
             ))}
           </SelectField>
@@ -200,6 +185,13 @@ export function AtletaBaseForm({
             type="date"
             defaultValue={values.dataInicioClube}
             error={errors.dataInicioClube}
+          />
+          <TextField
+            label="Data de início do contrato"
+            name="dataInicioContrato"
+            type="date"
+            defaultValue={values.dataInicioContrato}
+            error={errors.dataInicioContrato}
           />
           <TextField
             label="Data de término do contrato"

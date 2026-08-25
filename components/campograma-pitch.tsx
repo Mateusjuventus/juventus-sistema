@@ -1,4 +1,3 @@
-import { CATEGORIA_POSICAO_OPTIONS } from "@/lib/futebol/categoria-posicao";
 import { nomeCampograma, type GrupoCampograma } from "@/lib/futebol/campograma";
 
 /** Ordem de exibição no campo, do ataque (topo) pro gol (base) — é como o olho lê uma escalação. */
@@ -65,8 +64,7 @@ export function CampogramaPitch({ grupos }: { grupos: GrupoCampograma }) {
             Sem posição classificada ({semPosicao.length})
           </p>
           <p className="mt-1 text-xs text-neutral-400">
-            Preencha o campo Categoria de posição no cadastro pra esses atletas aparecerem no campo
-            acima.
+            Preencha a posição no cadastro pra esses atletas aparecerem no campo acima.
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {semPosicao.map((j) => (
@@ -79,9 +77,9 @@ export function CampogramaPitch({ grupos }: { grupos: GrupoCampograma }) {
       ) : null}
 
       <div className="flex flex-wrap justify-center gap-3 text-xs text-neutral-400">
-        {CATEGORIA_POSICAO_OPTIONS.map((o) => (
-          <span key={o.value}>
-            {o.label}: {grupos[o.value].length}
+        {ORDEM_LINHAS.map((linha) => (
+          <span key={linha.chave}>
+            {linha.label}: {grupos[linha.chave].length}
           </span>
         ))}
       </div>

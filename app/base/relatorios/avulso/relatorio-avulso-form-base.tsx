@@ -144,8 +144,6 @@ const COLUNAS_ATLETAS: OpcaoColuna[] = [
   { name: "colStatus", label: "Situação" },
 ];
 
-const COLUNAS_COMISSAO: OpcaoColuna[] = [{ name: "colTipoQuartoPreferido", label: "Quarto preferido" }];
-
 const COLUNAS_BASE: OpcaoColuna[] = [{ name: "colCategoria", label: "Categoria" }];
 
 /**
@@ -270,11 +268,6 @@ export function RelatorioAvulsoFormBase({
         </div>
         <GrupoColunas titulo="Dados gerais" colunas={COLUNAS_GERAIS} marcadasPorPadrao={COLUNAS_MARCADAS_POR_PADRAO} />
         <GrupoColunas titulo="Atletas" colunas={COLUNAS_ATLETAS} marcadasPorPadrao={COLUNAS_MARCADAS_POR_PADRAO} />
-        <GrupoColunas
-          titulo="Comissão Técnica"
-          colunas={COLUNAS_COMISSAO}
-          marcadasPorPadrao={COLUNAS_MARCADAS_POR_PADRAO}
-        />
         <GrupoColunas titulo="Futebol de Base" colunas={COLUNAS_BASE} marcadasPorPadrao={COLUNAS_MARCADAS_POR_PADRAO} />
       </div>
 

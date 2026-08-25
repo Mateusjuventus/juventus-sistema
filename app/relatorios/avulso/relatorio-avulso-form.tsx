@@ -144,8 +144,6 @@ const COLUNAS_ATLETAS: OpcaoColuna[] = [
   { name: "colStatus", label: "Situação" },
 ];
 
-const COLUNAS_COMISSAO: OpcaoColuna[] = [{ name: "colTipoQuartoPreferido", label: "Quarto preferido" }];
-
 /**
  * Formulário do relatório/lista avulsa: monta um PDF sob medida (título, descrição, informações de
  * jogo opcionais — digitadas ou preenchidas a partir de um jogo já cadastrado —, quem entra e
@@ -267,11 +265,6 @@ export function RelatorioAvulsoForm({
         </div>
         <GrupoColunas titulo="Dados gerais" colunas={COLUNAS_GERAIS} marcadasPorPadrao={COLUNAS_MARCADAS_POR_PADRAO} />
         <GrupoColunas titulo="Atletas" colunas={COLUNAS_ATLETAS} marcadasPorPadrao={COLUNAS_MARCADAS_POR_PADRAO} />
-        <GrupoColunas
-          titulo="Comissão Técnica"
-          colunas={COLUNAS_COMISSAO}
-          marcadasPorPadrao={COLUNAS_MARCADAS_POR_PADRAO}
-        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
