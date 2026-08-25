@@ -48,6 +48,8 @@ export default async function EditarAtletaBasePage({
     dataFimContrato: atleta.data_fim_contrato ?? "",
     tipoContrato: atleta.tipo_contrato ?? "",
     possuiContratoFormacao: atleta.possui_contrato_formacao ? "on" : "",
+    possuiAlergiaMedicamento: atleta.possui_alergia_medicamento ? "on" : "",
+    alergiaMedicamentoQual: atleta.alergia_medicamento_qual ?? "",
     alojado: atleta.alojado ? "on" : "",
     valorAjudaCusto: atleta.valor_ajuda_custo != null ? String(atleta.valor_ajuda_custo) : "",
     agencia: atleta.agencia ?? "",

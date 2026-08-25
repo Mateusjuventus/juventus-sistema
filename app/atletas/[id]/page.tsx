@@ -39,6 +39,8 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
     dataFimContrato: atleta.data_fim_contrato ?? "",
     tipoContrato: atleta.tipo_contrato ?? "",
     possuiContratoFormacao: atleta.possui_contrato_formacao ? "on" : "",
+    possuiAlergiaMedicamento: atleta.possui_alergia_medicamento ? "on" : "",
+    alergiaMedicamentoQual: atleta.alergia_medicamento_qual ?? "",
   };
 
   return (

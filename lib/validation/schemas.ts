@@ -95,7 +95,28 @@ const posicaoField = z.enum(ATLETA_POSICAO_OPTIONS, {
   errorMap: () => ({ message: "Posição é obrigatória" }),
 });
 
-export const atletaSchema = z.object({
+/** `telefoneFieldValidado` (definido acima, já usado pela Comissão Técnica) é reaproveitado no
+ * Atleta pro telefone do próprio atleta e, no Base, da mãe/pai também (ver
+ * docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md — "telefone pai e mãe,
+ * deixar essa máscara"). O telefone do empresário/representante NÃO usa esse campo: continua
+ * `telefoneField` (texto livre), porque pode receber "Não possui". */
+
+/** Exige `Boolean(data.alergiaMedicamentoQual?.trim())` quando `possuiAlergiaMedicamento` é
+ * `true` — aplicado tanto em `atletaSchema` quanto em `atletaBaseSchema` via `.refine()` direto
+ * (evita passar por uma função genérica: um `T extends z.ZodType<...>` faz o TypeScript inferir o
+ * schema resultante como o tipo estreito do *constraint*, perdendo os demais campos — mais simples
+ * repetir o mesmo `.refine()` nos dois lugares do que lutar contra a inferência). */
+const refinoAlergia = {
+  check: (data: { possuiAlergiaMedicamento: boolean; alergiaMedicamentoQual?: string }) =>
+    !data.possuiAlergiaMedicamento || Boolean(data.alergiaMedicamentoQual?.trim()),
+  options: { message: "Informe qual é a alergia", path: ["alergiaMedicamentoQual"] },
+};
+
+/** Campos compartilhados por `atletaSchema` (Profissional) e `atletaBaseSchema` (Base) — separado
+ * do schema final porque os dois precisam de `.refine()` (checagem de alergia, ver
+ * `refinarAlergia`), e um `ZodObject` refinado não pode mais ser `.extend()`ido — por isso o Base
+ * estende este objeto "cru" antes de aplicar o refine, em vez de estender `atletaSchema` direto. */
+const atletaCamposBase = z.object({
   nomeCompleto: z
     .string()
     .min(1, { message: "Nome completo é obrigatório" })
@@ -109,7 +130,7 @@ export const atletaSchema = z.object({
   numeroCbf: z.coerce.number().int().positive().optional().nullable(),
   numeroFpf: z.coerce.number().int().positive().optional().nullable(),
   peDominante: z.enum(["destro", "canhoto", "ambidestro"]).optional().nullable(),
-  telefone: telefoneField,
+  telefone: telefoneFieldValidado,
   cidadeNatal: z.string().optional().or(z.literal("")),
   ufNatal: z.string().length(2).optional().or(z.literal("")),
   enderecoAtual: z.string().optional().or(z.literal("")),
@@ -123,31 +144,40 @@ export const atletaSchema = z.object({
   dataFimContrato: z.string().optional().or(z.literal("")),
   tipoContrato: z.enum(["definitivo", "emprestimo", "amador"]).optional().nullable(),
   possuiContratoFormacao: z.boolean().default(false),
+  // Pedido de 25/08: "Possui alergia a algum medicamento? Se sim, qual". Opcional no cadastro
+  // interno (a maioria dos campos do admin também é); a checagem de "se sim, qual é obrigatório"
+  // vem do `refinarAlergia` aplicado abaixo.
+  possuiAlergiaMedicamento: z.boolean().default(false),
+  alergiaMedicamentoQual: z.string().optional().or(z.literal("")),
 });
+
+export const atletaSchema = atletaCamposBase.refine(refinoAlergia.check, refinoAlergia.options);
 export type AtletaInput = z.infer<typeof atletaSchema>;
 
 /** Mesmo formulário de `atletaSchema`, mais a categoria de idade do Futebol de Base (Sub20 a
  * Sub11 — ver `lib/auth/categorias-base.ts`), obrigatória, e um tipo de contrato com uma opção a
  * mais (Iniciação — ver `ATLETA_BASE_TIPO_CONTRATO_OPTIONS`). */
-export const atletaBaseSchema = atletaSchema.extend({
-  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
-    errorMap: () => ({ message: "Categoria é obrigatória" }),
-  }),
-  tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "iniciacao"]).optional().nullable(),
-  // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis,
-  // empresário e endereço estruturado (autopreenchido por CEP — ver EnderecoFields). Todos
-  // opcionais: a maioria chega aos poucos, não de uma vez.
-  alojado: z.boolean().default(false),
-  valorAjudaCusto: z.coerce.number().nonnegative().optional().nullable(),
-  agencia: z.string().optional().or(z.literal("")),
-  empresarioTelefone: telefoneField,
-  maeNome: z.string().optional().or(z.literal("")),
-  maeTelefone: telefoneField,
-  paiNome: z.string().optional().or(z.literal("")),
-  paiTelefone: telefoneField,
-  escola: z.string().optional().or(z.literal("")),
-  ...enderecoFields,
-});
+export const atletaBaseSchema = atletaCamposBase
+  .extend({
+    categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+      errorMap: () => ({ message: "Categoria é obrigatória" }),
+    }),
+    tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "iniciacao"]).optional().nullable(),
+    // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis,
+    // empresário e endereço estruturado (autopreenchido por CEP — ver EnderecoFields). Todos
+    // opcionais: a maioria chega aos poucos, não de uma vez.
+    alojado: z.boolean().default(false),
+    valorAjudaCusto: z.coerce.number().nonnegative().optional().nullable(),
+    agencia: z.string().optional().or(z.literal("")),
+    empresarioTelefone: telefoneField,
+    maeNome: z.string().optional().or(z.literal("")),
+    maeTelefone: telefoneFieldValidado,
+    paiNome: z.string().optional().or(z.literal("")),
+    paiTelefone: telefoneFieldValidado,
+    escola: z.string().optional().or(z.literal("")),
+    ...enderecoFields,
+  })
+  .refine(refinoAlergia.check, refinoAlergia.options);
 export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;
 
 /**
@@ -266,11 +296,24 @@ export type ParecerCaptacaoInput = z.infer<typeof parecerCaptacaoSchema>;
 /** Campo de texto obrigatório da Ficha de Cadastro pública de Atleta — mesmo padrão de
  * `inscricaoRequiredField`/`comissaoPublicoRequiredField`: TODOS os dados são obrigatórios aqui
  * (pedido de 25/08: "o link publico deve ser obrigatórios todos os dados"), mesmo raciocínio já
- * aplicado ao link público de Comissão Técnica. Os campos de Empresário/Mãe/Pai usam este helper
- * (texto não vazio) em vez de validação estrita de telefone, pra quem não tem empresário poder
- * preencher "Não possui" em vez de travar o envio — ver instrução na própria tela. */
+ * aplicado ao link público de Comissão Técnica. O campo de Empresário usa este helper (texto não
+ * vazio) em vez de validação estrita de telefone, pra quem não tem empresário poder preencher
+ * "Não possui" em vez de travar o envio — ver instrução na própria tela. Telefone do atleta/mãe/pai
+ * usam `telefonePublicoRequiredField` (formato válido de verdade — ver comentário abaixo). */
 function atletaPublicoRequiredField(mensagem: string) {
   return z.string().min(1, { message: mensagem });
+}
+
+/** Telefone obrigatório com formato válido (11 dígitos) — diferente de
+ * `atletaPublicoRequiredField`, que aceita qualquer texto não vazio (incluindo "Não possui").
+ * Usado pro telefone do próprio atleta e, desde 25/08, também mãe/pai (pedido: "telefone pai e
+ * mãe, deixar essa máscara" — perdem a opção de "Não possui" que tinham antes). O telefone do
+ * empresário continua usando `atletaPublicoRequiredField`. */
+function telefonePublicoRequiredField(mensagem: string) {
+  return z
+    .string()
+    .min(1, { message: mensagem })
+    .refine(isValidTelefone, { message: "Telefone inválido" });
 }
 
 /**
@@ -282,38 +325,51 @@ function atletaPublicoRequiredField(mensagem: string) {
  *
  * Desde 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md) TODOS
  * os campos são obrigatórios aqui, inclusive RG/CPF — que antes ficavam opcionais porque "a família
- * pode não ter em mãos ainda". Pedido explícito do Mateus overrida essa exceção pra este link.
+ * pode não ter em mãos ainda". Pedido explícito do Mateus overrida essa exceção pra este link. A
+ * foto (obrigatória, mesmo padrão dos outros links públicos) é validada na action, não aqui — ver
+ * `app/cadastro-atleta-base/actions.ts`, mesmo esquema de `cadastrarComissaoTecnicaPublico`.
  */
-export const fichaCadastroAtletaBaseSchema = z.object({
-  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
-    errorMap: () => ({ message: "Categoria é obrigatória" }),
-  }),
-  nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }).transform(normalizarNomeProprio),
-  apelido: atletaPublicoRequiredField("Apelido é obrigatório"),
-  rg: rgField,
-  cpf: cpfField,
-  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-  posicao: posicaoField,
-  telefone: atletaPublicoRequiredField("Telefone é obrigatório"),
-  cidadeNatal: atletaPublicoRequiredField("Cidade natal é obrigatória"),
-  ufNatal: atletaPublicoRequiredField("UF natal é obrigatória"),
-  alojado: z.boolean().default(false),
-  escola: atletaPublicoRequiredField("Escola é obrigatória"),
-  agencia: atletaPublicoRequiredField("Agência é obrigatória"),
-  empresarioNome: atletaPublicoRequiredField("Nome do empresário é obrigatório"),
-  empresarioTelefone: atletaPublicoRequiredField("Telefone do empresário é obrigatório"),
-  maeNome: atletaPublicoRequiredField("Nome da mãe é obrigatório"),
-  maeTelefone: atletaPublicoRequiredField("Telefone da mãe é obrigatório"),
-  paiNome: atletaPublicoRequiredField("Nome do pai é obrigatório"),
-  paiTelefone: atletaPublicoRequiredField("Telefone do pai é obrigatório"),
-  cep: atletaPublicoRequiredField("CEP é obrigatório"),
-  logradouro: atletaPublicoRequiredField("Endereço é obrigatório"),
-  numero: atletaPublicoRequiredField("Número é obrigatório"),
-  complemento: atletaPublicoRequiredField("Complemento é obrigatório"),
-  bairro: atletaPublicoRequiredField("Bairro é obrigatório"),
-  cidade: atletaPublicoRequiredField("Cidade é obrigatória"),
-  uf: atletaPublicoRequiredField("UF é obrigatória"),
-});
+export const fichaCadastroAtletaBaseSchema = z
+  .object({
+    categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+      errorMap: () => ({ message: "Categoria é obrigatória" }),
+    }),
+    nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }).transform(normalizarNomeProprio),
+    apelido: atletaPublicoRequiredField("Apelido é obrigatório"),
+    rg: rgField,
+    cpf: cpfField,
+    dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+    posicao: posicaoField,
+    telefone: telefonePublicoRequiredField("Telefone é obrigatório"),
+    cidadeNatal: atletaPublicoRequiredField("Cidade natal é obrigatória"),
+    ufNatal: atletaPublicoRequiredField("UF natal é obrigatória"),
+    alojado: z.boolean().default(false),
+    escola: atletaPublicoRequiredField("Escola é obrigatória"),
+    // Pedido de 25/08: obrigatório responder, e obrigatório dizer qual quando "sim" — ver
+    // `.refine` no final do schema. Convertido pra boolean na action antes de gravar.
+    possuiAlergiaMedicamento: z.enum(["sim", "nao"], {
+      errorMap: () => ({ message: "Informe se o atleta possui alergia a algum medicamento" }),
+    }),
+    alergiaMedicamentoQual: z.string().optional().or(z.literal("")),
+    agencia: atletaPublicoRequiredField("Agência é obrigatória"),
+    empresarioNome: atletaPublicoRequiredField("Nome do empresário é obrigatório"),
+    empresarioTelefone: atletaPublicoRequiredField("Telefone do empresário é obrigatório"),
+    maeNome: atletaPublicoRequiredField("Nome da mãe é obrigatório"),
+    maeTelefone: telefonePublicoRequiredField("Telefone da mãe é obrigatório"),
+    paiNome: atletaPublicoRequiredField("Nome do pai é obrigatório"),
+    paiTelefone: telefonePublicoRequiredField("Telefone do pai é obrigatório"),
+    cep: atletaPublicoRequiredField("CEP é obrigatório"),
+    logradouro: atletaPublicoRequiredField("Endereço é obrigatório"),
+    numero: atletaPublicoRequiredField("Número é obrigatório"),
+    complemento: atletaPublicoRequiredField("Complemento é obrigatório"),
+    bairro: atletaPublicoRequiredField("Bairro é obrigatório"),
+    cidade: atletaPublicoRequiredField("Cidade é obrigatória"),
+    uf: atletaPublicoRequiredField("UF é obrigatória"),
+  })
+  .refine((data) => data.possuiAlergiaMedicamento !== "sim" || Boolean(data.alergiaMedicamentoQual?.trim()), {
+    message: "Informe qual é a alergia",
+    path: ["alergiaMedicamentoQual"],
+  });
 export type FichaCadastroAtletaBaseInput = z.infer<typeof fichaCadastroAtletaBaseSchema>;
 
 /** Capacidade total do Alojamento (`/base/alojamento`) — "vagas disponíveis" é essa menos quem já

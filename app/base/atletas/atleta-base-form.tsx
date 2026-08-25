@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
+import { TelefoneField } from "@/components/telefone-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
@@ -34,6 +35,7 @@ export function AtletaBaseForm({
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
   const [tipoContrato, setTipoContrato] = useState(values.tipoContrato ?? "");
+  const [possuiAlergia, setPossuiAlergia] = useState(values.possuiAlergiaMedicamento === "on");
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -64,7 +66,7 @@ export function AtletaBaseForm({
             defaultValue={values.dataNascimento}
             error={errors.dataNascimento}
           />
-          <TextField
+          <TelefoneField
             label="Telefone"
             name="telefone"
             defaultValue={values.telefone}
@@ -72,6 +74,31 @@ export function AtletaBaseForm({
           />
           <div className="sm:col-span-2">
             <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} />
+          </div>
+          <div className="sm:col-span-2">
+            <div className="flex items-center gap-2">
+              <input
+                id="possuiAlergiaMedicamento"
+                name="possuiAlergiaMedicamento"
+                type="checkbox"
+                checked={possuiAlergia}
+                onChange={(e) => setPossuiAlergia(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              <label htmlFor="possuiAlergiaMedicamento" className="text-sm font-medium text-neutral-700">
+                Possui alergia a algum medicamento
+              </label>
+            </div>
+            {possuiAlergia ? (
+              <div className="mt-3">
+                <TextField
+                  label="Qual"
+                  name="alergiaMedicamentoQual"
+                  defaultValue={values.alergiaMedicamentoQual}
+                  error={errors.alergiaMedicamentoQual}
+                />
+              </div>
+            ) : null}
           </div>
         </FieldGroup>
       </FormSection>
@@ -245,14 +272,14 @@ export function AtletaBaseForm({
       <FormSection title="Responsáveis">
         <FieldGroup>
           <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
-          <TextField
+          <TelefoneField
             label="Telefone da mãe"
             name="maeTelefone"
             defaultValue={values.maeTelefone}
             error={errors.maeTelefone}
           />
           <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
-          <TextField
+          <TelefoneField
             label="Telefone do pai"
             name="paiTelefone"
             defaultValue={values.paiTelefone}

@@ -59,6 +59,11 @@ export interface AtletaRow {
   apelido: string | null;
   tipo_contrato: AtletaTipoContrato | null;
   possui_contrato_formacao: boolean;
+  /** Pedido de 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md):
+   * "Possui alergia a algum medicamento? Se sim, qual". `alergia_medicamento_qual` só é preenchido
+   * quando `possui_alergia_medicamento` é `true`. */
+  possui_alergia_medicamento: boolean;
+  alergia_medicamento_qual: string | null;
   /** IdAtleta interno da FPF, gravado quando o vínculo é confirmado na tela "Elenco na FPF" — ver
    * docs/superpowers/specs/2026-08-04-integracao-fpf-design.md. Diferente de `numero_fpf`, que é
    * o número de registro/contrato (usado como sinal de sugestão automática de vínculo). Só
@@ -138,6 +143,11 @@ export interface AtletaBaseRow {
   bairro: string | null;
   cidade: string | null;
   uf: string | null;
+  /** Pedido de 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md):
+   * "Possui alergia a algum medicamento? Se sim, qual". `alergia_medicamento_qual` só é preenchido
+   * quando `possui_alergia_medicamento` é `true`. */
+  possui_alergia_medicamento: boolean;
+  alergia_medicamento_qual: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

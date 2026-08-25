@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
+import { TelefoneField } from "@/components/telefone-field";
+import { PhotoField } from "@/components/photo-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
@@ -25,6 +28,7 @@ export function AtletaPublicoForm({
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? {};
   const errors = state.fieldErrors ?? {};
+  const [possuiAlergia, setPossuiAlergia] = useState(values.possuiAlergiaMedicamento === "sim");
 
   if (state.success) {
     return (
@@ -38,7 +42,7 @@ export function AtletaPublicoForm({
   }
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} className="space-y-6" encType="multipart/form-data">
       <FormSection title="Dados do atleta">
         <FieldGroup>
           <TextField
@@ -65,7 +69,7 @@ export function AtletaPublicoForm({
           />
           <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
           <CpfField label="CPF" name="cpf" required defaultValue={values.cpf} error={errors.cpf} />
-          <TextField
+          <TelefoneField
             label="Telefone de contato"
             name="telefone"
             required
@@ -88,6 +92,34 @@ export function AtletaPublicoForm({
             error={errors.ufNatal}
             placeholder="Ex: SP"
           />
+          <div className="sm:col-span-2">
+            <PhotoField label="Foto" name="foto" required error={errors.foto} />
+          </div>
+          <div className="sm:col-span-2">
+            <SelectField
+              label="Possui alergia a algum medicamento?"
+              name="possuiAlergiaMedicamento"
+              required
+              defaultValue={values.possuiAlergiaMedicamento}
+              error={errors.possuiAlergiaMedicamento}
+              onChange={(value) => setPossuiAlergia(value === "sim")}
+            >
+              <option value="">Selecione</option>
+              <option value="sim">Sim</option>
+              <option value="nao">Não</option>
+            </SelectField>
+          </div>
+          {possuiAlergia ? (
+            <div className="sm:col-span-2">
+              <TextField
+                label="Qual"
+                name="alergiaMedicamentoQual"
+                required
+                defaultValue={values.alergiaMedicamentoQual}
+                error={errors.alergiaMedicamentoQual}
+              />
+            </div>
+          ) : null}
         </FieldGroup>
       </FormSection>
 
@@ -146,7 +178,7 @@ export function AtletaPublicoForm({
             defaultValue={values.maeNome}
             error={errors.maeNome}
           />
-          <TextField
+          <TelefoneField
             label="Telefone da mãe"
             name="maeTelefone"
             required
@@ -160,7 +192,7 @@ export function AtletaPublicoForm({
             defaultValue={values.paiNome}
             error={errors.paiNome}
           />
-          <TextField
+          <TelefoneField
             label="Telefone do pai"
             name="paiTelefone"
             required

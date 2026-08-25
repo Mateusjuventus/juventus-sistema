@@ -37,10 +37,19 @@ function parseForm(formData: FormData) {
     dataFimContrato: String(formData.get("dataFimContrato") ?? ""),
     tipoContrato: String(formData.get("tipoContrato") ?? "") || undefined,
     possuiContratoFormacao: formData.get("possuiContratoFormacao") === "on",
+    possuiAlergiaMedicamento: formData.get("possuiAlergiaMedicamento") === "on",
+    alergiaMedicamentoQual: String(formData.get("alergiaMedicamentoQual") ?? ""),
   };
 
   const result = atletaSchema.safeParse(raw);
-  return { raw: { ...raw, possuiContratoFormacao: raw.possuiContratoFormacao ? "on" : "" }, result };
+  return {
+    raw: {
+      ...raw,
+      possuiContratoFormacao: raw.possuiContratoFormacao ? "on" : "",
+      possuiAlergiaMedicamento: raw.possuiAlergiaMedicamento ? "on" : "",
+    },
+    result,
+  };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -115,6 +124,8 @@ export async function createAtleta(
     data_fim_contrato: data.dataFimContrato || null,
     tipo_contrato: data.tipoContrato ?? null,
     possui_contrato_formacao: data.tipoContrato === "amador" ? data.possuiContratoFormacao : false,
+    possui_alergia_medicamento: data.possuiAlergiaMedicamento,
+    alergia_medicamento_qual: data.possuiAlergiaMedicamento ? data.alergiaMedicamentoQual || null : null,
   });
 
   if (error) {
@@ -168,6 +179,8 @@ export async function updateAtleta(
     data_fim_contrato: data.dataFimContrato || null,
     tipo_contrato: data.tipoContrato ?? null,
     possui_contrato_formacao: data.tipoContrato === "amador" ? data.possuiContratoFormacao : false,
+    possui_alergia_medicamento: data.possuiAlergiaMedicamento,
+    alergia_medicamento_qual: data.possuiAlergiaMedicamento ? data.alergiaMedicamentoQual || null : null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 

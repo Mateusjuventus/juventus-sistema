@@ -2,15 +2,13 @@ import { describe, expect, it } from "vitest";
 import { formatTelefone, isValidTelefone, normalizeTelefone } from "./telefone";
 
 describe("formatTelefone", () => {
-  it("cresce a máscara conforme os dígitos digitados", () => {
+  it("cresce a máscara conforme os dígitos digitados, sempre no molde de celular", () => {
     expect(formatTelefone("1")).toBe("(1");
     expect(formatTelefone("11")).toBe("(11");
     expect(formatTelefone("119")).toBe("(11) 9");
     expect(formatTelefone("1139")).toBe("(11) 39");
-  });
-
-  it("formata 10 dígitos como fixo: (00) 0000-0000", () => {
-    expect(formatTelefone("1133334444")).toBe("(11) 3333-4444");
+    expect(formatTelefone("1133334")).toBe("(11) 33334");
+    expect(formatTelefone("11333344")).toBe("(11) 33334-4");
   });
 
   it("formata 11 dígitos como celular: (00) 00000-0000", () => {
@@ -41,12 +39,12 @@ describe("normalizeTelefone", () => {
 });
 
 describe("isValidTelefone", () => {
-  it("aceita 10 dígitos (fixo) e 11 dígitos (celular)", () => {
-    expect(isValidTelefone("(11) 3333-4444")).toBe(true);
+  it("aceita só 11 dígitos (celular)", () => {
     expect(isValidTelefone("(11) 98765-4321")).toBe(true);
   });
 
-  it("rejeita quantidade errada de dígitos", () => {
+  it("rejeita quantidade errada de dígitos, inclusive 10 (fixo)", () => {
+    expect(isValidTelefone("(11) 3333-4444")).toBe(false);
     expect(isValidTelefone("123")).toBe(false);
     expect(isValidTelefone("")).toBe(false);
   });

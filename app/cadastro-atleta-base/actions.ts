@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
 import { fichaCadastroAtletaBaseSchema } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 
@@ -13,7 +14,10 @@ import { normalizeCPF } from "@/lib/validation/cpf";
  * (esse link não passa por lá). Desde 25/08 (docs/superpowers/specs/
  * 2026-08-25-atleta-contrato-posicao-cpf-design.md) TODOS os campos são obrigatórios, inclusive
  * RG/CPF; campos administrativos do clube (número de camisa/CBF/FPF, tipo de contrato, datas de
- * contrato) continuam de fora do formulário — o Mateus completa depois pela tela interna.
+ * contrato) continuam de fora do formulário — o Mateus completa depois pela tela interna. Desde
+ * 25/08 (docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md) a foto também
+ * é obrigatória aqui — mesmo padrão de `app/cadastro-comissao-tecnica/actions.ts` — e o telefone
+ * do atleta/mãe/pai exige o formato válido de celular (só o do empresário continua livre).
  *
  * Roda inteiro com o cliente admin (service_role) — mesma razão de `cadastrarStaffPublicoBase`:
  * quem preenche não tem sessão. Precisa do GRANT em `atletas_base` pro service_role, que nasceu
@@ -56,10 +60,30 @@ function parseForm(formData: FormData) {
     bairro: String(formData.get("bairro") ?? ""),
     cidade: String(formData.get("cidade") ?? ""),
     uf: String(formData.get("uf") ?? ""),
+    possuiAlergiaMedicamento: String(formData.get("possuiAlergiaMedicamento") ?? ""),
+    alergiaMedicamentoQual: String(formData.get("alergiaMedicamentoQual") ?? ""),
   };
 
   const result = fichaCadastroAtletaBaseSchema.safeParse(raw);
   return { raw: { ...raw, alojado: raw.alojado ? "on" : "" }, result };
+}
+
+async function uploadFoto(
+  admin: ReturnType<typeof createAdminClient>,
+  formData: FormData,
+  id: string,
+): Promise<{ path?: string; error?: string }> {
+  const file = formData.get("foto");
+  if (!(file instanceof File) || file.size === 0) return {};
+
+  const path = buildPhotoPath("atletas-base", id, file.name);
+  const { error } = await admin.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type || undefined,
+  });
+
+  if (error) return { error: "Não foi possível enviar a foto. O restante do cadastro não foi salvo." };
+  return { path };
 }
 
 export async function cadastrarAtletaPublicoBase(
@@ -84,9 +108,19 @@ export async function cadastrarAtletaPublicoBase(
     return { error: "A Ficha de Cadastro está fechada no momento. Fale com o responsável do Futebol de Base." };
   }
 
+  const fotoFile = formData.get("foto");
+  const temFotoNova = fotoFile instanceof File && fotoFile.size > 0;
+  if (!temFotoNova) {
+    return { fieldErrors: { foto: "A foto é obrigatória." }, values: raw };
+  }
+
   const data = result.data;
+  const id = randomUUID();
+  const { error: uploadError, path: fotoPath } = await uploadFoto(admin, formData, id);
+  if (uploadError) return { error: uploadError, values: raw };
+
   const { error } = await admin.from("atletas_base").insert({
-    id: randomUUID(),
+    id,
     categoria: data.categoria,
     nome_completo: data.nomeCompleto,
     apelido: data.apelido,
@@ -95,6 +129,7 @@ export async function cadastrarAtletaPublicoBase(
     data_nascimento: data.dataNascimento,
     posicao: data.posicao,
     telefone: data.telefone,
+    foto_path: fotoPath ?? null,
     cidade_natal: data.cidadeNatal,
     uf_natal: data.ufNatal.toUpperCase(),
     status: "liberado",
@@ -114,6 +149,8 @@ export async function cadastrarAtletaPublicoBase(
     bairro: data.bairro,
     cidade: data.cidade,
     uf: data.uf.toUpperCase(),
+    possui_alergia_medicamento: data.possuiAlergiaMedicamento === "sim",
+    alergia_medicamento_qual: data.possuiAlergiaMedicamento === "sim" ? data.alergiaMedicamentoQual || null : null,
   });
 
   if (error) return { error: `Não foi possível enviar o cadastro: ${error.message}` };
