@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
@@ -29,6 +29,20 @@ export function AtletaPublicoForm({
   const values = state.values ?? {};
   const errors = state.fieldErrors ?? {};
   const [possuiAlergia, setPossuiAlergia] = useState(values.possuiAlergiaMedicamento === "sim");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Bug reportado em 25/08 ("clica em enviar e não aparece nada"): ficha longa, quem preenche
+  // costuma estar rolado lá embaixo perto do botão quando envia — se um campo lá em cima (ex.: CPF
+  // inválido) tem erro, a mensagem aparecia só do lado daquele campo, fora da tela, e parecia que
+  // nada tinha acontecido. Depois de cada envio malsucedido, rola a tela até o primeiro campo com
+  // erro pra pessoa ver na hora o que precisa corrigir (o aviso genérico perto do botão, em
+  // `state.error`, cobre o caso de rolagem não funcionar por algum motivo).
+  useEffect(() => {
+    if (!state.fieldErrors || Object.keys(state.fieldErrors).length === 0) return;
+    const primeiroErro = formRef.current?.querySelector(".field-error");
+    primeiroErro?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.fieldErrors]);
 
   if (state.success) {
     return (
@@ -42,7 +56,7 @@ export function AtletaPublicoForm({
   }
 
   return (
-    <form action={formAction} className="space-y-6" encType="multipart/form-data">
+    <form ref={formRef} action={formAction} className="space-y-6" encType="multipart/form-data">
       <FormSection title="Dados do atleta">
         <FieldGroup>
           <TextField

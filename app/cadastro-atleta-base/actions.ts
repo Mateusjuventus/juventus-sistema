@@ -116,7 +116,15 @@ export async function cadastrarAtletaPublicoBase(
   if (!result.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
-    return { fieldErrors, values: raw };
+    // Bug reportado em 25/08: quem preenche esse formulário longo e clica em "Enviar" já rolado lá
+    // embaixo não via NADA acontecer quando um campo lá em cima tinha erro — o erro só aparecia do
+    // lado do campo, fora da tela. Esse `error` genérico aparece perto do botão (ver o formulário),
+    // e o formulário rola pro primeiro campo com erro sozinho — ver atleta-publico-form.tsx.
+    return {
+      error: "Existem campos com erro. Revise os campos destacados em vermelho acima.",
+      fieldErrors,
+      values: raw,
+    };
   }
 
   const admin = createAdminClient();
@@ -133,7 +141,11 @@ export async function cadastrarAtletaPublicoBase(
   const fotoFile = formData.get("foto");
   const temFotoNova = fotoFile instanceof File && fotoFile.size > 0;
   if (!temFotoNova) {
-    return { fieldErrors: { foto: "A foto é obrigatória." }, values: raw };
+    return {
+      error: "Existem campos com erro. Revise os campos destacados em vermelho acima.",
+      fieldErrors: { foto: "A foto é obrigatória." },
+      values: raw,
+    };
   }
 
   const data = result.data;
