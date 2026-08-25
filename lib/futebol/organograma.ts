@@ -101,8 +101,12 @@ export function calcularLayoutAutomatico(nos: OrganogramaNo[]): Map<string, Orga
     (a, b) => Math.min(...a[1].map((n) => n.ordem)) - Math.min(...b[1].map((n) => n.ordem)),
   );
   const linhaColunasY = (maiorNivel + 1) * (ALTURA_CAIXA + GAP_Y_NIVEL);
-  const larguraTotal = grupos.length * LARGURA_CAIXA + Math.max(0, grupos.length - 1) * GAP_X;
-  const inicioXColunas = -larguraTotal / 2;
+  // Ponto fixo (não depende de quantas colunas existem agora) — a primeira coluna sempre começa
+  // centralizada sob uma caixa de liderança sozinha, e cada coluna nova só estende a grade pra
+  // direita. Antes, recalculava o centro de TODA a faixa toda vez que o número de colunas mudava
+  // (`-larguraTotal / 2`), o que deslocava quem já estava posicionado só por causa de uma coluna
+  // nova em outro canto do organograma — a "linha vertical se movimentando" reportada pelo Mateus.
+  const inicioXColunas = -LARGURA_CAIXA / 2;
 
   // Linhas da grade: só quem tem `grupo` E `linha`, na ordem em que a `linha` aparece pela primeira
   // vez (menor `ordem` entre quem usa essa `linha`, em qualquer coluna).

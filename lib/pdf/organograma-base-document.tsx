@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginTop: 8,
     marginBottom: 16,
+    textAlign: "center",
   },
   diagramaWrap: { alignItems: "center" },
   caixa: {
@@ -195,13 +196,18 @@ function calcularDiagrama(nos: OrganogramaBaseNoDocumento[]) {
     ...cabecalhosGrupo.map((c) => ({ x: c.x, y: c.y })),
     ...rotulosLinha.map((r) => ({ x: r.x, y: r.y })),
   ];
-  // Diferente da tela (que ancora em x=0/y=0 pra dar um referencial estável pro arrasto), o PDF não
-  // tem arrasto — o retângulo precisa envolver só o conteúdo de verdade, sem sobra de espaço vazio
-  // de um lado. Incluir 0 à força (como a tela faz) deixava o diagrama fora do centro da página
-  // quando o conteúdo real não passava perto da origem.
-  const minX = Math.min(...todasAsPosicoes.map((p) => p.x));
+  const minXBruto = Math.min(...todasAsPosicoes.map((p) => p.x));
+  const maxXBruto = Math.max(...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
+  // No eixo X, o retângulo é sempre simétrico em torno de 0 — é onde a árvore de liderança (o
+  // Presidente incluído) sempre fica centrada (ver `calcularLayoutAutomatico`). Sem isso, um lado do
+  // diagrama esticando mais que o outro (grade com mais colunas de um lado, rótulo de linha saindo
+  // pra esquerda...) deixava o Presidente fora do centro visual, mesmo com o bloco todo centralizado
+  // na página. No eixo Y não faz sentido (não tem simetria vertical pra manter), então continua
+  // envolvendo só o conteúdo de verdade.
+  const extensaoX = Math.max(Math.abs(minXBruto), Math.abs(maxXBruto), LARGURA_CAIXA / 2);
+  const minX = -extensaoX;
+  const maxX = extensaoX;
   const minY = Math.min(...todasAsPosicoes.map((p) => p.y));
-  const maxX = Math.max(...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
   const maxY = Math.max(...todasAsPosicoes.map((p) => p.y + ALTURA_CAIXA));
 
   return { posicoes, cabecalhosGrupo, rotulosLinha, conectores, minX, minY, maxX, maxY };
