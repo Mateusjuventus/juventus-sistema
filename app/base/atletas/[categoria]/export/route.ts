@@ -5,14 +5,15 @@ import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaBaseRow, AtletaStatus } from "@/lib/supabase/types";
+import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<AtletaStatus, string> = {
+const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
   liberado: "Liberado",
   suspenso: "Suspenso",
   departamento_medico: "Departamento Médico",
+  dispensado: "Dispensado",
 };
 
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(

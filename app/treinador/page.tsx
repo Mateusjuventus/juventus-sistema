@@ -5,7 +5,10 @@ import { logout } from "@/app/actions";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import type { CaptacaoBaseRow } from "@/lib/supabase/types";
+import { bordaClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
+import { ClassificacaoSelectTreinador } from "@/components/classificacao-select-treinador";
+import { salvarClassificacaoTreinador } from "./atletas/actions";
+import type { AtletaBaseRow, CaptacaoBaseRow } from "@/lib/supabase/types";
 
 function formatDataBr(iso: string | null): string {
   if (!iso) return "—";
@@ -57,6 +60,18 @@ export default async function TreinadorPage() {
     .in("status", ["aprovado", "dispensado", "nao_compareceu"])
     .order("data_termino", { ascending: false });
   const decididos = (decididosData ?? []) as CaptacaoBaseRow[];
+
+  // "Meus atletas" (ver docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-
+  // design.md, seção 2) — o elenco já do clube (atletas_base) das categorias do treinador, à parte
+  // da fila de candidatos da Captação acima. Dispensados não aparecem aqui, mesmo raciocínio da
+  // listagem interna (só quem está ativo no elenco).
+  const { data: atletasData } = await supabase
+    .from("atletas_base")
+    .select("*")
+    .in("categoria", categorias)
+    .neq("status", "dispensado")
+    .order("nome_completo", { ascending: true });
+  const atletas = (atletasData ?? []) as AtletaBaseRow[];
 
   return (
     <div className="min-h-screen bg-pagina">
@@ -187,6 +202,42 @@ export default async function TreinadorPage() {
                       </p>
                     ) : null}
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-8">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">Meus atletas</h2>
+          {atletas.length === 0 ? (
+            <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+              Nenhum atleta cadastrado nas suas categorias ainda.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {atletas.map((atleta) => (
+                <div
+                  key={atleta.id}
+                  className={`card flex flex-wrap items-center gap-3 p-4 ${bordaClassificacaoAtleta(atleta.classificacao)}`}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-grena/10 text-sm font-bold text-grena-escuro">
+                    {atleta.numero_camisa ?? "—"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-neutral-800">{atleta.nome_completo}</p>
+                    <p className="mt-0.5 truncate text-sm text-neutral-500">
+                      {categoriaBaseLabel(atleta.categoria)} · {atleta.posicao}
+                    </p>
+                  </div>
+                  <ClassificacaoSelectTreinador
+                    atletaId={atleta.id}
+                    defaultValue={atleta.classificacao}
+                    action={salvarClassificacaoTreinador}
+                  />
+                  <Link href={`/treinador/atletas/${atleta.id}/dispensa`} className="btn-secondary btn-sm shrink-0">
+                    {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
+                  </Link>
                 </div>
               ))}
             </div>

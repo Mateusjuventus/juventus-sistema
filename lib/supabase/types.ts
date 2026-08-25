@@ -93,6 +93,17 @@ export type CategoriaBase = "sub20" | "sub17" | "sub15" | "sub14" | "sub13" | "s
  * "Iniciação" (categorias mais jovens, sem vínculo formal ainda). */
 export type AtletaBaseTipoContrato = "definitivo" | "emprestimo" | "amador" | "iniciacao";
 
+/** Status do atleta no Futebol de Base — mesmas opções de `AtletaStatus`, mais "dispensado" (ver
+ * docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md e
+ * 0087_atleta_base_classificacao_dispensa.sql). Só existe pra atletas da Base: o Profissional não
+ * ganha esse status nesta rodada — mesmo padrão já usado por `AtletaBaseTipoContrato`. */
+export type AtletaBaseStatus = AtletaStatus | "dispensado";
+
+/** Classificação G1/G2/G3 do atleta da Base — rótulo livre, sem significado fixo documentado no
+ * sistema (cabe ao clube decidir o que cada grupo representa); o sistema só guarda e mostra a cor
+ * de borda (verde/amarelo/laranja). Opcional — nem todo atleta precisa estar classificado. */
+export type AtletaClassificacao = "g1" | "g2" | "g3";
+
 /** Espelha `AtletaRow`, mas para o departamento Futebol de Base — tabela `atletas_base`, totalmente
  * independente de `atletas` (ver docs/superpowers/specs/2026-07-20-futebol-de-base-design.md). */
 export interface AtletaBaseRow {
@@ -121,13 +132,27 @@ export interface AtletaBaseRow {
   data_inicio_contrato: string | null;
   empresario_nome: string | null;
   foto_path: string | null;
-  status: AtletaStatus;
+  status: AtletaBaseStatus;
   data_fim_contrato: string | null;
   apelido: string | null;
   tipo_contrato: AtletaBaseTipoContrato | null;
   possui_contrato_formacao: boolean;
   /** Mora no alojamento do clube — alimenta `/base/alojamento` (ver lib/futebol/alojamento.ts). */
   alojado: boolean;
+  /** Classificação G1/G2/G3 (ver `AtletaClassificacao`) — `null` quando o atleta ainda não foi
+   * classificado. */
+  classificacao: AtletaClassificacao | null;
+  /** Campos do Relatório de Dispensa (ver docs/superpowers/specs/
+   * 2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 3) — todos `null` até o
+   * relatório ser gerado pela primeira vez. As 4 notas usam a mesma escala 3-9 do Parecer Final. */
+  dispensa_motivo: string | null;
+  dispensa_nota_tecnica: number | null;
+  dispensa_nota_fisica: number | null;
+  dispensa_nota_tatica: number | null;
+  dispensa_nota_comportamental: number | null;
+  dispensa_data: string | null;
+  dispensado_por: string | null;
+  dispensado_em: string | null;
   valor_ajuda_custo: number | null;
   agencia: string | null;
   empresario_telefone: string | null;

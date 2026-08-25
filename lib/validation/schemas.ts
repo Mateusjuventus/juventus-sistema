@@ -163,6 +163,18 @@ export const atletaBaseSchema = atletaCamposBase
       errorMap: () => ({ message: "Categoria é obrigatória" }),
     }),
     tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "iniciacao"]).optional().nullable(),
+    // Classificação G1/G2/G3 (ver docs/superpowers/specs/
+    // 2026-08-25-classificacao-dispensa-atleta-base-design.md) — opcional, nem todo atleta precisa
+    // estar classificado.
+    classificacao: z.enum(["g1", "g2", "g3"]).optional().nullable(),
+    // "dispensado" só existe no status do Base (ver `AtletaBaseStatus` em lib/supabase/types.ts) —
+    // normalmente é a tela de Relatório de Dispensa que grava esse valor, mas o cadastro interno
+    // também precisa aceitá-lo aqui, senão o <select> de Status (que já lista "Dispensado" pra
+    // exibir corretamente um atleta já dispensado) rejeitaria o próprio valor atual ao salvar
+    // qualquer outra alteração no formulário.
+    status: z
+      .enum(["liberado", "suspenso", "departamento_medico", "dispensado"])
+      .default("liberado"),
     // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis,
     // empresário e endereço estruturado (autopreenchido por CEP — ver EnderecoFields). Todos
     // opcionais: a maioria chega aos poucos, não de uma vez.
@@ -292,6 +304,24 @@ export const parecerCaptacaoSchema = z.object({
   }),
 });
 export type ParecerCaptacaoInput = z.infer<typeof parecerCaptacaoSchema>;
+
+/**
+ * Relatório de Dispensa de um atleta da Base que já é do clube (ver docs/superpowers/specs/
+ * 2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 3) — diferente do Parecer Final
+ * (que é só pra candidatos da Captação decidindo se entram ou não). Preenchido tanto pelo Treinador
+ * (`/treinador/atletas/[id]/dispensa`) quanto pelo Mateus (`/base/atletas/[categoria]/[id]/
+ * dispensa`) — mesmas 4 notas e escala 3-9 do Parecer Final, mais o motivo e a data da dispensa
+ * (fim do período no clube).
+ */
+export const relatorioDispensaSchema = z.object({
+  dispensaData: z.string().min(1, { message: "Data da dispensa é obrigatória" }),
+  motivo: z.string().min(1, { message: "Motivo da dispensa é obrigatório" }),
+  notaTecnica: notaParecerField,
+  notaFisica: notaParecerField,
+  notaTatica: notaParecerField,
+  notaComportamental: notaParecerField,
+});
+export type RelatorioDispensaInput = z.infer<typeof relatorioDispensaSchema>;
 
 /** Campo de texto obrigatório da Ficha de Cadastro pública de Atleta — mesmo padrão de
  * `inscricaoRequiredField`/`comissaoPublicoRequiredField`: TODOS os dados são obrigatórios aqui

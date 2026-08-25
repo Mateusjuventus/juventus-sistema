@@ -25,6 +25,9 @@ export default async function CampogramaPage({
     .from("atletas_base")
     .select("id, nome_completo, apelido, numero_camisa, posicao")
     .eq("categoria", categoria)
+    // Atleta dispensado não faz sentido continuar aparecendo posicionado no campo (ver
+    // docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 4).
+    .neq("status", "dispensado")
     .order("nome_completo", { ascending: true });
 
   const atletas = (data ?? []) as Pick<

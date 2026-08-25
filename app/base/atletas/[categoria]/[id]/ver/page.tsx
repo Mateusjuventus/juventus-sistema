@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { AtletaTabsBase } from "@/components/atleta-tabs-base";
@@ -9,12 +10,14 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
-import type { AtletaBaseRow, AtletaStatus } from "@/lib/supabase/types";
+import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
+import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
-const STATUS_LABEL: Record<AtletaStatus, string> = {
+const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
   liberado: "Liberado",
   suspenso: "Suspenso",
   departamento_medico: "Departamento Médico",
+  dispensado: "Dispensado",
 };
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
@@ -61,6 +64,29 @@ export default async function VerAtletaBasePage({
         fotoUrl={fotoUrl}
         editarHref={`/base/atletas/${params.categoria}/${atleta.id}`}
       />
+
+      <div className="card mt-4 flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-neutral-700">Classificação:</span>
+          {atleta.classificacao ? (
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClassificacaoAtleta(atleta.classificacao)}`}>
+              {classificacaoAtletaLabel(atleta.classificacao)}
+            </span>
+          ) : (
+            <span className="text-sm text-neutral-400">Não classificado</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {atleta.dispensa_data ? (
+            <span className="text-sm text-neutral-500">
+              Relatório de dispensa gerado — dispensado em {formatData(atleta.dispensa_data)}
+            </span>
+          ) : null}
+          <Link href={`/base/atletas/${params.categoria}/${atleta.id}/dispensa`} className="btn-secondary">
+            {atleta.dispensa_data ? "Ver/editar relatório de dispensa" : "Gerar relatório de dispensa"}
+          </Link>
+        </div>
+      </div>
 
       <div className="mt-6 space-y-6">
         <FormSection title="Dados pessoais">

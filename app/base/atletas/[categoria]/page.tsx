@@ -9,28 +9,31 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaBaseRow, AtletaStatus } from "@/lib/supabase/types";
+import { bordaClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
+import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 import { deleteAtletaBase } from "../actions";
 
 const CONTRATO_A_VENCER_DIAS = 90;
 
-const STATUS_LABEL: Record<AtletaStatus, string> = {
+const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
   liberado: "Liberado",
   suspenso: "Suspenso",
   departamento_medico: "Departamento Médico",
+  dispensado: "Dispensado",
 };
 
-const STATUS_BADGE_CLASS: Record<AtletaStatus, string> = {
+const STATUS_BADGE_CLASS: Record<AtletaBaseStatus, string> = {
   liberado: "bg-green-100 text-green-800",
   suspenso: "bg-red-100 text-red-800",
   departamento_medico: "bg-amber-100 text-amber-800",
+  dispensado: "bg-neutral-100 text-neutral-500",
 };
 
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
   ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
 );
 
-function StatusBadge({ status }: { status: AtletaStatus }) {
+function StatusBadge({ status }: { status: AtletaBaseStatus }) {
   return (
     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[status]}`}>
       {STATUS_LABEL[status]}
@@ -80,14 +83,19 @@ export default async function AtletasBaseCategoriaPage({
     .eq("categoria", categoria)
     .order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
+  // Atleta dispensado some da listagem por padrão (ver docs/superpowers/specs/
+  // 2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 4) — só aparece se a pessoa
+  // filtrar explicitamente por "Dispensado" no próprio filtro de status.
   if (status) query = query.eq("status", status);
+  else query = query.neq("status", "dispensado");
 
   const [{ data, error }, { data: todosData }] = await Promise.all([
     query,
     supabase
       .from("atletas_base")
       .select("status, data_fim_contrato")
-      .eq("categoria", categoria),
+      .eq("categoria", categoria)
+      .neq("status", "dispensado"),
   ]);
   const atletas = (data ?? []) as AtletaBaseRow[];
   const todos = (todosData ?? []) as Pick<AtletaBaseRow, "status" | "data_fim_contrato">[];
@@ -179,6 +187,7 @@ export default async function AtletasBaseCategoriaPage({
               <option value="liberado">Liberado</option>
               <option value="suspenso">Suspenso</option>
               <option value="departamento_medico">Departamento Médico</option>
+              <option value="dispensado">Dispensado</option>
             </select>
           </div>
         </SearchBar>
@@ -199,7 +208,10 @@ export default async function AtletasBaseCategoriaPage({
           const venceLogo =
             atleta.data_fim_contrato && diasAte(atleta.data_fim_contrato, hoje) <= CONTRATO_A_VENCER_DIAS;
           return (
-            <div key={atleta.id} className="card flex flex-col gap-4 p-5">
+            <div
+              key={atleta.id}
+              className={`card flex flex-col gap-4 p-5 ${bordaClassificacaoAtleta(atleta.classificacao)}`}
+            >
               <div className="flex items-center gap-4">
                 {fotoUrls[i] ? (
                   // eslint-disable-next-line @next/next/no-img-element

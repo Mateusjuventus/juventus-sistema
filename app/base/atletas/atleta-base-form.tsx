@@ -10,6 +10,7 @@ import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS, ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
+import { ATLETA_CLASSIFICACAO_OPTIONS } from "@/lib/futebol/classificacao-atleta";
 import type { AtletaBaseFormState } from "./actions";
 
 const initialState: AtletaBaseFormState = {};
@@ -177,6 +178,23 @@ export function AtletaBaseForm({
             <option value="liberado">Liberado</option>
             <option value="suspenso">Suspenso</option>
             <option value="departamento_medico">Departamento Médico</option>
+            {/* Normalmente só a tela de Relatório de Dispensa grava este valor — fica aqui também
+                pra o <select> exibir certo um atleta já dispensado (e permitir corrigir manualmente,
+                se precisar). */}
+            <option value="dispensado">Dispensado</option>
+          </SelectField>
+          <SelectField
+            label="Classificação"
+            name="classificacao"
+            defaultValue={values.classificacao}
+            error={errors.classificacao}
+          >
+            <option value="">Não classificado</option>
+            {ATLETA_CLASSIFICACAO_OPTIONS.map((opcao) => (
+              <option key={opcao.value} value={opcao.value}>
+                {opcao.label}
+              </option>
+            ))}
           </SelectField>
           <SelectField
             label="Tipo de contrato"
