@@ -13,11 +13,13 @@ import { normalizeCPF } from "@/lib/validation/cpf";
  * `atletas_base`, com `status: "liberado"` fixado no servidor — sem relação nenhuma com a Captação
  * (esse link não passa por lá). Desde 25/08 (docs/superpowers/specs/
  * 2026-08-25-atleta-contrato-posicao-cpf-design.md) TODOS os campos são obrigatórios, inclusive
- * RG/CPF; campos administrativos do clube (número de camisa/CBF/FPF, tipo de contrato, datas de
- * contrato) continuam de fora do formulário — o Mateus completa depois pela tela interna. Desde
- * 25/08 (docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md) a foto também
- * é obrigatória aqui — mesmo padrão de `app/cadastro-comissao-tecnica/actions.ts` — e o telefone
- * do atleta/mãe/pai exige o formato válido de celular (só o do empresário continua livre).
+ * RG/CPF; campos administrativos do clube (número de camisa/CBF/FPF, tipo de contrato, "Data de
+ * início do contrato") continuam de fora do formulário — o Mateus completa depois pela tela
+ * interna. Desde 25/08 (docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md)
+ * a foto também é obrigatória aqui — mesmo padrão de `app/cadastro-comissao-tecnica/actions.ts` —
+ * e o telefone do atleta/mãe/pai exige o formato válido de celular (só o do empresário continua
+ * livre). Terceira rodada de 25/08: pé dominante e "Data de início no clube" (distinta de "Data de
+ * início do contrato" — essa segunda continua fora daqui) também passaram a ser obrigatórios.
  *
  * Roda inteiro com o cliente admin (service_role) — mesma razão de `cadastrarStaffPublicoBase`:
  * quem preenche não tem sessão. Precisa do GRANT em `atletas_base` pro service_role, que nasceu
@@ -50,6 +52,7 @@ function parseForm(formData: FormData) {
     ufNatal: String(formData.get("ufNatal") ?? ""),
     alojado: formData.get("alojado") === "on",
     escola: String(formData.get("escola") ?? ""),
+    dataInicioClube: String(formData.get("dataInicioClube") ?? ""),
     agencia: String(formData.get("agencia") ?? ""),
     empresarioNome: String(formData.get("empresarioNome") ?? ""),
     empresarioTelefone: String(formData.get("empresarioTelefone") ?? ""),
@@ -155,6 +158,7 @@ export async function cadastrarAtletaPublicoBase(
     status: "liberado",
     alojado: data.alojado,
     escola: data.escola,
+    data_inicio_clube: data.dataInicioClube,
     agencia: data.agencia,
     empresario_nome: data.empresarioNome,
     empresario_telefone: data.empresarioTelefone,

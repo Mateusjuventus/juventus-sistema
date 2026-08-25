@@ -320,8 +320,10 @@ function telefonePublicoRequiredField(mensagem: string) {
  * Ficha de Cadastro pública de Atleta (`/cadastro-atleta-base`) — pros atletas que já são (ou estão
  * entrando) do clube, a família preenche o cadastro completo. Grava DIRETO em `atletas_base`, sem
  * relação nenhuma com a Captação (ver a spec de 19/08). Campos administrativos do clube (status,
- * tipo de contrato, número de camisa/CBF/FPF, datas de contrato — incluindo a nova "Data de início
- * do contrato") ficam de fora — isso o Mateus preenche depois pela tela interna.
+ * tipo de contrato, número de camisa/CBF/FPF, "Data de início do contrato") ficam de fora — isso o
+ * Mateus preenche depois pela tela interna. Exceção: "Data de início no clube" (`dataInicioClube`)
+ * — distinto de "Data de início do contrato" — passou a ser obrigatório aqui também (pedido de
+ * 25/08, terceira rodada), mesmo continuando opcional no cadastro interno.
  *
  * Desde 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md) TODOS
  * os campos são obrigatórios aqui, inclusive RG/CPF — que antes ficavam opcionais porque "a família
@@ -351,6 +353,10 @@ export const fichaCadastroAtletaBaseSchema = z
     ufNatal: atletaPublicoRequiredField("UF natal é obrigatória"),
     alojado: z.boolean().default(false),
     escola: atletaPublicoRequiredField("Escola é obrigatória"),
+    // Pedido de 25/08 (terceira rodada): "Data de início no clube... isso precisa conter no
+    // cadastro como obrigatório" — só no link público (o Mateus confirmou que não precisa mexer
+    // no cadastro interno, onde o campo já existe e continua opcional).
+    dataInicioClube: z.string().min(1, { message: "Data de início no clube é obrigatória" }),
     // Pedido de 25/08: obrigatório responder, e obrigatório dizer qual quando "sim" — ver
     // `.refine` no final do schema. Convertido pra boolean na action antes de gravar.
     possuiAlergiaMedicamento: z.enum(["sim", "nao"], {

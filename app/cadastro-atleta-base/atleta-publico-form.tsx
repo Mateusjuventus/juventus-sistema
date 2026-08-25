@@ -166,6 +166,14 @@ export function AtletaPublicoForm({
             defaultValue={values.escola}
             error={errors.escola}
           />
+          <TextField
+            label="Data de início no clube"
+            name="dataInicioClube"
+            type="date"
+            required
+            defaultValue={values.dataInicioClube}
+            error={errors.dataInicioClube}
+          />
           <div className="flex items-center gap-2 sm:col-span-2">
             <input
               id="alojado"
