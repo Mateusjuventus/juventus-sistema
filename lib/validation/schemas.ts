@@ -340,6 +340,12 @@ export const fichaCadastroAtletaBaseSchema = z
     cpf: cpfField,
     dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
     posicao: posicaoField,
+    // Pedido de 25/08 (segunda rodada): "pé dominante precisa conter no cadastro público" — o
+    // cadastro interno já tem esse campo (opcional, com "Não informado"); no link público é
+    // obrigatório escolher Destro/Canhoto/Ambidestro, sem essa opção neutra.
+    peDominante: z.enum(["destro", "canhoto", "ambidestro"], {
+      errorMap: () => ({ message: "Pé dominante é obrigatório" }),
+    }),
     telefone: telefonePublicoRequiredField("Telefone é obrigatório"),
     cidadeNatal: atletaPublicoRequiredField("Cidade natal é obrigatória"),
     ufNatal: atletaPublicoRequiredField("UF natal é obrigatória"),

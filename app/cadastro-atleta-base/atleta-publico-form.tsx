@@ -147,6 +147,18 @@ export function AtletaPublicoForm({
               </option>
             ))}
           </SelectField>
+          <SelectField
+            label="Pé dominante"
+            name="peDominante"
+            required
+            defaultValue={values.peDominante}
+            error={errors.peDominante}
+          >
+            <option value="">Selecione</option>
+            <option value="destro">Destro</option>
+            <option value="canhoto">Canhoto</option>
+            <option value="ambidestro">Ambidestro</option>
+          </SelectField>
           <TextField
             label="Escola"
             name="escola"

@@ -22,6 +22,11 @@ import { normalizeCPF } from "@/lib/validation/cpf";
  * Roda inteiro com o cliente admin (service_role) — mesma razão de `cadastrarStaffPublicoBase`:
  * quem preenche não tem sessão. Precisa do GRANT em `atletas_base` pro service_role, que nasceu
  * junto na migração 0077.
+ *
+ * O CPF já é único no banco (`atletas_base_cpf_unique`, ver 0031_futebol_base_infra_atletas.sql) —
+ * `friendlyDbError` só troca o erro cru do banco por uma mensagem que explica o que aconteceu, pedido
+ * de 25/08 ("não permitir duas respostas"): impedir que a mesma pessoa envie a ficha duas vezes sem
+ * entender por quê ela não foi salva de novo.
  */
 export interface CadastroAtletaPublicoState {
   error?: string;
@@ -39,6 +44,7 @@ function parseForm(formData: FormData) {
     cpf: String(formData.get("cpf") ?? ""),
     dataNascimento: String(formData.get("dataNascimento") ?? ""),
     posicao: String(formData.get("posicao") ?? ""),
+    peDominante: String(formData.get("peDominante") ?? ""),
     telefone: String(formData.get("telefone") ?? ""),
     cidadeNatal: String(formData.get("cidadeNatal") ?? ""),
     ufNatal: String(formData.get("ufNatal") ?? ""),
@@ -66,6 +72,19 @@ function parseForm(formData: FormData) {
 
   const result = fichaCadastroAtletaBaseSchema.safeParse(raw);
   return { raw: { ...raw, alojado: raw.alojado ? "on" : "" }, result };
+}
+
+function friendlyDbError(error: { code?: string; message: string }): string {
+  if (error.code === "23505") {
+    if (error.message.includes("cpf")) {
+      return "Já existe um cadastro com este CPF. Se você já enviou essa ficha antes, não precisa enviar de novo.";
+    }
+    if (error.message.includes("rg")) {
+      return "Já existe um cadastro com este RG. Se você já enviou essa ficha antes, não precisa enviar de novo.";
+    }
+    return "Já existe um cadastro com esses dados.";
+  }
+  return "Não foi possível enviar o cadastro. Tente novamente.";
 }
 
 async function uploadFoto(
@@ -128,6 +147,7 @@ export async function cadastrarAtletaPublicoBase(
     cpf: normalizeCPF(data.cpf),
     data_nascimento: data.dataNascimento,
     posicao: data.posicao,
+    pe_dominante: data.peDominante,
     telefone: data.telefone,
     foto_path: fotoPath ?? null,
     cidade_natal: data.cidadeNatal,
@@ -153,7 +173,7 @@ export async function cadastrarAtletaPublicoBase(
     alergia_medicamento_qual: data.possuiAlergiaMedicamento === "sim" ? data.alergiaMedicamentoQual || null : null,
   });
 
-  if (error) return { error: `Não foi possível enviar o cadastro: ${error.message}` };
+  if (error) return { error: friendlyDbError(error), values: raw };
 
   revalidatePath("/base/atletas");
   return { success: true };
