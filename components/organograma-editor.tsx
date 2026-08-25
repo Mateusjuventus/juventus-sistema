@@ -44,6 +44,13 @@ const PADDING = 40;
 const LARGURA_ROTULO_LINHA = 140;
 const GAP_ROTULO_LINHA = 12;
 
+/** Linhas padrão que sempre aparecem pra escolher, mesmo antes de qualquer caixa usar — pedido do
+ * Mateus pra não precisar digitar (e arriscar digitar diferente do que já existe) toda vez que
+ * cria uma caixa na Comissão Sub20/Sub17 etc. Some com o "+ Outra..." pra ainda dar pra criar uma
+ * linha nova quando precisar (ex.: uma categoria que ainda não existe aqui). */
+const LINHAS_PADRAO = ["Comissão Sub20", "Comissão Sub17", "Operacional", "Administrativo"];
+const VALOR_OUTRA_LINHA = "__outra__";
+
 function SalvarButton() {
   const { pending } = useFormStatus();
   return (
@@ -82,6 +89,11 @@ function PainelEdicao({
   const [vinculada, setVinculada] = useState(no?.comissaoTecnicaBaseId ?? "");
   const [grupoValor, setGrupoValor] = useState(no?.grupo ?? "");
   const [linhaValor, setLinhaValor] = useState(no?.linha ?? "");
+  // Controla se o seletor de Linha está mostrando o campo de texto livre ("+ Outra...") em vez da
+  // lista fixa — só entra nesse modo quando a pessoa escolhe isso explicitamente, nunca sozinho:
+  // o valor de uma caixa já existente sempre aparece na lista (vem de `linhasExistentes`, derivado
+  // dos dados de verdade), então nunca precisa cair aqui só de abrir o painel.
+  const [linhaEhOutra, setLinhaEhOutra] = useState(false);
   // Muda toda vez que uma caixa NOVA de grade é criada com sucesso — força o `<form>` a remontar
   // (limpando os campos não-controlados: Nome, Cargo, Reporta para) sem mexer em Grupo/Linha, que
   // ficam controlados por `grupoValor`/`linhaValor` e continuam preenchidos de propósito.
@@ -111,6 +123,9 @@ function PainelEdicao({
   // duas nunca se alinharem na grade por serem textos diferentes pro código.
   const gruposExistentes = [...new Set(todosOsNos.map((n) => n.grupo).filter((g): g is string => !!g))].sort();
   const linhasExistentes = [...new Set(todosOsNos.map((n) => n.linha).filter((l): l is string => !!l))].sort();
+  // Linha vira lista fixa (não texto livre): junta as linhas padrão com as que já existem nos dados
+  // (pra continuar mostrando uma linha "não padrão" que alguém criou digitando "+ Outra..." antes).
+  const opcoesLinha = [...new Set([...LINHAS_PADRAO, ...linhasExistentes])].sort();
 
   // Preencheu Linha mas esqueceu Grupo — sem os dois juntos a caixa não vira célula da grade, cai
   // na árvore de liderança. Avisa na hora em vez de deixar a pessoa descobrir só depois de salvar
@@ -205,19 +220,37 @@ function PainelEdicao({
 
         <div>
           <label className="field-label">Linha (rótulo da esquerda)</label>
-          <input
-            name="linha"
+          <select
             className="field-input"
-            list="organograma-linhas"
-            placeholder="Ex.: Comissão Sub20 — alinha com quem usar a mesma linha nas outras colunas"
-            value={linhaValor}
-            onChange={(e) => setLinhaValor(e.target.value)}
-          />
-          <datalist id="organograma-linhas">
-            {linhasExistentes.map((l) => (
-              <option key={l} value={l} />
+            value={linhaEhOutra ? VALOR_OUTRA_LINHA : linhaValor}
+            onChange={(e) => {
+              if (e.target.value === VALOR_OUTRA_LINHA) {
+                setLinhaEhOutra(true);
+                setLinhaValor("");
+              } else {
+                setLinhaEhOutra(false);
+                setLinhaValor(e.target.value);
+              }
+            }}
+          >
+            <option value="">— nenhuma (caixa de liderança) —</option>
+            {opcoesLinha.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
             ))}
-          </datalist>
+            <option value={VALOR_OUTRA_LINHA}>+ Outra (digitar)...</option>
+          </select>
+          {linhaEhOutra ? (
+            <input
+              autoFocus
+              className="field-input mt-2"
+              placeholder="Digite o nome da nova linha"
+              value={linhaValor}
+              onChange={(e) => setLinhaValor(e.target.value)}
+            />
+          ) : null}
+          <input type="hidden" name="linha" value={linhaValor} />
           {faltaGrupo ? (
             <p className="mt-1 text-xs font-medium text-amber-600">
               Falta preencher o Grupo acima — sem ele, essa caixa não entra na grade, mesmo com a Linha
@@ -237,6 +270,7 @@ function PainelEdicao({
                 className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={posicaoDaLinha <= 0}
                 onClick={() => void moverLinhaAction(no!.linha!, "cima")}
+                title={posicaoDaLinha <= 0 ? "Essa linha já é a primeira — não tem pra onde subir." : undefined}
               >
                 ▲ Mover linha pra cima
               </button>
@@ -245,6 +279,11 @@ function PainelEdicao({
                 className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={posicaoDaLinha === -1 || posicaoDaLinha >= linhasOrdenadas.length - 1}
                 onClick={() => void moverLinhaAction(no!.linha!, "baixo")}
+                title={
+                  posicaoDaLinha !== -1 && posicaoDaLinha >= linhasOrdenadas.length - 1
+                    ? "Essa linha já é a última — não tem pra onde descer."
+                    : undefined
+                }
               >
                 ▼ Mover linha pra baixo
               </button>
@@ -252,24 +291,12 @@ function PainelEdicao({
             <p className="mt-1 text-xs text-neutral-400">
               Move a linha inteira &quot;{no!.linha}&quot; — todas as colunas dessa linha sobem ou descem
               juntas, sem sair do alinhamento. Não precisa digitar número nem salvar: já move na hora.
+              {linhasOrdenadas.length <= 1
+                ? " Os botões ficam desativados enquanto essa for a única linha da grade — assim que houver outra, dá pra reordenar."
+                : ""}
             </p>
           </div>
-        ) : (
-          <div>
-            <label className="field-label">Ordem</label>
-            <input
-              type="number"
-              name="ordem"
-              className="field-input"
-              defaultValue={no?.ordem ?? todosOsNos.length}
-            />
-            <p className="mt-1 text-xs text-neutral-400">
-              Decide a posição entre caixas que reportam pro mesmo lugar (liderança) ou empilhadas na
-              mesma coluna sem Linha. Célula de grade (Grupo + Linha) usa os botões de mover linha em
-              vez desse campo.
-            </p>
-          </div>
-        )}
+        ) : null}
 
         <div>
           <label className="field-label">Reporta para</label>
@@ -283,25 +310,29 @@ function PainelEdicao({
           </select>
         </div>
 
-        <div className="flex items-center justify-between border-t border-linha pt-3">
-          {no ? (
-            <DeleteButton
-              errorAction={excluirAction}
-              id={no.id}
-              entityLabel={
-                filhosCount > 0
-                  ? `caixa (${filhosCount} pessoa${filhosCount === 1 ? "" : "s"} ficaria${
-                      filhosCount === 1 ? "" : "m"
-                    } sem líder direto)`
-                  : "caixa"
-              }
-            />
-          ) : (
-            <span />
-          )}
+        <div className="flex justify-end border-t border-linha pt-3">
           <SalvarButton />
         </div>
       </form>
+
+      {/* Fora do <form> de propósito — um <form> dentro de outro <form> não é válido em HTML, e o
+       * botão "Sim, excluir" do DeleteButton (que é o seu próprio <form>) acabava não submetendo pra
+       * ação de excluir quando ficava aninhado dentro deste. */}
+      {no ? (
+        <div className="mt-3 flex justify-start border-t border-linha pt-3">
+          <DeleteButton
+            errorAction={excluirAction}
+            id={no.id}
+            entityLabel={
+              filhosCount > 0
+                ? `caixa (${filhosCount} pessoa${filhosCount === 1 ? "" : "s"} ficaria${
+                    filhosCount === 1 ? "" : "m"
+                  } sem líder direto)`
+                : "caixa"
+            }
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -517,9 +548,15 @@ export function OrganogramaEditor({
     ...cabecalhosGrupo.map((c) => ({ x: c.x, y: c.y })),
     ...rotulosLinha.map((r) => ({ x: r.x, y: r.y })),
   ];
-  const minX = Math.min(0, ...todasAsPosicoes.map((p) => p.x));
+  const minXBruto = Math.min(0, ...todasAsPosicoes.map((p) => p.x));
+  const maxXBruto = Math.max(LARGURA_CAIXA, ...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
+  // Simétrico em torno de x=0 — é onde a árvore de liderança (Presidente incluído) sempre fica
+  // centrada (ver `calcularLayoutAutomatico`). Sem isso, a grade de membros esticando mais pra um
+  // lado que o outro deixava o Presidente fora do centro visual da tela.
+  const extensaoX = Math.max(Math.abs(minXBruto), Math.abs(maxXBruto));
+  const minX = -extensaoX;
+  const maxX = extensaoX;
   const minY = Math.min(0, ...todasAsPosicoes.map((p) => p.y));
-  const maxX = Math.max(LARGURA_CAIXA, ...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
   const maxY = Math.max(ALTURA_CAIXA, ...todasAsPosicoes.map((p) => p.y + ALTURA_CAIXA));
   const deslocX = -minX + PADDING;
   const deslocY = -minY + PADDING;
