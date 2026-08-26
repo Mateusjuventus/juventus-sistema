@@ -1,8 +1,7 @@
 import { JuventusCrest } from "@/components/juventus-crest";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ConfiguracaoCadastroComissaoTecnicaBaseRow } from "@/lib/supabase/types";
-import { ComissaoPublicoBaseForm } from "./comissao-publico-base-form";
-import { cadastrarComissaoTecnicaBasePublico } from "./actions";
+import { CompletarOuCadastrarComissaoTecnicaBase } from "./completar-ou-cadastrar";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +9,10 @@ export const dynamic = "force-dynamic";
  * Link público de autocadastro da Comissão Técnica/Diretoria — Futebol de Base — espelha
  * `app/cadastro-comissao-tecnica/page.tsx` (Profissional), mas controlado por
  * `configuracoes_cadastro_comissao_tecnica_base` e gravando em `comissao_tecnica_base`. Sem login
- * (ver PUBLIC_PATHS em lib/supabase/middleware.ts); só permite CRIAR um cadastro, e TODOS os
- * campos são obrigatórios (ver docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md).
+ * (ver PUBLIC_PATHS em lib/supabase/middleware.ts). Mesmo link serve tanto pra criar um cadastro
+ * novo quanto pra completar um já existente — ver `completar-ou-cadastrar.tsx` e
+ * docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md e
+ * docs/superpowers/specs/2026-08-26-comissao-tecnica-completar-cadastro-design.md.
  */
 export default async function CadastroComissaoTecnicaBasePublicoPage() {
   const admin = createAdminClient();
@@ -38,7 +39,7 @@ export default async function CadastroComissaoTecnicaBasePublicoPage() {
 
         <div className="card p-6 sm:p-8">
           {ativo ? (
-            <ComissaoPublicoBaseForm action={cadastrarComissaoTecnicaBasePublico} />
+            <CompletarOuCadastrarComissaoTecnicaBase />
           ) : (
             <div className="py-8 text-center">
               <p className="text-lg font-semibold text-grena-escuro">Cadastro temporariamente fechado</p>

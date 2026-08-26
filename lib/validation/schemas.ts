@@ -5,7 +5,7 @@ import { chavePixValida } from "./chave-pix";
 import { normalizarNomeProprio } from "./nome";
 
 /** Regra de CPF compartilhada por todos os cadastros: 11 dígitos, dígito verificador válido. */
-const cpfField = z
+export const cpfField = z
   .string()
   .transform(normalizeCPF)
   .refine((value) => value.length === 11, { message: "CPF deve ter 11 dígitos" })
@@ -505,6 +505,39 @@ export const cadastroPublicoComissaoTecnicaBaseSchema = cadastroPublicoComissaoT
     .min(1, { message: "Selecione ao menos uma categoria" }),
 });
 export type CadastroPublicoComissaoTecnicaBaseInput = z.infer<typeof cadastroPublicoComissaoTecnicaBaseSchema>;
+
+/** Fluxo de "completar cadastro" no mesmo link público da Comissão Técnica (Profissional e Base) —
+ * ver docs/superpowers/specs/2026-08-26-comissao-tecnica-completar-cadastro-design.md. Passo 1: só
+ * o CPF, pra saber se é alguém se cadastrando pela primeira vez ou alguém que já está cadastrado. */
+export const completarCadastroComissaoCpfSchema = z.object({ cpf: cpfField });
+
+/** Passo 2 do mesmo fluxo: confirma identidade de quem já está cadastrado com CPF + data de
+ * nascimento (nenhum dos dois sozinho libera a edição). */
+export const completarCadastroComissaoIdentidadeSchema = z.object({
+  cpf: cpfField,
+  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+});
+
+/** Passo 3 do mesmo fluxo: os três campos que podem estar faltando. Todos opcionais aqui de
+ * propósito — quem decide se um campo é obrigatório é a Server Action, reconferindo no banco quais
+ * campos aquele cadastro específico realmente tem vazios (nunca confia em quais campos o formulário
+ * decidiu mostrar). */
+export const completarCadastroComissaoContratoSchema = z.object({
+  cpf: cpfField,
+  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+  tipoContrato: z.enum(["clt", "pj", "sem_contrato"]).optional().or(z.literal("")),
+  dataInicio: z.string().optional().or(z.literal("")),
+  // Mesmo raciocínio de `cadastroPublicoComissaoTecnicaSchema.valorSalario`: o campo vem de um
+  // `CurrencyField`, cujo hidden input manda "" quando vazio — valida a string primeiro pra não
+  // deixar `Number("")` (que é 0) passar como se fosse um valor preenchido.
+  valorSalario: z
+    .string()
+    .optional()
+    .refine((v) => !v || !Number.isNaN(Number(v)), { message: "Informe um salário válido" })
+    .transform((v) => (v ? Number(v) : undefined))
+    .refine((v) => v === undefined || v >= 0, { message: "Informe um salário válido" }),
+});
+export type CompletarCadastroComissaoContratoInput = z.infer<typeof completarCadastroComissaoContratoSchema>;
 
 const NOVA_FUNCAO_VALUE = "__nova__";
 

@@ -18,11 +18,16 @@ const initialState: CadastroPublicoComissaoTecnicaBaseFormState = {};
  * obrigatórios aqui. */
 export function ComissaoPublicoBaseForm({
   action,
+  cpfInicial,
 }: {
   action: (
     prevState: CadastroPublicoComissaoTecnicaBaseFormState,
     formData: FormData,
   ) => Promise<CadastroPublicoComissaoTecnicaBaseFormState>;
+  /** CPF já digitado e conferido no passo de "completar cadastro" (ver
+   * app/cadastro-comissao-tecnica-base/completar-ou-cadastrar.tsx) — pré-preenche o campo pra pessoa
+   * não ter que digitar de novo quando o CPF não é encontrado e ela segue pro cadastro completo. */
+  cpfInicial?: string;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? {};
@@ -61,7 +66,13 @@ export function ComissaoPublicoBaseForm({
             placeholder="Como você é chamado no dia a dia"
           />
           <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
-          <CpfField label="CPF" name="cpf" required defaultValue={values.cpf} error={errors.cpf} />
+          <CpfField
+            label="CPF"
+            name="cpf"
+            required
+            defaultValue={values.cpf ?? cpfInicial}
+            error={errors.cpf}
+          />
           <TextField
             label="Data de nascimento"
             name="dataNascimento"

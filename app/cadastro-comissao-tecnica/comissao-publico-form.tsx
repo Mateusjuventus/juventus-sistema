@@ -17,11 +17,16 @@ const initialState: CadastroPublicoComissaoTecnicaFormState = {};
  * obrigatórios" — ver docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md). */
 export function ComissaoPublicoForm({
   action,
+  cpfInicial,
 }: {
   action: (
     prevState: CadastroPublicoComissaoTecnicaFormState,
     formData: FormData,
   ) => Promise<CadastroPublicoComissaoTecnicaFormState>;
+  /** CPF já digitado e conferido no passo de "completar cadastro" (ver
+   * app/cadastro-comissao-tecnica/completar-ou-cadastrar.tsx) — pré-preenche o campo pra pessoa não
+   * ter que digitar de novo quando o CPF não é encontrado e ela segue pro cadastro completo. */
+  cpfInicial?: string;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? {};
@@ -59,7 +64,13 @@ export function ComissaoPublicoForm({
             placeholder="Como você é chamado no dia a dia"
           />
           <TextField label="RG" name="rg" required defaultValue={values.rg} error={errors.rg} />
-          <CpfField label="CPF" name="cpf" required defaultValue={values.cpf} error={errors.cpf} />
+          <CpfField
+            label="CPF"
+            name="cpf"
+            required
+            defaultValue={values.cpf ?? cpfInicial}
+            error={errors.cpf}
+          />
           <TextField
             label="Data de nascimento"
             name="dataNascimento"
