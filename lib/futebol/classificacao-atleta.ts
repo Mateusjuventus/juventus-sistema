@@ -33,6 +33,26 @@ const CLASSIFICACAO_BADGE: Record<AtletaClassificacao, string> = {
   g3: "bg-orange-100 text-orange-800",
 };
 
+/** Cor do anel/borda ao redor da foto do atleta no Campograma (ver docs/superpowers/specs/
+ * 2026-08-26-campograma-foto-classificacao-design.md) — mesmas cores de `CLASSIFICACAO_BORDA`, mas
+ * como borda nos 4 lados (a foto é retangular, não um card com faixa lateral). Sem classificação
+ * usa uma borda neutra, só pra dar acabamento na foto — não é "cor de não classificado". */
+const CLASSIFICACAO_ANEL: Record<AtletaClassificacao, string> = {
+  g1: "border-green-500",
+  g2: "border-yellow-400",
+  g3: "border-orange-500",
+};
+const ANEL_NEUTRO = "border-neutral-300";
+
+/** Mesmas cores acima, em hexadecimal — usado pelo PDF do Campograma (`@react-pdf/renderer` não lê
+ * classe Tailwind, só estilo inline). */
+export const CLASSIFICACAO_ANEL_HEX: Record<AtletaClassificacao, string> = {
+  g1: "#22c55e",
+  g2: "#facc15",
+  g3: "#f97316",
+};
+export const ANEL_NEUTRO_HEX = "#d4d4d4";
+
 export function classificacaoAtletaLabel(classificacao: AtletaClassificacao | null | undefined): string | null {
   return classificacao ? CLASSIFICACAO_LABEL[classificacao] : null;
 }
@@ -45,4 +65,14 @@ export function bordaClassificacaoAtleta(classificacao: AtletaClassificacao | nu
 
 export function badgeClassificacaoAtleta(classificacao: AtletaClassificacao): string {
   return CLASSIFICACAO_BADGE[classificacao];
+}
+
+/** Classe Tailwind da borda ao redor da foto do atleta no Campograma — ver `CLASSIFICACAO_ANEL`. */
+export function anelClassificacaoAtleta(classificacao: AtletaClassificacao | null | undefined): string {
+  return classificacao ? CLASSIFICACAO_ANEL[classificacao] : ANEL_NEUTRO;
+}
+
+/** Mesma cor de `anelClassificacaoAtleta`, em hexadecimal — usado pelo PDF do Campograma. */
+export function corHexAnelClassificacaoAtleta(classificacao: AtletaClassificacao | null | undefined): string {
+  return classificacao ? CLASSIFICACAO_ANEL_HEX[classificacao] : ANEL_NEUTRO_HEX;
 }

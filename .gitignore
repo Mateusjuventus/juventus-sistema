@@ -27,3 +27,7 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# mockups/rascunhos visuais gerados durante o brainstorming com o Mateus (HTML com imagens em
+# base64, só pra pré-visualização em conversa) — nunca fazem parte do projeto entregue.
+/scratch/
