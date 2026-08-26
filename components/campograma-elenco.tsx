@@ -25,10 +25,18 @@ import type { AtletaPosicao } from "@/lib/supabase/types";
  * posição de origem definida).
  */
 
-const RADAR_CENTRO = { x: 150, y: 150 };
+// A "tela" do gráfico (viewBox) é mais larga que o círculo em si — sobra margem nas duas laterais
+// pra caber o texto dos rótulos dos eixos (que se estendem além da borda do círculo, ver
+// RADAR_RAIO_ROTULO), sem que o SVG corte o texto (o comportamento padrão do navegador é recortar
+// qualquer desenho que passe da viewBox). O SVG renderiza em largura responsiva (100%, até um
+// máximo), então o gráfico encolhe proporcionalmente — rótulos incluídos — em telas estreitas, em
+// vez de estourar a largura da tela.
+const RADAR_ALTURA = 300;
+const RADAR_MARGEM_ROTULO = 90;
+const RADAR_LARGURA = RADAR_ALTURA + RADAR_MARGEM_ROTULO * 2;
+const RADAR_CENTRO = { x: RADAR_LARGURA / 2, y: RADAR_ALTURA / 2 };
 const RADAR_RAIO = 95;
 const RADAR_RAIO_ROTULO = 122;
-const RADAR_TAMANHO = 300;
 const RADAR_ANEIS = [0.35, 0.65, 1];
 
 function formatarDataBrCampograma(iso: string | null): string | null {
@@ -109,45 +117,52 @@ function GraficoPosicoes({ grupos }: { grupos: GrupoCampograma }) {
 
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center">
-      <svg width={RADAR_TAMANHO} height={RADAR_TAMANHO} viewBox={`0 0 ${RADAR_TAMANHO} ${RADAR_TAMANHO}`}>
-        {RADAR_ANEIS.map((fator) => {
-          const pontosAnel = contagens
-            .map((_, i) => calcularPontoAngular(i, contagens.length, RADAR_CENTRO, RADAR_RAIO * fator))
-            .map((p) => `${p.x},${p.y}`)
-            .join(" ");
-          return <polygon key={fator} points={pontosAnel} fill="none" stroke="#e5e5e5" strokeWidth={1} />;
-        })}
+      <div className="w-full" style={{ maxWidth: RADAR_LARGURA }}>
+        <svg
+          viewBox={`0 0 ${RADAR_LARGURA} ${RADAR_ALTURA}`}
+          className="block h-auto w-full"
+          role="img"
+          aria-label="Gráfico de posições do elenco"
+        >
+          {RADAR_ANEIS.map((fator) => {
+            const pontosAnel = contagens
+              .map((_, i) => calcularPontoAngular(i, contagens.length, RADAR_CENTRO, RADAR_RAIO * fator))
+              .map((p) => `${p.x},${p.y}`)
+              .join(" ");
+            return <polygon key={fator} points={pontosAnel} fill="none" stroke="#e5e5e5" strokeWidth={1} />;
+          })}
 
-        {contagens.map((c, i) => {
-          const ponta = calcularPontoAngular(i, contagens.length, RADAR_CENTRO, RADAR_RAIO);
-          const rotulo = calcularPontoAngular(i, contagens.length, RADAR_CENTRO, RADAR_RAIO_ROTULO);
-          return (
-            <g key={c.posicao}>
-              <line
-                x1={RADAR_CENTRO.x}
-                y1={RADAR_CENTRO.y}
-                x2={ponta.x}
-                y2={ponta.y}
-                stroke="#d4d4d4"
-                strokeWidth={1}
-              />
-              <text
-                x={rotulo.x}
-                y={rotulo.y}
-                textAnchor={anchorRotulo(rotulo.x, RADAR_CENTRO.x)}
-                dominantBaseline="middle"
-                fontSize={10}
-                fontWeight={600}
-                fill="#525252"
-              >
-                {c.posicao} ({c.quantidade})
-              </text>
-            </g>
-          );
-        })}
+          {contagens.map((c, i) => {
+            const ponta = calcularPontoAngular(i, contagens.length, RADAR_CENTRO, RADAR_RAIO);
+            const rotulo = calcularPontoAngular(i, contagens.length, RADAR_CENTRO, RADAR_RAIO_ROTULO);
+            return (
+              <g key={c.posicao}>
+                <line
+                  x1={RADAR_CENTRO.x}
+                  y1={RADAR_CENTRO.y}
+                  x2={ponta.x}
+                  y2={ponta.y}
+                  stroke="#d4d4d4"
+                  strokeWidth={1}
+                />
+                <text
+                  x={rotulo.x}
+                  y={rotulo.y}
+                  textAnchor={anchorRotulo(rotulo.x, RADAR_CENTRO.x)}
+                  dominantBaseline="middle"
+                  fontSize={10}
+                  fontWeight={600}
+                  fill="#525252"
+                >
+                  {c.posicao} ({c.quantidade})
+                </text>
+              </g>
+            );
+          })}
 
-        <polygon points={poligonoDados} fill="#5C0A35" fillOpacity={0.25} stroke="#5C0A35" strokeWidth={1.5} />
-      </svg>
+          <polygon points={poligonoDados} fill="#5C0A35" fillOpacity={0.25} stroke="#5C0A35" strokeWidth={1.5} />
+        </svg>
+      </div>
 
       <div className="text-center">
         <p className="text-4xl font-bold text-grena-escuro">{total}</p>
