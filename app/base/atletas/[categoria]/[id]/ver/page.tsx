@@ -153,9 +153,16 @@ export default async function VerAtletaBasePage({
           <FieldGroup>
             <DetailField label="Cidade natal" value={atleta.cidade_natal} />
             <DetailField label="UF natal" value={atleta.uf_natal} />
-            <div className="sm:col-span-2">
-              <DetailField label="Endereço atual" value={atleta.endereco_atual} />
-            </div>
+            {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
+                formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
+                de cadastros antigos que só têm esse texto livre preenchido (ver
+                `AtletaBaseRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio,
+                que é o caso normal pra qualquer cadastro feito depois do endereço estruturado. */}
+            {atleta.endereco_atual ? (
+              <div className="sm:col-span-2">
+                <DetailField label="Endereço atual (cadastro antigo)" value={atleta.endereco_atual} />
+              </div>
+            ) : null}
             <DetailField label="Logradouro" value={atleta.logradouro} />
             <DetailField label="Número" value={atleta.numero} />
             <DetailField label="Complemento" value={atleta.complemento} />
