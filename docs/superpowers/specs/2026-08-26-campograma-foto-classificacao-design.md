@@ -46,10 +46,11 @@ O Campograma hoje agrupa por `categoria_posicao` (5 grupos: goleiro/zagueiro/lat
 calculados a partir da posição específica via `categoriaDaPosicao`, ver
 `lib/futebol/categoria-posicao.ts`). Essa versão passa a ter uma linha por **posição específica**
 (as 9 opções de `AtletaPosicao`), igual ao nível de detalhe do modelo do Corinthians. Ordem de cima
-pra baixo (ataque pro gol, como já era):
+pra baixo (do gol pro ataque — revisão de 26/08, o Mateus pediu essa ordem no lugar da "ataque pro
+gol" da primeira versão desta spec):
 
-Atacante, Ponta Direita, Ponta Esquerda, Volante, Meia, Lateral Direito, Lateral Esquerdo, Zagueiro,
-Goleiro.
+Goleiro, Zagueiro, Lateral Direito, Lateral Esquerdo, Volante, Meia, Atacante, Ponta Direita, Ponta
+Esquerda.
 
 Cada linha mostra o rótulo da posição à esquerda e os atletas daquela posição específica ao lado,
 quebrando em várias linhas conforme necessário (não é uma escalação de 11 fixos — uma categoria pode

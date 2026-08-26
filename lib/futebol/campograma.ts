@@ -28,18 +28,18 @@ export interface AtletaCampograma {
   dataNascimento: string | null;
 }
 
-/** Ordem de exibição das 9 linhas, do ataque (topo) pro gol (base) — mesmo espírito de "o olho lê
- * como uma escalação" do campograma anterior, decisão confirmada com o Mateus na spec. */
+/** Ordem de exibição das 9 linhas, do gol (topo) pro ataque (base) — ordem pedida pelo Mateus
+ * (revisão de 26/08, substitui a ordem "do ataque pro gol" da primeira versão da spec). */
 export const ORDEM_POSICOES_CAMPOGRAMA: AtletaPosicao[] = [
+  "Goleiro",
+  "Zagueiro",
+  "Lateral Direito",
+  "Lateral Esquerdo",
+  "Volante",
+  "Meia",
   "Atacante",
   "Ponta Direita",
   "Ponta Esquerda",
-  "Volante",
-  "Meia",
-  "Lateral Direito",
-  "Lateral Esquerdo",
-  "Zagueiro",
-  "Goleiro",
 ];
 
 const POSICOES_VALIDAS = new Set<string>(ORDEM_POSICOES_CAMPOGRAMA);
