@@ -56,7 +56,14 @@ async function ajustarPosicoesAutomaticas(supabase: ReturnType<typeof createClie
   if (paraRecalcular.length > 0) {
     const layout = calcularLayoutAutomatico(
       linhas.map(
-        (l): OrganogramaNo => ({ id: l.id, reportaPara: l.reporta_para, grupo: l.grupo, linha: l.linha, ordem: l.ordem }),
+        (l): OrganogramaNo => ({
+          id: l.id,
+          reportaPara: l.reporta_para,
+          grupo: l.grupo,
+          linha: l.linha,
+          ordem: l.ordem,
+          automatico: Boolean(l.grupo && l.linha) || !l.pos_manual,
+        }),
       ),
     );
     for (const l of paraRecalcular) {

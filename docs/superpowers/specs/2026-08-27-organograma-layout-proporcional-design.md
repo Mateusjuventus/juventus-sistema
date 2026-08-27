@@ -317,3 +317,49 @@ um vão grande entre as duas) — é o comportamento pretendido da grade (todas 
 MESMA altura pra cada `linha`, mesmo que uma coluna específica não tenha ninguém numa linha que
 outra coluna usa); comprimir por coluna quebraria esse alinhamento, que é o ponto central do desenho
 em grade. Expliquei isso ao Mateus em vez de mudar o código.
+
+## Atualização (27/08, mesmo dia) — Gildesson "sumido" e o vão entre Treinador de Goleiro/Preparador Físico: dois bugs de verdade, achados com o próprio seletor corrigido acima
+
+Com a correção do seletor "Pessoa da Comissão Técnica" (rodada anterior — agora sempre mostra todo
+mundo, com um "(já em: ...)" pra quem já está em outra caixa), o próprio Mateus conseguiu localizar o
+Gildesson: aparecia como "já em: Preparador Físico · Comissão Sub17" — exatamente a mesma combinação
+que o Halamo Icaro Silva. Confirmando por código: `calcularLayoutAutomatico` calculava a posição de
+CADA célula da grade (grupo × linha) uma vez só, por linha — se dois nós tivessem o mesmo par
+(grupo, linha), os dois recebiam a MESMA posição, um desenhado exatamente em cima do outro. Como
+célula de grade nunca pode ser arrastada (`naGrade`, ver `Caixa` em `organograma-editor.tsx`), não
+tinha como separar os dois manualmente nem perceber qual dos dois estava por baixo — o caso real de
+dois preparadores físicos pra Sub17 (perfeitamente válido) ficava indistinguível de um bug.
+
+No mesmo print enviado pelo Mateus (tela inteira), reparei também no vão grande entre as colunas
+"Treinador de Goleiro" e "Preparador Físico" — bem mais largo que o espaço normal entre as outras
+colunas. Causa raiz, achada lendo `calcularLayoutAutomatico`: o índice de coluna (x) de cada `grupo`
+vinha da posição dele na lista ORDENADA de todos os grupos diferentes, contando TODOS eles — mesmo
+um grupo cujos membros foram TODOS arrastados (arrasto manual, salvo) pra outro canto do organograma
+(o caso do "Coordenador de Performance", que o Mateus tinha posicionado perto da liderança, acima da
+grade principal). Esse grupo continuava "reservando" o degrau de largura dele na fileira de baixo,
+mesmo sem nenhuma caixa de verdade ali — um vão vazio do tamanho de uma coluna inteira, bem no meio
+de colunas que continuavam normais.
+
+Duas correções em `lib/futebol/organograma.ts` (`calcularLayoutAutomatico`), a função de layout
+compartilhada entre tela e PDF:
+
+1. **Célula duplicada empilha em vez de sobrepor.** Quando mais de um nó cai no mesmo (grupo,
+   linha), em vez de dar a mesma posição pra todos, empilha um abaixo do outro dentro daquela célula
+   (mesma lógica de "quem não tem linha empilha embaixo da grade", só que dentro da célula). Isso
+   desalinha a PRÓPRIA coluna um pouco mais pra baixo dali em diante (uma linha extra "atrasa" só
+   quem está naquela coluna específica) — outras colunas continuam alinhadas normalmente entre si.
+2. **Coluna 100% arrastada não reserva espaço.** Novo campo opcional `automatico` em `OrganogramaNo`
+   (`false` só quando aquela caixa específica tem posição manual salva; célula de grade sempre conta
+   como automática, já que nunca pode ser arrastada). Um `grupo` só reserva um degrau de largura na
+   fileira de baixo se tiver PELO MENOS um membro ainda em posição automática — um grupo 100%
+   arrastado passa batido, sem abrir vão. `pos_manual` (a coluna adicionada na correção do bug de
+   sobreposição, mais cedo nesse mesmo dia) é exatamente o dado que já existia pra alimentar isso —
+   só precisou ser encanado até aqui: `OrganogramaNoData` (tela), `OrganogramaBaseNoDocumento` (PDF)
+   e a query de `ajustarPosicoesAutomaticas` (servidor) ganharam/passaram a usar `posManual`/
+   `pos_manual` nesse cálculo.
+
+Verificado com 4 testes novos em `organograma.test.ts` (célula duplicada empilha, célula duplicada
+não desalinha outras colunas, coluna 100% arrastada não reserva espaço) e com um render de PDF de
+teste reproduzindo o cenário real relatado (Gildesson + Halamo os dois em Preparador Físico ×
+Comissão Sub17, Coordenador de Performance arrastado pra cima) — as duas caixas de Sub17 aparecem
+empilhadas, sem sobrepor, e o vão entre Treinador de Goleiro e Preparador Físico sumiu.

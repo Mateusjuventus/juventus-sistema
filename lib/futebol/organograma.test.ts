@@ -118,6 +118,42 @@ describe("calcularLayoutAutomatico", () => {
     ]);
     expect(posicoes.get("extra")!.y).toBeGreaterThan(posicoes.get("sub20")!.y);
   });
+
+  it("duas pessoas na mesma célula (grupo × linha) empilham em vez de ocupar o mesmo lugar", () => {
+    const posicoes = calcularLayoutAutomatico([
+      no("gildesson", null, "Preparador Físico", 0, "Comissão Sub17"),
+      no("halamo", null, "Preparador Físico", 1, "Comissão Sub17"),
+    ]);
+    expect(posicoes.get("gildesson")!.x).toBe(posicoes.get("halamo")!.x);
+    expect(posicoes.get("gildesson")!).not.toEqual(posicoes.get("halamo")!);
+    expect(posicoes.get("halamo")!.y).toBeGreaterThan(posicoes.get("gildesson")!.y);
+  });
+
+  it("célula duplicada só atrasa a PRÓPRIA coluna, outras colunas continuam alinhadas", () => {
+    const posicoes = calcularLayoutAutomatico([
+      no("gildesson", null, "Preparador Físico", 0, "Comissão Sub17"),
+      no("halamo", null, "Preparador Físico", 1, "Comissão Sub17"),
+      no("preparador-sub15", null, "Preparador Físico", 2, "Comissão Sub15"),
+      no("treinador-sub15", null, "Treinador", 3, "Comissão Sub15"),
+    ]);
+    // Sub15 seguinte, na mesma coluna (Preparador Físico), desce pra não bater na dupla de Sub17.
+    expect(posicoes.get("preparador-sub15")!.y).toBeGreaterThan(posicoes.get("halamo")!.y);
+    // A coluna "Treinador" (sem duplicata) nem sabe que Preparador Físico atrasou — Sub15 dela fica
+    // na altura "normal" da linha, sem herdar o atraso de outra coluna.
+    expect(posicoes.get("treinador-sub15")!.y).toBeLessThan(posicoes.get("preparador-sub15")!.y);
+  });
+
+  it("um `grupo` 100% arrastado (nenhum membro automático) não reserva coluna na grade", () => {
+    const posicoes = calcularLayoutAutomatico([
+      no("goleiros-1", null, "Head de Goleiros", 0),
+      { ...no("perf-1", null, "Coordenador de Performance", 1), automatico: false },
+      no("fisico-1", null, "Preparador Físico", 2),
+    ]);
+    // Sem a coluna arrastada no meio, "Head de Goleiros" e "Preparador Físico" ficam lado a lado
+    // (um LARGURA_CAIXA+GAP_X de distância), não com um vão vazio do tamanho de uma coluna a mais.
+    const distancia = posicoes.get("fisico-1")!.x - posicoes.get("goleiros-1")!.x;
+    expect(distancia).toBeCloseTo(LARGURA_CAIXA + 24);
+  });
 });
 
 describe("calcularConectores", () => {

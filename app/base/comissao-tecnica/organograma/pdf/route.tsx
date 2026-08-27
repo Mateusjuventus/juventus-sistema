@@ -41,6 +41,7 @@ export async function GET() {
       ordem: n.ordem,
       posX: n.pos_x,
       posY: n.pos_y,
+      posManual: n.pos_manual,
     };
   });
 

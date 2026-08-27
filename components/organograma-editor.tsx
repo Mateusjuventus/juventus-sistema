@@ -29,6 +29,10 @@ export interface OrganogramaNoData {
   ordem: number;
   posX: number | null;
   posY: number | null;
+  /** `true` só quando `posX`/`posY` veio de um arrasto manual — ver `pos_manual` na tabela e a
+   * spec de 27/08. Usado só pra saber se a coluna de um "grupo sem linha" 100% arrastado ainda
+   * precisa reservar espaço na grade (`calcularLayoutAutomatico`, campo `automatico`). */
+  posManual: boolean;
   /** Já resolvidos pela página (join com `comissao_tecnica_base`) — evita repetir a lógica de "qual
    * nome/cargo mostrar" aqui dentro. */
   nomeExibido: string;
@@ -489,6 +493,9 @@ export function OrganogramaEditor({
             grupo: n.grupo,
             linha: n.linha,
             ordem: n.ordem,
+            // Célula de grade nunca é arrastada — sempre automática, mesmo se `posManual` tiver
+            // ficado `true` por engano de um estado anterior (ela vira caixa de liderança e volta).
+            automatico: Boolean(n.grupo && n.linha) || !n.posManual,
           }),
         ),
       ),

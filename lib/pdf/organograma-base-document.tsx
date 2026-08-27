@@ -33,6 +33,7 @@ export interface OrganogramaBaseNoDocumento {
   ordem: number;
   posX: number | null;
   posY: number | null;
+  posManual: boolean;
 }
 
 const LARGURA_ROTULO_LINHA = 140;
@@ -198,7 +199,14 @@ function truncarParaCaber(
 function calcularDiagrama(nos: OrganogramaBaseNoDocumento[]) {
   const layoutAutomatico = calcularLayoutAutomatico(
     nos.map(
-      (n): OrganogramaNo => ({ id: n.id, reportaPara: n.reportaPara, grupo: n.grupo, linha: n.linha, ordem: n.ordem }),
+      (n): OrganogramaNo => ({
+        id: n.id,
+        reportaPara: n.reportaPara,
+        grupo: n.grupo,
+        linha: n.linha,
+        ordem: n.ordem,
+        automatico: Boolean(n.grupo && n.linha) || !n.posManual,
+      }),
     ),
   );
   const posicoes = new Map<string, Ponto>();

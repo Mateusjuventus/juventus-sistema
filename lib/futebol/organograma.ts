@@ -21,6 +21,11 @@ export interface OrganogramaNo {
   grupo: string | null;
   linha: string | null;
   ordem: number;
+  /** `false` só quando a posição desta caixa específica é manual (arrastada e salva) — omitido ou
+   * `true` significa "usa a posição automática calculada aqui". Célula de grade (`grupo` E `linha`)
+   * nunca pode ser arrastada, então sempre conta como automática pra fins de reservar coluna (ver
+   * `calcularLayoutAutomatico` abaixo), mesmo que o valor venha `false` por engano/dado antigo. */
+  automatico?: boolean;
 }
 
 export interface OrganogramaPosicao {
@@ -124,20 +129,55 @@ export function calcularLayoutAutomatico(nos: OrganogramaNo[]): Map<string, Orga
   );
   const indiceDaLinha = new Map(linhasOrdenadas.map((l, i) => [l, i]));
 
-  grupos.forEach(([, doGrupo], i) => {
-    const x = inicioXColunas + i * (LARGURA_CAIXA + GAP_X);
+  // Só reserva um "degrau" de largura na fileira de baixo pra colunas que ainda têm ALGUM membro
+  // usando posição automática — célula de grade sempre conta (nunca pode ser arrastada), "grupo sem
+  // linha" só conta enquanto pelo menos um dos seus membros não tiver sido arrastado. Uma coluna
+  // 100% arrastada pra outro lugar (ex.: um "grupo" que virou uma área solta perto da liderança, ver
+  // spec de 27/08 — caso real do Mateus) não deveria continuar reservando o espaço dela aqui embaixo:
+  // antes reservava sempre, pelo número total de grupos diferentes, o que abria um vão vazio do
+  // tamanho de uma coluna inteira bem no meio de colunas que continuam na grade normalmente.
+  let proximoIndice = 0;
+  const indicePorGrupo = new Map<string, number>();
+  for (const [chave, doGrupo] of grupos) {
+    const precisaDeColuna = doGrupo.some((n) => n.automatico !== false);
+    indicePorGrupo.set(chave, precisaDeColuna ? proximoIndice++ : proximoIndice);
+  }
+
+  grupos.forEach(([chave, doGrupo]) => {
+    const x = inicioXColunas + indicePorGrupo.get(chave)! * (LARGURA_CAIXA + GAP_X);
     const comLinha = doGrupo.filter((n) => n.linha);
     const semLinha = ordenar(doGrupo.filter((n) => !n.linha));
 
+    // Mais de uma pessoa na MESMA célula (grupo × linha) é um caso real (ex.: dois preparadores
+    // físicos pra Comissão Sub17) — empilha dentro da célula em vez de desenhar as duas exatamente
+    // no mesmo lugar, uma escondendo a outra sem jeito de separar (célula de grade não se arrasta —
+    // bug real visto no organograma do Mateus, duas pessoas "já em: Preparador Físico · Comissão
+    // Sub17" ao mesmo tempo). Isso quebra o alinhamento "mesma altura em toda coluna" só PRA ESSA
+    // coluna dali pra baixo — `extra` guarda quanto ela já "atrasou" e soma nas linhas seguintes
+    // dela; colunas sem célula duplicada continuam exatamente alinhadas como antes.
+    const porLinhaNaColuna = new Map<string, OrganogramaNo[]>();
     for (const no of comLinha) {
-      const k = indiceDaLinha.get(no.linha!)!;
-      posicoes.set(no.id, { x, y: linhaColunasY + ALTURA_CABECALHO_GRUPO + k * (ALTURA_CAIXA + GAP_Y_MEMBRO) });
+      porLinhaNaColuna.set(no.linha!, [...(porLinhaNaColuna.get(no.linha!) ?? []), no]);
     }
-    // Quem não tem `linha` empilha logo abaixo da grade (depois da última linha existente).
+    let extra = 0;
+    for (const linha of linhasOrdenadas) {
+      const doCelula = porLinhaNaColuna.get(linha);
+      if (!doCelula) continue;
+      const k = indiceDaLinha.get(linha)!;
+      ordenar(doCelula).forEach((no, i) => {
+        posicoes.set(no.id, {
+          x,
+          y: linhaColunasY + ALTURA_CABECALHO_GRUPO + k * (ALTURA_CAIXA + GAP_Y_MEMBRO) + extra + i * (ALTURA_CAIXA + GAP_Y_MEMBRO),
+        });
+      });
+      extra += (doCelula.length - 1) * (ALTURA_CAIXA + GAP_Y_MEMBRO);
+    }
+    // Quem não tem `linha` empilha logo abaixo da grade (depois da última linha existente, e do que
+    // essa coluna já tiver "atrasado" por células duplicadas acima).
     semLinha.forEach((no, k) => {
       posicoes.set(no.id, {
         x,
-        y: linhaColunasY + ALTURA_CABECALHO_GRUPO + (linhasOrdenadas.length + k) * (ALTURA_CAIXA + GAP_Y_MEMBRO),
+        y: linhaColunasY + ALTURA_CABECALHO_GRUPO + (linhasOrdenadas.length + k) * (ALTURA_CAIXA + GAP_Y_MEMBRO) + extra,
       });
     });
   });

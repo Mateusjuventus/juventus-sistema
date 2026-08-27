@@ -39,6 +39,7 @@ export default async function OrganogramaBasePage() {
       ordem: n.ordem,
       posX: n.pos_x,
       posY: n.pos_y,
+      posManual: n.pos_manual,
       nomeExibido,
       cargoExibido,
       vaga: !pessoa && !n.nome,
