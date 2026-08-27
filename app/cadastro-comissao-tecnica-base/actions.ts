@@ -6,7 +6,7 @@ import {
   cadastroPublicoComissaoTecnicaBaseSchema,
   completarCadastroComissaoCpfSchema,
   completarCadastroComissaoIdentidadeSchema,
-  completarCadastroComissaoContratoSchema,
+  completarCadastroComissaoDadosSchema,
 } from "@/lib/validation/schemas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
@@ -178,6 +178,19 @@ export async function verificarCpfComissaoTecnicaBasePublico(
   return { cpf: result.data.cpf, resultado: existente ? "existente" : "novo" };
 }
 
+/** Espelha `CamposFaltandoComissaoTecnica` de `app/cadastro-comissao-tecnica/actions.ts`
+ * (Profissional) — os 7 campos que um cadastro antigo de `comissao_tecnica_base` pode ter ficado
+ * sem. */
+export interface CamposFaltandoComissaoTecnicaBase {
+  apelido: boolean;
+  telefone: boolean;
+  email: boolean;
+  foto: boolean;
+  tipoContrato: boolean;
+  dataInicio: boolean;
+  valorSalario: boolean;
+}
+
 /** Espelha `confirmarIdentidadeComissaoTecnicaPublico` (Profissional), olhando
  * `comissao_tecnica_base`. */
 export interface ConfirmarIdentidadeComissaoTecnicaBaseState {
@@ -185,7 +198,7 @@ export interface ConfirmarIdentidadeComissaoTecnicaBaseState {
   dataNascimento?: string;
   error?: string;
   confirmado?: boolean;
-  faltando?: { tipoContrato: boolean; dataInicio: boolean; valorSalario: boolean };
+  faltando?: CamposFaltandoComissaoTecnicaBase;
 }
 
 export async function confirmarIdentidadeComissaoTecnicaBasePublico(
@@ -206,7 +219,7 @@ export async function confirmarIdentidadeComissaoTecnicaBasePublico(
 
   const { data: pessoa } = await admin
     .from("comissao_tecnica_base")
-    .select("tipo_contrato, data_inicio, valor_salario, data_nascimento")
+    .select("apelido, telefone, email, foto_path, tipo_contrato, data_inicio, valor_salario, data_nascimento")
     .eq("cpf", result.data.cpf)
     .maybeSingle();
 
@@ -219,6 +232,10 @@ export async function confirmarIdentidadeComissaoTecnicaBasePublico(
     dataNascimento: result.data.dataNascimento,
     confirmado: true,
     faltando: {
+      apelido: !pessoa.apelido,
+      telefone: !pessoa.telefone,
+      email: !pessoa.email,
+      foto: !pessoa.foto_path,
       tipoContrato: pessoa.tipo_contrato == null,
       dataInicio: pessoa.data_inicio == null,
       valorSalario: pessoa.valor_salario == null,
@@ -241,11 +258,14 @@ export async function completarCadastroComissaoTecnicaBasePublico(
   const raw = {
     cpf: String(formData.get("cpf") ?? ""),
     dataNascimento: String(formData.get("dataNascimento") ?? ""),
+    apelido: String(formData.get("apelido") ?? ""),
+    telefone: String(formData.get("telefone") ?? ""),
+    email: String(formData.get("email") ?? ""),
     tipoContrato: String(formData.get("tipoContrato") ?? ""),
     dataInicio: String(formData.get("dataInicio") ?? ""),
     valorSalario: String(formData.get("valorSalario") ?? ""),
   };
-  const result = completarCadastroComissaoContratoSchema.safeParse(raw);
+  const result = completarCadastroComissaoDadosSchema.safeParse(raw);
   if (!result.success) {
     return { error: "Não foi possível salvar. Recarregue a página e tente de novo." };
   }
@@ -257,7 +277,7 @@ export async function completarCadastroComissaoTecnicaBasePublico(
 
   const { data: pessoa } = await admin
     .from("comissao_tecnica_base")
-    .select("id, tipo_contrato, data_inicio, valor_salario, data_nascimento")
+    .select("id, apelido, telefone, email, foto_path, tipo_contrato, data_inicio, valor_salario, data_nascimento")
     .eq("cpf", result.data.cpf)
     .maybeSingle();
 
@@ -268,6 +288,18 @@ export async function completarCadastroComissaoTecnicaBasePublico(
   const update: Record<string, unknown> = {};
   const fieldErrors: Record<string, string> = {};
 
+  if (!pessoa.apelido) {
+    if (!result.data.apelido) fieldErrors.apelido = "Apelido é obrigatório.";
+    else update.apelido = result.data.apelido;
+  }
+  if (!pessoa.telefone) {
+    if (!result.data.telefone) fieldErrors.telefone = "Telefone é obrigatório.";
+    else update.telefone = normalizeTelefone(result.data.telefone);
+  }
+  if (!pessoa.email) {
+    if (!result.data.email) fieldErrors.email = "E-mail é obrigatório.";
+    else update.email = result.data.email;
+  }
   if (pessoa.tipo_contrato == null) {
     if (!result.data.tipoContrato) fieldErrors.tipoContrato = "Tipo de contrato é obrigatório.";
     else update.tipo_contrato = result.data.tipoContrato;
@@ -281,7 +313,22 @@ export async function completarCadastroComissaoTecnicaBasePublico(
     else update.valor_salario = result.data.valorSalario;
   }
 
+  let fotoPath: string | undefined;
+  if (!pessoa.foto_path) {
+    const fotoFile = formData.get("foto");
+    const temFotoNova = fotoFile instanceof File && fotoFile.size > 0;
+    if (!temFotoNova) {
+      fieldErrors.foto = "A foto é obrigatória.";
+    } else {
+      const { error: uploadError, path } = await uploadFoto(admin, formData, pessoa.id);
+      if (uploadError) return { error: uploadError };
+      fotoPath = path;
+    }
+  }
+
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  if (fotoPath) update.foto_path = fotoPath;
 
   if (Object.keys(update).length > 0) {
     const { error } = await admin.from("comissao_tecnica_base").update(update).eq("id", pessoa.id);

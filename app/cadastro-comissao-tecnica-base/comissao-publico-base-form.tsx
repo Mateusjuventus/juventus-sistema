@@ -155,6 +155,7 @@ export function ComissaoPublicoBaseForm({
           <CurrencyField
             label="Salário mensal"
             name="valorSalario"
+            required
             defaultValue={values.valorSalario}
             error={errors.valorSalario}
           />

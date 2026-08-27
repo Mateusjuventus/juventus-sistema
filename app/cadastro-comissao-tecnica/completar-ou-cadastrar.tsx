@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
+import { TelefoneField } from "@/components/telefone-field";
 import { CurrencyField } from "@/components/currency-field";
+import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { ComissaoPublicoForm } from "./comissao-publico-form";
@@ -50,8 +52,12 @@ export function CompletarOuCadastrarComissaoTecnica() {
 
   useEffect(() => {
     if (!confirmarState.confirmado || !confirmarState.faltando) return;
-    const { tipoContrato, dataInicio, valorSalario } = confirmarState.faltando;
-    setEtapa(tipoContrato || dataInicio || valorSalario ? "completar" : "concluido");
+    const { apelido, telefone, email, foto, tipoContrato, dataInicio, valorSalario } = confirmarState.faltando;
+    setEtapa(
+      apelido || telefone || email || foto || tipoContrato || dataInicio || valorSalario
+        ? "completar"
+        : "concluido",
+    );
   }, [confirmarState.confirmado, confirmarState.faltando]);
 
   useEffect(() => {
@@ -100,13 +106,39 @@ export function CompletarOuCadastrarComissaoTecnica() {
   }
 
   if (etapa === "completar" && confirmarState.faltando) {
-    const { tipoContrato, dataInicio, valorSalario } = confirmarState.faltando;
+    const { apelido, telefone, email, foto, tipoContrato, dataInicio, valorSalario } = confirmarState.faltando;
     return (
-      <form action={completarAction} className="space-y-6">
+      <form action={completarAction} className="space-y-6" encType="multipart/form-data">
         <input type="hidden" name="cpf" value={confirmarState.cpf ?? ""} />
         <input type="hidden" name="dataNascimento" value={confirmarState.dataNascimento ?? ""} />
         <FormSection title="Complete seu cadastro">
           <FieldGroup>
+            {apelido ? (
+              <TextField
+                label="Apelido"
+                name="apelido"
+                required
+                error={completarState.fieldErrors?.apelido}
+                placeholder="Como você é chamado no dia a dia"
+              />
+            ) : null}
+            {telefone ? (
+              <TelefoneField label="Telefone" name="telefone" required error={completarState.fieldErrors?.telefone} />
+            ) : null}
+            {email ? (
+              <TextField
+                label="E-mail"
+                name="email"
+                type="email"
+                required
+                error={completarState.fieldErrors?.email}
+              />
+            ) : null}
+            {foto ? (
+              <div className="sm:col-span-2">
+                <PhotoField label="Sua foto" name="foto" required error={completarState.fieldErrors?.foto} />
+              </div>
+            ) : null}
             {tipoContrato ? (
               <SelectField
                 label="Tipo de contrato"

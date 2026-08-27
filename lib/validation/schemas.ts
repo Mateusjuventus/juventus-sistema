@@ -21,13 +21,13 @@ const telefoneField = z.string().optional().or(z.literal(""));
  * no link público (ver `cadastroPublicoComissaoTecnicaSchema` mais abaixo). Diferente do
  * `telefoneField` genérico (usado pelo resto do sistema, sem campo com máscara ainda), por isso não
  * reaproveitamos o mesmo campo aqui. */
-const telefoneFieldValidado = z
+export const telefoneFieldValidado = z
   .string()
   .optional()
   .or(z.literal(""))
   .refine((value) => !value || isValidTelefone(value), { message: "Telefone inválido" });
 
-const emailField = z.string().email({ message: "E-mail inválido" }).optional().or(z.literal(""));
+export const emailField = z.string().email({ message: "E-mail inválido" }).optional().or(z.literal(""));
 
 /** Tipos de chave PIX oferecidos no cadastro de Staff Operacional (interno e público), nas
  * Solicitações de Pagamento/Reembolso e nos Recibos de Jogos — mesma lista em todo lugar que tem
@@ -518,13 +518,21 @@ export const completarCadastroComissaoIdentidadeSchema = z.object({
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
 });
 
-/** Passo 3 do mesmo fluxo: os três campos que podem estar faltando. Todos opcionais aqui de
- * propósito — quem decide se um campo é obrigatório é a Server Action, reconferindo no banco quais
- * campos aquele cadastro específico realmente tem vazios (nunca confia em quais campos o formulário
- * decidiu mostrar). */
-export const completarCadastroComissaoContratoSchema = z.object({
+/** Passo 3 do mesmo fluxo: os sete campos que podem estar faltando num cadastro antigo — não é só
+ * tipo de contrato/data de início/salário (os 3 campos novos da migration 0084): apelido, telefone,
+ * e-mail e foto também são opcionais no cadastro interno de sempre (`comissaoTecnicaSchema`), então
+ * qualquer cadastro feito por lá antes do link público existir pode ter ficado sem um desses, e o
+ * link público exige todos (ver `cadastroPublicoComissaoTecnicaSchema`). A foto não entra neste
+ * schema — é um arquivo, validado à parte na Server Action, mesmo padrão do cadastro novo. Todos os
+ * campos de texto aqui são opcionais de propósito — quem decide se um campo é obrigatório é a
+ * Server Action, reconferindo no banco quais campos aquele cadastro específico realmente tem vazios
+ * (nunca confia em quais campos o formulário decidiu mostrar). */
+export const completarCadastroComissaoDadosSchema = z.object({
   cpf: cpfField,
   dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+  apelido: z.string().optional().or(z.literal("")),
+  telefone: telefoneFieldValidado,
+  email: emailField,
   tipoContrato: z.enum(["clt", "pj", "sem_contrato"]).optional().or(z.literal("")),
   dataInicio: z.string().optional().or(z.literal("")),
   // Mesmo raciocínio de `cadastroPublicoComissaoTecnicaSchema.valorSalario`: o campo vem de um
@@ -537,7 +545,7 @@ export const completarCadastroComissaoContratoSchema = z.object({
     .transform((v) => (v ? Number(v) : undefined))
     .refine((v) => v === undefined || v >= 0, { message: "Informe um salário válido" }),
 });
-export type CompletarCadastroComissaoContratoInput = z.infer<typeof completarCadastroComissaoContratoSchema>;
+export type CompletarCadastroComissaoDadosInput = z.infer<typeof completarCadastroComissaoDadosSchema>;
 
 const NOVA_FUNCAO_VALUE = "__nova__";
 
