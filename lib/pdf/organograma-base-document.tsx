@@ -38,10 +38,26 @@ export interface OrganogramaBaseNoDocumento {
 const LARGURA_ROTULO_LINHA = 140;
 const GAP_ROTULO_LINHA = 12;
 const DIAGRAMA_PADDING = 24;
-// A4 paisagem = 842×595pt. Descontando as margens da página (32pt) e o cabeçalho/rodapé, sobra
-// essa área útil pro diagrama — ele encolhe (nunca amplia) pra caber nela.
-const LARGURA_PAGINA_UTIL = 760;
-const ALTURA_PAGINA_UTIL = 385;
+// A4 paisagem = 841.89×595.28pt. Descontando as margens da página e o cabeçalho/rodapé, sobra essa
+// área útil pro diagrama numa folha A4 comum.
+const A4_LARGURA = 841.89;
+const A4_ALTURA = 595.28;
+const LARGURA_PAGINA_UTIL_A4 = 770;
+const ALTURA_PAGINA_UTIL_A4 = 400;
+// Sobra fixa de cada lado (margem + cabeçalho/rodapé), reaproveitada pra calcular o tamanho da
+// página quando ela precisa crescer além do A4 (ver `ESCALA_MINIMA_PDF` abaixo).
+const MARGEM_HORIZONTAL = A4_LARGURA - LARGURA_PAGINA_UTIL_A4;
+const MARGEM_VERTICAL = A4_ALTURA - ALTURA_PAGINA_UTIL_A4;
+// Piso de escala do diagrama inteiro (caixa E letra encolhem sempre juntas, nunca só uma das duas —
+// ver "Atualização 27/08" na spec: um piso só na FONTE, com a caixa continuando a encolher sozinha,
+// fazia o texto ficar cortado bem curto demais ("Claudio R…") porque a caixa ficava bem menor do
+// que a letra precisava, mesmo a letra estando no tamanho mínimo). Escolhido levemente acima da
+// pior razão FONTE_MIN/FONTE_BASE (9/11 ≈ 0.82) pra sobrar uma margem confortável de caracteres.
+// Organogramas pequenos continuam cabendo numa folha A4 normal (encolhem até esse piso, ou nem
+// precisam encolher); organogramas grandes o bastante pra precisar de mais que isso fazem a folha
+// crescer (ver `larguraPagina`/`alturaPagina`) em vez de continuar cortando texto pra caber numa
+// folha pequena demais — do jeito que uma pessoa desenhando isso à mão usaria uma folha maior.
+const ESCALA_MINIMA_PDF = 0.85;
 
 const styles = StyleSheet.create({
   page: { padding: 32, paddingBottom: 60, fontFamily: "Helvetica", color: "#262626" },
@@ -116,16 +132,64 @@ const styles = StyleSheet.create({
   },
 });
 
-// Tamanhos de fonte de referência (pt, escala 1) — multiplicados por `escala` na hora de renderizar,
-// pra nunca vazar da caixa quando o diagrama precisa encolher pra caber numa página A4 só.
-const FONTE_NOME_BASE = 6.5;
-const FONTE_CARGO_BASE = 5.5;
-const FONTE_CABECALHO_BASE = 6;
-const FONTE_ROTULO_BASE = 6;
+// Tamanhos de fonte de referência (pt, escala 1). Como `ESCALA_MINIMA_PDF` acima já garante que a
+// escala do diagrama INTEIRO (caixa + letra, sempre juntas) nunca fica abaixo de 0.85, esses `_MIN`
+// na prática funcionam só como rede de segurança (nunca deveriam disparar sozinhos) — mantidos por
+// segurança caso `ESCALA_MINIMA_PDF` mude no futuro. Um aumento só no valor de referência (27/08,
+// primeira tentativa) não resolveu sozinho — em organogramas com bastante gente a escala ficava
+// pequena o bastante pra que qualquer valor de referência razoável ainda virasse letra minúscula
+// multiplicada por ela; só um piso de ESCALA (não só de fonte) resolve de verdade, porque um piso
+// só na fonte, com a caixa continuando a encolher sozinha, cortava o texto bem curto demais mesmo
+// a letra estando no tamanho "mínimo" (a caixa ficava menor do que a letra precisava). `overflow:
+// "hidden"` em `styles.caixa` continua como rede de segurança pra um nome excepcionalmente comprido
+// mesmo num organograma pequeno (escala 1): só corta o texto dentro da própria caixa, nunca vaza
+// por cima de outra.
+const FONTE_NOME_BASE = 11;
+const FONTE_NOME_MIN = 9;
+const FONTE_CARGO_BASE = 9;
+const FONTE_CARGO_MIN = 7.5;
+const FONTE_CABECALHO_BASE = 9;
+const FONTE_CABECALHO_MIN = 7.5;
+const FONTE_ROTULO_BASE = 9;
+const FONTE_ROTULO_MIN = 7.5;
+
+// Espelham o `paddingHorizontal` de `styles.caixa`/`styles.cabecalhoGrupo`/`styles.rotuloLinha`
+// acima — usados só pra calcular a largura disponível pro texto em `truncarParaCaber`.
+const PADDING_HORIZONTAL_CAIXA = 6;
+const PADDING_HORIZONTAL_ROTULO = 3;
+
+// Largura média de um caractere como fração do tamanho da fonte, usada por `truncarParaCaber` —
+// nome (negrito, minúsculas/maiúsculas misturadas), cargo (normal) e cabeçalho/rótulo (negrito,
+// CAIXA ALTA + letterSpacing, por isso mais largo que o nome).
+const FATOR_LARGURA_NOME = 0.58;
+const FATOR_LARGURA_CARGO = 0.5;
+const FATOR_LARGURA_CAIXA_ALTA = 0.68;
 
 interface Ponto {
   x: number;
   y: number;
+}
+
+/**
+ * Corta o texto (com "…" no fim) pra caber numa linha só dentro de `larguraDisponivel`, usando uma
+ * largura média de caractere estimada (não temos como medir a largura real do texto renderizado sem
+ * rodar o PDF — react-pdf não tem um `text-overflow: ellipsis` embutido nem mede texto antes de
+ * desenhar). Necessário desde que o piso de tamanho de fonte (`FONTE_*_MIN`) passou a existir: sem
+ * cortar, um nome comprido podia quebrar em duas linhas dentro da caixa — como a caixa só reserva
+ * espaço pra UMA linha de nome + uma de cargo, a segunda linha do nome acabava desenhada em cima do
+ * cargo (bug visto no teste visual de 27/08). `fatorLargura` é a largura média de um caractere como
+ * fração do tamanho da fonte (maior para negrito/caixa alta, que são mais largos).
+ */
+function truncarParaCaber(
+  texto: string,
+  larguraDisponivel: number,
+  fontSize: number,
+  fatorLargura: number,
+): string {
+  const larguraEstimada = texto.length * fontSize * fatorLargura;
+  if (larguraEstimada <= larguraDisponivel) return texto;
+  const caracteresQueCabem = Math.max(1, Math.floor(larguraDisponivel / (fontSize * fatorLargura)) - 1);
+  return texto.slice(0, caracteresQueCabem).trimEnd() + "…";
 }
 
 /** Mesmos 4 cálculos do `OrganogramaEditor` (posição de cada caixa, cabeçalho de grupo, rótulo de
@@ -187,17 +251,17 @@ function calcularDiagrama(nos: OrganogramaBaseNoDocumento[]) {
     ...cabecalhosGrupo.map((c) => ({ x: c.x, y: c.y })),
     ...rotulosLinha.map((r) => ({ x: r.x, y: r.y })),
   ];
+  // Limites reais do conteúdo, sem forçar simetria em torno de x=0 — uma versão anterior espelhava
+  // esse cálculo (minX = -maxX) só pra manter o Presidente centralizado, mas a grade de membros
+  // normalmente estica bem mais pra um lado que a árvore de liderança, então isso preenchia o lado
+  // curto com espaço vazio do tamanho do lado longo (o texto acabava visualmente deslocado pra um
+  // canto da página mesmo com `diagramaWrap` centralizando o bloco — o "espaço grande" que o Mateus
+  // reportou, mesmo caso já corrigido na tela, ver spec de 27/08). `diagramaWrap: alignItems:
+  // "center"` já centraliza o bloco (agora do tamanho certo) na página sozinho.
   const minXBruto = Math.min(...todasAsPosicoes.map((p) => p.x));
   const maxXBruto = Math.max(...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
-  // No eixo X, o retângulo é sempre simétrico em torno de 0 — é onde a árvore de liderança (o
-  // Presidente incluído) sempre fica centrada (ver `calcularLayoutAutomatico`). Sem isso, um lado do
-  // diagrama esticando mais que o outro (grade com mais colunas de um lado, rótulo de linha saindo
-  // pra esquerda...) deixava o Presidente fora do centro visual, mesmo com o bloco todo centralizado
-  // na página. No eixo Y não faz sentido (não tem simetria vertical pra manter), então continua
-  // envolvendo só o conteúdo de verdade.
-  const extensaoX = Math.max(Math.abs(minXBruto), Math.abs(maxXBruto), LARGURA_CAIXA / 2);
-  const minX = -extensaoX;
-  const maxX = extensaoX;
+  const minX = minXBruto;
+  const maxX = maxXBruto;
   const minY = Math.min(...todasAsPosicoes.map((p) => p.y));
   const maxY = Math.max(...todasAsPosicoes.map((p) => p.y + ALTURA_CAIXA));
 
@@ -216,8 +280,14 @@ export function OrganogramaBaseDocument({
   const diagrama = calcularDiagrama(nos);
   const larguraConteudo = diagrama.maxX - diagrama.minX + DIAGRAMA_PADDING * 2;
   const alturaConteudo = diagrama.maxY - diagrama.minY + DIAGRAMA_PADDING * 2;
-  // Encolhe pra caber na página — nunca amplia (um organograma pequeno não deve virar gigante).
-  const escala = Math.min(1, LARGURA_PAGINA_UTIL / larguraConteudo, ALTURA_PAGINA_UTIL / alturaConteudo);
+  // Encolhe pra caber numa folha A4 — nunca amplia (um organograma pequeno não deve virar gigante) —
+  // mas nunca abaixo do piso de legibilidade (`ESCALA_MINIMA_PDF`). Um organograma grande o
+  // bastante pra precisar encolher além do piso faz a FOLHA crescer (abaixo) em vez de continuar
+  // encolhendo caixa e letra.
+  const escala = Math.max(
+    ESCALA_MINIMA_PDF,
+    Math.min(1, LARGURA_PAGINA_UTIL_A4 / larguraConteudo, ALTURA_PAGINA_UTIL_A4 / alturaConteudo),
+  );
   const deslocX = -diagrama.minX + DIAGRAMA_PADDING;
   const deslocY = -diagrama.minY + DIAGRAMA_PADDING;
 
@@ -231,10 +301,14 @@ export function OrganogramaBaseDocument({
   const alturaCaixaPdf = ALTURA_CAIXA * escala;
   const alturaCabecalhoPdf = ALTURA_CABECALHO_GRUPO * escala;
   const larguraRotuloPdf = LARGURA_ROTULO_LINHA * escala;
+  // A folha só cresce além do A4 quando o diagrama, mesmo no piso de escala, ainda não cabe na área
+  // útil padrão — organograma pequeno/médio continua numa folha A4 comum, sem surpresa.
+  const larguraPagina = Math.max(A4_LARGURA, larguraFinal + MARGEM_HORIZONTAL);
+  const alturaPagina = Math.max(A4_ALTURA, alturaFinal + MARGEM_VERTICAL);
 
   return (
     <Document>
-      <Page size="A4" orientation="landscape" style={styles.page}>
+      <Page size={[larguraPagina, alturaPagina]} style={styles.page}>
         <View style={styles.headerRow}>
           {juventusLogoSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
@@ -257,13 +331,14 @@ export function OrganogramaBaseDocument({
 
             {diagrama.cabecalhosGrupo.map((c) => {
               const p = pt(c);
+              const fontSize = Math.max(FONTE_CABECALHO_MIN, FONTE_CABECALHO_BASE * escala);
               return (
                 <View
                   key={c.grupo}
                   style={[styles.cabecalhoGrupo, { left: p.x, top: p.y, width: larguraCaixaPdf, height: alturaCabecalhoPdf }]}
                 >
-                  <Text style={[styles.cabecalhoGrupoTexto, { fontSize: FONTE_CABECALHO_BASE * escala }]}>
-                    {c.grupo}
+                  <Text style={[styles.cabecalhoGrupoTexto, { fontSize }]}>
+                    {truncarParaCaber(c.grupo, larguraCaixaPdf - PADDING_HORIZONTAL_ROTULO * 2, fontSize, FATOR_LARGURA_CAIXA_ALTA)}
                   </Text>
                 </View>
               );
@@ -271,12 +346,15 @@ export function OrganogramaBaseDocument({
 
             {diagrama.rotulosLinha.map((r) => {
               const p = pt(r);
+              const fontSize = Math.max(FONTE_ROTULO_MIN, FONTE_ROTULO_BASE * escala);
               return (
                 <View
                   key={r.linha}
                   style={[styles.rotuloLinha, { left: p.x, top: p.y, width: larguraRotuloPdf, height: alturaCaixaPdf }]}
                 >
-                  <Text style={[styles.rotuloLinhaTexto, { fontSize: FONTE_ROTULO_BASE * escala }]}>{r.linha}</Text>
+                  <Text style={[styles.rotuloLinhaTexto, { fontSize }]}>
+                    {truncarParaCaber(r.linha, larguraRotuloPdf - PADDING_HORIZONTAL_ROTULO * 2, fontSize, FATOR_LARGURA_CAIXA_ALTA)}
+                  </Text>
                 </View>
               );
             })}
@@ -286,6 +364,9 @@ export function OrganogramaBaseDocument({
               if (!pos) return null;
               const p = pt(pos);
               const lideranca = !no.grupo;
+              const larguraTexto = larguraCaixaPdf - PADDING_HORIZONTAL_CAIXA * 2;
+              const fontSizeNome = Math.max(FONTE_NOME_MIN, FONTE_NOME_BASE * escala);
+              const fontSizeCargo = Math.max(FONTE_CARGO_MIN, FONTE_CARGO_BASE * escala);
               return (
                 <View
                   key={no.id}
@@ -298,19 +379,19 @@ export function OrganogramaBaseDocument({
                   <Text
                     style={[
                       styles.caixaNome,
-                      { fontSize: FONTE_NOME_BASE * escala, color: lideranca ? "#ffffff" : CORES.grenaEscuro },
+                      { fontSize: fontSizeNome, color: lideranca ? "#ffffff" : CORES.grenaEscuro },
                     ]}
                   >
-                    {no.nomeExibido}
+                    {truncarParaCaber(no.nomeExibido, larguraTexto, fontSizeNome, FATOR_LARGURA_NOME)}
                   </Text>
                   {no.cargoExibido ? (
                     <Text
                       style={[
                         styles.caixaCargo,
-                        { fontSize: FONTE_CARGO_BASE * escala, color: lideranca ? "#ffffffcc" : "#737373" },
+                        { fontSize: fontSizeCargo, color: lideranca ? "#ffffffcc" : "#737373" },
                       ]}
                     >
-                      {no.cargoExibido}
+                      {truncarParaCaber(no.cargoExibido, larguraTexto, fontSizeCargo, FATOR_LARGURA_CARGO)}
                     </Text>
                   ) : null}
                 </View>

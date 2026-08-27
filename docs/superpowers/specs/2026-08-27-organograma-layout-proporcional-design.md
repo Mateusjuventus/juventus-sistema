@@ -213,3 +213,65 @@ faz backfill: quem já tinha posição salva vira `pos_manual = true` (mais segu
 arranjos que o Mateus já ajustou na mão). Verificado com uma simulação isolada do algoritmo (sem
 Supabase): 6 caixas de liderança adicionadas em sequência, nunca uma sobrepõe outra; uma caixa
 marcada manual mantém a posição mesmo com novas caixas sendo criadas depois dela.
+
+## Atualização (27/08, mesmo dia) — letra do PDF ainda pequena; piso de fonte + corte de texto
+
+O aumento de fonte da rodada anterior (valores de referência maiores, ver acima) não resolveu de
+verdade: em organogramas com bastante gente a escala já é pequena o bastante (bate no lado da
+ALTURA, não da largura — hierarquia de liderança com vários níveis) pra que qualquer valor de
+referência razoável, multiplicado por ela, ainda vire letra minúscula. O Mateus confirmou ("AUMENTA
+POR FAVOR") que continuava pequeno.
+
+Também nesse teste, medindo os pixels de um screenshot dele lado a lado com um render de teste meu:
+o PDF **já estava centralizado corretamente** (`diagramaWrap: alignItems: "center"` funciona) — o
+screenshot dele tinha proporção de tela bem diferente de uma página A4 paisagem (1367×761 vs a
+proporção real 842×595), sinal de que era uma janela/visualizador cortando/rolando a página, não o
+PDF em si fora do centro. Vale avisar isso a ele e pedir pra conferir abrindo o arquivo completo.
+
+Correção da letra: os 4 tamanhos de fonte (`FONTE_*_BASE`) ganharam um **piso mínimo**
+(`FONTE_*_MIN`) — a letra nunca fica menor que isso, mesmo que a escala continue encolhendo. Como um
+piso de fonte, sem mais nada, faz o nome às vezes precisar de 2 linhas dentro de uma caixa que só
+tem espaço pra 1 (a segunda linha do nome ficava desenhada em cima do cargo — bug visto no teste
+visual, `overflow: "hidden"` não evita isso porque o conteúdo cresce dentro da própria caixa, não
+"vaza" pra fora dela), o texto (nome, cargo, cabeçalho de grupo, rótulo de linha) agora passa por
+`truncarParaCaber` antes de renderizar: corta com "…" se a largura estimada do texto (comprimento ×
+tamanho da fonte × uma largura média de caractere) não couber na largura disponível da caixa. É uma
+estimativa (react-pdf não mede o texto real antes de desenhar), calibrada visualmente pra não deixar
+sobrar/faltar demais. Também aumentei um pouco o orçamento de página usado (`LARGURA_PAGINA_UTIL`
+760→770, `ALTURA_PAGINA_UTIL` 385→400 — ainda dentro da margem real da folha A4 paisagem).
+
+Verificado com o mesmo script de render + inspeção visual (e, dessa vez, medição de pixel por
+código pra achar precisamente onde o texto começa/termina, não só olhando a imagem): num
+organograma pequeno (escala 1) os nomes aparecem inteiros, sem cortar; num organograma parecido com
+o real do Mateus (~5 colunas + hierarquia com vários níveis, escala ~0.32) a letra fica bem maior
+que antes e nunca mais sobrepõe nada — nomes longos cortam com "…" em vez de quebrar linha.
+
+## Atualização (27/08, mesmo dia) — piso de FONTE sozinho não bastava; agora é piso de ESCALA + folha que cresce
+
+Rodando o script de render com dados parecidos de verdade com os do Mateus (~30 pessoas, vários
+níveis de liderança + 5 colunas de grupo, um deles — TREINADOR — empilhando vários técnicos), a
+escala calculada ficou em ~0.33 (o lado da ALTURA é o gargalo, não a largura). Nesse cenário a
+correção da rodada anterior (piso só na FONTE, com a CAIXA continuando a encolher sozinha até
+0.33×) tem um bug: a caixa fica menor do que a letra no tamanho "mínimo" precisa — o resultado, visto
+no render de teste, é texto cortado bem curto demais ("Claudio R…" pra "Claudio Roberto Fiorito
+Filho", praticamente todo nome virando só as primeiras 2-3 palavras). Achei isso ANTES de mandar
+pro Mateus, rodando o script de preview que tinha ficado pendente — bom ter simulado com dados
+parecidos com os reais em vez de só um organograma pequeno de teste.
+
+Causa raiz: caixa e fonte encolhiam por escalas diferentes na prática — a fonte parava de encolher
+no piso, a caixa não. Correção: o piso passa a ser da ESCALA do diagrama inteiro
+(`ESCALA_MINIMA_PDF = 0.85`), não só da fonte — caixa e letra sempre encolhem juntas, na mesma
+proporção, então o "encaixe" de caracteres por caixa fica sempre parecido com o de um organograma
+que nunca precisou encolher (os pisos de fonte antigos, `FONTE_*_MIN`, viram rede de segurança
+redundante, já que 0.85 é folgado acima da pior razão MIN/BASE deles, ~0.82). Consequência: um
+organograma grande o bastante pra precisar de escala menor que 0.85 não cabe mais espremido numa
+folha A4 — em vez disso a FOLHA cresce (`larguraPagina`/`alturaPagina`, usando `size={[largura,
+altura]}` do react-pdf em vez de `size="A4"` fixo) pra caber o diagrama nesse piso de escala.
+Organograma pequeno/médio continua numa folha A4 comum (só cresce quando precisa) — do jeito que
+uma pessoa desenhando isso à mão pegaria uma folha maior em vez de espremer a letra.
+
+Verificado de novo com o mesmo organograma de teste (~30 pessoas): a folha cresceu de A4
+(842×595pt) pra ~1258×1219pt, e virtualmente todos os nomes aparecem inteiros (só um nome
+excepcionalmente comprido cortou, esperado) — sem sobreposição, letra grande e legível, e
+centralização conferida por medição de pixel (margem esquerda/direita do desenho within ~4pt uma da
+outra, praticamente igual).
