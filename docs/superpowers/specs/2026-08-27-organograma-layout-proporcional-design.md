@@ -275,3 +275,45 @@ Verificado de novo com o mesmo organograma de teste (~30 pessoas): a folha cresc
 excepcionalmente comprido cortou, esperado) — sem sobreposição, letra grande e legível, e
 centralização conferida por medição de pixel (margem esquerda/direita do desenho within ~4pt uma da
 outra, praticamente igual).
+
+## Atualização (27/08, mesmo dia) — pessoa vinculada sumia da lista pra sempre; "mover linha" sem feedback
+
+Três pedidos do Mateus na mesma rodada, todos ligados ao mesmo ponto de fricção real:
+
+1. Perguntou como vincular a MESMA pessoa em mais de uma categoria (ex.: um técnico que atende Sub15
+   E Sub17 — precisa de uma caixa em cada).
+2. Reportou que os botões "▲/▼ Mover linha" "não estão ajudando nada".
+3. Pediu pra facilitar a inclusão de pessoas no organograma, e um "botão de salvar" perto do painel
+   de mover linha.
+
+Investigando o seletor "Pessoa da Comissão Técnica" (`PainelEdicao` em `organograma-editor.tsx`):
+uma vez que uma pessoa é vinculada a QUALQUER caixa do organograma, ela desaparecia da lista pra
+sempre (`pessoasDisponiveis` filtrava fora quem já tivesse uma `comissao_tecnica_base_id` usada em
+`nos`) — pensado originalmente só pra evitar vínculo duplicado por engano. Efeito colateral: (a)
+impossível vincular a mesma pessoa numa segunda caixa de propósito (o caso real do Sub15/Sub17
+acima), e (b) se uma caixa ficava difícil de achar na tela (por qualquer motivo — inclusive o próprio
+bug de sobreposição já corrigido antes), não tinha como vinculá-la de novo em outro lugar nem pra
+recuperar/localizar. Provavelmente a mesma causa do "sumiu da lista" relatado numa rodada anterior
+(o Igor Silvério, citado no código como o exemplo que motivou o aviso de "falta Grupo").
+
+Correção: o seletor sempre mostra todo mundo agora; quando a pessoa já está em outra caixa, o nome
+dela no seletor ganha um aviso "(já em: <grupo/linha ou "liderança">)" — não impede escolher de novo,
+só avisa, então dá pra vincular de propósito (Sub15 e Sub17 viram duas caixas normais, mesma pessoa)
+sem abrir mão do aviso contra duplicar sem querer.
+
+Sobre "mover linha não ajuda nada": `moverLinhaOrganograma` (`actions.ts`) tinha DOIS lugares onde um
+erro do Supabase desaparecia em silêncio — a `select` inicial ignorava `error`, e nenhum dos `update`
+em paralelo (`Promise.all`) era conferido depois. Se algo desse errado (RLS, rede, o que for), o
+clique literalmente não fazia nada visível e não tinha como saber se era um bug ou erro passageiro.
+Agora a função devolve `{ error }` quando algo falha, e o painel mostra a mensagem no lugar do texto
+de ajuda. Não adicionei um botão de "Salvar" separado ali — os botões já movem/salvam na hora
+(propositalmente, pra não precisar digitar número), então um botão a mais seria redundante; o que
+faltava era o retorno de erro visível, que é o que resolve de verdade a sensação de "não fez nada".
+Perguntei ao Mateus se isso resolve ou se ele queria mesmo um botão explícito por outro motivo.
+
+Não mudei o espaçamento vertical dentro de uma coluna quando ela só tem gente em ALGUMAS
+`linha`s da grade (ex.: coluna "Preparador Físico" só com Sub20 e mais uma linha bem abaixo, gerando
+um vão grande entre as duas) — é o comportamento pretendido da grade (todas as colunas alinham na
+MESMA altura pra cada `linha`, mesmo que uma coluna específica não tenha ninguém numa linha que
+outra coluna usa); comprimir por coluna quebraria esse alinhamento, que é o ponto central do desenho
+em grade. Expliquei isso ao Mateus em vez de mudar o código.

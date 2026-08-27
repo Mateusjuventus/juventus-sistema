@@ -84,11 +84,24 @@ function PainelEdicao({
   filhosCount: number;
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
   excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
-  moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<void>;
+  moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<{ error?: string }>;
   aoFechar: () => void;
 }) {
   const [state, formAction] = useFormState(salvarAction, {} as OrganogramaNoFormState);
   const [vinculada, setVinculada] = useState(no?.comissaoTecnicaBaseId ?? "");
+  // Feedback do "Mover linha pra cima/baixo" — os botões já movem na hora (sem precisar de um botão
+  // de Salvar à parte), mas antes um erro do Supabase aí desaparecia em silêncio e o clique parecia
+  // simplesmente não fazer nada (spec de 27/08). "movendo" mostra feedback imediato mesmo quando o
+  // resultado visual demora um instante pra chegar (revalidação da página).
+  const [statusMoverLinha, setStatusMoverLinha] = useState<{ tipo: "movendo" | "erro"; texto?: string } | null>(
+    null,
+  );
+  async function moverLinha(direcao: "cima" | "baixo") {
+    if (!no?.linha) return;
+    setStatusMoverLinha({ tipo: "movendo" });
+    const resultado = await moverLinhaAction(no.linha, direcao);
+    setStatusMoverLinha(resultado.error ? { tipo: "erro", texto: resultado.error } : null);
+  }
   const [grupoValor, setGrupoValor] = useState(no?.grupo ?? "");
   const [linhaValor, setLinhaValor] = useState(no?.linha ?? "");
   // Controla se o seletor de Linha está mostrando o campo de texto livre ("+ Outra...") em vez da
@@ -119,6 +132,21 @@ function PainelEdicao({
   }, [state]);
 
   const opcoesReportaPara = todosOsNos.filter((n) => n.id !== no?.id);
+
+  // Onde cada pessoa da Comissão Técnica já está vinculada no organograma (fora da própria caixa
+  // sendo editada) — mostrado junto ao nome dela no seletor abaixo. Antes, uma pessoa já vinculada a
+  // QUALQUER caixa sumia da lista pra sempre (não dava pra vincular a mesma pessoa numa segunda
+  // caixa) — impedia justamente o caso real de alguém que atende mais de uma categoria (ex.: técnico
+  // de Sub15 E Sub17: precisa de uma caixa em cada), e também dificultava recuperar uma caixa que
+  // ficou difícil de achar na tela (a pessoa "sumia" da lista, sem jeito de vinculá-la de novo em
+  // outro lugar pra ao menos localizá-la). Agora toda pessoa continua na lista sempre; só avisa onde
+  // ela já está, pra evitar um vínculo duplicado por engano sem impedir um de propósito.
+  const usosPorPessoa = new Map<string, string[]>();
+  for (const n of todosOsNos) {
+    if (!n.comissaoTecnicaBaseId || n.id === no?.id) continue;
+    const rotulo = n.grupo ? (n.linha ? `${n.grupo} · ${n.linha}` : n.grupo) : "liderança";
+    usosPorPessoa.set(n.comissaoTecnicaBaseId, [...(usosPorPessoa.get(n.comissaoTecnicaBaseId) ?? []), rotulo]);
+  }
 
   // Sugestões de autocompletar (via <datalist>) com os valores de Grupo/Linha já usados nas outras
   // caixas — sem isso é fácil digitar "Comissão Sub20" numa caixa e "comissao sub 20" noutra e as
@@ -165,14 +193,21 @@ function PainelEdicao({
             onChange={(e) => setVinculada(e.target.value)}
           >
             <option value="">— sem vínculo (preencher à mão) —</option>
-            {pessoasDisponiveis.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome} — {p.cargo}
-              </option>
-            ))}
+            {pessoasDisponiveis.map((p) => {
+              const usos = usosPorPessoa.get(p.id);
+              return (
+                <option key={p.id} value={p.id}>
+                  {p.nome} — {p.cargo}
+                  {usos ? ` (já em: ${usos.join(", ")})` : ""}
+                </option>
+              );
+            })}
           </select>
           <p className="mt-1 text-xs text-neutral-400">
-            Vinculando, nome e cargo vêm sempre do cadastro — se ela mudar lá, muda aqui também.
+            Vinculando, nome e cargo vêm sempre do cadastro — se ela mudar lá, muda aqui também. Dá pra
+            vincular a mesma pessoa em mais de uma caixa (ex.: um técnico que atende Sub15 e Sub17) — o
+            &quot;já em: ...&quot; ao lado do nome só avisa onde ela já está, não impede escolher de
+            novo.
           </p>
         </div>
 
@@ -270,8 +305,8 @@ function PainelEdicao({
               <button
                 type="button"
                 className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={posicaoDaLinha <= 0}
-                onClick={() => void moverLinhaAction(no!.linha!, "cima")}
+                disabled={posicaoDaLinha <= 0 || statusMoverLinha?.tipo === "movendo"}
+                onClick={() => void moverLinha("cima")}
                 title={posicaoDaLinha <= 0 ? "Essa linha já é a primeira — não tem pra onde subir." : undefined}
               >
                 ▲ Mover linha pra cima
@@ -279,8 +314,10 @@ function PainelEdicao({
               <button
                 type="button"
                 className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={posicaoDaLinha === -1 || posicaoDaLinha >= linhasOrdenadas.length - 1}
-                onClick={() => void moverLinhaAction(no!.linha!, "baixo")}
+                disabled={
+                  posicaoDaLinha === -1 || posicaoDaLinha >= linhasOrdenadas.length - 1 || statusMoverLinha?.tipo === "movendo"
+                }
+                onClick={() => void moverLinha("baixo")}
                 title={
                   posicaoDaLinha !== -1 && posicaoDaLinha >= linhasOrdenadas.length - 1
                     ? "Essa linha já é a última — não tem pra onde descer."
@@ -290,13 +327,17 @@ function PainelEdicao({
                 ▼ Mover linha pra baixo
               </button>
             </div>
-            <p className="mt-1 text-xs text-neutral-400">
-              Move a linha inteira &quot;{no!.linha}&quot; — todas as colunas dessa linha sobem ou descem
-              juntas, sem sair do alinhamento. Não precisa digitar número nem salvar: já move na hora.
-              {linhasOrdenadas.length <= 1
-                ? " Os botões ficam desativados enquanto essa for a única linha da grade — assim que houver outra, dá pra reordenar."
-                : ""}
-            </p>
+            {statusMoverLinha?.tipo === "erro" ? (
+              <p className="mt-1 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{statusMoverLinha.texto}</p>
+            ) : (
+              <p className="mt-1 text-xs text-neutral-400">
+                Move a linha inteira &quot;{no!.linha}&quot; — todas as colunas dessa linha sobem ou descem
+                juntas, sem sair do alinhamento. Não precisa digitar número nem salvar: já move na hora.
+                {linhasOrdenadas.length <= 1
+                  ? " Os botões ficam desativados enquanto essa for a única linha da grade — assim que houver outra, dá pra reordenar."
+                  : ""}
+              </p>
+            )}
           </div>
         ) : null}
 
@@ -402,7 +443,7 @@ export function OrganogramaEditor({
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
   moverAction: (id: string, x: number, y: number) => Promise<void>;
   excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
-  moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<void>;
+  moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<{ error?: string }>;
 }) {
   const [selecionado, setSelecionado] = useState<string | "novo" | null>(null);
 
@@ -692,9 +733,7 @@ export function OrganogramaEditor({
           no={noSelecionado}
           todosOsNos={nos}
           linhasOrdenadas={linhasOrdenadas}
-          pessoasDisponiveis={pessoasComissao.filter(
-            (p) => p.id === noSelecionado?.comissaoTecnicaBaseId || !nos.some((n) => n.comissaoTecnicaBaseId === p.id),
-          )}
+          pessoasDisponiveis={pessoasComissao}
           filhosCount={filhosDoSelecionado}
           salvarAction={salvarAction}
           excluirAction={excluirAction}

@@ -142,15 +142,24 @@ export async function salvarNoOrganograma(
  * reordenar célula de grade "na mão" sem digitar número: como todas as colunas daquela linha viram
  * juntas (o valor de `ordem` de cada uma soma o mesmo deslocamento), a linha troca de posição com a
  * vizinha sem desalinhar nada.
+ *
+ * Devolve `{ error }` em vez de simplesmente não fazer nada quando alguma coisa falha — antes, um
+ * erro do Supabase aqui desaparecia em silêncio (a `select` inicial ignorava `error`, e nenhum dos
+ * `update` em paralelo era conferido), então clicar no botão "de verdade" não fazia nada e não tinha
+ * como o Mateus saber se era um erro ou se o botão simplesmente não funcionava (spec de 27/08).
  */
-export async function moverLinhaOrganograma(linha: string, direcao: "cima" | "baixo"): Promise<void> {
-  if (!linha) return;
+export async function moverLinhaOrganograma(
+  linha: string,
+  direcao: "cima" | "baixo",
+): Promise<{ error?: string }> {
+  if (!linha) return {};
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error: erroSelect } = await supabase
     .from("organograma_base")
     .select("id, ordem, linha, grupo")
     .not("grupo", "is", null)
     .not("linha", "is", null);
+  if (erroSelect) return { error: `Não foi possível mover: ${erroSelect.message}` };
   const nos = (data ?? []) as { id: string; ordem: number; linha: string; grupo: string }[];
 
   const porLinha = new Map<string, typeof nos>();
@@ -162,9 +171,9 @@ export async function moverLinhaOrganograma(linha: string, direcao: "cima" | "ba
     (a, b) => Math.min(...a[1].map((n) => n.ordem)) - Math.min(...b[1].map((n) => n.ordem)),
   );
   const indiceAtual = ordenadas.findIndex(([l]) => l === linha);
-  if (indiceAtual === -1) return;
+  if (indiceAtual === -1) return { error: "Essa linha não foi encontrada — atualize a página e tente de novo." };
   const indiceAlvo = direcao === "cima" ? indiceAtual - 1 : indiceAtual + 1;
-  if (indiceAlvo < 0 || indiceAlvo >= ordenadas.length) return; // já é a primeira/última, não faz nada
+  if (indiceAlvo < 0 || indiceAlvo >= ordenadas.length) return {}; // já é a primeira/última, não faz nada
 
   const [, nosA] = ordenadas[indiceAtual];
   const [, nosB] = ordenadas[indiceAlvo];
@@ -172,11 +181,15 @@ export async function moverLinhaOrganograma(linha: string, direcao: "cima" | "ba
   const minB = Math.min(...nosB.map((n) => n.ordem));
   const deslocamento = minB - minA;
 
-  await Promise.all([
+  const resultados = await Promise.all([
     ...nosA.map((n) => supabase.from("organograma_base").update({ ordem: n.ordem + deslocamento }).eq("id", n.id)),
     ...nosB.map((n) => supabase.from("organograma_base").update({ ordem: n.ordem - deslocamento }).eq("id", n.id)),
   ]);
+  const erro = resultados.find((r) => r.error);
+  if (erro?.error) return { error: `Não foi possível mover: ${erro.error.message}` };
+
   revalidatePath(CAMINHO);
+  return {};
 }
 
 /** Salva a posição arrastada. Chamada direto pelo componente cliente (não é um `<form>`), disparada
