@@ -9,6 +9,7 @@ import {
   calcularConectores,
   calcularEscalaOrganograma,
   calcularLayoutAutomatico,
+  calcularScrollHorizontalCentralizado,
   type OrganogramaNo,
 } from "@/lib/futebol/organograma";
 import { DeleteButton } from "@/components/delete-button";
@@ -438,6 +439,10 @@ export function OrganogramaEditor({
     return () => observer.disconnect();
   }, []);
 
+  // Só uma vez por carregamento da tela (a ref evita brigar com a rolagem que o Mateus fizer depois
+  // manualmente) — ver efeito mais abaixo, depois de `deslocX`/`escala` calculados.
+  const jaCentralizouRef = useRef(false);
+
   const layoutAutomatico = useMemo(
     () =>
       calcularLayoutAutomatico(
@@ -548,6 +553,17 @@ export function OrganogramaEditor({
   // horizontal — só entra em ação com a medida real do cartão em mãos; antes disso (primeira
   // renderização) assume escala 1 pra não "piscar" um tamanho errado.
   const escala = larguraCartao !== null ? calcularEscalaOrganograma(largura, larguraCartao) : 1;
+
+  // Ao abrir a tela, a rolagem horizontal começa centrada em quem está no topo (Presidente
+  // incluído) — nunca numa fatia arbitrária da grade de colunas (pedido do Mateus, ver spec de
+  // 27/08). Espera a medida real do cartão chegar antes de calcular.
+  useEffect(() => {
+    if (jaCentralizouRef.current) return;
+    const elemento = cartaoRef.current;
+    if (!elemento || larguraCartao === null) return;
+    elemento.scrollLeft = calcularScrollHorizontalCentralizado(deslocX, escala, larguraCartao);
+    jaCentralizouRef.current = true;
+  }, [larguraCartao, deslocX, escala]);
 
   function tela(pos: { x: number; y: number }) {
     return { x: pos.x + deslocX, y: pos.y + deslocY };

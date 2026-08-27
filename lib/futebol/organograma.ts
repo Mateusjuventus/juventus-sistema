@@ -39,11 +39,6 @@ const GAP_Y_MEMBRO = 12;
  * quem reporta pra ela — ver `calcularConectores` abaixo. */
 export const GAP_BARRAMENTO = 20;
 
-/** Encolhimento mínimo permitido do Organograma na tela (`OrganogramaEditor`) antes de voltar a
- * valer o scroll horizontal — mesmo piso já usado no PDF do Campograma
- * (`lib/pdf/campograma-document.tsx`), consistente com o resto do sistema. */
-export const ESCALA_MINIMA_ORGANOGRAMA = 0.6;
-
 function ordenar(nos: OrganogramaNo[]): OrganogramaNo[] {
   return [...nos].sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id));
 }
@@ -218,13 +213,36 @@ export function calcularConectores(
 
 /**
  * Fator de escala visual do Organograma na tela (`OrganogramaEditor`) — encolhe (nunca amplia) pra
- * caber na largura disponível do cartão, com piso em `ESCALA_MINIMA_ORGANOGRAMA` (abaixo disso volta
- * a valer o scroll horizontal em vez de continuar encolhendo até ficar ilegível). Só a largura entra
- * nessa conta — a altura continua com scroll vertical normal, que já existe e não foi reportada como
- * problema (ver spec de 27/08).
+ * caber inteiro na largura disponível do cartão, sem piso mínimo: o Organograma nunca deve exigir
+ * scroll horizontal nem zoom manual do navegador pra caber na tela, custe o que custar de letra
+ * pequena (mesmo raciocínio "sempre cabe numa página só" já usado no PDF, ver `calcularDiagrama` em
+ * `lib/pdf/organograma-base-document.tsx`). Um piso de 0.6 chegou a ser usado aqui, mas testes reais
+ * do Mateus mostraram que ele ainda deixava o desenho maior que a tela com volume real de colunas —
+ * removido (ver atualização de 27/08 na spec de layout proporcional). Só a largura entra nessa
+ * conta — a altura continua com scroll vertical normal, que já existe e não foi reportada como
+ * problema.
  */
 export function calcularEscalaOrganograma(larguraNatural: number, larguraDisponivel: number): number {
   if (larguraNatural <= 0 || larguraDisponivel <= 0) return 1;
-  const bruta = larguraDisponivel / larguraNatural;
-  return Math.min(1, Math.max(ESCALA_MINIMA_ORGANOGRAMA, bruta));
+  return Math.min(1, larguraDisponivel / larguraNatural);
+}
+
+/**
+ * Posição de rolagem horizontal (`scrollLeft`) que deixa o topo da árvore de liderança — sempre
+ * centrado no "x=0" lógico, Presidente incluído, ver `calcularLayoutAutomatico` — no meio do cartão
+ * visível. Usada uma vez, ao abrir a tela do Organograma: como regra, quem está no topo é o primeiro
+ * ponto de referência de qualquer organograma, então a tela nunca deve abrir mostrando uma fatia
+ * arbitrária da grade de colunas em vez dele (pedido do Mateus, ver spec de 27/08).
+ *
+ * `deslocX` é o deslocamento que o próprio `OrganogramaEditor` já calcula pra converter posição
+ * lógica em posição de tela (ver função `tela()` local) — multiplicado por `escala` porque o
+ * `scrollLeft` do navegador opera em pixels JÁ renderizados (depois do `transform: scale()`), não
+ * em pixels lógicos.
+ */
+export function calcularScrollHorizontalCentralizado(
+  deslocX: number,
+  escala: number,
+  larguraDisponivel: number,
+): number {
+  return Math.max(0, deslocX * escala - larguraDisponivel / 2);
 }
