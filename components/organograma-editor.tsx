@@ -6,6 +6,8 @@ import {
   ALTURA_CAIXA,
   ALTURA_CABECALHO_GRUPO,
   LARGURA_CAIXA,
+  calcularConectores,
+  calcularEscalaOrganograma,
   calcularLayoutAutomatico,
   type OrganogramaNo,
 } from "@/lib/futebol/organograma";
@@ -418,6 +420,24 @@ export function OrganogramaEditor({
     null,
   );
 
+  // Largura disponível do cartão onde o organograma é desenhado — usada pra calcular o quanto o
+  // desenho precisa encolher pra caber sem forçar scroll horizontal (ver `calcularEscalaOrganograma`
+  // e a spec de 27/08). Medida via ResizeObserver pra reagir a redimensionamento da janela/sidebar,
+  // não só ao carregar a página.
+  const cartaoRef = useRef<HTMLDivElement | null>(null);
+  const [larguraCartao, setLarguraCartao] = useState<number | null>(null);
+
+  useEffect(() => {
+    const elemento = cartaoRef.current;
+    if (!elemento) return;
+    const observer = new ResizeObserver((entries) => {
+      const largura = entries[0]?.contentRect.width;
+      if (largura) setLarguraCartao(largura);
+    });
+    observer.observe(elemento);
+    return () => observer.disconnect();
+  }, []);
+
   const layoutAutomatico = useMemo(
     () =>
       calcularLayoutAutomatico(
@@ -500,48 +520,9 @@ export function OrganogramaEditor({
   );
 
   // Conectores em ângulo reto (tronco descendo do pai, barramento horizontal, pé descendo até
-  // cada filho) — igual à imagem de referência do Mateus. Uma linha diagonal direta (o que tinha
-  // antes) não é fiel ao desenho de organograma que ele mandou.
-  const conectores = useMemo(() => {
-    const porPai = new Map<string, { x: number; y: number }[]>();
-    for (const no of nos) {
-      if (!no.reportaPara) continue;
-      const pos = posicoes.get(no.id);
-      if (!pos) continue;
-      porPai.set(no.reportaPara, [...(porPai.get(no.reportaPara) ?? []), pos]);
-    }
-    const segmentos: { key: string; x1: number; y1: number; x2: number; y2: number }[] = [];
-    for (const [paiId, filhos] of porPai) {
-      const pai = posicoes.get(paiId);
-      if (!pai || filhos.length === 0) continue;
-      const paiCentroX = pai.x + LARGURA_CAIXA / 2;
-      const paiBaixoY = pai.y + ALTURA_CAIXA;
-      const filhosCentroX = filhos.map((f) => f.x + LARGURA_CAIXA / 2);
-      const menorTopoFilho = Math.min(...filhos.map((f) => f.y));
-      const busY = paiBaixoY + Math.max(16, (menorTopoFilho - paiBaixoY) / 2);
-
-      // Tronco: do pé do pai até o barramento.
-      segmentos.push({ key: `${paiId}-tronco`, x1: paiCentroX, y1: paiBaixoY, x2: paiCentroX, y2: busY });
-      // Barramento horizontal, cobrindo do filho mais à esquerda ao mais à direita (e o tronco do
-      // pai, se ele cair fora desse intervalo).
-      const minX = Math.min(paiCentroX, ...filhosCentroX);
-      const maxX = Math.max(paiCentroX, ...filhosCentroX);
-      if (maxX > minX) {
-        segmentos.push({ key: `${paiId}-barramento`, x1: minX, y1: busY, x2: maxX, y2: busY });
-      }
-      // Um pé descendo do barramento até cada filho.
-      filhos.forEach((f, i) => {
-        segmentos.push({
-          key: `${paiId}-pe-${i}`,
-          x1: filhosCentroX[i],
-          y1: busY,
-          x2: filhosCentroX[i],
-          y2: f.y,
-        });
-      });
-    }
-    return segmentos;
-  }, [nos, posicoes]);
+  // cada filho) — igual à imagem de referência do Mateus. Cálculo compartilhado com o PDF
+  // (`lib/pdf/organograma-base-document.tsx`) via `calcularConectores`, pra nunca divergir.
+  const conectores = useMemo(() => calcularConectores(nos, posicoes), [nos, posicoes]);
 
   const todasAsPosicoes = [
     ...[...posicoes.values()],
@@ -563,6 +544,11 @@ export function OrganogramaEditor({
   const largura = maxX - minX + PADDING * 2;
   const altura = maxY - minY + PADDING * 2;
 
+  // Encolhe o desenho inteiro (nunca amplia) pra caber na largura do cartão sem forçar scroll
+  // horizontal — só entra em ação com a medida real do cartão em mãos; antes disso (primeira
+  // renderização) assume escala 1 pra não "piscar" um tamanho errado.
+  const escala = larguraCartao !== null ? calcularEscalaOrganograma(largura, larguraCartao) : 1;
+
   function tela(pos: { x: number; y: number }) {
     return { x: pos.x + deslocX, y: pos.y + deslocY };
   }
@@ -575,9 +561,12 @@ export function OrganogramaEditor({
     function mover(ev: PointerEvent) {
       const arrasto = arrastoRef.current;
       if (!arrasto) return;
+      // Divide pelo fator de escala: com o desenho encolhido, cada pixel real que o cursor anda
+      // corresponde a mais de um pixel "lógico" de posição — sem isso, arrastar sob uma escala menor
+      // que 1 moveria a caixa mais rápido que o cursor.
       const novaPos = {
-        x: arrasto.origemX + (ev.clientX - arrasto.inicioX),
-        y: arrasto.origemY + (ev.clientY - arrasto.inicioY),
+        x: arrasto.origemX + (ev.clientX - arrasto.inicioX) / escala,
+        y: arrasto.origemY + (ev.clientY - arrasto.inicioY) / escala,
       };
       setOverrides((atual) => ({ ...atual, [arrasto.id]: novaPos }));
     }
@@ -609,64 +598,75 @@ export function OrganogramaEditor({
           </button>
         </div>
 
-        <div className="card overflow-auto" style={{ maxHeight: "75vh" }}>
-          <div className="relative" style={{ width: largura, height: altura }}>
-            <svg className="pointer-events-none absolute inset-0" width={largura} height={altura}>
-              {conectores.map((s) => {
-                const de = tela({ x: s.x1, y: s.y1 });
-                const para = tela({ x: s.x2, y: s.y2 });
-                return <line key={s.key} x1={de.x} y1={de.y} x2={para.x} y2={para.y} stroke="#B98F1E" strokeWidth={1.5} />;
+        <div ref={cartaoRef} className="card overflow-auto" style={{ maxHeight: "75vh" }}>
+          {/* Wrapper externo no tamanho JÁ ENCOLHIDO — evita que o navegador reserve espaço em
+           * branco do tamanho lógico original (que o `transform: scale()` abaixo não afeta pro
+           * cálculo de layout). O desenho em si continua todo calculado em pixels lógicos; só a
+           * apresentação visual encolhe. */}
+          <div style={{ width: largura * escala, height: altura * escala }}>
+            <div
+              className="relative origin-top-left"
+              style={{ width: largura, height: altura, transform: `scale(${escala})` }}
+            >
+              <svg className="pointer-events-none absolute inset-0" width={largura} height={altura}>
+                {conectores.map((s) => {
+                  const de = tela({ x: s.x1, y: s.y1 });
+                  const para = tela({ x: s.x2, y: s.y2 });
+                  return (
+                    <line key={s.key} x1={de.x} y1={de.y} x2={para.x} y2={para.y} stroke="#B98F1E" strokeWidth={1.5} />
+                  );
+                })}
+              </svg>
+
+              {cabecalhosGrupo.map((c) => {
+                const pos = tela(c);
+                return (
+                  <div
+                    key={c.grupo}
+                    style={{ left: pos.x, top: pos.y, width: LARGURA_CAIXA, height: ALTURA_CABECALHO_GRUPO }}
+                    className="absolute flex items-center justify-center rounded-md bg-grena px-2 text-center text-xs font-bold uppercase tracking-wide text-white"
+                  >
+                    {c.grupo}
+                  </div>
+                );
               })}
-            </svg>
 
-            {cabecalhosGrupo.map((c) => {
-              const pos = tela(c);
-              return (
-                <div
-                  key={c.grupo}
-                  style={{ left: pos.x, top: pos.y, width: LARGURA_CAIXA, height: ALTURA_CABECALHO_GRUPO }}
-                  className="absolute flex items-center justify-center rounded-md bg-grena px-2 text-center text-xs font-bold uppercase tracking-wide text-white"
-                >
-                  {c.grupo}
-                </div>
-              );
-            })}
+              {rotulosLinha.map((r) => {
+                const pos = tela(r);
+                return (
+                  <div
+                    key={r.linha}
+                    style={{ left: pos.x, top: pos.y, width: LARGURA_ROTULO_LINHA, height: ALTURA_CAIXA }}
+                    className="absolute flex items-center justify-center rounded-md border border-grena/30 bg-white px-2 text-center text-xs font-bold uppercase tracking-wide text-grena-escuro"
+                  >
+                    {r.linha}
+                  </div>
+                );
+              })}
 
-            {rotulosLinha.map((r) => {
-              const pos = tela(r);
-              return (
-                <div
-                  key={r.linha}
-                  style={{ left: pos.x, top: pos.y, width: LARGURA_ROTULO_LINHA, height: ALTURA_CAIXA }}
-                  className="absolute flex items-center justify-center rounded-md border border-grena/30 bg-white px-2 text-center text-xs font-bold uppercase tracking-wide text-grena-escuro"
-                >
-                  {r.linha}
-                </div>
-              );
-            })}
+              {nos.map((no) => {
+                const pos = posicoes.get(no.id);
+                if (!pos) return null;
+                const tela_ = tela(pos);
+                return (
+                  <Caixa
+                    key={no.id}
+                    no={no}
+                    x={tela_.x}
+                    y={tela_.y}
+                    selecionada={selecionado === no.id}
+                    onPointerDownCaixa={(e) => iniciarArrasto(no.id, e)}
+                    onClick={() => setSelecionado(no.id)}
+                  />
+                );
+              })}
 
-            {nos.map((no) => {
-              const pos = posicoes.get(no.id);
-              if (!pos) return null;
-              const tela_ = tela(pos);
-              return (
-                <Caixa
-                  key={no.id}
-                  no={no}
-                  x={tela_.x}
-                  y={tela_.y}
-                  selecionada={selecionado === no.id}
-                  onPointerDownCaixa={(e) => iniciarArrasto(no.id, e)}
-                  onClick={() => setSelecionado(no.id)}
-                />
-              );
-            })}
-
-            {nos.length === 0 ? (
-              <p className="p-6 text-sm text-neutral-400">
-                Nenhuma caixa ainda — comece pelo botão &quot;+ Nova caixa&quot;.
-              </p>
-            ) : null}
+              {nos.length === 0 ? (
+                <p className="p-6 text-sm text-neutral-400">
+                  Nenhuma caixa ainda — comece pelo botão &quot;+ Nova caixa&quot;.
+                </p>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>

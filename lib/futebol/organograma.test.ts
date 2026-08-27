@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { ALTURA_CAIXA, LARGURA_CAIXA, calcularLayoutAutomatico, type OrganogramaNo } from "./organograma";
+import {
+  ALTURA_CAIXA,
+  ESCALA_MINIMA_ORGANOGRAMA,
+  GAP_BARRAMENTO,
+  LARGURA_CAIXA,
+  calcularConectores,
+  calcularEscalaOrganograma,
+  calcularLayoutAutomatico,
+  type OrganogramaNo,
+  type OrganogramaPosicao,
+} from "./organograma";
 
 // `x`/`y` marcam o canto (não o centro) da caixa — uma caixa sozinha, centralizada, começa em
 // -LARGURA_CAIXA/2, não em 0.
@@ -108,5 +118,73 @@ describe("calcularLayoutAutomatico", () => {
       no("extra", null, "Head de Goleiros", 1, null),
     ]);
     expect(posicoes.get("extra")!.y).toBeGreaterThan(posicoes.get("sub20")!.y);
+  });
+});
+
+describe("calcularConectores", () => {
+  it("põe o cotovelo numa distância fixa do pai quando o filho está bem mais longe", () => {
+    const nos: OrganogramaNo[] = [no("pai", null, null), no("filho", "pai", null)];
+    const posicoes = new Map<string, OrganogramaPosicao>([
+      ["pai", { x: 0, y: 0 }],
+      ["filho", { x: 0, y: 400 }], // bem abaixo — gap enorme entre pé do pai e topo do filho
+    ]);
+    const segmentos = calcularConectores(nos, posicoes);
+    const tronco = segmentos.find((s) => s.key === "pai-tronco")!;
+    expect(tronco.y1).toBe(ALTURA_CAIXA);
+    expect(tronco.y2).toBe(ALTURA_CAIXA + GAP_BARRAMENTO);
+  });
+
+  it("não deixa o cotovelo passar do filho quando ele está bem perto do pai", () => {
+    const nos: OrganogramaNo[] = [no("pai", null, null), no("filho", "pai", null)];
+    const posicoes = new Map<string, OrganogramaPosicao>([
+      ["pai", { x: 0, y: 0 }],
+      ["filho", { x: 0, y: ALTURA_CAIXA + 6 }], // gap de só 6px — menor que GAP_BARRAMENTO
+    ]);
+    const segmentos = calcularConectores(nos, posicoes);
+    const tronco = segmentos.find((s) => s.key === "pai-tronco")!;
+    expect(tronco.y2).toBeLessThan(GAP_BARRAMENTO + ALTURA_CAIXA);
+    expect(tronco.y2 - tronco.y1).toBeLessThan(GAP_BARRAMENTO);
+  });
+
+  it("gera um segmento de pé por filho, todos partindo do mesmo cotovelo", () => {
+    const nos: OrganogramaNo[] = [
+      no("pai", null, null),
+      no("a", "pai", null, 0),
+      no("b", "pai", null, 1),
+    ];
+    const posicoes = new Map<string, OrganogramaPosicao>([
+      ["pai", { x: 0, y: 0 }],
+      ["a", { x: -150, y: 200 }],
+      ["b", { x: 150, y: 200 }],
+    ]);
+    const segmentos = calcularConectores(nos, posicoes);
+    const pes = segmentos.filter((s) => s.key.startsWith("pai-pe-"));
+    expect(pes).toHaveLength(2);
+    expect(pes[0].y1).toBe(pes[1].y1);
+  });
+
+  it("não gera segmento nenhum pra quem não tem `reportaPara`", () => {
+    const nos: OrganogramaNo[] = [no("solto", null, null)];
+    const posicoes = new Map<string, OrganogramaPosicao>([["solto", { x: 0, y: 0 }]]);
+    expect(calcularConectores(nos, posicoes)).toEqual([]);
+  });
+});
+
+describe("calcularEscalaOrganograma", () => {
+  it("não encolhe quando já cabe no espaço disponível", () => {
+    expect(calcularEscalaOrganograma(600, 900)).toBe(1);
+    expect(calcularEscalaOrganograma(900, 900)).toBe(1);
+  });
+
+  it("encolhe proporcionalmente quando o desenho é mais largo que o espaço disponível", () => {
+    expect(calcularEscalaOrganograma(1000, 800)).toBeCloseTo(0.8);
+  });
+
+  it("nunca encolhe além do piso mínimo", () => {
+    expect(calcularEscalaOrganograma(4000, 800)).toBe(ESCALA_MINIMA_ORGANOGRAMA);
+  });
+
+  it("nunca amplia (largura disponível maior que o desenho continua em 1)", () => {
+    expect(calcularEscalaOrganograma(300, 5000)).toBe(1);
   });
 });

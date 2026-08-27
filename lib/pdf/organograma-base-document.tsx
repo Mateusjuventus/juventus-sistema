@@ -9,6 +9,7 @@ import {
   ALTURA_CABECALHO_GRUPO,
   ALTURA_CAIXA,
   LARGURA_CAIXA,
+  calcularConectores,
   calcularLayoutAutomatico,
   type OrganogramaNo,
 } from "@/lib/futebol/organograma";
@@ -74,8 +75,11 @@ const styles = StyleSheet.create({
   },
   caixaLideranca: { backgroundColor: CORES.grena },
   caixaMembro: { backgroundColor: "#ffffff", borderWidth: 0.75, borderColor: "#d4d4d4" },
-  caixaNome: { fontSize: 6.5, fontWeight: 700 },
-  caixaCargo: { fontSize: 5.5, marginTop: 1 },
+  // Tamanho de fonte NÃO fica aqui — precisa encolher junto com `escala` (ver `FONTE_*_BASE` abaixo
+  // e a spec de 27/08: era um bug real o texto ficar em tamanho fixo enquanto a caixa encolhia,
+  // fazendo a letra vazar e sobrepor em organogramas largos).
+  caixaNome: { fontWeight: 700 },
+  caixaCargo: { marginTop: 1 },
   cabecalhoGrupo: {
     position: "absolute",
     backgroundColor: CORES.grena,
@@ -86,7 +90,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cabecalhoGrupoTexto: {
-    fontSize: 6,
     fontWeight: 700,
     color: "#ffffff",
     textTransform: "uppercase",
@@ -105,7 +108,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   rotuloLinhaTexto: {
-    fontSize: 6,
     fontWeight: 700,
     color: CORES.grenaEscuro,
     textTransform: "uppercase",
@@ -113,6 +115,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+// Tamanhos de fonte de referência (pt, escala 1) — multiplicados por `escala` na hora de renderizar,
+// pra nunca vazar da caixa quando o diagrama precisa encolher pra caber numa página A4 só.
+const FONTE_NOME_BASE = 6.5;
+const FONTE_CARGO_BASE = 5.5;
+const FONTE_CABECALHO_BASE = 6;
+const FONTE_ROTULO_BASE = 6;
 
 interface Ponto {
   x: number;
@@ -166,30 +175,12 @@ function calcularDiagrama(nos: OrganogramaBaseNoDocumento[]) {
     });
   }
 
-  const porPai = new Map<string, Ponto[]>();
-  for (const no of nos) {
-    if (!no.reportaPara) continue;
-    const pos = posicoes.get(no.id);
-    if (!pos) continue;
-    porPai.set(no.reportaPara, [...(porPai.get(no.reportaPara) ?? []), pos]);
-  }
-  const conectores: { x1: number; y1: number; x2: number; y2: number }[] = [];
-  for (const [paiId, filhos] of porPai) {
-    const pai = posicoes.get(paiId);
-    if (!pai || filhos.length === 0) continue;
-    const paiCentroX = pai.x + LARGURA_CAIXA / 2;
-    const paiBaixoY = pai.y + ALTURA_CAIXA;
-    const filhosCentroX = filhos.map((f) => f.x + LARGURA_CAIXA / 2);
-    const menorTopoFilho = Math.min(...filhos.map((f) => f.y));
-    const busY = paiBaixoY + Math.max(16, (menorTopoFilho - paiBaixoY) / 2);
-    conectores.push({ x1: paiCentroX, y1: paiBaixoY, x2: paiCentroX, y2: busY });
-    const minX = Math.min(paiCentroX, ...filhosCentroX);
-    const maxX = Math.max(paiCentroX, ...filhosCentroX);
-    if (maxX > minX) conectores.push({ x1: minX, y1: busY, x2: maxX, y2: busY });
-    filhos.forEach((f, i) => {
-      conectores.push({ x1: filhosCentroX[i], y1: busY, x2: filhosCentroX[i], y2: f.y });
-    });
-  }
+  // Mesmo cálculo de conectores da tela (`components/organograma-editor.tsx`), via
+  // `calcularConectores` — garante que tela e PDF nunca divirjam (ver spec de 27/08).
+  const conectores = calcularConectores(
+    nos.map((n): OrganogramaNo => ({ id: n.id, reportaPara: n.reportaPara, grupo: n.grupo, linha: n.linha, ordem: n.ordem })),
+    posicoes,
+  );
 
   const todasAsPosicoes = [
     ...[...posicoes.values()],
@@ -271,7 +262,9 @@ export function OrganogramaBaseDocument({
                   key={c.grupo}
                   style={[styles.cabecalhoGrupo, { left: p.x, top: p.y, width: larguraCaixaPdf, height: alturaCabecalhoPdf }]}
                 >
-                  <Text style={styles.cabecalhoGrupoTexto}>{c.grupo}</Text>
+                  <Text style={[styles.cabecalhoGrupoTexto, { fontSize: FONTE_CABECALHO_BASE * escala }]}>
+                    {c.grupo}
+                  </Text>
                 </View>
               );
             })}
@@ -283,7 +276,7 @@ export function OrganogramaBaseDocument({
                   key={r.linha}
                   style={[styles.rotuloLinha, { left: p.x, top: p.y, width: larguraRotuloPdf, height: alturaCaixaPdf }]}
                 >
-                  <Text style={styles.rotuloLinhaTexto}>{r.linha}</Text>
+                  <Text style={[styles.rotuloLinhaTexto, { fontSize: FONTE_ROTULO_BASE * escala }]}>{r.linha}</Text>
                 </View>
               );
             })}
@@ -302,11 +295,21 @@ export function OrganogramaBaseDocument({
                     { left: p.x, top: p.y, width: larguraCaixaPdf, height: alturaCaixaPdf },
                   ]}
                 >
-                  <Text style={[styles.caixaNome, { color: lideranca ? "#ffffff" : CORES.grenaEscuro }]}>
+                  <Text
+                    style={[
+                      styles.caixaNome,
+                      { fontSize: FONTE_NOME_BASE * escala, color: lideranca ? "#ffffff" : CORES.grenaEscuro },
+                    ]}
+                  >
                     {no.nomeExibido}
                   </Text>
                   {no.cargoExibido ? (
-                    <Text style={[styles.caixaCargo, { color: lideranca ? "#ffffffcc" : "#737373" }]}>
+                    <Text
+                      style={[
+                        styles.caixaCargo,
+                        { fontSize: FONTE_CARGO_BASE * escala, color: lideranca ? "#ffffffcc" : "#737373" },
+                      ]}
+                    >
                       {no.cargoExibido}
                     </Text>
                   ) : null}

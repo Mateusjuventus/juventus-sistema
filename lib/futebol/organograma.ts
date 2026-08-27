@@ -35,6 +35,15 @@ const GAP_X = 24;
 const GAP_Y_NIVEL = 64;
 const GAP_Y_MEMBRO = 12;
 
+/** Distância fixa (px lógicos) entre o pé de uma caixa-pai e o cotovelo do conector que desce até
+ * quem reporta pra ela — ver `calcularConectores` abaixo. */
+export const GAP_BARRAMENTO = 20;
+
+/** Encolhimento mínimo permitido do Organograma na tela (`OrganogramaEditor`) antes de voltar a
+ * valer o scroll horizontal — mesmo piso já usado no PDF do Campograma
+ * (`lib/pdf/campograma-document.tsx`), consistente com o resto do sistema. */
+export const ESCALA_MINIMA_ORGANOGRAMA = 0.6;
+
 function ordenar(nos: OrganogramaNo[]): OrganogramaNo[] {
   return [...nos].sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id));
 }
@@ -139,4 +148,83 @@ export function calcularLayoutAutomatico(nos: OrganogramaNo[]): Map<string, Orga
   });
 
   return posicoes;
+}
+
+export interface OrganogramaSegmento {
+  key: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+/**
+ * Conectores em ângulo reto (tronco descendo do pai, barramento horizontal, pé descendo até cada
+ * filho) entre cada caixa e quem reporta pra ela — usado tanto pela tela (`OrganogramaEditor`)
+ * quanto pelo PDF (`OrganogramaBaseDocument`), extraído aqui pra garantir que os dois nunca
+ * divirjam (era duas cópias quase idênticas antes, ver spec de 27/08).
+ *
+ * O cotovelo (onde o conector vira de vertical pra horizontal, `busY`) fica numa distância fixa e
+ * curta (`GAP_BARRAMENTO`) abaixo do pé da caixa-pai — não proporcional à distância até o filho mais
+ * próximo. Antes disso, caixas de liderança arrastadas pra mais longe ou mais perto umas das outras
+ * faziam o cotovelo flutuar em alturas bem diferentes de um par pra outro, sem padrão nenhum ("fica
+ * bagunçado", nas palavras do Mateus). A salvaguarda (`Math.max(4, ...)`) evita o cotovelo cair em
+ * cima ou depois do filho quando ele está mais perto do pai do que essa distância fixa.
+ */
+export function calcularConectores(
+  nos: OrganogramaNo[],
+  posicoes: Map<string, OrganogramaPosicao>,
+): OrganogramaSegmento[] {
+  const porPai = new Map<string, OrganogramaPosicao[]>();
+  for (const no of nos) {
+    if (!no.reportaPara) continue;
+    const pos = posicoes.get(no.id);
+    if (!pos) continue;
+    porPai.set(no.reportaPara, [...(porPai.get(no.reportaPara) ?? []), pos]);
+  }
+
+  const segmentos: OrganogramaSegmento[] = [];
+  for (const [paiId, filhos] of porPai) {
+    const pai = posicoes.get(paiId);
+    if (!pai || filhos.length === 0) continue;
+    const paiCentroX = pai.x + LARGURA_CAIXA / 2;
+    const paiBaixoY = pai.y + ALTURA_CAIXA;
+    const filhosCentroX = filhos.map((f) => f.x + LARGURA_CAIXA / 2);
+    const menorTopoFilho = Math.min(...filhos.map((f) => f.y));
+    const busY = paiBaixoY + Math.min(GAP_BARRAMENTO, Math.max(4, menorTopoFilho - paiBaixoY - 4));
+
+    // Tronco: do pé do pai até o barramento.
+    segmentos.push({ key: `${paiId}-tronco`, x1: paiCentroX, y1: paiBaixoY, x2: paiCentroX, y2: busY });
+    // Barramento horizontal, cobrindo do filho mais à esquerda ao mais à direita (e o tronco do
+    // pai, se ele cair fora desse intervalo).
+    const minX = Math.min(paiCentroX, ...filhosCentroX);
+    const maxX = Math.max(paiCentroX, ...filhosCentroX);
+    if (maxX > minX) {
+      segmentos.push({ key: `${paiId}-barramento`, x1: minX, y1: busY, x2: maxX, y2: busY });
+    }
+    // Um pé descendo do barramento até cada filho.
+    filhos.forEach((f, i) => {
+      segmentos.push({
+        key: `${paiId}-pe-${i}`,
+        x1: filhosCentroX[i],
+        y1: busY,
+        x2: filhosCentroX[i],
+        y2: f.y,
+      });
+    });
+  }
+  return segmentos;
+}
+
+/**
+ * Fator de escala visual do Organograma na tela (`OrganogramaEditor`) — encolhe (nunca amplia) pra
+ * caber na largura disponível do cartão, com piso em `ESCALA_MINIMA_ORGANOGRAMA` (abaixo disso volta
+ * a valer o scroll horizontal em vez de continuar encolhendo até ficar ilegível). Só a largura entra
+ * nessa conta — a altura continua com scroll vertical normal, que já existe e não foi reportada como
+ * problema (ver spec de 27/08).
+ */
+export function calcularEscalaOrganograma(larguraNatural: number, larguraDisponivel: number): number {
+  if (larguraNatural <= 0 || larguraDisponivel <= 0) return 1;
+  const bruta = larguraDisponivel / larguraNatural;
+  return Math.min(1, Math.max(ESCALA_MINIMA_ORGANOGRAMA, bruta));
 }
