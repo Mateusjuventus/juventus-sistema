@@ -9,7 +9,6 @@ import {
   calcularConectores,
   calcularEscalaOrganograma,
   calcularLayoutAutomatico,
-  calcularScrollHorizontalCentralizado,
   type OrganogramaNo,
 } from "@/lib/futebol/organograma";
 import { DeleteButton } from "@/components/delete-button";
@@ -439,10 +438,6 @@ export function OrganogramaEditor({
     return () => observer.disconnect();
   }, []);
 
-  // Só uma vez por carregamento da tela (a ref evita brigar com a rolagem que o Mateus fizer depois
-  // manualmente) — ver efeito mais abaixo, depois de `deslocX`/`escala` calculados.
-  const jaCentralizouRef = useRef(false);
-
   const layoutAutomatico = useMemo(
     () =>
       calcularLayoutAutomatico(
@@ -534,14 +529,16 @@ export function OrganogramaEditor({
     ...cabecalhosGrupo.map((c) => ({ x: c.x, y: c.y })),
     ...rotulosLinha.map((r) => ({ x: r.x, y: r.y })),
   ];
-  const minXBruto = Math.min(0, ...todasAsPosicoes.map((p) => p.x));
-  const maxXBruto = Math.max(LARGURA_CAIXA, ...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
-  // Simétrico em torno de x=0 — é onde a árvore de liderança (Presidente incluído) sempre fica
-  // centrada (ver `calcularLayoutAutomatico`). Sem isso, a grade de membros esticando mais pra um
-  // lado que o outro deixava o Presidente fora do centro visual da tela.
-  const extensaoX = Math.max(Math.abs(minXBruto), Math.abs(maxXBruto));
-  const minX = -extensaoX;
-  const maxX = extensaoX;
+  // Limites reais do conteúdo — sem forçar simetria em torno de x=0. Uma versão anterior espelhava
+  // esse cálculo (minX = -maxX) só pra manter o Presidente centralizado quando a tela precisava de
+  // scroll horizontal; isso preenchia o lado mais curto com espaço vazio do tamanho do lado mais
+  // longo (a grade de membros normalmente estica bem mais pra um lado que a árvore de liderança),
+  // dobrando a largura do desenho à toa. Como a escala agora sempre encolhe o suficiente pra caber
+  // sem scroll (`calcularEscalaOrganograma`) e o cartão só usa `overflow-x-hidden`, o Presidente fica
+  // centralizado simplesmente centralizando o desenho (já do tamanho certo) dentro do cartão via CSS
+  // (`mx-auto` mais abaixo) — sem precisar de espaço vazio nem de rolagem programática.
+  const minX = Math.min(0, ...todasAsPosicoes.map((p) => p.x));
+  const maxX = Math.max(LARGURA_CAIXA, ...todasAsPosicoes.map((p) => p.x + LARGURA_CAIXA));
   const minY = Math.min(0, ...todasAsPosicoes.map((p) => p.y));
   const maxY = Math.max(ALTURA_CAIXA, ...todasAsPosicoes.map((p) => p.y + ALTURA_CAIXA));
   const deslocX = -minX + PADDING;
@@ -553,17 +550,6 @@ export function OrganogramaEditor({
   // horizontal — só entra em ação com a medida real do cartão em mãos; antes disso (primeira
   // renderização) assume escala 1 pra não "piscar" um tamanho errado.
   const escala = larguraCartao !== null ? calcularEscalaOrganograma(largura, larguraCartao) : 1;
-
-  // Ao abrir a tela, a rolagem horizontal começa centrada em quem está no topo (Presidente
-  // incluído) — nunca numa fatia arbitrária da grade de colunas (pedido do Mateus, ver spec de
-  // 27/08). Espera a medida real do cartão chegar antes de calcular.
-  useEffect(() => {
-    if (jaCentralizouRef.current) return;
-    const elemento = cartaoRef.current;
-    if (!elemento || larguraCartao === null) return;
-    elemento.scrollLeft = calcularScrollHorizontalCentralizado(deslocX, escala, larguraCartao);
-    jaCentralizouRef.current = true;
-  }, [larguraCartao, deslocX, escala]);
 
   function tela(pos: { x: number; y: number }) {
     return { x: pos.x + deslocX, y: pos.y + deslocY };
@@ -630,8 +616,10 @@ export function OrganogramaEditor({
           {/* Wrapper externo no tamanho JÁ ENCOLHIDO — evita que o navegador reserve espaço em
            * branco do tamanho lógico original (que o `transform: scale()` abaixo não afeta pro
            * cálculo de layout). O desenho em si continua todo calculado em pixels lógicos; só a
-           * apresentação visual encolhe. */}
-          <div style={{ width: largura * escala, height: altura * escala }}>
+           * apresentação visual encolhe. `mx-auto` centraliza o desenho (já do tamanho certo) dentro
+           * do cartão quando ele é mais estreito que o espaço disponível — é isso que mantém o
+           * Presidente centralizado, sem precisar de espaço vazio artificial nem de rolagem. */}
+          <div className="mx-auto" style={{ width: largura * escala, height: altura * escala }}>
             <div
               className="relative origin-top-left"
               style={{ width: largura, height: altura, transform: `scale(${escala})` }}

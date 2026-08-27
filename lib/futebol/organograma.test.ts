@@ -6,7 +6,6 @@ import {
   calcularConectores,
   calcularEscalaOrganograma,
   calcularLayoutAutomatico,
-  calcularScrollHorizontalCentralizado,
   type OrganogramaNo,
   type OrganogramaPosicao,
 } from "./organograma";
@@ -167,23 +166,6 @@ describe("calcularConectores", () => {
     const nos: OrganogramaNo[] = [no("solto", null, null)];
     const posicoes = new Map<string, OrganogramaPosicao>([["solto", { x: 0, y: 0 }]]);
     expect(calcularConectores(nos, posicoes)).toEqual([]);
-  });
-});
-
-describe("calcularScrollHorizontalCentralizado", () => {
-  it("não rola quando o desenho já cabe inteiro no cartão (topo já visível)", () => {
-    // deslocX pequeno (topo perto da borda esquerda do desenho) e cartão largo o suficiente.
-    expect(calcularScrollHorizontalCentralizado(100, 1, 900)).toBe(0);
-  });
-
-  it("rola até o topo ficar no meio do cartão quando o desenho é mais largo que o cartão", () => {
-    // Desenho de 2000px lógicos, topo (Presidente) a 1000px da borda esquerda (bem no meio, como
-    // sempre fica — árvore de liderança centrada em x=0), cartão de 800px.
-    expect(calcularScrollHorizontalCentralizado(1000, 1, 800)).toBe(600);
-  });
-
-  it("multiplica o deslocamento pela escala (scrollLeft opera em pixels já renderizados)", () => {
-    expect(calcularScrollHorizontalCentralizado(1000, 0.5, 800)).toBe(1000 * 0.5 - 400);
   });
 });
 

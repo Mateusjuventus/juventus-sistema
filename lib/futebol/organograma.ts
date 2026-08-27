@@ -226,23 +226,3 @@ export function calcularEscalaOrganograma(larguraNatural: number, larguraDisponi
   if (larguraNatural <= 0 || larguraDisponivel <= 0) return 1;
   return Math.min(1, larguraDisponivel / larguraNatural);
 }
-
-/**
- * Posição de rolagem horizontal (`scrollLeft`) que deixa o topo da árvore de liderança — sempre
- * centrado no "x=0" lógico, Presidente incluído, ver `calcularLayoutAutomatico` — no meio do cartão
- * visível. Usada uma vez, ao abrir a tela do Organograma: como regra, quem está no topo é o primeiro
- * ponto de referência de qualquer organograma, então a tela nunca deve abrir mostrando uma fatia
- * arbitrária da grade de colunas em vez dele (pedido do Mateus, ver spec de 27/08).
- *
- * `deslocX` é o deslocamento que o próprio `OrganogramaEditor` já calcula pra converter posição
- * lógica em posição de tela (ver função `tela()` local) — multiplicado por `escala` porque o
- * `scrollLeft` do navegador opera em pixels JÁ renderizados (depois do `transform: scale()`), não
- * em pixels lógicos.
- */
-export function calcularScrollHorizontalCentralizado(
-  deslocX: number,
-  escala: number,
-  larguraDisponivel: number,
-): number {
-  return Math.max(0, deslocX * escala - larguraDisponivel / 2);
-}

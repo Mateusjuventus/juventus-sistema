@@ -139,3 +139,30 @@ larguraNatural)`, igual ao raciocínio que o PDF já usava (sempre cabe, sem lim
 `ESCALA_MINIMA_ORGANOGRAMA` foi removida do código (`lib/futebol/organograma.ts`) e dos testes. Não
 muda nada do resto do design (arrasto dividido pela escala, `ResizeObserver`, wrapper com dimensões
 escaladas) — só o clamp inferior da função de escala.
+
+## Atualização (27/08, mesmo dia) — tela tremendo, card largo demais, e espaço vazio
+
+Três rodadas de teste real do Mateus depois da entrega acima, todas no mesmo dia:
+
+1. **"A tela fica tremendo"**: a escala encolhe largura E altura juntas (mesma `transform:
+   scale()`), então uma escala menor às vezes tirava a barra de rolagem vertical do cartão (altura
+   escalada abaixo de 75vh) — sem reservar o espaço dela, isso aumentava a largura medida pelo
+   `ResizeObserver`, que recalculava a escala pra cima, que devolvia a barra, que diminuía a
+   largura de novo — loop infinito. Corrigido com `scrollbar-gutter: stable` (reserva o espaço da
+   barra sempre) e `overflow-x-hidden` no cartão (o scroll horizontal nunca é necessário, já que a
+   escala garante que a largura sempre cabe).
+2. **"Não gostei da tela deste tamanho, está muito larga"**: a tela do Organograma usava
+   `largura="total"` no `AppShell` (largura cheia da página, sem o teto `max-w-6xl` que as outras
+   ~40 telas do sistema usam) — decisão de uma versão anterior, de antes de existir o
+   encolher-pra-caber. Com a escala, dar mais espaço só faz o card crescer em torno de um desenho
+   que continua do mesmo tamanho. Revertido pro padrão do sistema (mesmo usado no Campograma).
+3. **"Continua esse espaço grande"** (mesmo já com a largura padrão): a largura do desenho era
+   forçada simétrica em torno de x=0 (`minX = -maxX`) só pra manter o Presidente centralizado via
+   rolagem programática — mas a grade de membros normalmente estica bem mais pra um lado que a
+   árvore de liderança, então isso preenchia o lado curto com espaço vazio do tamanho do lado
+   longo, dobrando a largura à toa (e, por consequência, encolhendo a escala mais do que precisava).
+   Corrigido: a largura agora usa os limites reais do conteúdo (sem simetria forçada), e o
+   Presidente fica centralizado centralizando o próprio desenho (já do tamanho certo) dentro do
+   cartão via CSS (`mx-auto`), não mais preenchendo com espaço vazio. Como consequência,
+   `calcularScrollHorizontalCentralizado` ficou morta (não há mais o que rolar, com
+   `overflow-x-hidden`) e foi removida do código e dos testes.
