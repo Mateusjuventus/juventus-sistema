@@ -215,6 +215,29 @@ export async function moverNoOrganograma(id: string, x: number, y: number): Prom
   revalidatePath(CAMINHO);
 }
 
+/**
+ * "Reorganizar automaticamente" — solta TODAS as caixas arrastadas de volta pro layout automático
+ * (por hierarquia/grupo/linha), como se nenhuma tivesse sido arrastada ainda. Pedido do Mateus depois
+ * de várias rodadas de teste terem deixado o organograma "uma bagunça" (caixas arrastadas em cantos
+ * que já não faziam sentido, como o "Coordenador de Performance" perto da liderança). Célula de
+ * grade nunca precisa disso (nunca é arrastada); só zera `pos_manual`/`pos_x`/`pos_y` de quem tinha
+ * arrasto salvo, e deixa `ajustarPosicoesAutomaticas` calcular tudo de novo, do zero. Dali em diante
+ * o Mateus volta a arrastar só quem precisar — cada caixa arrastada não é mais tocada aqui até a
+ * próxima vez que "Reorganizar automaticamente" for usado de novo (mesma regra de sempre).
+ */
+export async function reorganizarOrganograma(): Promise<{ error?: string }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("organograma_base")
+    .update({ pos_x: null, pos_y: null, pos_manual: false })
+    .eq("pos_manual", true);
+  if (error) return { error: `Não foi possível reorganizar: ${error.message}` };
+
+  await ajustarPosicoesAutomaticas(supabase);
+  revalidatePath(CAMINHO);
+  return {};
+}
+
 /** Exclui a caixa. Não cascateia: quem reportava pra ela (`reporta_para`, `on delete set null`) fica
  * sem líder direto em vez de ser apagado junto — o painel já avisa quantas pessoas isso afeta antes
  * de confirmar.

@@ -429,6 +429,53 @@ function Caixa({
 }
 
 /**
+ * Botão "Reorganizar automaticamente" — solta todo mundo que foi arrastado de volta pro layout
+ * automático (pedido do Mateus depois de rodadas de teste deixarem caixas arrastadas em cantos que
+ * já não faziam sentido, "uma bagunça"). Confirmação em duas etapas (mesmo padrão do `DeleteButton`,
+ * sem `window.confirm`) porque desfaz de uma vez todo arrasto manual salvo — reversível na mão
+ * (arrastando nas dela de novo), mas ainda assim uma ação em massa que merece um passo a mais.
+ */
+function ReorganizarButton({ reorganizarAction }: { reorganizarAction: () => Promise<{ error?: string }> }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const [estado, setEstado] = useState<{ pendente: boolean; erro?: string }>({ pendente: false });
+
+  if (!confirmando) {
+    return (
+      <button type="button" className="btn-secondary text-sm" onClick={() => setConfirmando(true)}>
+        Reorganizar automaticamente
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-2 rounded-md bg-amber-50 p-2">
+        <span className="text-sm text-amber-800">
+          Solta todas as caixas arrastadas de volta pro lugar automático. Confirma?
+        </span>
+        <button
+          type="button"
+          className="btn-primary text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={estado.pendente}
+          onClick={async () => {
+            setEstado({ pendente: true });
+            const resultado = await reorganizarAction();
+            setEstado({ pendente: false, erro: resultado.error });
+            if (!resultado.error) setConfirmando(false);
+          }}
+        >
+          {estado.pendente ? "Reorganizando..." : "Sim, reorganizar"}
+        </button>
+        <button type="button" className="btn-secondary text-sm" onClick={() => setConfirmando(false)}>
+          Cancelar
+        </button>
+      </div>
+      {estado.erro ? <p className="max-w-xs text-right text-xs text-red-700">{estado.erro}</p> : null}
+    </div>
+  );
+}
+
+/**
  * Organograma do Futebol de Base: caixas arrastáveis, linhas ligando cada uma a quem ela reporta,
  * cabeçalho de coluna por `grupo` (ver docs/superpowers/specs/2026-08-23-organograma-base-design.md).
  * Layout automático (lib/futebol/organograma.ts) só decide a posição de quem nunca foi arrastada —
@@ -441,6 +488,7 @@ export function OrganogramaEditor({
   moverAction,
   excluirAction,
   moverLinhaAction,
+  reorganizarAction,
 }: {
   nos: OrganogramaNoData[];
   pessoasComissao: PessoaComissao[];
@@ -448,6 +496,7 @@ export function OrganogramaEditor({
   moverAction: (id: string, x: number, y: number) => Promise<void>;
   excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
   moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<{ error?: string }>;
+  reorganizarAction: () => Promise<{ error?: string }>;
 }) {
   const [selecionado, setSelecionado] = useState<string | "novo" | null>(null);
 
@@ -642,7 +691,8 @@ export function OrganogramaEditor({
   return (
     <div className="flex flex-wrap items-start gap-4">
       <div className="min-w-0 flex-1">
-        <div className="mb-2 flex justify-end">
+        <div className="mb-2 flex justify-end gap-2">
+          <ReorganizarButton reorganizarAction={reorganizarAction} />
           <button type="button" className="btn-secondary text-sm" onClick={() => setSelecionado("novo")}>
             + Nova caixa
           </button>

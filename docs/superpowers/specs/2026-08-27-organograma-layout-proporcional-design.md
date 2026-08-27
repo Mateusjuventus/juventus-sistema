@@ -363,3 +363,19 @@ não desalinha outras colunas, coluna 100% arrastada não reserva espaço) e com
 teste reproduzindo o cenário real relatado (Gildesson + Halamo os dois em Preparador Físico ×
 Comissão Sub17, Coordenador de Performance arrastado pra cima) — as duas caixas de Sub17 aparecem
 empilhadas, sem sobrepor, e o vão entre Treinador de Goleiro e Preparador Físico sumiu.
+
+## Atualização (27/08, mesmo dia) — botão "Reorganizar automaticamente"
+
+Depois de várias rodadas de teste (arrastando caixas pra reproduzir bugs, inclusive), o organograma
+do Mateus acumulou arrastos que já não faziam sentido nenhum — "uma bagunça", nas palavras dele. Ele
+pediu pra organizar tudo automaticamente de novo, podendo continuar selecionando/arrastando caixa
+por caixa a partir daí conforme precisar.
+
+Novo botão "Reorganizar automaticamente" ao lado de "+ Nova caixa", com confirmação em duas etapas
+(mesmo padrão do `DeleteButton`, sem `window.confirm`, já que desfaz de uma vez todo arrasto manual
+salvo). A ação (`reorganizarOrganograma` em `actions.ts`) zera `pos_x`/`pos_y`/`pos_manual` de quem
+tinha arrasto salvo (`pos_manual = true`) e chama `ajustarPosicoesAutomaticas` — a mesma função que
+já recalcula tudo junto depois de qualquer criação/edição — pra recolocar todo mundo no layout
+automático de uma vez. Célula de grade nem entra nessa conta (nunca é arrastada, já está sempre no
+automático). Dali em diante o Mateus volta a arrastar só quem precisar; cada caixa arrastada de novo
+volta a ficar protegida do recálculo automático, exatamente como antes.

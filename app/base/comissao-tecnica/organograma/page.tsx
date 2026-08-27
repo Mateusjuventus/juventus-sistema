@@ -5,7 +5,13 @@ import { ComissaoTecnicaBaseTabs } from "@/components/comissao-tecnica-base-tabs
 import { OrganogramaEditor, type OrganogramaNoData, type PessoaComissao } from "@/components/organograma-editor";
 import { createClient } from "@/lib/supabase/server";
 import type { ComissaoTecnicaBaseRow, OrganogramaBaseRow } from "@/lib/supabase/types";
-import { salvarNoOrganograma, moverNoOrganograma, excluirNoOrganograma, moverLinhaOrganograma } from "./actions";
+import {
+  salvarNoOrganograma,
+  moverNoOrganograma,
+  excluirNoOrganograma,
+  moverLinhaOrganograma,
+  reorganizarOrganograma,
+} from "./actions";
 
 /**
  * Organograma do Futebol de Base — sub-módulo de Comissão Técnica/Diretoria (ver
@@ -85,6 +91,7 @@ export default async function OrganogramaBasePage() {
         moverAction={moverNoOrganograma}
         excluirAction={excluirNoOrganograma}
         moverLinhaAction={moverLinhaOrganograma}
+        reorganizarAction={reorganizarOrganograma}
       />
     </AppShell>
   );
