@@ -52,7 +52,7 @@ export default async function OrganogramaBasePage() {
   }));
 
   return (
-    <AppShell departamento="futebol_base" largura="total">
+    <AppShell departamento="futebol_base">
       <Link href="/base" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

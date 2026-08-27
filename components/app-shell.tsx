@@ -42,9 +42,11 @@ export async function AppShell({
    * tocadas. */
   breadcrumb?: string;
   /** "padrao" (default) mantém a largura de conteúdo de sempre (`max-w-6xl`, ~40 telas do sistema).
-   * "total" usa a largura inteira disponível — pra telas que precisam de mais espaço horizontal em
-   * vez de vertical, como o Organograma da Base (desenhado em modo paisagem, várias colunas lado a
-   * lado). Opt-in por tela, não muda nada nas demais. */
+   * "total" usa a largura inteira disponível — pra telas que realmente precisam de mais espaço
+   * horizontal bruto (não é o caso de diagramas que já encolhem sozinhos pra caber, como o
+   * Organograma da Base: dar mais largura só aumenta o card em torno de um desenho que continua do
+   * mesmo tamanho, sobrando vazio nas laterais — ver `calcularEscalaOrganograma` em
+   * `lib/futebol/organograma.ts`). Opt-in por tela, não muda nada nas demais; nenhuma tela usa hoje. */
   largura?: "padrao" | "total";
 }) {
   const supabase = createClient();
