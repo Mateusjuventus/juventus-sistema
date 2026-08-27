@@ -379,3 +379,24 @@ já recalcula tudo junto depois de qualquer criação/edição — pra recolocar
 automático de uma vez. Célula de grade nem entra nessa conta (nunca é arrastada, já está sempre no
 automático). Dali em diante o Mateus volta a arrastar só quem precisar; cada caixa arrastada de novo
 volta a ficar protegida do recálculo automático, exatamente como antes.
+
+## Atualização (27/08, mesmo dia) — achada a causa da bagunça que voltava sozinha: clique virava micro-arrasto
+
+Mesmo depois do "Reorganizar automaticamente", o Mateus mandou um print mostrando a bagunça de
+volta — caixas de liderança ("??? Coordenador Técnico", "??? Performance") sobrepondo cabeçalho de
+grupo e outras caixas da grade, em posições que não faziam sentido nenhum.
+
+Causa raiz, lendo `iniciarArrasto` em `organograma-editor.tsx`: não existia um limiar mínimo de
+distância pra distinguir um CLIQUE (só selecionar a caixa, abrir o painel de edição) de um ARRASTO de
+verdade. Qualquer `pointermove`, mesmo de 1px, entre apertar e soltar o botão — o tremor natural da
+mão no mouse/trackpad, bem comum — já disparava `setOverrides` e, ao soltar, `moverAction` salvava
+aquilo como posição manual (`pos_manual: true`) igual a um arrasto de propósito. Ou seja: só de
+CLICAR numa caixa de liderança ou "grupo sem linha" pra abrir o painel dela, às vezes ela ficava
+"congelada" numa posição quase igual à original (mas não exatamente) — tirada do recálculo automático
+pra sempre, sem o Mateus ter arrastado nada. Explica por que a bagunça "voltava sozinha": bastava
+clicar em algumas caixas ao longo do uso normal (nem precisa ser muitos cliques) pra ir acumulando
+esses micro-arrastos invisíveis.
+
+Correção: o arrasto só passa a "valer" (mover a caixa na tela, e salvar ao soltar) depois que o
+cursor andar mais que 4px na tela. Abaixo disso, soltar o botão não salva posição nenhuma — é
+tratado como um clique puro, do jeito que sempre devia ter sido.

@@ -656,16 +656,30 @@ export function OrganogramaEditor({
     e.stopPropagation();
     const atual = posicoes.get(id) ?? { x: 0, y: 0 };
     arrastoRef.current = { id, inicioX: e.clientX, inicioY: e.clientY, origemX: atual.x, origemY: atual.y };
+    // Só passa a valer como arrasto de verdade depois que o cursor andar mais que esse limiar — sem
+    // isso, QUALQUER clique (só selecionar uma caixa pra editar) já contava como um micro-arrasto: o
+    // menor tremor do mouse/trackpad entre apertar e soltar botão movia a caixa uns pixels e salvava
+    // aquilo como posição manual (`pos_manual: true`) pra sempre, tirando a caixa do recálculo
+    // automático dali em diante sem o Mateus ter arrastado nada de propósito — a causa mais provável
+    // da "bagunça" que voltava sozinha mesmo depois de "Reorganizar automaticamente" (spec de 27/08).
+    const LIMIAR_ARRASTO_PX = 4;
+    let arrastoIniciado = false;
 
     function mover(ev: PointerEvent) {
       const arrasto = arrastoRef.current;
       if (!arrasto) return;
+      const deltaTelaX = ev.clientX - arrasto.inicioX;
+      const deltaTelaY = ev.clientY - arrasto.inicioY;
+      if (!arrastoIniciado) {
+        if (Math.hypot(deltaTelaX, deltaTelaY) < LIMIAR_ARRASTO_PX) return;
+        arrastoIniciado = true;
+      }
       // Divide pelo fator de escala: com o desenho encolhido, cada pixel real que o cursor anda
       // corresponde a mais de um pixel "lógico" de posição — sem isso, arrastar sob uma escala menor
       // que 1 moveria a caixa mais rápido que o cursor.
       const novaPos = {
-        x: arrasto.origemX + (ev.clientX - arrasto.inicioX) / escala,
-        y: arrasto.origemY + (ev.clientY - arrasto.inicioY) / escala,
+        x: arrasto.origemX + deltaTelaX / escala,
+        y: arrasto.origemY + deltaTelaY / escala,
       };
       setOverrides((atual) => ({ ...atual, [arrasto.id]: novaPos }));
     }
@@ -675,7 +689,9 @@ export function OrganogramaEditor({
       arrastoRef.current = null;
       window.removeEventListener("pointermove", mover);
       window.removeEventListener("pointerup", soltar);
-      if (!arrasto) return;
+      // Nunca passou do limiar → foi só um clique (abrir o painel de edição, por exemplo) — não
+      // salva posição nenhuma, a caixa nem sabe que foi tocada.
+      if (!arrasto || !arrastoIniciado) return;
       const posFinal = overrides[arrasto.id] ?? { x: arrasto.origemX, y: arrasto.origemY };
       void moverAction(arrasto.id, posFinal.x, posFinal.y);
     }
