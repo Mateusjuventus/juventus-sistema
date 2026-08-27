@@ -534,7 +534,7 @@ export function OrganogramaEditor({
   nos: OrganogramaNoData[];
   pessoasComissao: PessoaComissao[];
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
-  moverAction: (id: string, x: number, y: number) => Promise<void>;
+  moverAction: (id: string, x: number, y: number) => Promise<{ error?: string }>;
   excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
   moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<{ error?: string }>;
   reorganizarAction: () => Promise<{ error?: string }>;
@@ -551,9 +551,22 @@ export function OrganogramaEditor({
     }
   }, [nos, selecionado]);
   const [overrides, setOverrides] = useState<Record<string, { x: number; y: number }>>({});
+  const [erroArrasto, setErroArrasto] = useState<string | null>(null);
   const arrastoRef = useRef<{ id: string; inicioX: number; inicioY: number; origemX: number; origemY: number } | null>(
     null,
   );
+
+  // Assim que dados novos chegam do servidor (depois de QUALQUER ação — arrastar, salvar, excluir,
+  // reorganizar), descarta as posições otimistas locais: `no.posX`/`no.posY` (vindo de `nos`, já
+  // revalidado) volta a mandar. Sem isso, uma posição arrastada ficava presa na memória do
+  // navegador pra sempre (nunca era limpa), então depois de "Reorganizar automaticamente" a caixa
+  // continuava aparecendo no lugar antigo NA TELA enquanto o PDF (que sempre lê do banco) já
+  // mostrava reorganizado — exatamente o "tela e PDF ficam diferentes" relatado. Também cobre o
+  // caso de um `moverAction` que falhou silenciosamente: sem essa limpeza, a caixa continuava
+  // "arrastada" só no navegador mesmo sem nunca ter sido salva de verdade.
+  useEffect(() => {
+    setOverrides({});
+  }, [nos]);
 
   // Largura disponível do cartão onde o organograma é desenhado — usada pra calcular o quanto o
   // desenho precisa encolher pra caber sem forçar scroll horizontal (ver `calcularEscalaOrganograma`
@@ -734,7 +747,19 @@ export function OrganogramaEditor({
       // salva posição nenhuma, a caixa nem sabe que foi tocada.
       if (!arrasto || !arrastoIniciado) return;
       const posFinal = overrides[arrasto.id] ?? { x: arrasto.origemX, y: arrasto.origemY };
-      void moverAction(arrasto.id, posFinal.x, posFinal.y);
+      setErroArrasto(null);
+      void moverAction(arrasto.id, posFinal.x, posFinal.y).then((resultado) => {
+        if (resultado?.error) {
+          setErroArrasto(resultado.error);
+          // Não salvou de verdade — descarta a posição otimista pra tela voltar a mostrar
+          // exatamente o que está salvo no banco (o mesmo que o PDF mostra), em vez de ficar
+          // presa numa posição que só existe neste navegador.
+          setOverrides((atual) => {
+            const { [arrasto.id]: _descartada, ...resto } = atual;
+            return resto;
+          });
+        }
+      });
     }
 
     window.addEventListener("pointermove", mover);
@@ -754,6 +779,10 @@ export function OrganogramaEditor({
             + Nova caixa
           </button>
         </div>
+
+        {erroArrasto ? (
+          <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erroArrasto}</p>
+        ) : null}
 
         {/* `overflow-x-hidden`: a escala já garante que a largura sempre cabe, então nunca deveria
          * precisar de scroll horizontal (ver `calcularEscalaOrganograma`). `scrollbarGutter: "stable"`

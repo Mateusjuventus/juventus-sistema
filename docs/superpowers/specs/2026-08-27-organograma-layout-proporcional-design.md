@@ -431,3 +431,39 @@ Mudanças em `organograma-editor.tsx`:
 
 Verificado com `tsc --noEmit`, `vitest run` (307 testes, sem mudança de comportamento de layout —
 só UI do formulário) e `next build`, todos limpos.
+
+## Atualização (27/08, mesmo dia) — "a tela e o PDF ficam diferentes"
+
+Mateus relatou que as posições das caixas na tela e no PDF exportado às vezes não batem. Causa raiz,
+em `organograma-editor.tsx`: a posição otimista de uma caixa arrastada (`overrides`, usada pra
+mover a caixa na tela instantaneamente, antes da confirmação do servidor) nunca era descartada — uma
+vez que uma caixa era arrastada, `overrides[id]` ficava guardado na memória do navegador pelo resto
+da sessão naquela aba, e o cálculo de posição da tela sempre priorizava esse valor sobre o que
+estava realmente salvo no banco (`no.posX`/`no.posY`). O PDF, por outro lado, sempre lê direto do
+banco a cada exportação — nunca teve (nem deveria ter) esse estado otimista.
+
+Isso dava dois jeitos concretos de divergir:
+
+1. **Depois de "Reorganizar automaticamente"**: o banco zera e recalcula a posição de tudo, mas o
+   `overrides` da caixa que tinha sido arrastada antes continuava valendo na tela — ela continuava
+   aparecendo no lugar antigo (arrastado) mesmo com o banco já reorganizado. O PDF, lendo do banco,
+   já mostrava certo.
+2. **Falha silenciosa ao salvar um arrasto**: `moverNoOrganograma` (a ação chamada ao soltar uma
+   caixa) não conferia erro nenhum do Supabase — se o `update` falhasse por qualquer motivo, a
+   caixa continuava "arrastada" só na tela (o `overrides` nunca soube que não tinha sido salvo),
+   enquanto o banco (e portanto o PDF) ficava com a posição antiga.
+
+Duas correções, as duas em conjunto:
+
+- `moverNoOrganograma` agora confere o erro do Supabase e devolve `{ error }` (mesmo padrão já usado
+  em `moverLinhaOrganograma`/`excluirNoOrganograma`/`reorganizarOrganograma`) em vez de falhar em
+  silêncio; a tela mostra esse erro numa faixa vermelha acima do organograma.
+- Novo `useEffect` que descarta TODAS as posições otimistas (`setOverrides({})`) sempre que `nos`
+  chega atualizado do servidor — ou seja, depois de qualquer ação (arrastar, salvar, excluir,
+  reorganizar). Na prática: a posição otimista dura só o tempo entre soltar o arrasto e a tela
+  revalidar com o dado real; depois disso, `no.posX`/`no.posY` (o mesmo dado que o PDF lê) sempre
+  manda. Se um arrasto falhar ao salvar, a mesma limpeza roda na hora (via o retorno de erro), então
+  a caixa volta visualmente pra onde estava de verdade — errada, mas igual ao que o PDF mostraria,
+  em vez de mentir uma posição que nunca existiu no banco.
+
+Verificado com `tsc --noEmit`, `vitest run` (307 testes) e `next build`, todos limpos.

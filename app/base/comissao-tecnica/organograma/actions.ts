@@ -200,19 +200,28 @@ export async function moverLinhaOrganograma(
 }
 
 /** Salva a posição arrastada. Chamada direto pelo componente cliente (não é um `<form>`), disparada
- * a cada soltar de arrasto — por isso não devolve estado nenhum pra tela, só grava.
+ * a cada soltar de arrasto.
  *
  * `pos_manual: true` marca essa posição como um arranjo de propósito — dali em diante,
  * `ajustarPosicoesAutomaticas` nunca mais recalcula essa caixa por conta de outra caixa sendo
- * criada/editada em qualquer canto do organograma (ver spec de 27/08). */
-export async function moverNoOrganograma(id: string, x: number, y: number): Promise<void> {
-  if (!id) return;
+ * criada/editada em qualquer canto do organograma (ver spec de 27/08).
+ *
+ * Devolve `{ error }` em vez de nada — antes, um erro do Supabase aqui desaparecia em silêncio: a
+ * caixa continuava "arrastada" na tela (só na memória local do navegador), mas o banco nunca
+ * recebia a posição nova, então o PDF (que sempre lê do banco, na hora de exportar) mostrava a
+ * posição antiga — parecia que "a tela e o PDF ficam diferentes" sem motivo aparente. Junto com o
+ * `useEffect` em `organograma-editor.tsx` que descarta a posição otimista assim que os dados do
+ * servidor chegam de novo, agora ou os dois lados ficam iguais, ou o erro aparece pro Mateus. */
+export async function moverNoOrganograma(id: string, x: number, y: number): Promise<{ error?: string }> {
+  if (!id) return {};
   const supabase = createClient();
-  await supabase
+  const { error } = await supabase
     .from("organograma_base")
     .update({ pos_x: Math.round(x), pos_y: Math.round(y), pos_manual: true })
     .eq("id", id);
+  if (error) return { error: `Não foi possível salvar a posição: ${error.message}` };
   revalidatePath(CAMINHO);
+  return {};
 }
 
 /**
