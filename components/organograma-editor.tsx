@@ -55,7 +55,7 @@ const GAP_ROTULO_LINHA = 12;
  * cria uma caixa na Comissão Sub20/Sub17 etc. Some com o "+ Outra..." pra ainda dar pra criar uma
  * linha nova quando precisar (ex.: uma categoria que ainda não existe aqui). */
 const LINHAS_PADRAO = ["Comissão Sub20", "Comissão Sub17", "Operacional", "Administrativo"];
-const VALOR_OUTRA_LINHA = "__outra__";
+const VALOR_OUTRA = "__outra__";
 
 function SalvarButton() {
   const { pending } = useFormStatus();
@@ -108,10 +108,16 @@ function PainelEdicao({
   }
   const [grupoValor, setGrupoValor] = useState(no?.grupo ?? "");
   const [linhaValor, setLinhaValor] = useState(no?.linha ?? "");
-  // Controla se o seletor de Linha está mostrando o campo de texto livre ("+ Outra...") em vez da
-  // lista fixa — só entra nesse modo quando a pessoa escolhe isso explicitamente, nunca sozinho:
-  // o valor de uma caixa já existente sempre aparece na lista (vem de `linhasExistentes`, derivado
-  // dos dados de verdade), então nunca precisa cair aqui só de abrir o painel.
+  // Controla se o seletor de Grupo/Linha está mostrando o campo de texto livre ("+ Outra...") em vez
+  // da lista fixa — só entra nesse modo quando a pessoa escolhe isso explicitamente, nunca sozinho:
+  // o valor de uma caixa já existente sempre aparece na lista (vem de `gruposExistentes`/
+  // `linhasExistentes`, derivado dos dados de verdade), então nunca precisa cair aqui só de abrir o
+  // painel. Os dois eram texto livre com sugestão (`<datalist>`) antes — fácil digitar "Preparador
+  // Físico" numa caixa e "Preparador Fisico" (sem acento) noutra sem perceber, o que criava uma
+  // coluna quase-idêntica invisível no meio da grade (bug real visto no organograma do Mateus, spec
+  // de 27/08). Virar `<select>` de verdade torna impossível digitar errado sem querer, e é mais
+  // fácil de preencher (escolhe da lista em vez de lembrar o nome exato).
+  const [grupoEhOutro, setGrupoEhOutro] = useState(false);
   const [linhaEhOutra, setLinhaEhOutra] = useState(false);
   // Muda toda vez que uma caixa NOVA de grade é criada com sucesso — força o `<form>` a remontar
   // (limpando os campos não-controlados: Nome, Cargo, Reporta para) sem mexer em Grupo/Linha, que
@@ -135,7 +141,11 @@ function PainelEdicao({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const opcoesReportaPara = todosOsNos.filter((n) => n.id !== no?.id);
+  // Ordenado por nome — a lista vinha na ordem "de banco" (inserção), o que fazia achar alguém numa
+  // lista grande virar uma busca visual sem padrão nenhum.
+  const opcoesReportaPara = todosOsNos
+    .filter((n) => n.id !== no?.id)
+    .sort((a, b) => a.nomeExibido.localeCompare(b.nomeExibido));
 
   // Onde cada pessoa da Comissão Técnica já está vinculada no organograma (fora da própria caixa
   // sendo editada) — mostrado junto ao nome dela no seletor abaixo. Antes, uma pessoa já vinculada a
@@ -238,67 +248,98 @@ function PainelEdicao({
           </>
         ) : null}
 
-        <div>
-          <label className="field-label">Grupo (cabeçalho da coluna)</label>
-          <input
-            name="grupo"
-            className="field-input"
-            list="organograma-grupos"
-            placeholder="Ex.: Head de Goleiros — deixe em branco pra caixa de liderança"
-            value={grupoValor}
-            onChange={(e) => setGrupoValor(e.target.value)}
-          />
-          <datalist id="organograma-grupos">
-            {gruposExistentes.map((g) => (
-              <option key={g} value={g} />
-            ))}
-          </datalist>
-          <p className="mt-1 text-xs text-neutral-400">
-            Preencha junto com a Linha abaixo pra essa caixa virar uma célula da grade (coluna × linha) —
-            sem os dois, ela vira caixa de liderança.
+        {/* Grupo (coluna) e Linha (categoria) sempre andam juntos — é o que decide se a caixa vira
+         * uma célula da grade ou fica na árvore de liderança — por isso ganham um bloco visual só
+         * deles, separado do resto do formulário. Os dois viraram `<select>` de verdade (nunca mais
+         * texto livre): antes bastava um espaço a mais ou uma letra sem acento pra criar uma coluna
+         * "quase igual" à de verdade, sem ninguém perceber (bug real, spec de 27/08) — escolher de
+         * uma lista em vez de digitar de cabeça também é mais rápido de preencher. */}
+        <div className="rounded-md border border-linha p-3">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-neutral-400">
+            Onde fica no organograma
           </p>
-        </div>
+          <div className="space-y-3">
+            <div>
+              <label className="field-label">Grupo (coluna)</label>
+              <select
+                className="field-input"
+                value={grupoEhOutro ? VALOR_OUTRA : grupoValor}
+                onChange={(e) => {
+                  if (e.target.value === VALOR_OUTRA) {
+                    setGrupoEhOutro(true);
+                    setGrupoValor("");
+                  } else {
+                    setGrupoEhOutro(false);
+                    setGrupoValor(e.target.value);
+                  }
+                }}
+              >
+                <option value="">— nenhum (caixa de liderança) —</option>
+                {gruposExistentes.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+                <option value={VALOR_OUTRA}>+ Nova coluna (digitar)...</option>
+              </select>
+              {grupoEhOutro ? (
+                <input
+                  autoFocus
+                  className="field-input mt-2"
+                  placeholder="Digite o nome da nova coluna"
+                  value={grupoValor}
+                  onChange={(e) => setGrupoValor(e.target.value)}
+                />
+              ) : null}
+              <input type="hidden" name="grupo" value={grupoValor} />
+            </div>
 
-        <div>
-          <label className="field-label">Linha (rótulo da esquerda)</label>
-          <select
-            className="field-input"
-            value={linhaEhOutra ? VALOR_OUTRA_LINHA : linhaValor}
-            onChange={(e) => {
-              if (e.target.value === VALOR_OUTRA_LINHA) {
-                setLinhaEhOutra(true);
-                setLinhaValor("");
-              } else {
-                setLinhaEhOutra(false);
-                setLinhaValor(e.target.value);
-              }
-            }}
-          >
-            <option value="">— nenhuma (caixa de liderança) —</option>
-            {opcoesLinha.map((l) => (
-              <option key={l} value={l}>
-                {l}
-              </option>
-            ))}
-            <option value={VALOR_OUTRA_LINHA}>+ Outra (digitar)...</option>
-          </select>
-          {linhaEhOutra ? (
-            <input
-              autoFocus
-              className="field-input mt-2"
-              placeholder="Digite o nome da nova linha"
-              value={linhaValor}
-              onChange={(e) => setLinhaValor(e.target.value)}
-            />
-          ) : null}
-          <input type="hidden" name="linha" value={linhaValor} />
+            <div>
+              <label className="field-label">Linha (categoria)</label>
+              <select
+                className="field-input"
+                value={linhaEhOutra ? VALOR_OUTRA : linhaValor}
+                onChange={(e) => {
+                  if (e.target.value === VALOR_OUTRA) {
+                    setLinhaEhOutra(true);
+                    setLinhaValor("");
+                  } else {
+                    setLinhaEhOutra(false);
+                    setLinhaValor(e.target.value);
+                  }
+                }}
+              >
+                <option value="">— nenhuma —</option>
+                {opcoesLinha.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+                <option value={VALOR_OUTRA}>+ Nova categoria (digitar)...</option>
+              </select>
+              {linhaEhOutra ? (
+                <input
+                  autoFocus
+                  className="field-input mt-2"
+                  placeholder="Digite o nome da nova categoria"
+                  value={linhaValor}
+                  onChange={(e) => setLinhaValor(e.target.value)}
+                />
+              ) : null}
+              <input type="hidden" name="linha" value={linhaValor} />
+            </div>
+          </div>
+
           {faltaGrupo ? (
-            <p className="mt-1 text-xs font-medium text-amber-600">
-              Falta preencher o Grupo acima — sem ele, essa caixa não entra na grade, mesmo com a Linha
+            <p className="mt-2 text-xs font-medium text-amber-600">
+              Falta escolher o Grupo acima — sem ele, essa caixa não entra na grade, mesmo com a Linha
               preenchida.
             </p>
           ) : (
-            <p className="mt-1 text-xs text-neutral-400">Só faz sentido junto com um Grupo preenchido.</p>
+            <p className="mt-2 text-xs text-neutral-400">
+              Preencha os dois pra virar uma célula da grade (coluna × categoria). Deixe os dois em
+              branco pra caixa de liderança (Presidente, Diretor...).
+            </p>
           )}
         </div>
 

@@ -400,3 +400,34 @@ esses micro-arrastos invisíveis.
 Correção: o arrasto só passa a "valer" (mover a caixa na tela, e salvar ao soltar) depois que o
 cursor andar mais que 4px na tela. Abaixo disso, soltar o botão não salva posição nenhuma — é
 tratado como um clique puro, do jeito que sempre devia ter sido.
+
+## Atualização (27/08, mesmo dia) — formulário de edição mais fácil de preencher
+
+Depois do "Reorganizar automaticamente", o Mateus esclareceu um ponto e trouxe uma nova reclamação:
+reorganizar é uma ação da TELA (não existe um botão separado no PDF) — o PDF só lê as mesmas posições
+salvas em `organograma_base`, então qualquer reorganização feita na tela já aparece automaticamente
+no PDF na próxima exportação, sem precisar de nada a mais. E, separado disso: "quero uma maneira mais
+fácil de preencher, está confuso".
+
+O campo mais confuso era "Grupo" — até aqui era texto livre (`<input list=.../><datalist>`), a mesma
+armadilha que já tinha causado bug real duas vezes nesse mesmo dia (coluna "quase igual" por causa de
+espaço a mais ou acento faltando, ver seção acima sobre a grade). "Linha" já tinha sido resolvida
+assim numa rodada anterior; "Grupo" ficou de fora na hora e continuava sendo a fonte da confusão.
+
+Mudanças em `organograma-editor.tsx`:
+
+1. **Grupo virou `<select>`**, no mesmo padrão que "Linha" já usava: lista os grupos que já existem
+   + opção "— nenhum (caixa de liderança) —" + "+ Nova coluna (digitar)..." (abre um campo de texto
+   só quando escolhida). Elimina de vez a classe de bug de coluna duplicada por erro de digitação,
+   além de ser mais rápido — escolher da lista em vez de lembrar/digitar o nome exato de uma coluna
+   que já existe.
+2. **Grupo e Linha ganharam um bloco visual só deles**, com borda e título "Onde fica no organograma"
+   — juntos porque são os dois campos que decidem se a caixa vira uma célula da grade ou fica na
+   árvore de liderança; separá-los visualmente do resto do formulário deixa essa relação mais clara
+   (antes os dois campos apareciam soltos entre outros, sem indicar que trabalham juntos). Texto de
+   ajuda consolidado embaixo dos dois, num só lugar.
+3. **"Reporta para" passou a listar em ordem alfabética** (antes seguia a ordem de cadastro, sem
+   critério visível) — mais fácil de achar quem se procura numa lista que só cresce.
+
+Verificado com `tsc --noEmit`, `vitest run` (307 testes, sem mudança de comportamento de layout —
+só UI do formulário) e `next build`, todos limpos.
