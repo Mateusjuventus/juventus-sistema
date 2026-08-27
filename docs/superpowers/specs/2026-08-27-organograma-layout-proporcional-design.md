@@ -166,3 +166,50 @@ Três rodadas de teste real do Mateus depois da entrega acima, todas no mesmo di
    cartão via CSS (`mx-auto`), não mais preenchendo com espaço vazio. Como consequência,
    `calcularScrollHorizontalCentralizado` ficou morta (não há mais o que rolar, com
    `overflow-x-hidden`) e foi removida do código e dos testes.
+
+## Atualização (27/08, mesmo dia) — o mesmo bug de espaço vazio existia no PDF, e a letra do PDF
+
+O PDF (`lib/pdf/organograma-base-document.tsx`) tinha o MESMO bug de largura simétrica do item 3
+acima (`extensaoX = Math.max(Math.abs(minXBruto), Math.abs(maxXBruto), ...)`), implementado
+independentemente na função equivalente do PDF (`calcularDiagrama`) — o texto saía visualmente
+deslocado pra um lado da página mesmo com o bloco todo centralizado (`diagramaWrap: alignItems:
+"center"`), porque a metade "vazia" do bloco ficava sempre do lado curto. Corrigido do mesmo jeito:
+`minX`/`maxX` usam os limites reais do conteúdo, sem forçar simetria.
+
+Separadamente, o Mateus também pediu letra maior no PDF ("aumente essa letra"). Os tamanhos de
+fonte de referência (`FONTE_*_BASE`, ver acima) foram aumentados: nome 6,5→10pt, cargo 5,5→8pt,
+cabeçalho de grupo e rótulo de linha 6→8,5pt. Verificado com um script de render (mesma técnica de
+`renderToFile` + inspeção visual da imagem já usada antes nesta spec) em dois cenários sintéticos:
+um organograma pequeno (escala 1, sem encolher) pra garantir que a letra maior não estoura a caixa,
+e um parecido com o real do Mateus (~5 colunas de grupo + hierarquia de liderança com alguns
+níveis) pra conferir legibilidade quando precisa encolher bastante — em ambos o texto ficou legível
+e dentro da caixa, sem sobrepor nada (a caixa mantém `overflow: hidden` como rede de segurança:
+se algum nome muito comprido não couber num organograma extremamente encolhido, ele é cortado
+dentro da própria caixa, nunca vaza por cima de outra).
+
+## Atualização (27/08, mesmo dia) — caixas de liderança se sobrepondo (bug real, não só visual)
+
+O Mateus reportou que caixas de liderança (sem Grupo) às vezes "somem da tela" depois de criadas, e
+que a cada atualização "fica saindo do lugar", além de aparecerem sobrepostas ao exportar o PDF.
+Investigando `ajustarPosicoesAutomaticas`
+(`app/base/comissao-tecnica/organograma/actions.ts`): toda caixa sem Grupo tem sua posição
+calculada uma vez e "congelada" (salva em `pos_x`/`pos_y`) na primeira vez que é salva — pra não
+ficar recalculando (e pulando de lugar) toda vez que QUALQUER outra caixa do organograma muda.
+O problema: como a posição de cada caixa no cálculo automático depende de quantas outras existem
+no mesmo nível (`calcularLayoutAutomatico`), só recalcular a caixa RECÉM-criada — deixando as já
+congeladas como estavam — podia fazer a caixa nova cair bem em cima de uma caixa já existente.
+Reproduzido com um teste isolado: um Presidente sozinho congelado numa posição; ao adicionar uma
+segunda caixa de liderança do lado dele, a posição calculada pra ela sobrepõe boa parte da largura
+da primeira — na tela, uma cobre a outra (a mais nova, desenhada por cima, "esconde" a mais antiga
+por trás dela — dá a impressão de "sumiu").
+
+Correção: nova coluna `pos_manual` em `organograma_base` (migration `0088`) marca se uma posição
+veio de arrasto manual (`moverNoOrganograma` agora grava `pos_manual: true`) ou é
+automática/calculada. `ajustarPosicoesAutomaticas` passa a recalcular JUNTAS todas as caixas
+automáticas (`pos_manual = false`) a cada criação/edição — não só a mais nova — garantindo que elas
+nunca se sobrepõem entre si (só grava quem de fato mudou de posição, pra não gerar updates à toa);
+caixas com `pos_manual = true` nunca são tocadas, preservando arranjos de propósito. Migration
+faz backfill: quem já tinha posição salva vira `pos_manual = true` (mais seguro que reflowar
+arranjos que o Mateus já ajustou na mão). Verificado com uma simulação isolada do algoritmo (sem
+Supabase): 6 caixas de liderança adicionadas em sequência, nunca uma sobrepõe outra; uma caixa
+marcada manual mantém a posição mesmo com novas caixas sendo criadas depois dela.

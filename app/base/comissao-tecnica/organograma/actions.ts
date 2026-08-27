@@ -8,25 +8,30 @@ import type { OrganogramaNoFormState } from "@/components/organograma-editor";
 const CAMINHO = "/base/comissao-tecnica/organograma";
 
 /**
- * Ajusta `pos_x`/`pos_y` de todo mundo depois de qualquer criação/edição — duas regras diferentes
- * pra dois tipos de caixa:
+ * Ajusta `pos_x`/`pos_y` de todo mundo depois de qualquer criação/edição — três regras diferentes
+ * pra três tipos de caixa:
  *
  * - Célula de grade (Grupo E Linha preenchidos): NUNCA tem posição salva — sempre usa o cálculo
  *   automático da grade (ver `lib/futebol/organograma.ts`), então ela nunca sai do alinhamento por
  *   arrasto (a tela nem deixa mais arrastar essas). Se alguma já tinha `pos_x`/`pos_y` de antes
  *   (arrastada ou congelada por uma versão anterior desta função), essa posição é apagada aqui —
  *   ela "volta" pra grade.
- * - Qualquer outra caixa (liderança, ou Grupo sem Linha): sem posição salva, ficava recalculando a
- *   cada mudança na lista e "pulando de lugar" toda vez que uma caixa nova era adicionada em
- *   qualquer canto do organograma. Essa função congela: calcula a posição automática de quem ainda
- *   está sem posição salva (já considerando a caixa que acabou de ser criada/editada) e grava esse
- *   valor de uma vez — dali em diante só uma caixa nova entra no cálculo, nunca mais empurra quem já
- *   existia.
+ * - Caixa arrastada manualmente (`pos_manual = true`, ver `moverNoOrganograma`): NUNCA é tocada
+ *   aqui, mesmo que uma caixa nova apareça do lado dela — é um arranjo de propósito do Mateus.
+ * - Qualquer outra caixa (liderança, ou Grupo sem Linha, sem arrasto manual): recalculada JUNTO com
+ *   todas as outras do mesmo tipo a cada criação/edição, não só a caixa nova. Uma versão anterior
+ *   só recalculava a caixa recém-criada e "congelava" as demais como estavam — como a posição de
+ *   cada caixa depende de quantas outras existem no mesmo nível (ver `calcularLayoutAutomatico`),
+ *   isso podia fazer a caixa nova cair EM CIMA de uma caixa já existente, sem ninguém perceber até
+ *   reparar que uma "sumiu" da tela (escondida atrás de outra) ou até exportar o PDF e ver as duas
+ *   sobrepostas (spec de 27/08 — bug real reportado pelo Mateus). Recalcular todas juntas garante
+ *   que essas caixas nunca se sobrepõem entre si; só grava quem de fato mudou de posição, pra não
+ *   gerar updates (nem revalidação) à toa.
  */
 async function ajustarPosicoesAutomaticas(supabase: ReturnType<typeof createClient>): Promise<void> {
   const { data } = await supabase
     .from("organograma_base")
-    .select("id, reporta_para, grupo, linha, ordem, pos_x, pos_y");
+    .select("id, reporta_para, grupo, linha, ordem, pos_x, pos_y, pos_manual");
   const linhas = (data ?? []) as {
     id: string;
     reporta_para: string | null;
@@ -35,31 +40,32 @@ async function ajustarPosicoesAutomaticas(supabase: ReturnType<typeof createClie
     ordem: number;
     pos_x: number | null;
     pos_y: number | null;
+    pos_manual: boolean;
   }[];
 
   const naGrade = (l: (typeof linhas)[number]) => Boolean(l.grupo && l.linha);
-  const paraDescongelar = linhas.filter((l) => naGrade(l) && (l.pos_x !== null || l.pos_y !== null));
-  const paraCongelar = linhas.filter((l) => !naGrade(l) && (l.pos_x === null || l.pos_y === null));
+  const paraDescongelar = linhas.filter(
+    (l) => naGrade(l) && (l.pos_x !== null || l.pos_y !== null || l.pos_manual),
+  );
+  const paraRecalcular = linhas.filter((l) => !naGrade(l) && !l.pos_manual);
 
   const atualizacoes = paraDescongelar.map((l) =>
-    supabase.from("organograma_base").update({ pos_x: null, pos_y: null }).eq("id", l.id),
+    supabase.from("organograma_base").update({ pos_x: null, pos_y: null, pos_manual: false }).eq("id", l.id),
   );
 
-  if (paraCongelar.length > 0) {
+  if (paraRecalcular.length > 0) {
     const layout = calcularLayoutAutomatico(
       linhas.map(
         (l): OrganogramaNo => ({ id: l.id, reportaPara: l.reporta_para, grupo: l.grupo, linha: l.linha, ordem: l.ordem }),
       ),
     );
-    for (const l of paraCongelar) {
+    for (const l of paraRecalcular) {
       const pos = layout.get(l.id);
       if (!pos) continue;
-      atualizacoes.push(
-        supabase
-          .from("organograma_base")
-          .update({ pos_x: Math.round(pos.x), pos_y: Math.round(pos.y) })
-          .eq("id", l.id),
-      );
+      const x = Math.round(pos.x);
+      const y = Math.round(pos.y);
+      if (x === l.pos_x && y === l.pos_y) continue;
+      atualizacoes.push(supabase.from("organograma_base").update({ pos_x: x, pos_y: y }).eq("id", l.id));
     }
   }
 
@@ -174,13 +180,17 @@ export async function moverLinhaOrganograma(linha: string, direcao: "cima" | "ba
 }
 
 /** Salva a posição arrastada. Chamada direto pelo componente cliente (não é um `<form>`), disparada
- * a cada soltar de arrasto — por isso não devolve estado nenhum pra tela, só grava. */
+ * a cada soltar de arrasto — por isso não devolve estado nenhum pra tela, só grava.
+ *
+ * `pos_manual: true` marca essa posição como um arranjo de propósito — dali em diante,
+ * `ajustarPosicoesAutomaticas` nunca mais recalcula essa caixa por conta de outra caixa sendo
+ * criada/editada em qualquer canto do organograma (ver spec de 27/08). */
 export async function moverNoOrganograma(id: string, x: number, y: number): Promise<void> {
   if (!id) return;
   const supabase = createClient();
   await supabase
     .from("organograma_base")
-    .update({ pos_x: Math.round(x), pos_y: Math.round(y) })
+    .update({ pos_x: Math.round(x), pos_y: Math.round(y), pos_manual: true })
     .eq("id", id);
   revalidatePath(CAMINHO);
 }

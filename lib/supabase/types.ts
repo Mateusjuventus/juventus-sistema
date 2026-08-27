@@ -264,6 +264,10 @@ export interface OrganogramaBaseRow {
   ordem: number;
   pos_x: number | null;
   pos_y: number | null;
+  /** `true` só quando `pos_x`/`pos_y` veio de um arrasto manual — o recálculo automático de
+   * posições (`ajustarPosicoesAutomaticas`) nunca toca numa caixa com isso marcado, ver spec de
+   * 27/08. */
+  pos_manual: boolean;
   created_at: string;
   updated_at: string;
 }
