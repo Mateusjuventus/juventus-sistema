@@ -614,7 +614,19 @@ export function OrganogramaEditor({
           </button>
         </div>
 
-        <div ref={cartaoRef} className="card overflow-auto" style={{ maxHeight: "75vh" }}>
+        {/* `overflow-x-hidden`: a escala já garante que a largura sempre cabe, então nunca deveria
+         * precisar de scroll horizontal (ver `calcularEscalaOrganograma`). `scrollbarGutter: "stable"`
+         * evita um loop de retroalimentação: a escala encolhe largura E altura juntas (mesmo
+         * `transform: scale()`), então uma escala menor às vezes tira a barra de rolagem vertical
+         * (altura menor que 75vh) — sem reservar o espaço dela, isso aumenta a largura medida pelo
+         * ResizeObserver, o que aumenta a escala de novo, o que devolve a barra, e por aí vai: a tela
+         * "tremendo" reportada pelo Mateus é exatamente esse vaivém. Reservando o espaço da barra
+         * sempre (mostrada ou não), a largura medida nunca muda por causa dela. */}
+        <div
+          ref={cartaoRef}
+          className="card overflow-y-auto overflow-x-hidden"
+          style={{ maxHeight: "75vh", scrollbarGutter: "stable" }}
+        >
           {/* Wrapper externo no tamanho JÁ ENCOLHIDO — evita que o navegador reserve espaço em
            * branco do tamanho lógico original (que o `transform: scale()` abaixo não afeta pro
            * cálculo de layout). O desenho em si continua todo calculado em pixels lógicos; só a
