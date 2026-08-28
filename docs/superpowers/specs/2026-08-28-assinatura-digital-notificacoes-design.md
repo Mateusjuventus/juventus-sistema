@@ -266,3 +266,16 @@ pode assinar no lugar.
 
 **Fora desta fatia, ainda pendente**: os documentos Operacionais (Termo de Retirada, Estoque,
 Veículos, Recibo) — última fatia da Fase 2.
+
+## Correção (28/08) — "Minha Conta" não conseguia salvar nome/cargo
+
+Bug encontrado em produção ao testar: salvar nome/cargo em `/minha-conta` retornava `permission
+denied for table perfis`. Causa: a migration 0023 deixou `perfis` de propósito sem política de
+update para usuários comuns (só master, via `service_role`, pode alterar `role`) — Fase 1 passou a
+exigir autoatendimento de nome/cargo (qualquer usuário logado edita o próprio) sem que existisse
+política nenhuma pra isso.
+
+**Migration `0092_perfis_autoatualizar_nome_cargo.sql`**: política nova, estreita — cada usuário só
+altera a própria linha (`auth.uid() = id`), e o grant de update é só nas colunas `nome`/`cargo`
+(nunca `role`/`email`), então mesmo uma tentativa de update forjada direto na tabela não alcança o
+campo de permissão.
