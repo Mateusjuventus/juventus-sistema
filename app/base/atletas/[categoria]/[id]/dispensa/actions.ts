@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { relatorioDispensaSchema } from "@/lib/validation/schemas";
+import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
 import type { RelatorioDispensaFormState } from "@/components/relatorio-dispensa-form";
 
 /**
@@ -58,6 +59,11 @@ export async function salvarRelatorioDispensaAdmin(
     })
     .eq("id", atletaId);
   if (error) return { error: `Não foi possível salvar: ${error.message}` };
+
+  // Quem preenche por aqui é sempre alguém do Departamento — auto-assina esse papel (ver
+  // docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md); o papel
+  // "treinador" fica como estava (pendente, ou já assinado antes, se foi ele quem gerou primeiro).
+  await autoAssinarComoCreator("dispensa_base", atletaId, "departamento", user.id);
 
   revalidatePath(`/base/atletas/${categoria}`);
   revalidatePath(`/base/atletas/${categoria}/${atletaId}/ver`);

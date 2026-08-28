@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasTreinador } from "@/lib/auth/role";
 import { relatorioDispensaSchema } from "@/lib/validation/schemas";
+import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
+import { criarNotificacao } from "@/lib/notificacoes/actions";
 import type { RelatorioDispensaFormState } from "@/components/relatorio-dispensa-form";
 
 /**
@@ -41,7 +43,7 @@ export async function salvarRelatorioDispensaTreinador(
 
   const { data: atleta } = await supabase
     .from("atletas_base")
-    .select("categoria, dispensa_data")
+    .select("categoria, dispensa_data, nome_completo")
     .eq("id", atletaId)
     .maybeSingle();
   if (!atleta || !atleta.categoria || !categorias.includes(atleta.categoria)) {
@@ -72,6 +74,25 @@ export async function salvarRelatorioDispensaTreinador(
     })
     .eq("id", atletaId);
   if (error) return { error: `Não foi possível salvar: ${error.message}` };
+
+  // Quem preencheu já confirmou os dados ao enviar o formulário — auto-assina o papel dela
+  // ("treinador") sem pedir senha de novo (ver docs/superpowers/specs/2026-08-28-assinatura-
+  // digital-notificacoes-design.md). O papel "departamento" fica pendente, esperando o Mateus (ou
+  // qualquer master) entrar e assinar — por isso o aviso abaixo.
+  await autoAssinarComoCreator("dispensa_base", atletaId, "treinador", user.id);
+
+  const { data: masters } = await supabase.from("perfis").select("id").eq("role", "master");
+  const link = `/base/atletas/${atleta.categoria}/${atletaId}/dispensa`;
+  await Promise.all(
+    (masters ?? []).map((m) =>
+      criarNotificacao({
+        usuarioId: m.id,
+        tipo: "assinatura_pendente",
+        mensagem: `Relatório de Dispensa de ${atleta.nome_completo} está esperando sua assinatura.`,
+        link,
+      }),
+    ),
+  );
 
   revalidatePath("/treinador");
   redirect("/treinador");

@@ -23,6 +23,8 @@ import {
   IconVeiculo,
 } from "@/components/module-icons";
 import { PerfilMenuSidebar } from "@/components/perfil-menu";
+import { SinoNotificacoes, type NotificacaoResumo } from "@/components/sino-notificacoes";
+import { PushOptIn } from "@/components/push-opt-in";
 import { PRIORIDADE_MOBILE, type ModuloChave } from "@/lib/auth/modulos";
 
 /** Chave de ícone que o item carrega — string simples, serializável na fronteira Server→Client
@@ -174,6 +176,7 @@ export function AppSidebar({
   showAvisos,
   email,
   logoutAction,
+  notificacoes,
 }: {
   homeHref: string;
   homeTitle: string;
@@ -182,6 +185,8 @@ export function AppSidebar({
   showAvisos: boolean;
   email: string | null;
   logoutAction: () => Promise<void>;
+  /** Pendências do sino (ver `components/sino-notificacoes.tsx`) — vazio se não estiver logado. */
+  notificacoes: NotificacaoResumo[];
 }) {
   const pathname = usePathname();
   const [menuAberto, setMenuAberto] = useState(false);
@@ -267,6 +272,10 @@ export function AppSidebar({
         </Link>
       </nav>
 
+      <div className="space-y-2 border-t border-white/10 px-3 py-2">
+        <SinoNotificacoes notificacoes={notificacoes} caminhoAtual={pathname} />
+        <PushOptIn />
+      </div>
       <PerfilMenuSidebar email={email} logoutAction={logoutAction} />
     </>
   );

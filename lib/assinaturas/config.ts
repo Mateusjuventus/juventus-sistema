@@ -10,7 +10,12 @@
  * os dois nunca mostram números diferentes de assinantes esperados.
  */
 
-export type TipoDocumento = "dispensa_base" | "parecer_captacao_base" | "orcamento_jogo" | "despesas_jogo";
+export type TipoDocumento =
+  | "dispensa_base"
+  | "parecer_captacao_base"
+  | "orcamento_jogo"
+  | "despesas_jogo"
+  | "solicitacao";
 
 export interface PapelEsperado {
   /** Chave estável gravada em `assinaturas_documento.papel` — nunca muda depois de criada. */
@@ -65,6 +70,19 @@ export function papeisAssinaturaParecer(
   return config
     .filter((c) => c.nome.trim().length > 0)
     .map((c) => ({ papel: c.id, rotulo: c.cargo || c.nome }));
+}
+
+/**
+ * Monta os 2 papéis fixos ("solicitante"/"encarregado") de uma Solicitação — "Solicitante" é
+ * sempre a pessoa que criou (auto-assina na hora, ver `autoAssinarComoCreator` em
+ * `app/solicitacoes/actions.ts`); "encarregado" é configurável por departamento (rótulo = cargo
+ * configurado em `/solicitacoes/configuracoes` ou `/base/solicitacoes/configuracoes`).
+ */
+export function papeisAssinaturaSolicitacao(config: { encarregadoCargo: string }): PapelEsperado[] {
+  return [
+    { papel: "solicitante", rotulo: "Solicitante" },
+    { papel: "encarregado", rotulo: config.encarregadoCargo || "Encarregado do Departamento" },
+  ];
 }
 
 /**

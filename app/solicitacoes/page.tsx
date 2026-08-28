@@ -63,6 +63,9 @@ export default async function SolicitacoesPage({
         >
           Exportar para Excel
         </a>
+        <Link href="/solicitacoes/configuracoes" className="btn-secondary">
+          Configurações
+        </Link>
         <Link href="/solicitacoes/novo" className="btn-primary">
           + Nova solicitação
         </Link>

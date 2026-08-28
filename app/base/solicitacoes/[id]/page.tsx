@@ -2,9 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { DeleteButton } from "@/components/delete-button";
+import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import type { SolicitacaoItemBaseRow, SolicitacaoBaseRow } from "@/lib/supabase/types";
+import { isMaster } from "@/lib/auth/role";
+import { papeisAssinaturaSolicitacao, podeAssinarPapel } from "@/lib/assinaturas/config";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import type { ConfiguracaoSolicitacoesBaseRow, SolicitacaoItemBaseRow, SolicitacaoBaseRow } from "@/lib/supabase/types";
 import { SolicitacaoForm } from "../solicitacao-form";
 import { duplicarSolicitacaoBase, updateSolicitacaoBase } from "../actions";
 import { deleteSolicitacaoItemBase } from "./itens/actions";
@@ -23,13 +27,26 @@ function formatMoeda(valor: number | null): string {
 /** Espelha `app/solicitacoes/[id]/page.tsx` para o Futebol de Base. */
 export default async function EditarSolicitacaoBasePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const [{ data }, { data: itensData }] = await Promise.all([
+  const [
+    { data },
+    { data: itensData },
+    { data: configData },
+    {
+      data: { user },
+    },
+    master,
+    assinaturas,
+  ] = await Promise.all([
     supabase.from("solicitacoes_base").select("*").eq("id", params.id).single(),
     supabase
       .from("solicitacao_itens_base")
       .select("*")
       .eq("solicitacao_id", params.id)
       .order("ordem", { ascending: true }),
+    supabase.from("configuracoes_solicitacoes_base").select("*").limit(1).maybeSingle(),
+    supabase.auth.getUser(),
+    isMaster(supabase),
+    buscarAssinaturas("solicitacao", params.id),
   ]);
 
   if (!data) notFound();
@@ -37,6 +54,18 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
   const s = data as SolicitacaoBaseRow;
   const itens = (itensData ?? []) as SolicitacaoItemBaseRow[];
   const fotoUrls = await Promise.all(itens.map((i) => getSignedPhotoUrl(supabase, i.foto_path)));
+
+  const configSolicitacoes = configData as ConfiguracaoSolicitacoesBaseRow | null;
+  const papeisSolicitacao = papeisAssinaturaSolicitacao({
+    encarregadoCargo: configSolicitacoes?.encarregado_cargo ?? "",
+  });
+  const papeisQuePossoAssinar = user
+    ? (["solicitante", "encarregado"] as const).filter((papel) =>
+        papel === "solicitante"
+          ? s.created_by === user.id
+          : podeAssinarPapel(configSolicitacoes?.encarregado_usuario_id, user.id, master),
+      )
+    : [];
 
   const defaultValues = {
     tipo: s.tipo,
@@ -100,6 +129,17 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
           entityId={s.id}
           defaultValues={defaultValues}
           submitLabel="Salvar alterações"
+        />
+      </div>
+
+      <div className="mt-4">
+        <BlocoAssinaturaDigital
+          tipoDocumento="solicitacao"
+          documentoId={s.id}
+          caminhoRevalidar={`/base/solicitacoes/${s.id}`}
+          papeis={papeisSolicitacao}
+          assinaturas={assinaturas}
+          papeisQuePossoAssinar={[...papeisQuePossoAssinar]}
         />
       </div>
 

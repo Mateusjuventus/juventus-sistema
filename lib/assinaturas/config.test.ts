@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { papeisAssinaturaFinanceiro, papeisAssinaturaParecer, papeisEsperados, podeAssinarPapel } from "./config";
+import {
+  papeisAssinaturaFinanceiro,
+  papeisAssinaturaParecer,
+  papeisAssinaturaSolicitacao,
+  papeisEsperados,
+  podeAssinarPapel,
+} from "./config";
 
 describe("papeisEsperados", () => {
   it("Relatório de Dispensa espera treinador e departamento, nessa ordem", () => {
@@ -50,6 +56,21 @@ describe("papeisAssinaturaParecer", () => {
   it("linha sem nome preenchido (configuração em branco) não vira papel", () => {
     const papeis = papeisAssinaturaParecer([{ id: "id-1", nome: "", cargo: "" }]);
     expect(papeis).toEqual([]);
+  });
+});
+
+describe("papeisAssinaturaSolicitacao", () => {
+  it("Solicitante é fixo, Encarregado usa o cargo configurado como rótulo", () => {
+    const papeis = papeisAssinaturaSolicitacao({ encarregadoCargo: "Gerente Administrativo" });
+    expect(papeis).toEqual([
+      { papel: "solicitante", rotulo: "Solicitante" },
+      { papel: "encarregado", rotulo: "Gerente Administrativo" },
+    ]);
+  });
+
+  it("cargo do encarregado ainda não configurado cai num rótulo genérico", () => {
+    const papeis = papeisAssinaturaSolicitacao({ encarregadoCargo: "" });
+    expect(papeis[1]).toEqual({ papel: "encarregado", rotulo: "Encarregado do Departamento" });
   });
 });
 

@@ -941,6 +941,17 @@ export const configuracaoFinanceiroSchema = z.object({
 });
 export type ConfiguracaoFinanceiroInput = z.infer<typeof configuracaoFinanceiroSchema>;
 
+/** Configuração do Encarregado do Departamento que assina digitalmente as Solicitações (ver
+ * docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md, Fase 2) — nome/cargo
+ * não são obrigatórios (diferente do Financeiro): a config nasce em branco, o Mateus preenche
+ * quando quiser começar a usar assinatura digital nas Solicitações. */
+export const configuracaoSolicitacoesSchema = z.object({
+  encarregadoNome: z.string(),
+  encarregadoCargo: z.string(),
+  encarregadoUsuarioId: z.string().optional(),
+});
+export type ConfiguracaoSolicitacoesInput = z.infer<typeof configuracaoSolicitacoesSchema>;
+
 /** As três listas de Estoque — Esportivo, Medicamentos e Materiais — totalmente independentes umas
  * das outras (catálogo, entradas, saídas e histórico próprios).
  *

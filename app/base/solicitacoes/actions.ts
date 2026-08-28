@@ -8,6 +8,7 @@ import { hojeBrasilia } from "@/lib/data-brasil";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotalBase } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
+import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
 import type { SolicitacaoBaseRow, SolicitacaoItemBaseRow, SolicitacaoTipo } from "@/lib/supabase/types";
 
 /** Tipos que recalculam o valor total a partir da soma dos itens (ver recalcularValorTotalBase). */
@@ -291,6 +292,9 @@ export async function createSolicitacaoBase(
   }
 
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const data = result.data;
   const numero = await proximoNumero(supabase);
 
@@ -312,12 +316,17 @@ export async function createSolicitacaoBase(
       conta: data.conta || null,
       tipo_conta: data.tipoConta || null,
       titular_conta: data.titularConta || null,
+      created_by: user?.id ?? null,
     })
     .select("id")
     .single();
 
   if (error || !criada) {
     return { error: "Não foi possível salvar a solicitação. Tente novamente.", values: raw };
+  }
+
+  if (user) {
+    await autoAssinarComoCreator("solicitacao", criada.id, "solicitante", user.id);
   }
 
   if (TIPOS_COM_ITENS.includes(data.tipo)) {
@@ -396,6 +405,9 @@ export async function duplicarSolicitacaoBase(formData: FormData): Promise<void>
   if (!id) return;
 
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const { data: originalData } = await supabase.from("solicitacoes_base").select("*").eq("id", id).single();
   if (!originalData) return;
   const original = originalData as SolicitacaoBaseRow;
@@ -421,11 +433,16 @@ export async function duplicarSolicitacaoBase(formData: FormData): Promise<void>
       tipo_conta: original.tipo_conta,
       titular_conta: original.titular_conta,
       status: "pendente",
+      created_by: user?.id ?? null,
     })
     .select("id")
     .single();
 
   if (error || !nova) return;
+
+  if (user) {
+    await autoAssinarComoCreator("solicitacao", nova.id, "solicitante", user.id);
+  }
 
   if (TIPOS_COM_ITENS.includes(original.tipo)) {
     const { data: itensData } = await supabase

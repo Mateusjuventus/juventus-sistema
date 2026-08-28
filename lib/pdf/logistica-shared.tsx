@@ -235,6 +235,9 @@ export const financeiroStyles = StyleSheet.create({
   assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
   assinaturaNome: { fontSize: 9.5, fontWeight: 700, color: "#1f1f1f", textAlign: "center" },
   assinaturaCargo: { fontSize: 8, color: "#525252", textAlign: "center", marginTop: 1 },
+  assinaturaDigitalSelo: { fontSize: 9, fontWeight: 700, color: CORES.grena, textAlign: "center" },
+  assinaturaDigitalData: { fontSize: 7.5, color: "#737373", textAlign: "center", marginTop: 2 },
+  assinaturaPendenteTexto: { fontSize: 8.5, color: "#a3a3a3", textAlign: "center", fontStyle: "italic" },
 });
 
 const DEPARTAMENTO_LABELS = {
@@ -278,6 +281,50 @@ export function DepartamentoEyebrow({ departamento }: { departamento: "profissio
 export interface AssinaturaInfo {
   nome: string;
   cargo: string;
+  /** Documento com assinatura digital (ver docs/superpowers/specs/2026-08-28-assinatura-digital-
+   * notificacoes-design.md): quando presente, substitui a linha em branco por "Assinado
+   * digitalmente por [nome], [cargo], em [data]" — `nome`/`cargo` acima continuam sendo só o
+   * rótulo do papel (ex. "Departamento de Futebol de Base"), igual a hoje. */
+  assinadoDigitalmenteEm?: string;
+  /** Documento com assinatura digital, mas esse papel específico ainda não foi assinado — mostra
+   * "Pendente de assinatura" no lugar da linha em branco (documento ainda não impresso pra
+   * assinar na mão, então uma linha vazia sem contexto confundiria). Ignorado se
+   * `assinadoDigitalmenteEm` também estiver presente. */
+  pendente?: boolean;
+}
+
+/** Miolo compartilhado por `AssinaturasBlock` e `AssinaturasBlockDinamico` — decide o que desenhar
+ * dentro de UMA coluna de assinatura conforme o estado (assinado digital / pendente digital / linha
+ * em branco de sempre), sem duplicar essa lógica de 3 vias nos dois componentes. */
+function ConteudoColunaAssinatura({ assinatura }: { assinatura: AssinaturaInfo }) {
+  if (assinatura.assinadoDigitalmenteEm) {
+    return (
+      <>
+        <Text style={financeiroStyles.assinaturaDigitalSelo}>Assinado digitalmente</Text>
+        <Text style={financeiroStyles.assinaturaNome}>{assinatura.nome}</Text>
+        <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
+        <Text style={financeiroStyles.assinaturaDigitalData}>
+          em {formatCarimbo(new Date(assinatura.assinadoDigitalmenteEm))}
+        </Text>
+      </>
+    );
+  }
+  if (assinatura.pendente) {
+    return (
+      <>
+        <View style={financeiroStyles.assinaturaLinha} />
+        <Text style={financeiroStyles.assinaturaPendenteTexto}>Pendente de assinatura</Text>
+        <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
+      </>
+    );
+  }
+  return (
+    <>
+      <View style={financeiroStyles.assinaturaLinha} />
+      <Text style={financeiroStyles.assinaturaNome}>{assinatura.nome}</Text>
+      <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
+    </>
+  );
 }
 
 /** Mesmo espírito de `financeiroStyles.assinatura*`, mas pra uma LISTA de tamanho variável (o
@@ -295,16 +342,17 @@ const assinaturasDinamicasStyles = StyleSheet.create({
  * nome preenchido (configuração ainda em branco) não aparecem — não faz sentido imprimir uma linha
  * de assinatura vazia. */
 export function AssinaturasBlockDinamico({ assinaturas }: { assinaturas: AssinaturaInfo[] }) {
-  const preenchidas = assinaturas.filter((a) => a.nome.trim().length > 0);
+  // Configuração ainda em branco (nunca preenchida) some da lista — diferente de "pendente de
+  // assinatura digital", que precisa aparecer mesmo com `nome` vazio (é exatamente o estado que
+  // avisa quem falta assinar).
+  const preenchidas = assinaturas.filter((a) => a.nome.trim().length > 0 || a.pendente || a.assinadoDigitalmenteEm);
   if (preenchidas.length === 0) return null;
 
   return (
     <View style={assinaturasDinamicasStyles.row} wrap={false}>
       {preenchidas.map((assinatura, i) => (
         <View style={assinaturasDinamicasStyles.col} key={i}>
-          <View style={financeiroStyles.assinaturaLinha} />
-          <Text style={financeiroStyles.assinaturaNome}>{assinatura.nome}</Text>
-          <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
+          <ConteudoColunaAssinatura assinatura={assinatura} />
         </View>
       ))}
     </View>
@@ -322,14 +370,10 @@ export function AssinaturasBlock({
   return (
     <View style={financeiroStyles.assinaturasRow} wrap={false}>
       <View style={financeiroStyles.assinaturaCol}>
-        <View style={financeiroStyles.assinaturaLinha} />
-        <Text style={financeiroStyles.assinaturaNome}>{assinatura1.nome}</Text>
-        <Text style={financeiroStyles.assinaturaCargo}>{assinatura1.cargo}</Text>
+        <ConteudoColunaAssinatura assinatura={assinatura1} />
       </View>
       <View style={financeiroStyles.assinaturaCol}>
-        <View style={financeiroStyles.assinaturaLinha} />
-        <Text style={financeiroStyles.assinaturaNome}>{assinatura2.nome}</Text>
-        <Text style={financeiroStyles.assinaturaCargo}>{assinatura2.cargo}</Text>
+        <ConteudoColunaAssinatura assinatura={assinatura2} />
       </View>
     </View>
   );

@@ -133,16 +133,38 @@ export interface RelatorioDispensaAtleta {
   notaComportamental: number | null;
 }
 
+/** `nome`/`cargo` de quem assinou cada papel (ver docs/superpowers/specs/2026-08-28-assinatura-
+ * digital-notificacoes-design.md) — `null` = ainda pendente. */
+export interface RelatorioDispensaAssinaturas {
+  treinador: { nome: string; cargo: string | null; assinadoEm: string } | null;
+  departamento: { nome: string; cargo: string | null; assinadoEm: string } | null;
+}
+
+/** Converte o resultado genérico de `buscarAssinaturas("dispensa_base", ...)` no formato que este
+ * documento espera — usado pelas duas rotas de PDF (Treinador e cadastro interno), pra não repetir
+ * o mesmo mapeamento duas vezes. */
+export function montarAssinaturasDispensa(
+  assinaturasSalvas: { papel: string; nomeNoMomento: string; cargoNoMomento: string | null; assinadoEm: string }[],
+): RelatorioDispensaAssinaturas {
+  function porPapel(papel: string) {
+    const a = assinaturasSalvas.find((x) => x.papel === papel);
+    return a ? { nome: a.nomeNoMomento, cargo: a.cargoNoMomento, assinadoEm: a.assinadoEm } : null;
+  }
+  return { treinador: porPapel("treinador"), departamento: porPapel("departamento") };
+}
+
 export function RelatorioDispensaDocument({
   juventusLogoSrc,
   fotoSrc,
   atleta,
   emitidoEm,
+  assinaturas,
 }: {
   juventusLogoSrc: LogoSrc;
   fotoSrc: LogoSrc;
   atleta: RelatorioDispensaAtleta;
   emitidoEm: Date;
+  assinaturas: RelatorioDispensaAssinaturas;
 }) {
   return (
     <Document>
@@ -215,8 +237,24 @@ export function RelatorioDispensaDocument({
         </View>
 
         <AssinaturasBlock
-          assinatura1={{ nome: "", cargo: "Treinador / Responsável pela avaliação" }}
-          assinatura2={{ nome: "", cargo: "Departamento de Futebol de Base" }}
+          assinatura1={
+            assinaturas.treinador
+              ? {
+                  nome: assinaturas.treinador.nome,
+                  cargo: assinaturas.treinador.cargo ?? "Treinador / Responsável pela avaliação",
+                  assinadoDigitalmenteEm: assinaturas.treinador.assinadoEm,
+                }
+              : { nome: "", cargo: "Treinador / Responsável pela avaliação", pendente: true }
+          }
+          assinatura2={
+            assinaturas.departamento
+              ? {
+                  nome: assinaturas.departamento.nome,
+                  cargo: assinaturas.departamento.cargo ?? "Departamento de Futebol de Base",
+                  assinadoDigitalmenteEm: assinaturas.departamento.assinadoEm,
+                }
+              : { nome: "", cargo: "Departamento de Futebol de Base", pendente: true }
+          }
         />
 
         <Text style={{ fontSize: 7, color: "#a3a3a3", textAlign: "center", marginTop: 10 }}>

@@ -6,8 +6,9 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { RelatorioDispensaDocument } from "@/lib/pdf/relatorio-dispensa-document";
+import { RelatorioDispensaDocument, montarAssinaturasDispensa } from "@/lib/pdf/relatorio-dispensa-document";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
 import type { AtletaBaseRow } from "@/lib/supabase/types";
 
 /**
@@ -27,10 +28,13 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
+  const assinaturas = montarAssinaturasDispensa(await buscarAssinaturas("dispensa_base", atleta.id));
+
   const buffer = await renderToBuffer(
     <RelatorioDispensaDocument
       juventusLogoSrc={juventusLogoSrc}
       fotoSrc={fotoUrl}
+      assinaturas={assinaturas}
       atleta={{
         nome: atleta.nome_completo,
         dataNascimento: atleta.data_nascimento,

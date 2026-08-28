@@ -18,6 +18,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Juventus - SAF",
   description: "Central de cadastros e operação do futebol profissional do Juventus",
+  // Deixa o sistema "instalável" (Adicionar à Tela de Início) — pré-requisito pra push funcionar no
+  // iPhone (ver docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md).
+  manifest: "/manifest.json",
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

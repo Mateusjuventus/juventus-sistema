@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getModulosPermitidos, getModulosBasePermitidos, isMaster } from "@/lib/auth/role";
 import { MODULOS, type ModuloChave } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
+import { buscarNotificacoes } from "@/lib/notificacoes/actions";
 
 /**
  * `nav="full"` (padrão) monta a sidebar com os módulos do departamento atual que o usuário logado
@@ -84,6 +85,8 @@ export async function AppShell({
     data: { user },
   } = await supabase.auth.getUser();
 
+  const notificacoes = nav === "full" ? await buscarNotificacoes() : [];
+
   const homeHref = departamento === "futebol_base" ? "/base" : "/profissional";
   const homeTitle =
     departamento === "futebol_base" ? "Início do Futebol de Base" : "Início do Futebol Profissional";
@@ -115,6 +118,7 @@ export async function AppShell({
         showAvisos={departamento !== "futebol_base"}
         email={user?.email ?? null}
         logoutAction={logout}
+        notificacoes={notificacoes}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         {breadcrumb ? (

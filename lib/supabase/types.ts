@@ -1201,6 +1201,28 @@ export interface EstoqueEntradaItemBaseRow {
   created_at: string;
 }
 
+/** Configuração do Encarregado do Departamento que assina digitalmente as Solicitações do Futebol
+ * Profissional (ver docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md,
+ * Fase 2) — tabela singleton, mesmo espírito de `ConfiguracaoFinanceiroRow`. Ver
+ * `ConfiguracaoSolicitacoesBaseRow` abaixo para o Futebol de Base (tabela independente). */
+export interface ConfiguracaoSolicitacoesRow {
+  id: string;
+  encarregado_nome: string;
+  encarregado_cargo: string;
+  encarregado_usuario_id: string | null;
+  updated_at: string;
+}
+
+/** Mesma coisa que `ConfiguracaoSolicitacoesRow`, mas para o Futebol de Base
+ * (`configuracoes_solicitacoes_base` — tabela totalmente independente). */
+export interface ConfiguracaoSolicitacoesBaseRow {
+  id: string;
+  encarregado_nome: string;
+  encarregado_cargo: string;
+  encarregado_usuario_id: string | null;
+  updated_at: string;
+}
+
 export interface SolicitacaoBaseRow {
   id: string;
   numero: number;

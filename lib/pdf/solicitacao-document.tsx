@@ -1,5 +1,13 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
-import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import {
+  AssinaturasBlock,
+  CORES,
+  DocumentoFooter,
+  formatDataBr,
+  sharedStyles,
+  type AssinaturaInfo,
+  type LogoSrc,
+} from "./logistica-shared";
 import type { SolicitacaoTipo } from "@/lib/supabase/types";
 
 const TITULOS: Record<SolicitacaoTipo, string> = {
@@ -162,10 +170,6 @@ const styles = StyleSheet.create({
   // isso, qualquer solicitação com muitos itens empurrava as assinaturas sozinhas pra uma segunda
   // folha em branco. Ainda assim, um pouco mais folgados que o mínimo (36/34) pra dar mais espaço
   // real pra assinar por cima da linha.
-  assinaturasGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 36 },
-  assinaturaCol: { width: "46%", alignItems: "center", marginBottom: 34 },
-  assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
-  assinaturaLabel: { fontSize: 8.5, color: "#525252", textAlign: "center" },
   notaRodape: { fontSize: 7.5, color: "#737373", marginTop: 3, lineHeight: 1.3 },
 });
 
@@ -223,20 +227,43 @@ function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/** Estado das 2 assinaturas da Solicitação (ver docs/superpowers/specs/2026-08-28-assinatura-
+ * digital-notificacoes-design.md) — `null` = ainda pendente. */
+export interface SolicitacaoAssinaturas {
+  solicitante: { nome: string; cargo: string | null; assinadoEm: string } | null;
+  encarregado: { nome: string; cargo: string | null; assinadoEm: string } | null;
+}
+
+/** Combina o que foi salvo em `assinaturas_documento` com o estado esperado (Solicitante +
+ * Encarregado) — mesmo espírito de `montarAssinaturasDispensa` em
+ * `lib/pdf/relatorio-dispensa-document.tsx`. */
+export function montarAssinaturasSolicitacao(
+  assinaturasSalvas: { papel: string; nomeNoMomento: string; cargoNoMomento: string | null; assinadoEm: string }[],
+): SolicitacaoAssinaturas {
+  function porPapel(papel: string) {
+    const a = assinaturasSalvas.find((x) => x.papel === papel);
+    return a ? { nome: a.nomeNoMomento, cargo: a.cargoNoMomento, assinadoEm: a.assinadoEm } : null;
+  }
+  return { solicitante: porPapel("solicitante"), encarregado: porPapel("encarregado") };
+}
+
 /**
  * Documento de Solicitação (Compra, Pagamento, Exame Médico, Reembolso ou Passagem Aérea) — segue
  * o modelo de formulário impresso já usado pelo clube: logo centralizado no topo, faixa com o
  * título, tabela de dados (rótulo em vinho, valor em preto), tabela de itens centralizada, e bloco
- * de 4 assinaturas em branco pra imprimir e assinar.
+ * de assinaturas (Solicitante + Encarregado do Departamento — antes eram 4 linhas em branco,
+ * incluindo um "Aprovador" que o Mateus decidiu não precisar mais, ver a spec).
  */
 export function SolicitacaoDocument({
   juventusLogoSrc,
   solicitacao,
   itens,
+  assinaturas,
 }: {
   juventusLogoSrc: LogoSrc;
   solicitacao: SolicitacaoPdfData;
   itens: SolicitacaoPdfItem[];
+  assinaturas: SolicitacaoAssinaturas;
 }) {
   const departamento = DEPARTAMENTOS[solicitacao.tipo];
   const mostrarItens = TIPOS_COM_ITENS.includes(solicitacao.tipo);
@@ -519,30 +546,32 @@ export function SolicitacaoDocument({
 
         <View style={styles.fecho} />
 
-        <View style={styles.assinaturasGrid} wrap={false}>
-          <View style={styles.assinaturaCol}>
-            <View style={styles.assinaturaLinha} />
-            <Text style={styles.assinaturaLabel}>Solicitante</Text>
-          </View>
-          <View style={styles.assinaturaCol}>
-            <View style={styles.assinaturaLinha} />
-            <Text style={styles.assinaturaLabel}>Encarregado Departamento</Text>
-          </View>
-          <View style={styles.assinaturaCol}>
-            <View style={styles.assinaturaLinha} />
-            <Text style={styles.assinaturaLabel}>{departamento}</Text>
-          </View>
-          <View style={styles.assinaturaCol}>
-            <View style={styles.assinaturaLinha} />
-            <Text style={styles.assinaturaLabel}>Aprovador</Text>
-          </View>
-        </View>
+        <AssinaturasBlock
+          assinatura1={
+            assinaturas.solicitante
+              ? {
+                  nome: assinaturas.solicitante.nome,
+                  cargo: assinaturas.solicitante.cargo ?? "Solicitante",
+                  assinadoDigitalmenteEm: assinaturas.solicitante.assinadoEm,
+                }
+              : { nome: "", cargo: "Solicitante", pendente: true }
+          }
+          assinatura2={
+            assinaturas.encarregado
+              ? {
+                  nome: assinaturas.encarregado.nome,
+                  cargo: assinaturas.encarregado.cargo ?? "Encarregado do Departamento",
+                  assinadoDigitalmenteEm: assinaturas.encarregado.assinadoEm,
+                }
+              : { nome: "", cargo: "Encarregado do Departamento", pendente: true }
+          }
+        />
 
         <Text style={styles.notaRodape}>
           Todas as solicitações devem ser enviadas com uma semana de antecedência para o {departamento.toLowerCase()}.
         </Text>
         <Text style={styles.notaRodape}>
-          Solicitações sem assinatura do gestor da área não serão processadas.
+          Solicitações sem assinatura do Encarregado do Departamento não serão processadas.
         </Text>
 
         <DocumentoFooter />

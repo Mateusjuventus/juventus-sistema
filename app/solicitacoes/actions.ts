@@ -8,6 +8,7 @@ import { hojeBrasilia } from "@/lib/data-brasil";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotal } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
+import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
 import type { SolicitacaoItemRow, SolicitacaoRow, SolicitacaoTipo } from "@/lib/supabase/types";
 
 /** Tipos que recalculam o valor total a partir da soma dos itens (ver recalcularValorTotal). */
@@ -303,6 +304,9 @@ export async function createSolicitacao(
   }
 
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const data = result.data;
   const numero = await proximoNumero(supabase);
 
@@ -324,12 +328,21 @@ export async function createSolicitacao(
       conta: data.conta || null,
       tipo_conta: data.tipoConta || null,
       titular_conta: data.titularConta || null,
+      created_by: user?.id ?? null,
     })
     .select("id")
     .single();
 
   if (error || !criada) {
     return { error: "Não foi possível salvar a solicitação. Tente novamente.", values: raw };
+  }
+
+  // Quem cria a solicitação já é o "Solicitante" — assina digitalmente o próprio papel na hora,
+  // sem pedir senha de novo (ver docs/superpowers/specs/2026-08-28-assinatura-digital-
+  // notificacoes-design.md). Sem sessão (não deveria acontecer aqui, mas por segurança), a
+  // solicitação continua sendo salva mesmo assim.
+  if (user) {
+    await autoAssinarComoCreator("solicitacao", criada.id, "solicitante", user.id);
   }
 
   if (TIPOS_COM_ITENS.includes(data.tipo)) {
@@ -413,6 +426,9 @@ export async function duplicarSolicitacao(formData: FormData): Promise<void> {
   if (!id) return;
 
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const { data: originalData } = await supabase.from("solicitacoes").select("*").eq("id", id).single();
   if (!originalData) return;
   const original = originalData as SolicitacaoRow;
@@ -438,11 +454,18 @@ export async function duplicarSolicitacao(formData: FormData): Promise<void> {
       tipo_conta: original.tipo_conta,
       titular_conta: original.titular_conta,
       status: "pendente",
+      created_by: user?.id ?? null,
     })
     .select("id")
     .single();
 
   if (error || !nova) return;
+
+  // A cópia é uma solicitação nova — quem duplica é o "Solicitante" dela, não herda a assinatura
+  // da original (ver createSolicitacao acima).
+  if (user) {
+    await autoAssinarComoCreator("solicitacao", nova.id, "solicitante", user.id);
+  }
 
   if (TIPOS_COM_ITENS.includes(original.tipo)) {
     const { data: itensData } = await supabase

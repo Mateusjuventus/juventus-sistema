@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { RelatorioDispensaForm } from "@/components/relatorio-dispensa-form";
+import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
+import { papeisEsperados } from "@/lib/assinaturas/config";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
 import { createClient } from "@/lib/supabase/server";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { AtletaBaseRow } from "@/lib/supabase/types";
@@ -27,6 +30,7 @@ export default async function DispensaAtletaBasePage({
 
   const jaGerado = Boolean(atleta.dispensa_data);
   const action = salvarRelatorioDispensaAdmin.bind(null, atleta.id, params.categoria);
+  const assinaturas = jaGerado ? await buscarAssinaturas("dispensa_base", atleta.id) : [];
 
   const defaultValues: Record<string, string> = {
     dispensaData: atleta.dispensa_data ?? "",
@@ -59,12 +63,22 @@ export default async function DispensaAtletaBasePage({
           : "Ao salvar, o atleta passa para o status Dispensado."}
       </p>
 
-      <div className="mt-4">
+      <div className="mt-4 space-y-4">
         <RelatorioDispensaForm
           action={action}
           defaultValues={defaultValues}
           submitLabel={jaGerado ? "Salvar alterações" : "Gerar relatório de dispensa"}
         />
+        {jaGerado ? (
+          <BlocoAssinaturaDigital
+            tipoDocumento="dispensa_base"
+            documentoId={atleta.id}
+            caminhoRevalidar={`/base/atletas/${params.categoria}/${atleta.id}/dispensa`}
+            papeis={papeisEsperados("dispensa_base")}
+            assinaturas={assinaturas}
+            papeisQuePossoAssinar={["departamento"]}
+          />
+        ) : null}
       </div>
     </AppShell>
   );

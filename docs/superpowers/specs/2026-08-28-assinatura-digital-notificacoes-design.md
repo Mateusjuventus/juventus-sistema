@@ -229,3 +229,40 @@ assina digitalmente" pra cada assinante.
 
 **Fora desta fatia, ainda pendente**: Solicitações (+ tela nova de Encarregado por departamento) e
 os documentos Operacionais (Termo de Retirada, Estoque, Veículos, Recibo) — próxima fatia.
+
+## Atualização (28/08) — Fase 2, parte 2: Solicitações
+
+Terceira fatia: as Solicitações (Compra, Pagamento, Exame Médico, Reembolso, Passagem Aérea,
+Transporte, Hospedagem — Profissional e Base) agora assinam digitalmente. 2 assinantes: **Solicitante**
+(quem cria — auto-assina o próprio papel na hora, mesmo padrão do Relatório de Dispensa) e
+**Encarregado do Departamento** (pessoa configurada numa tela nova, `/solicitacoes/configuracoes` e
+`/base/solicitacoes/configuracoes` — vinculável a um login, mesmo padrão do Financeiro/Parecer).
+
+- **Simplificação em relação ao PDF antigo**: o documento tinha 4 linhas de assinatura em branco
+  (Solicitante, Encarregado Departamento, um rótulo derivado do tipo tipo "Departamento
+  Financeiro", e Aprovador). Confirmado com o Mateus que não precisa do papel de Aprovador nem da
+  4ª linha — o bloco de assinatura virou os 2 mesmos que todo outro documento usa
+  (`AssinaturasBlock`, `lib/pdf/logistica-shared.tsx`), mostrando "Assinado digitalmente" ou
+  "Pendente de assinatura" no lugar das linhas em branco.
+- **Migration `0091_assinatura_solicitacoes.sql`**: `configuracoes_solicitacoes` e
+  `configuracoes_solicitacoes_base` (tabelas singleton novas, mesmo formato do Financeiro:
+  `encarregado_nome`/`encarregado_cargo`/`encarregado_usuario_id`). `solicitacoes`/
+  `solicitacoes_base` já tinham uma coluna `created_by` desde o início, mas nunca era preenchida —
+  agora `createSolicitacao`/`createSolicitacaoBase`/`duplicarSolicitacao(Base)` gravam
+  `created_by` e auto-assinam o Solicitante.
+- **`lib/assinaturas/config.ts`**: `TipoDocumento` ganhou `"solicitacao"` (mesmo tipo pras duas
+  tabelas, Profissional e Base — igual ao Orçamento/Despesas do jogo, `documento_id` já distingue).
+  `papeisAssinaturaSolicitacao` monta os 2 papéis fixos ("solicitante"/"encarregado").
+- `<BlocoAssinaturaDigital>` aparece em `/solicitacoes/[id]` e `/base/solicitacoes/[id]`, entre o
+  formulário de edição e a lista de itens.
+- Testes novos: `papeisAssinaturaSolicitacao` em `lib/assinaturas/config.test.ts` e
+  `lib/pdf/solicitacao-document.test.ts` (mescla de assinaturas salvas). 326 testes no total,
+  `tsc`/`build` limpos.
+
+**Pendente do lado do Mateus**: rodar a migration `0091` e, se quiser, configurar o Encarregado do
+Departamento em `/solicitacoes/configuracoes` e `/base/solicitacoes/configuracoes` (nome, cargo e o
+usuário vinculado) — sem isso, o papel "Encarregado" fica sem rótulo específico e qualquer master
+pode assinar no lugar.
+
+**Fora desta fatia, ainda pendente**: os documentos Operacionais (Termo de Retirada, Estoque,
+Veículos, Recibo) — última fatia da Fase 2.

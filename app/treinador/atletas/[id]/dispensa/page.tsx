@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCategoriasTreinador } from "@/lib/auth/role";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { RelatorioDispensaForm } from "@/components/relatorio-dispensa-form";
+import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
+import { papeisEsperados } from "@/lib/assinaturas/config";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
 import type { AtletaBaseRow } from "@/lib/supabase/types";
 import { salvarRelatorioDispensaTreinador } from "./actions";
 
@@ -25,6 +28,7 @@ export default async function DispensaAtletaTreinadorPage({ params }: { params: 
 
   const jaGerado = Boolean(atleta.dispensa_data);
   const action = salvarRelatorioDispensaTreinador.bind(null, atleta.id);
+  const assinaturas = jaGerado ? await buscarAssinaturas("dispensa_base", atleta.id) : [];
 
   return (
     <div className="min-h-screen bg-pagina">
@@ -49,18 +53,28 @@ export default async function DispensaAtletaTreinadorPage({ params }: { params: 
 
         <div className="card mt-6 p-6">
           {jaGerado ? (
-            <div className="space-y-4 text-center">
-              <p className="text-sm text-neutral-600">
-                Este relatório já foi gerado e está travado — só o cadastro interno pode alterá-lo agora.
-              </p>
-              <a
-                href={`/treinador/atletas/${atleta.id}/dispensa/pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-secondary"
-              >
-                Baixar PDF
-              </a>
+            <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-neutral-600">
+                  Este relatório já foi gerado e está travado — só o cadastro interno pode alterá-lo agora.
+                </p>
+                <a
+                  href={`/treinador/atletas/${atleta.id}/dispensa/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-secondary mt-3 inline-block"
+                >
+                  Baixar PDF
+                </a>
+              </div>
+              <BlocoAssinaturaDigital
+                tipoDocumento="dispensa_base"
+                documentoId={atleta.id}
+                caminhoRevalidar={`/treinador/atletas/${atleta.id}/dispensa`}
+                papeis={papeisEsperados("dispensa_base")}
+                assinaturas={assinaturas}
+                papeisQuePossoAssinar={["treinador"]}
+              />
             </div>
           ) : (
             <RelatorioDispensaForm action={action} submitLabel="Gerar relatório de dispensa" />
