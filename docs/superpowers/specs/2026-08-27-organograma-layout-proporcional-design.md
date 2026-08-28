@@ -467,3 +467,21 @@ Duas correções, as duas em conjunto:
   em vez de mentir uma posição que nunca existiu no banco.
 
 Verificado com `tsc --noEmit`, `vitest run` (307 testes) e `next build`, todos limpos.
+
+## Atualização (27/08, mesmo dia) — clicar numa caixa de grade "não fazia nada"
+
+Mateus mandou print mostrando uma caixa de grade já com a borda dourada de seleção (prova de que o
+clique registrou — `selecionado` mudou) e disse "quero que quando eu clico aqui, ele aparece pra eu
+editar a pessoa. Dessa forma não consigo".
+
+Não era bug de clique — era o painel de edição abrindo fora da área visível. `PainelEdicao` é
+renderizado como irmão do cartão do organograma, num `flex flex-wrap`: em tela larga ele fica do
+lado; em tela mais estreita (ou com o organograma alto, cheio de caixas) ele quebra pra uma linha
+ABAIXO do cartão inteiro. Como o cartão do organograma já tem sua própria rolagem interna (pra não
+estourar 75vh), dava pra rolar até o fim dela sem perceber que era preciso rolar a PÁGINA inteira
+mais um tanto pra achar o painel — parecia que nada tinha acontecido.
+
+Correção: o painel agora rola sozinho pra ficar visível (`scrollIntoView` suave) toda vez que abre
+ou troca de caixa selecionada — não depende mais do Mateus adivinhar que precisa rolar mais.
+
+Verificado com `tsc --noEmit`, `vitest run` (307 testes) e `next build`, todos limpos.

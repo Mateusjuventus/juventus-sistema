@@ -93,6 +93,15 @@ function PainelEdicao({
 }) {
   const [state, formAction] = useFormState(salvarAction, {} as OrganogramaNoFormState);
   const [vinculada, setVinculada] = useState(no?.comissaoTecnicaBaseId ?? "");
+  // O painel some do jeito que aparece: ao lado do organograma em telas largas, ABAIXO dele (fora
+  // da área visível, sem rolar mais nada) em telas estreitas ou quando o organograma tem muitas
+  // caixas. Clicar numa caixa de grade selecionava ela (a borda dourada aparecia), mas o painel de
+  // edição em si ficava fora da vista — parecia que "clicar não faz nada". Rola até o painel
+  // sozinho toda vez que ele abre ou troca de caixa, pra sempre ficar visível na hora.
+  const painelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    painelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [no?.id]);
   // Feedback do "Mover linha pra cima/baixo" — os botões já movem na hora (sem precisar de um botão
   // de Salvar à parte), mas antes um erro do Supabase aí desaparecia em silêncio e o clique parecia
   // simplesmente não fazer nada (spec de 27/08). "movendo" mostra feedback imediato mesmo quando o
@@ -183,7 +192,7 @@ function PainelEdicao({
   const posicaoDaLinha = no?.linha ? linhasOrdenadas.indexOf(no.linha) : -1;
 
   return (
-    <div className="card w-full max-w-sm shrink-0 p-4">
+    <div ref={painelRef} className="card w-full max-w-sm shrink-0 p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-grena-escuro">{no ? "Editar caixa" : "Nova caixa"}</h3>
         <button type="button" onClick={aoFechar} className="text-sm text-neutral-400 hover:text-neutral-600">
