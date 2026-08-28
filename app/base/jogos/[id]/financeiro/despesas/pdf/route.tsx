@@ -10,7 +10,8 @@ import {
   RelatorioDespesasDocument,
   type RelatorioDespesasPdfCategoria,
 } from "@/lib/pdf/relatorio-despesas-document";
-import { getAssinaturasFinanceiroBase } from "@/lib/pdf/assinaturas";
+import { getAssinaturasFinanceiroBase, montarAssinaturasFinanceiroComDigital } from "@/lib/pdf/assinaturas";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
 import type { GastoJogoBaseComCategoriaRow, JogoBaseRow } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/financeiro/despesas/pdf/route.tsx` para o Futebol de Base. */
@@ -21,7 +22,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!jogoData) return new NextResponse("Jogo não encontrado.", { status: 404 });
   const jogo = jogoData as JogoBaseRow;
 
-  const [{ data: gastosData }, adversarioLogoUrl, { assinatura1, assinatura2 }] = await Promise.all([
+  const [{ data: gastosData }, adversarioLogoUrl, assinaturasConfig, assinaturasSalvas] = await Promise.all([
     supabase
       .from("gastos_jogo_base")
       .select("*, categoria:categorias_gasto(nome)")
@@ -29,7 +30,9 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       .order("created_at", { ascending: true }),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
     getAssinaturasFinanceiroBase(supabase),
+    buscarAssinaturas("despesas_jogo", jogo.id),
   ]);
+  const { assinatura1, assinatura2 } = montarAssinaturasFinanceiroComDigital(assinaturasConfig, assinaturasSalvas);
   const gastos = ((gastosData ?? []) as GastoJogoBaseComCategoriaRow[]).filter(
     (g) => g.valor_efetuado !== null,
   );

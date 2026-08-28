@@ -699,6 +699,11 @@ export interface ConfiguracaoFinanceiroRow {
   assinatura1_cargo: string;
   assinatura2_nome: string;
   assinatura2_cargo: string;
+  /** Usuário do sistema vinculado a cada assinante (ver docs/superpowers/specs/
+   * 2026-08-28-assinatura-digital-notificacoes-design.md) — `null` = nenhum vinculado ainda, e
+   * nesse caso qualquer "master" pode assinar aquele papel digitalmente. */
+  assinatura1_usuario_id: string | null;
+  assinatura2_usuario_id: string | null;
   updated_at: string;
 }
 
@@ -952,6 +957,8 @@ export interface ConfiguracaoFinanceiroBaseRow {
   assinatura1_cargo: string;
   assinatura2_nome: string;
   assinatura2_cargo: string;
+  assinatura1_usuario_id: string | null;
+  assinatura2_usuario_id: string | null;
   updated_at: string;
 }
 
@@ -1274,6 +1281,11 @@ export interface PerfilRow {
   /** Só usada quando `role = 'treinador'`. Cada item é uma `CategoriaBase`. Pode ter mais de uma
    * (ex.: um treinador que cobre Sub-11 e Sub-12 ao mesmo tempo). */
   categorias_treinador: string[];
+  /** Nome e cargo de exibição, preenchidos pela própria pessoa em `/minha-conta` — usados na
+   * assinatura digital de documentos (ver docs/superpowers/specs/2026-08-28-assinatura-digital-
+   * notificacoes-design.md). `null` até a pessoa preencher pela primeira vez. */
+  nome: string | null;
+  cargo: string | null;
   created_at: string;
 }
 
@@ -1733,10 +1745,16 @@ export interface ConfiguracaoInscricaoCaptacaoBaseRow {
   updated_at: string;
 }
 
-/** Uma linha de assinatura do Parecer Final (nome + cargo) — ver `AssinaturaCaptacao` abaixo. */
+/** Uma linha de assinatura do Parecer Final (nome + cargo) — ver `AssinaturaCaptacao` abaixo.
+ * `id` é uma chave estável (não muda se a linha for reordenada) usada como
+ * `assinaturas_documento.papel` quando essa linha assina digitalmente; `usuarioId` vincula a linha
+ * a um login do sistema (ver docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-
+ * design.md, Fase 2) — `null`/ausente = ninguém vinculado ainda, qualquer "master" pode assinar. */
 export interface AssinaturaCaptacao {
+  id: string;
   nome: string;
   cargo: string;
+  usuarioId?: string | null;
 }
 
 /** Configuração das assinaturas do Parecer Final de Avaliação (`/base/captacao/[id]/parecer/pdf`) —

@@ -2,10 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
+import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
-import type { CaptacaoBaseRow } from "@/lib/supabase/types";
+import { isMaster } from "@/lib/auth/role";
+import { papeisAssinaturaParecer, podeAssinarPapel } from "@/lib/assinaturas/config";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import type { CaptacaoBaseRow, ConfiguracaoParecerCaptacaoBaseRow } from "@/lib/supabase/types";
 import { atualizarCaptacao, excluirCaptacao, mudarStatusCaptacao } from "../actions";
 import { CaptacaoForm } from "../captacao-form";
 import { CaptacaoStatusSelect } from "../captacao-status-select";
@@ -23,6 +27,28 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
   if (!data) notFound();
   const candidato = data as CaptacaoBaseRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, candidato.foto_path);
+
+  const [
+    {
+      data: { user },
+    },
+    master,
+    { data: configParecerData },
+    assinaturas,
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    isMaster(supabase),
+    supabase.from("configuracoes_parecer_captacao_base").select("assinaturas").limit(1).maybeSingle(),
+    buscarAssinaturas("parecer_captacao_base", candidato.id),
+  ]);
+  const configAssinaturas =
+    (configParecerData as Pick<ConfiguracaoParecerCaptacaoBaseRow, "assinaturas"> | null)?.assinaturas ?? [];
+  const papeisParecer = papeisAssinaturaParecer(configAssinaturas);
+  const papeisQuePossoAssinar = user
+    ? configAssinaturas
+        .filter((a) => podeAssinarPapel(a.usuarioId, user.id, master))
+        .map((a) => a.id)
+    : [];
 
   // "Quem preencheu" o Parecer — o sistema não tem um campo de nome separado em `perfis`, só
   // e-mail (mesmo padrão usado em /usuarios), por isso mostra o e-mail do Treinador.
@@ -173,6 +199,17 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
               qualquer momento, mas sai em branco até o preenchimento.
             </p>
           )}
+
+          {papeisParecer.length > 0 ? (
+            <BlocoAssinaturaDigital
+              tipoDocumento="parecer_captacao_base"
+              documentoId={candidato.id}
+              caminhoRevalidar={`/base/captacao/${candidato.id}`}
+              papeis={papeisParecer}
+              assinaturas={assinaturas}
+              papeisQuePossoAssinar={papeisQuePossoAssinar}
+            />
+          ) : null}
         </section>
       ) : null}
 

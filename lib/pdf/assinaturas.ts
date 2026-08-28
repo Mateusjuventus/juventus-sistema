@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import type { ConfiguracaoFinanceiroBaseRow, ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
+import type { AssinaturaResumo } from "@/lib/assinaturas/actions";
 import type { AssinaturaInfo } from "./logistica-shared";
 
 const PADRAO_ASSINATURA_1: AssinaturaInfo = { nome: "Mateus dos Santos", cargo: "Supervisor de Futebol" };
@@ -41,5 +42,34 @@ export async function getAssinaturasFinanceiroBase(
     assinatura2: config
       ? { nome: config.assinatura2_nome, cargo: config.assinatura2_cargo }
       : PADRAO_ASSINATURA_2,
+  };
+}
+
+/**
+ * Combina o nome/cargo configurado (`getAssinaturasFinanceiro(Base)`) com o estado real da
+ * assinatura digital (`assinaturas_documento`, ver docs/superpowers/specs/2026-08-28-assinatura-
+ * digital-notificacoes-design.md) — usado nos 4 PDFs do Financeiro de jogo (Orçamento Pré-Jogo e
+ * Relatório de Despesas, Profissional e Base). Assinado: mostra o nome/cargo de quem REALMENTE
+ * assinou (retrato do momento, pode ser diferente de quem está configurado hoje). Pendente: mostra
+ * o cargo configurado como rótulo de quem falta assinar, sem nome (ninguém assinou ainda).
+ */
+export function montarAssinaturasFinanceiroComDigital(
+  base: { assinatura1: AssinaturaInfo; assinatura2: AssinaturaInfo },
+  assinaturasSalvas: AssinaturaResumo[],
+): { assinatura1: AssinaturaInfo; assinatura2: AssinaturaInfo } {
+  function resolver(papel: "assinatura1" | "assinatura2", cfg: AssinaturaInfo): AssinaturaInfo {
+    const salva = assinaturasSalvas.find((a) => a.papel === papel);
+    if (salva) {
+      return {
+        nome: salva.nomeNoMomento,
+        cargo: salva.cargoNoMomento ?? cfg.cargo,
+        assinadoDigitalmenteEm: salva.assinadoEm,
+      };
+    }
+    return { nome: "", cargo: cfg.cargo, pendente: true };
+  }
+  return {
+    assinatura1: resolver("assinatura1", base.assinatura1),
+    assinatura2: resolver("assinatura2", base.assinatura2),
   };
 }

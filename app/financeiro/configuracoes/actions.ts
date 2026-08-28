@@ -17,6 +17,8 @@ function parseForm(formData: FormData) {
     assinatura1Cargo: String(formData.get("assinatura1Cargo") ?? ""),
     assinatura2Nome: String(formData.get("assinatura2Nome") ?? ""),
     assinatura2Cargo: String(formData.get("assinatura2Cargo") ?? ""),
+    assinatura1UsuarioId: String(formData.get("assinatura1UsuarioId") ?? ""),
+    assinatura2UsuarioId: String(formData.get("assinatura2UsuarioId") ?? ""),
   };
 
   const result = configuracaoFinanceiroSchema.safeParse(raw);
@@ -48,6 +50,8 @@ export async function updateConfiguracaoFinanceiro(
     assinatura1_cargo: data.assinatura1Cargo,
     assinatura2_nome: data.assinatura2Nome,
     assinatura2_cargo: data.assinatura2Cargo,
+    assinatura1_usuario_id: data.assinatura1UsuarioId || null,
+    assinatura2_usuario_id: data.assinatura2UsuarioId || null,
   };
 
   const { error } = id

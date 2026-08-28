@@ -10,7 +10,8 @@ import {
   RelatorioDespesasDocument,
   type RelatorioDespesasPdfCategoria,
 } from "@/lib/pdf/relatorio-despesas-document";
-import { getAssinaturasFinanceiro } from "@/lib/pdf/assinaturas";
+import { getAssinaturasFinanceiro, montarAssinaturasFinanceiroComDigital } from "@/lib/pdf/assinaturas";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
 import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
@@ -20,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!jogoData) return new NextResponse("Jogo não encontrado.", { status: 404 });
   const jogo = jogoData as JogoRow;
 
-  const [{ data: gastosData }, adversarioLogoUrl, { assinatura1, assinatura2 }] = await Promise.all([
+  const [{ data: gastosData }, adversarioLogoUrl, assinaturasConfig, assinaturasSalvas] = await Promise.all([
     supabase
       .from("gastos_jogo")
       .select("*, categoria:categorias_gasto(nome)")
@@ -28,7 +29,9 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       .order("created_at", { ascending: true }),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
     getAssinaturasFinanceiro(supabase),
+    buscarAssinaturas("despesas_jogo", jogo.id),
   ]);
+  const { assinatura1, assinatura2 } = montarAssinaturasFinanceiroComDigital(assinaturasConfig, assinaturasSalvas);
   const gastos = ((gastosData ?? []) as GastoJogoComCategoriaRow[]).filter(
     (g) => g.valor_efetuado !== null,
   );

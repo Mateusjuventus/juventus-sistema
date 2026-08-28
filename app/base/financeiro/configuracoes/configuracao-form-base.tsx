@@ -1,8 +1,9 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { FieldGroup, FormSection, TextField } from "@/components/fields";
+import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
+import type { PerfilParaSelecao } from "@/lib/auth/perfis";
 import type { ConfiguracaoFormState } from "./actions";
 
 const initialState: ConfiguracaoFormState = {};
@@ -12,10 +13,12 @@ export function ConfiguracaoFormBase({
   action,
   entityId,
   defaultValues,
+  perfis,
 }: {
   action: (prevState: ConfiguracaoFormState, formData: FormData) => Promise<ConfiguracaoFormState>;
   entityId: string;
   defaultValues: Record<string, string>;
+  perfis: PerfilParaSelecao[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues;
@@ -40,6 +43,14 @@ export function ConfiguracaoFormBase({
             defaultValue={values.assinatura1Cargo}
             error={errors.assinatura1Cargo}
           />
+          <SelectField label="Usuário que assina digitalmente" name="assinatura1UsuarioId" defaultValue={values.assinatura1UsuarioId}>
+            <option value="">— Não vincular (qualquer master pode assinar) —</option>
+            {perfis.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.rotulo}
+              </option>
+            ))}
+          </SelectField>
         </FieldGroup>
       </FormSection>
 
@@ -59,6 +70,14 @@ export function ConfiguracaoFormBase({
             defaultValue={values.assinatura2Cargo}
             error={errors.assinatura2Cargo}
           />
+          <SelectField label="Usuário que assina digitalmente" name="assinatura2UsuarioId" defaultValue={values.assinatura2UsuarioId}>
+            <option value="">— Não vincular (qualquer master pode assinar) —</option>
+            {perfis.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.rotulo}
+              </option>
+            ))}
+          </SelectField>
         </FieldGroup>
       </FormSection>
 

@@ -259,10 +259,16 @@ export interface AssinaturasParecerState {
 }
 
 /**
- * Salva a lista de assinaturas (nome + cargo) que aparecem em todo Parecer Final de Avaliação
- * gerado — configuração fixa, uma tela só (ver `AssinaturasConfigForm`), reaproveitada em todo PDF.
- * `assinaturaNome`/`assinaturaCargo` chegam como listas paralelas (um `<input>` de cada por linha,
- * mesma ordem em que a tela renderizou) — o índice de uma corresponde ao da outra.
+ * Salva a lista de assinaturas (nome + cargo + vínculo de login) que aparecem em todo Parecer
+ * Final de Avaliação gerado — configuração fixa, uma tela só (ver `AssinaturasConfigForm`),
+ * reaproveitada em todo PDF. `assinaturaId`/`assinaturaNome`/`assinaturaCargo`/`assinaturaUsuarioId`
+ * chegam como listas paralelas (um `<input>`/`<select>` de cada por linha, mesma ordem em que a
+ * tela renderizou) — o índice de uma corresponde ao das outras.
+ *
+ * `assinaturaId` é a chave ESTÁVEL de cada linha (vira `assinaturas_documento.papel` quando essa
+ * linha assina digitalmente, ver docs/superpowers/specs/2026-08-28-assinatura-digital-
+ * notificacoes-design.md) — uma linha nova chega com o campo vazio, e aqui é onde ganha um id novo
+ * pra sempre; linhas já existentes mantêm o id que já tinham, mesmo reordenadas.
  */
 export async function atualizarAssinaturasParecer(
   _prevState: AssinaturasParecerState,
@@ -271,9 +277,16 @@ export async function atualizarAssinaturasParecer(
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "Configuração inválida." };
 
+  const ids = formData.getAll("assinaturaId").map(String);
   const nomes = formData.getAll("assinaturaNome").map(String);
   const cargos = formData.getAll("assinaturaCargo").map(String);
-  const assinaturas = nomes.map((nome, i) => ({ nome: nome.trim(), cargo: (cargos[i] ?? "").trim() }));
+  const usuarioIds = formData.getAll("assinaturaUsuarioId").map(String);
+  const assinaturas = nomes.map((nome, i) => ({
+    id: ids[i] || randomUUID(),
+    nome: nome.trim(),
+    cargo: (cargos[i] ?? "").trim(),
+    usuarioId: usuarioIds[i] || null,
+  }));
 
   const supabase = createClient();
   const { error } = await supabase

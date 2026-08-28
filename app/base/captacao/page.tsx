@@ -5,6 +5,7 @@ import { SearchBar } from "@/components/search-bar";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { buscarPerfisParaSelecao } from "@/lib/auth/perfis";
 import {
   CAPTACAO_STATUS_OPTIONS,
   contarInscricoesPendentes,
@@ -50,10 +51,11 @@ export default async function CaptacaoPage({
   if (categoria) query = query.eq("categoria", categoria);
   if (uf) query = query.eq("uf", uf.toUpperCase());
 
-  const [{ data, error }, { data: configData }, { data: configParecerData }] = await Promise.all([
+  const [{ data, error }, { data: configData }, { data: configParecerData }, perfis] = await Promise.all([
     query,
     supabase.from("configuracoes_inscricao_captacao_base").select("*").limit(1).maybeSingle(),
     supabase.from("configuracoes_parecer_captacao_base").select("*").limit(1).maybeSingle(),
+    buscarPerfisParaSelecao(supabase),
   ]);
 
   const candidatos = (data ?? []) as CaptacaoBaseRow[];
@@ -133,6 +135,7 @@ export default async function CaptacaoPage({
             <AssinaturasConfigForm
               id={configParecer.id}
               assinaturasIniciais={configParecer.assinaturas}
+              perfis={perfis}
               action={atualizarAssinaturasParecer}
             />
           </div>

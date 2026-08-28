@@ -3,8 +3,12 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
 import { DeleteButton } from "@/components/delete-button";
+import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
-import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
+import { isMaster } from "@/lib/auth/role";
+import { papeisAssinaturaFinanceiro, podeAssinarPapel } from "@/lib/assinaturas/config";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import type { ConfiguracaoFinanceiroRow, GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 import { deleteGasto } from "./actions";
 
 function formatMoeda(valor: number | null): string {
@@ -21,24 +25,54 @@ function formatData(data: string | null): string {
 export default async function FinanceiroJogoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: gastosData }] = await Promise.all([
+  const [
+    { data: jogoData },
+    { data: gastosData },
+    { data: configData },
+    {
+      data: { user },
+    },
+    master,
+    assinaturasOrcamento,
+    assinaturasDespesas,
+  ] = await Promise.all([
     supabase.from("jogos").select("*").eq("id", params.id).single(),
     supabase
       .from("gastos_jogo")
       .select("*, categoria:categorias_gasto(nome)")
       .eq("jogo_id", params.id)
       .order("created_at", { ascending: true }),
+    supabase.from("configuracoes_financeiro").select("*").limit(1).maybeSingle(),
+    supabase.auth.getUser(),
+    isMaster(supabase),
+    buscarAssinaturas("orcamento_jogo", params.id),
+    buscarAssinaturas("despesas_jogo", params.id),
   ]);
 
   if (!jogoData) notFound();
 
   const jogo = jogoData as JogoRow;
   const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
+  const configFinanceiro = configData as ConfiguracaoFinanceiroRow | null;
 
   const totalPrevisto = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
   const totalEfetuado = gastos.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);
   const totalDiferenca = totalPrevisto - totalEfetuado;
   const temEfetuado = gastos.some((g) => g.valor_efetuado !== null);
+
+  const papeisFinanceiro = papeisAssinaturaFinanceiro({
+    assinatura1Cargo: configFinanceiro?.assinatura1_cargo ?? "",
+    assinatura2Cargo: configFinanceiro?.assinatura2_cargo ?? "",
+  });
+  const papeisQuePossoAssinar = user
+    ? (["assinatura1", "assinatura2"] as const).filter((papel) =>
+        podeAssinarPapel(
+          papel === "assinatura1" ? configFinanceiro?.assinatura1_usuario_id : configFinanceiro?.assinatura2_usuario_id,
+          user.id,
+          master,
+        ),
+      )
+    : [];
 
   return (
     <AppShell>
@@ -144,6 +178,34 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
           ) : null}
         </table>
       </div>
+
+      {gastos.length > 0 ? (
+        <div className="mt-4">
+          <p className="mb-1 text-sm font-semibold text-neutral-700">Orçamento Previsto (Pré Jogo)</p>
+          <BlocoAssinaturaDigital
+            tipoDocumento="orcamento_jogo"
+            documentoId={jogo.id}
+            caminhoRevalidar={`/jogos/${jogo.id}/financeiro`}
+            papeis={papeisFinanceiro}
+            assinaturas={assinaturasOrcamento}
+            papeisQuePossoAssinar={[...papeisQuePossoAssinar]}
+          />
+        </div>
+      ) : null}
+
+      {temEfetuado ? (
+        <div className="mt-4">
+          <p className="mb-1 text-sm font-semibold text-neutral-700">Relatório de Despesas (Pós Jogo)</p>
+          <BlocoAssinaturaDigital
+            tipoDocumento="despesas_jogo"
+            documentoId={jogo.id}
+            caminhoRevalidar={`/jogos/${jogo.id}/financeiro`}
+            papeis={papeisFinanceiro}
+            assinaturas={assinaturasDespesas}
+            papeisQuePossoAssinar={[...papeisQuePossoAssinar]}
+          />
+        </div>
+      ) : null}
     </AppShell>
   );
 }

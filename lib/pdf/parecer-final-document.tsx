@@ -165,6 +165,32 @@ const OPCOES_VEREDITO = [
   { valor: "dispensado", label: "Dispensado" },
 ] as const;
 
+/**
+ * Combina a lista de assinantes configurados (`configuracoes_parecer_captacao_base.assinaturas`,
+ * nome + cargo + `id` estável) com o estado real da assinatura digital (`assinaturas_documento`,
+ * ver docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md) — mesmo
+ * espírito de `montarAssinaturasDispensa` em `lib/pdf/relatorio-dispensa-document.tsx`. Linhas de
+ * configuração sem nome preenchido (nunca configuradas) não viram assinatura nenhuma.
+ */
+export function montarAssinaturasParecer(
+  config: { id: string; nome: string; cargo: string }[],
+  assinaturasSalvas: { papel: string; nomeNoMomento: string; cargoNoMomento: string | null; assinadoEm: string }[],
+): AssinaturaInfo[] {
+  return config
+    .filter((c) => c.nome.trim().length > 0)
+    .map((c) => {
+      const salva = assinaturasSalvas.find((a) => a.papel === c.id);
+      if (salva) {
+        return {
+          nome: salva.nomeNoMomento,
+          cargo: salva.cargoNoMomento ?? c.cargo,
+          assinadoDigitalmenteEm: salva.assinadoEm,
+        };
+      }
+      return { nome: "", cargo: c.cargo || c.nome, pendente: true };
+    });
+}
+
 export interface ParecerFinalCandidato {
   nome: string;
   dataNascimento: string | null;

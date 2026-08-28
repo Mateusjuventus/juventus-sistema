@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
+import { buscarPerfisParaSelecao } from "@/lib/auth/perfis";
 import type { ConfiguracaoFinanceiroBaseRow } from "@/lib/supabase/types";
 import { ConfiguracaoFormBase } from "./configuracao-form-base";
 import { updateConfiguracaoFinanceiroBase } from "./actions";
@@ -16,7 +17,10 @@ const PADRAO = {
 /** Espelha `app/financeiro/configuracoes/page.tsx` para o Futebol de Base. */
 export default async function ConfiguracoesFinanceiroBasePage() {
   const supabase = createClient();
-  const { data } = await supabase.from("configuracoes_financeiro_base").select("*").limit(1).maybeSingle();
+  const [{ data }, perfis] = await Promise.all([
+    supabase.from("configuracoes_financeiro_base").select("*").limit(1).maybeSingle(),
+    buscarPerfisParaSelecao(supabase),
+  ]);
   const config = data as ConfiguracaoFinanceiroBaseRow | null;
 
   const defaultValues = {
@@ -24,6 +28,8 @@ export default async function ConfiguracoesFinanceiroBasePage() {
     assinatura1Cargo: config?.assinatura1_cargo ?? PADRAO.assinatura1_cargo,
     assinatura2Nome: config?.assinatura2_nome ?? PADRAO.assinatura2_nome,
     assinatura2Cargo: config?.assinatura2_cargo ?? PADRAO.assinatura2_cargo,
+    assinatura1UsuarioId: config?.assinatura1_usuario_id ?? "",
+    assinatura2UsuarioId: config?.assinatura2_usuario_id ?? "",
   };
 
   return (
@@ -41,6 +47,7 @@ export default async function ConfiguracoesFinanceiroBasePage() {
           action={updateConfiguracaoFinanceiroBase}
           entityId={config?.id ?? ""}
           defaultValues={defaultValues}
+          perfis={perfis}
         />
       </div>
     </AppShell>

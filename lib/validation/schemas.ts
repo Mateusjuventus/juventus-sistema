@@ -933,6 +933,11 @@ export const configuracaoFinanceiroSchema = z.object({
   assinatura1Cargo: z.string().min(1, { message: "Cargo é obrigatório" }),
   assinatura2Nome: z.string().min(1, { message: "Nome é obrigatório" }),
   assinatura2Cargo: z.string().min(1, { message: "Cargo é obrigatório" }),
+  // Vínculo com um login do sistema (ver docs/superpowers/specs/2026-08-28-assinatura-digital-
+  // notificacoes-design.md, Fase 2) — opcional: string vazia = "não vincular ainda" (assinatura
+  // digital cai no fallback de qualquer "master" poder assinar aquele papel).
+  assinatura1UsuarioId: z.string().optional(),
+  assinatura2UsuarioId: z.string().optional(),
 });
 export type ConfiguracaoFinanceiroInput = z.infer<typeof configuracaoFinanceiroSchema>;
 

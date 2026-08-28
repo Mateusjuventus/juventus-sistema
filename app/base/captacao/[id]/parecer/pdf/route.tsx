@@ -6,8 +6,9 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { ParecerFinalDocument } from "@/lib/pdf/parecer-final-document";
+import { ParecerFinalDocument, montarAssinaturasParecer } from "@/lib/pdf/parecer-final-document";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { buscarAssinaturas } from "@/lib/assinaturas/actions";
 import type { AssinaturaCaptacao, CaptacaoBaseRow, ConfiguracaoParecerCaptacaoBaseRow } from "@/lib/supabase/types";
 
 /**
@@ -26,14 +27,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const candidato = candidatoData as CaptacaoBaseRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, candidato.foto_path);
 
-  const { data: configData } = await supabase
-    .from("configuracoes_parecer_captacao_base")
-    .select("assinaturas")
-    .limit(1)
-    .maybeSingle();
-  const assinaturas =
+  const [{ data: configData }, assinaturasSalvas] = await Promise.all([
+    supabase.from("configuracoes_parecer_captacao_base").select("assinaturas").limit(1).maybeSingle(),
+    buscarAssinaturas("parecer_captacao_base", candidato.id),
+  ]);
+  const configAssinaturas =
     (configData as Pick<ConfiguracaoParecerCaptacaoBaseRow, "assinaturas"> | null)?.assinaturas ??
     ([] as AssinaturaCaptacao[]);
+  const assinaturas = montarAssinaturasParecer(configAssinaturas, assinaturasSalvas);
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
