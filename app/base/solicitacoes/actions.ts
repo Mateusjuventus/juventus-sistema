@@ -9,7 +9,27 @@ import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotalBase } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
 import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
+import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
 import type { SolicitacaoBaseRow, SolicitacaoItemBaseRow, SolicitacaoTipo } from "@/lib/supabase/types";
+
+/** Espelha `notificarEncarregado` (app/solicitacoes/actions.ts) para o Futebol de Base. */
+async function notificarEncarregado(
+  supabase: ReturnType<typeof createClient>,
+  numero: number,
+  solicitacaoId: string,
+): Promise<void> {
+  const { data: config } = await supabase
+    .from("configuracoes_solicitacoes_base")
+    .select("encarregado_usuario_id")
+    .limit(1)
+    .maybeSingle();
+  await notificarSignerConfiguravel({
+    usuarioVinculado: config?.encarregado_usuario_id,
+    tipo: "assinatura_pendente",
+    mensagem: `Solicitação Nº ${String(numero).padStart(3, "0")} está esperando sua assinatura.`,
+    link: `/base/solicitacoes/${solicitacaoId}`,
+  });
+}
 
 /** Tipos que recalculam o valor total a partir da soma dos itens (ver recalcularValorTotalBase). */
 const TIPOS_COM_VALOR_CALCULADO: SolicitacaoTipo[] = ["pagamento", "reembolso", "transporte", "hospedagem"];
@@ -328,6 +348,7 @@ export async function createSolicitacaoBase(
   if (user) {
     await autoAssinarComoCreator("solicitacao", criada.id, "solicitante", user.id);
   }
+  await notificarEncarregado(supabase, numero, criada.id);
 
   if (TIPOS_COM_ITENS.includes(data.tipo)) {
     const { error: itensError } = await salvarItensInlineBase(supabase, formData, criada.id, data.tipo);
@@ -443,6 +464,7 @@ export async function duplicarSolicitacaoBase(formData: FormData): Promise<void>
   if (user) {
     await autoAssinarComoCreator("solicitacao", nova.id, "solicitante", user.id);
   }
+  await notificarEncarregado(supabase, numero, nova.id);
 
   if (TIPOS_COM_ITENS.includes(original.tipo)) {
     const { data: itensData } = await supabase

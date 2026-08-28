@@ -39,6 +39,37 @@ export async function criarNotificacao(params: {
   await enviarPushParaUsuario(params.usuarioId, { titulo: "Juventus SAF", corpo: params.mensagem, link: params.link });
 }
 
+/**
+ * Notifica quem precisa assinar um papel CONFIGURÁVEL (pode estar vinculado a um usuário
+ * específico, ou não — nesse caso qualquer master pode assinar) — mesma regra de quem PODE assinar
+ * (ver lib/assinaturas/config.ts, podeAssinarPapel). Se vinculado, avisa só aquela pessoa; se não,
+ * avisa todo mundo com role "master" (mesmo padrão já usado pro papel "departamento" do Relatório
+ * de Dispensa, que também não tem uma pessoa fixa).
+ */
+export async function notificarSignerConfiguravel(params: {
+  usuarioVinculado: string | null | undefined;
+  tipo: string;
+  mensagem: string;
+  link?: string;
+}): Promise<void> {
+  const supabase = createClient();
+  if (params.usuarioVinculado) {
+    await criarNotificacao({
+      usuarioId: params.usuarioVinculado,
+      tipo: params.tipo,
+      mensagem: params.mensagem,
+      link: params.link,
+    });
+    return;
+  }
+  const { data: masters } = await supabase.from("perfis").select("id").eq("role", "master");
+  await Promise.all(
+    (masters ?? []).map((m) =>
+      criarNotificacao({ usuarioId: m.id, tipo: params.tipo, mensagem: params.mensagem, link: params.link }),
+    ),
+  );
+}
+
 export async function marcarNotificacaoComoLida(id: string, caminhoRevalidar: string): Promise<void> {
   const supabase = createClient();
   const {

@@ -61,7 +61,11 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
   const papeisQuePossoAssinar = user
     ? (["solicitante", "encarregado"] as const).filter((papel) =>
         papel === "solicitante"
-          ? s.created_by === user.id
+          ? // Solicitações criadas antes desta funcionalidade não têm `created_by` (fica null) —
+            // sem isso, ninguém seria dono do papel de Solicitante e ele ficaria pendente pra
+            // sempre. Nesses casos legados, qualquer master pode assinar no lugar (mesma regra de
+            // fallback do Encarregado quando não há ninguém vinculado).
+            (s.created_by ? s.created_by === user.id : master)
           : podeAssinarPapel(configSolicitacoes?.encarregado_usuario_id, user.id, master),
       )
     : [];

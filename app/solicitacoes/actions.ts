@@ -9,7 +9,30 @@ import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotal } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
 import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
+import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
 import type { SolicitacaoItemRow, SolicitacaoRow, SolicitacaoTipo } from "@/lib/supabase/types";
+
+/** Avisa o Encarregado do Departamento (configurado em /solicitacoes/configuracoes, ou qualquer
+ * master se ninguém estiver vinculado ainda) que uma solicitação nova está esperando a assinatura
+ * dele — sino no sistema + push no celular (ver docs/superpowers/specs/2026-08-28-assinatura-
+ * digital-notificacoes-design.md). */
+async function notificarEncarregado(
+  supabase: ReturnType<typeof createClient>,
+  numero: number,
+  solicitacaoId: string,
+): Promise<void> {
+  const { data: config } = await supabase
+    .from("configuracoes_solicitacoes")
+    .select("encarregado_usuario_id")
+    .limit(1)
+    .maybeSingle();
+  await notificarSignerConfiguravel({
+    usuarioVinculado: config?.encarregado_usuario_id,
+    tipo: "assinatura_pendente",
+    mensagem: `Solicitação Nº ${String(numero).padStart(3, "0")} está esperando sua assinatura.`,
+    link: `/solicitacoes/${solicitacaoId}`,
+  });
+}
 
 /** Tipos que recalculam o valor total a partir da soma dos itens (ver recalcularValorTotal). */
 const TIPOS_COM_VALOR_CALCULADO: SolicitacaoTipo[] = ["pagamento", "reembolso", "transporte", "hospedagem"];
@@ -344,6 +367,7 @@ export async function createSolicitacao(
   if (user) {
     await autoAssinarComoCreator("solicitacao", criada.id, "solicitante", user.id);
   }
+  await notificarEncarregado(supabase, numero, criada.id);
 
   if (TIPOS_COM_ITENS.includes(data.tipo)) {
     const { error: itensError } = await salvarItensInline(supabase, formData, criada.id, data.tipo);
@@ -466,6 +490,7 @@ export async function duplicarSolicitacao(formData: FormData): Promise<void> {
   if (user) {
     await autoAssinarComoCreator("solicitacao", nova.id, "solicitante", user.id);
   }
+  await notificarEncarregado(supabase, numero, nova.id);
 
   if (TIPOS_COM_ITENS.includes(original.tipo)) {
     const { data: itensData } = await supabase
