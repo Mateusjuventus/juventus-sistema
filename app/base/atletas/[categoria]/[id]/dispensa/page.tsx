@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { RelatorioDispensaForm } from "@/components/relatorio-dispensa-form";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
-import { papeisEsperados } from "@/lib/assinaturas/config";
+import { papeisEsperados, podeAssinarPapel } from "@/lib/assinaturas/config";
 import { buscarAssinaturas } from "@/lib/assinaturas/actions";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaBaseRow, ConfiguracaoDispensaBaseRow } from "@/lib/supabase/types";
 import { salvarRelatorioDispensaAdmin } from "./actions";
 
 /**
@@ -30,7 +31,15 @@ export default async function DispensaAtletaBasePage({
 
   const jaGerado = Boolean(atleta.dispensa_data);
   const action = salvarRelatorioDispensaAdmin.bind(null, atleta.id, params.categoria);
-  const assinaturas = jaGerado ? await buscarAssinaturas("dispensa_base", atleta.id) : [];
+  const [assinaturas, { data: { user } }, master, { data: configData }] = await Promise.all([
+    jaGerado ? buscarAssinaturas("dispensa_base", atleta.id) : Promise.resolve([]),
+    supabase.auth.getUser(),
+    isMaster(supabase),
+    supabase.from("configuracoes_dispensa_base").select("*").limit(1).maybeSingle(),
+  ]);
+  const configDispensa = configData as ConfiguracaoDispensaBaseRow | null;
+  const papeisQuePossoAssinar =
+    user && podeAssinarPapel(configDispensa?.departamento_usuario_id, user.id, master) ? ["departamento"] : [];
 
   const defaultValues: Record<string, string> = {
     dispensaData: atleta.dispensa_data ?? "",
@@ -76,7 +85,7 @@ export default async function DispensaAtletaBasePage({
             caminhoRevalidar={`/base/atletas/${params.categoria}/${atleta.id}/dispensa`}
             papeis={papeisEsperados("dispensa_base")}
             assinaturas={assinaturas}
-            papeisQuePossoAssinar={["departamento"]}
+            papeisQuePossoAssinar={papeisQuePossoAssinar}
           />
         ) : null}
       </div>

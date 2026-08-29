@@ -952,6 +952,14 @@ export const configuracaoSolicitacoesSchema = z.object({
 });
 export type ConfiguracaoSolicitacoesInput = z.infer<typeof configuracaoSolicitacoesSchema>;
 
+/** Fase 3 — vincular o papel "Departamento" do Relatório de Dispensa a um login específico (nem
+ * sempre é o Mateus). Sem nome/cargo: o rótulo já é fixo ("Departamento de Futebol de Base"), só
+ * precisa saber QUEM. */
+export const configuracaoDispensaSchema = z.object({
+  departamentoUsuarioId: z.string().optional(),
+});
+export type ConfiguracaoDispensaInput = z.infer<typeof configuracaoDispensaSchema>;
+
 /** As três listas de Estoque — Esportivo, Medicamentos e Materiais — totalmente independentes umas
  * das outras (catálogo, entradas, saídas e histórico próprios).
  *

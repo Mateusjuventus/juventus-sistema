@@ -7,6 +7,9 @@ import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { bordaClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
 import { ClassificacaoSelectTreinador } from "@/components/classificacao-select-treinador";
+import { SinoNotificacoes } from "@/components/sino-notificacoes";
+import { PushOptIn } from "@/components/push-opt-in";
+import { buscarNotificacoes } from "@/lib/notificacoes/actions";
 import { salvarClassificacaoTreinador } from "./atletas/actions";
 import type { AtletaBaseRow, CaptacaoBaseRow } from "@/lib/supabase/types";
 
@@ -27,6 +30,7 @@ function formatDataBr(iso: string | null): string {
 export default async function TreinadorPage() {
   const supabase = createClient();
   const categorias = await getCategoriasTreinador(supabase);
+  const notificacoes = await buscarNotificacoes();
 
   if (categorias.length === 0) {
     return (
@@ -87,14 +91,17 @@ export default async function TreinadorPage() {
                 <h1 className="text-xl font-bold text-white sm:text-2xl">Avaliação de candidatos</h1>
               </div>
             </div>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="rounded-md border border-white/25 px-3 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
-              >
-                Sair
-              </button>
-            </form>
+            <div className="flex items-center gap-2">
+              <SinoNotificacoes notificacoes={notificacoes} caminhoAtual="/treinador" abrirPara="baixo" />
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-white/25 px-3 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
+                >
+                  Sair
+                </button>
+              </form>
+            </div>
           </div>
           <p className="mt-3 flex flex-wrap gap-1.5">
             {categorias.map((cat) => (
@@ -103,6 +110,9 @@ export default async function TreinadorPage() {
               </span>
             ))}
           </p>
+          <div className="mt-3">
+            <PushOptIn />
+          </div>
         </div>
       </div>
 

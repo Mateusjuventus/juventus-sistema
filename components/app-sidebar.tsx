@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { JuventusCrestMark } from "@/components/juventus-crest";
-import { BellIcon, ChecklistIcon, HomeIcon } from "@/components/department-icon";
+import { ChecklistIcon, HomeIcon } from "@/components/department-icon";
 import {
   IconAlojamento,
+  IconAssinaturaPendente,
   IconAtletas,
   IconCaptacao,
   IconComissao,
@@ -260,20 +261,18 @@ export function AppSidebar({
         <p className="px-3 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wide text-white/45">
           Geral
         </p>
-        {showAvisos ? (
-          <Link href="/avisos" className={linkClasse(itemAtivo("/avisos"))}>
-            <BellIcon className="h-[18px] w-[18px] shrink-0" />
-            Avisos
-          </Link>
-        ) : null}
         <Link href="/tarefas" className={linkClasse(itemAtivo("/tarefas"))}>
           <ChecklistIcon className="h-[18px] w-[18px] shrink-0" />
           Tarefas
         </Link>
+        <Link href="/documentos-pendentes" className={linkClasse(itemAtivo("/documentos-pendentes"))}>
+          <IconAssinaturaPendente className="h-[18px] w-[18px] shrink-0" />
+          Documentos Pendentes
+        </Link>
       </nav>
 
       <div className="space-y-2 border-t border-white/10 px-3 py-2">
-        <SinoNotificacoes notificacoes={notificacoes} caminhoAtual={pathname} />
+        <SinoNotificacoes notificacoes={notificacoes} caminhoAtual={pathname} linkAvisos={showAvisos} />
         <PushOptIn />
       </div>
       <PerfilMenuSidebar email={email} logoutAction={logoutAction} />

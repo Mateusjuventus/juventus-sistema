@@ -279,3 +279,53 @@ política nenhuma pra isso.
 altera a própria linha (`auth.uid() = id`), e o grant de update é só nas colunas `nome`/`cargo`
 (nunca `role`/`email`), então mesmo uma tentativa de update forjada direto na tabela não alcança o
 campo de permissão.
+
+## Fase 3 (28/08) — Central de Documentos Pendentes + avisos que faltavam + config do Departamento
+
+Testando a Fase 2, o Mateus percebeu dois buracos reais: (1) nenhum documento da Fase 2 avisava de
+verdade quem precisava assinar — só o Relatório de Dispensa (Fase 1), e mesmo esse só numa direção
+(quando o Treinador cria primeiro; quando é o cadastro interno que gera, o Treinador nunca era
+avisado); (2) o papel "Departamento" da Dispensa não tinha como vincular uma pessoa específica —
+"nem sempre eu vou assinar", precisava apontar um Supervisor. Design aprovado em conversa (sem doc
+de brainstorming separado, dado o tamanho da fatia) — 4 partes:
+
+**1. Central "Documentos Pendentes de Assinatura"** (`/documentos-pendentes`, novo item no menu
+"Geral" da sidebar, visível pra qualquer usuário logado): `lib/assinaturas/pendencias.ts` —
+`buscarPendenciasDoUsuario(userId, master)` cruza os 5 tipos de documento (Dispensa — só o papel
+Departamento, o Treinador é resolvido na área própria dele; Parecer Final; Orçamento/Despesas de
+jogo Profissional+Base; Solicitações Profissional+Base) e devolve só os papéis que aquela pessoa
+pode assinar e ainda estão pendentes, reaproveitando a mesma lógica de elegibilidade que cada tela
+individual já usa (`podeAssinarPapel`). Uma consulta em lote por tipo de documento
+(`assinaturas_documento` filtrado com `.in(documento_id, [...])`) evita N+1. Financeiro só entra na
+lista se o jogo já tiver gastos lançados (mesma condição que já esconde o bloco de assinatura na
+tela do jogo — `gastos.length > 0` pro Orçamento, `algum valor_efetuado preenchido` pras Despesas).
+Solicitações filtradas por `status = 'pendente'`. **Decisão consciente**: o card de contagem NÃO
+aparece na sidebar em toda página — rodar essa consulta (bastante pesada, várias tabelas) em toda
+navegação do sistema custaria caro; só roda quando a pessoa entra na própria página.
+
+**2. Configuração do Departamento na Dispensa** (`configuracoes_dispensa_base`, migration `0093`):
+singleton simples (só `departamento_usuario_id`, sem nome/cargo — o rótulo "Departamento de Futebol
+de Base" já é fixo). Tela nova em `/base/atletas/configuracoes` (link ao lado de "Ver campograma"
+na tela de Atletas). `app/base/atletas/[categoria]/[id]/dispensa/page.tsx` trocou o
+`papeisQuePossoAssinar={["departamento"]}` fixo (qualquer um que chegasse na tela podia assinar) por
+`podeAssinarPapel(config?.departamento_usuario_id, user.id, master)` — mesmo padrão de
+Financeiro/Solicitações/Parecer.
+
+**3. Sino de notificações na área do Treinador**: `/treinador` é de propósito fora do `AppShell`
+(sem sidebar) — `SinoNotificacoes` ganhou uma prop `abrirPara: "cima" | "baixo"` (padrão "cima",
+comportamento de sempre no rodapé da sidebar) porque no cabeçalho do Treinador, que fica no TOPO da
+tela, o dropdown abrindo pra cima nasceria pra fora da tela. `PushOptIn` também entrou no cabeçalho.
+
+**4. Aviso que faltava**: `app/base/atletas/[categoria]/[id]/dispensa/actions.ts`
+(`salvarRelatorioDispensaAdmin`) agora, depois de auto-assinar "departamento", confere se o papel
+"treinador" ainda está pendente (senão o Treinador já assinou antes, gerando ele mesmo primeiro —
+não faz sentido reavisar) e, se sim, avisa (sino + push) todo `perfis` com `role = 'treinador'` cuja
+`categorias_treinador` inclui a categoria do atleta (pode ser mais de um treinador por categoria).
+
+**Deixado de fora**: aviso em tempo real (sino/push) na criação do Parecer Final e do Financeiro —
+a Central de Documentos Pendentes (item 1) já cobre a visibilidade disso na prática; avaliar se
+compensa adicionar o aviso em tempo real numa rodada futura.
+
+**Pendente do lado do Mateus**: rodar a migration `0093`; configurar o Departamento em
+`/base/atletas/configuracoes` se quiser apontar um Supervisor específico (sem configurar, continua
+"qualquer master pode assinar", igual antes).

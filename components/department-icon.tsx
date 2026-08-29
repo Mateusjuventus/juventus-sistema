@@ -42,7 +42,7 @@ export function HomeIcon({ className }: { className?: string }) {
   );
 }
 
-/** Ícone do botão "Avisos" no cabeçalho — um sino de notificação. */
+/** Sino de notificação — usado pelo botão de notificações pessoais (`SinoNotificacoes`). */
 export function BellIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -53,6 +53,24 @@ export function BellIcon({ className }: { className?: string }) {
         strokeLinejoin="round"
       />
       <path d="M10 19.5a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Ícone do link "Avisos" na sidebar — megafone (quadro de avisos do departamento). Trocado do
+ * sino original (28/08) porque o sino já é usado pelo botão de notificações pessoais
+ * (`SinoNotificacoes`), e os dois muito próximos na sidebar pareciam o mesmo ícone duplicado. */
+export function MegaphoneIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 10v4a1 1 0 0 0 1 1h2l7 4V5L7 9H5a1 1 0 0 0-1 1Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M17 9.5c1 .8 1 4.2 0 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M7 15v3.5a1.2 1.2 0 0 0 2.4 0V16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

@@ -40,9 +40,12 @@ export default async function AtletasBasePage() {
       </Link>
       <PageHeader title="Atletas" />
 
-      <div className="mt-3 flex justify-center">
+      <div className="mt-3 flex flex-wrap justify-center gap-3">
         <Link href="/base/atletas/campograma" className="btn-secondary">
           Ver campograma por categoria
+        </Link>
+        <Link href="/base/atletas/configuracoes" className="btn-secondary">
+          Configurações
         </Link>
       </div>
 

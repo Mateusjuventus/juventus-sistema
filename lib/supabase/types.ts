@@ -1223,6 +1223,15 @@ export interface ConfiguracaoSolicitacoesBaseRow {
   updated_at: string;
 }
 
+/** Config singleton de quem é o "Departamento" no Relatório de Dispensa — só Base, mesmo padrão de
+ * ConfiguracaoSolicitacoesRow, mas sem nome/cargo porque o rótulo já é fixo (ver PAPEIS_FIXOS em
+ * lib/assinaturas/config.ts). Sem vincular ninguém, qualquer master pode assinar (podeAssinarPapel). */
+export interface ConfiguracaoDispensaBaseRow {
+  id: string;
+  departamento_usuario_id: string | null;
+  updated_at: string;
+}
+
 export interface SolicitacaoBaseRow {
   id: string;
   numero: number;

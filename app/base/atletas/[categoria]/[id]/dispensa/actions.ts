@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { relatorioDispensaSchema } from "@/lib/validation/schemas";
-import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
+import { autoAssinarComoCreator, buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { criarNotificacao } from "@/lib/notificacoes/actions";
 import type { RelatorioDispensaFormState } from "@/components/relatorio-dispensa-form";
 
 /**
@@ -44,7 +45,7 @@ export async function salvarRelatorioDispensaAdmin(
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
 
   const data = result.data;
-  const { error } = await supabase
+  const { data: atletaAtualizado, error } = await supabase
     .from("atletas_base")
     .update({
       status: "dispensado",
@@ -57,13 +58,37 @@ export async function salvarRelatorioDispensaAdmin(
       dispensado_por: user.id,
       dispensado_em: new Date().toISOString(),
     })
-    .eq("id", atletaId);
+    .eq("id", atletaId)
+    .select("nome_completo")
+    .single();
   if (error) return { error: `Não foi possível salvar: ${error.message}` };
 
   // Quem preenche por aqui é sempre alguém do Departamento — auto-assina esse papel (ver
   // docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md); o papel
   // "treinador" fica como estava (pendente, ou já assinado antes, se foi ele quem gerou primeiro).
   await autoAssinarComoCreator("dispensa_base", atletaId, "departamento", user.id);
+
+  // Fase 3 — antes disso ninguém avisava o Treinador quando é o Departamento quem gera o relatório
+  // primeiro. Só avisa se o papel "treinador" ainda estiver pendente (senão ele já assinou antes,
+  // sendo ele quem gerou primeiro, e não faz sentido reavisar).
+  const jaAssinado = (await buscarAssinaturas("dispensa_base", atletaId)).some((a) => a.papel === "treinador");
+  if (!jaAssinado) {
+    const { data: treinadores } = await supabase
+      .from("perfis")
+      .select("id")
+      .eq("role", "treinador")
+      .contains("categorias_treinador", [categoria]);
+    await Promise.all(
+      (treinadores ?? []).map((t) =>
+        criarNotificacao({
+          usuarioId: t.id,
+          tipo: "assinatura_pendente",
+          mensagem: `Relatório de Dispensa de ${atletaAtualizado?.nome_completo ?? "um atleta"} está esperando sua assinatura.`,
+          link: `/treinador/atletas/${atletaId}/dispensa`,
+        }),
+      ),
+    );
+  }
 
   revalidatePath(`/base/atletas/${categoria}`);
   revalidatePath(`/base/atletas/${categoria}/${atletaId}/ver`);
