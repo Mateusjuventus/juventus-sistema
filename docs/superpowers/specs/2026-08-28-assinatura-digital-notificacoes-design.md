@@ -329,3 +329,43 @@ compensa adicionar o aviso em tempo real numa rodada futura.
 **Pendente do lado do Mateus**: rodar a migration `0093`; configurar o Departamento em
 `/base/atletas/configuracoes` se quiser apontar um Supervisor específico (sem configurar, continua
 "qualquer master pode assinar", igual antes).
+
+## Ajustes de 29/08 — sino unificado + avisos que faltavam (Parecer Final e Financeiro)
+
+**Sino unificado**: o link "Avisos" (ícone de sino, prazos de checklist/competições — `/avisos`) e o
+botão `SinoNotificacoes` (notificações pessoais de assinatura pendente) ficaram um em cima do outro
+na seção "Geral" da sidebar, os dois com o mesmo ícone de sino — o Mateus viu como "2 sinos
+duplicados" e pediu pra unificar. `components/app-sidebar.tsx` perdeu o link "Avisos" da lista;
+`components/sino-notificacoes.tsx` ganhou uma prop `linkAvisos` que, quando true, mostra "Ver quadro
+de avisos" no rodapé do dropdown do sino, linkando pra `/avisos`. Resultado: só 1 sino na sidebar,
+as duas funcionalidades continuam acessíveis (Avisos só aparece pro Futebol Profissional, mesma
+regra de antes — `showAvisos`).
+
+**Parecer Final — corrigido depois da primeira tentativa**: a primeira versão avisava no momento em
+que o candidato saía de "inscricao" pra "avaliacao" (`aprovarInscricaoCaptacao`) — errado, porque
+nesse momento o parecer ainda nem foi preenchido. O Mateus corrigiu: o aviso certo é quando o
+parecer é DECIDIDO — hoje isso só acontece de um jeito, o Treinador enviando a avaliação dele
+(`salvarParecerCaptacao`, `app/treinador/actions.ts`), que já muda o status pro veredito (aprovado/
+dispensado/não compareceu) na mesma hora.
+
+Junto veio um ajuste maior: uma das linhas configuradas em "Assinaturas do Parecer Final" é sempre a
+do Treinador responsável — mas o Treinador varia por categoria, não dá pra vincular uma pessoa fixa
+como as outras linhas. Nova flag `AssinaturaCaptacao.ehTreinador` (lib/supabase/types.ts) marca essa
+linha; no formulário de configuração (`assinaturas-config-form.tsx`) ela vira um checkbox "É o
+Treinador (assina sozinho ao enviar)" que esconde o campo de vínculo (não faz sentido escolher uma
+pessoa fixa ali). Essa linha nunca aparece pra ninguém assinar manualmente — nem cai no fallback de
+"qualquer master" (`pendencias.ts` e `app/base/captacao/[id]/page.tsx` excluem explicitamente
+`ehTreinador` do cálculo de quem pode assinar).
+
+Ao enviar o parecer, `assinarComoTreinadorEAvisarDemais` (`app/treinador/actions.ts`) faz as duas
+coisas juntas: a linha `ehTreinador` assina sozinha ali mesmo (`autoAssinarComoCreator`, com quem de
+fato enviou); as outras linhas configuradas (com nome preenchido) recebem o aviso de sino + push,
+igual ao padrão já usado no resto do sistema.
+
+**Aviso em tempo real do Financeiro**: novo helper `lib/notificacoes/financeiro.ts`
+(`notificarAssinantesFinanceiro`) chamado a partir de `createGasto`/`createGastoBase`
+(`app/jogos/[id]/financeiro/actions.ts` e `app/base/jogos/[id]/financeiro/actions.ts`) — dispara na
+primeira vez que cada bloco de assinatura fica visível: Orçamento no 1º gasto lançado no jogo,
+Despesas no 1º gasto já com valor efetuado preenchido (mesmo gate de `pendencias.ts`). Avisa os dois
+papéis configurados (`assinatura1`/`assinatura2`); se os dois apontam pro mesmo lugar (mesma pessoa,
+ou os dois sem vínculo — cai no fallback de avisar todo master), evita mandar o aviso duplicado.

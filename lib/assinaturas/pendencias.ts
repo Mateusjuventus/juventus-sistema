@@ -92,7 +92,11 @@ async function pendenciasParecer(supabase: Supabase, userId: string, master: boo
     .maybeSingle();
   const config = configData as Pick<ConfiguracaoParecerCaptacaoBaseRow, "assinaturas"> | null;
   const assinaturasConfig = config?.assinaturas ?? [];
-  const papeisElegiveis = assinaturasConfig.filter((a) => a.nome.trim() && podeAssinarPapel(a.usuarioId, userId, master));
+  // Linha "ehTreinador" nunca aparece aqui: assina sozinha quando o Treinador envia o parecer
+  // (app/treinador/actions.ts), não é algo que apareça pra alguém assinar manualmente.
+  const papeisElegiveis = assinaturasConfig.filter(
+    (a) => a.nome.trim() && !a.ehTreinador && podeAssinarPapel(a.usuarioId, userId, master),
+  );
   if (papeisElegiveis.length === 0) return [];
 
   const { data } = await supabase

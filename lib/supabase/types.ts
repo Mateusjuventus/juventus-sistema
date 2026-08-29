@@ -1786,6 +1786,12 @@ export interface AssinaturaCaptacao {
   nome: string;
   cargo: string;
   usuarioId?: string | null;
+  /** Marca essa linha como sendo do Treinador responsável pela avaliação — em vez de vincular uma
+   * pessoa fixa (varia por categoria), essa linha assina sozinha com quem de fato enviou o parecer
+   * (`salvarParecerCaptacao`, ver docs/superpowers/specs/2026-08-28-assinatura-digital-
+   * notificacoes-design.md), no mesmo instante do envio. Não aparece pra ninguém assinar manualmente
+   * (nem master cai no fallback aqui — não faria sentido "qualquer master" assinar como Treinador). */
+  ehTreinador?: boolean;
 }
 
 /** Configuração das assinaturas do Parecer Final de Avaliação (`/base/captacao/[id]/parecer/pdf`) —

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { gastoJogoSchema, NOVA_CATEGORIA_GASTO_VALUE } from "@/lib/validation/schemas";
+import { notificarAssinantesFinanceiro } from "@/lib/notificacoes/financeiro";
 
 /**
  * Espelha `app/jogos/[id]/financeiro/actions.ts` para o Futebol de Base — grava em
@@ -95,12 +96,52 @@ export async function createGastoBase(
 
   if (error) return { error: "Não foi possível salvar o gasto. Tente novamente.", values: raw };
 
+  await avisarSeNovoBlocoAssinavel(supabase, jogoId, data.valorEfetuado !== undefined);
+
   const caminho = caminhoFinanceiro(jogoId);
   if (caminho) {
     revalidatePath(caminho);
     redirect(caminho);
   }
   redirect("/base/jogos");
+}
+
+/** Espelha o helper de `app/jogos/[id]/financeiro/actions.ts` — ver comentário lá. */
+async function avisarSeNovoBlocoAssinavel(
+  supabase: ReturnType<typeof createClient>,
+  jogoId: string,
+  temEfetuado: boolean,
+): Promise<void> {
+  const [{ data: jogo }, { data: gastos }] = await Promise.all([
+    supabase.from("jogos_base").select("adversario_nome, data_jogo").eq("id", jogoId).maybeSingle(),
+    supabase.from("gastos_jogo_base").select("valor_efetuado").eq("jogo_id", jogoId),
+  ]);
+  if (!jogo) return;
+
+  const total = gastos?.length ?? 0;
+  const totalEfetuados = (gastos ?? []).filter((g) => g.valor_efetuado !== null).length;
+  const link = caminhoFinanceiro(jogoId);
+
+  if (total === 1) {
+    await notificarAssinantesFinanceiro({
+      tabelaConfig: "configuracoes_financeiro_base",
+      jogoId,
+      adversarioNome: jogo.adversario_nome,
+      dataJogo: jogo.data_jogo,
+      bloco: "Orçamento",
+      link,
+    });
+  }
+  if (temEfetuado && totalEfetuados === 1) {
+    await notificarAssinantesFinanceiro({
+      tabelaConfig: "configuracoes_financeiro_base",
+      jogoId,
+      adversarioNome: jogo.adversario_nome,
+      dataJogo: jogo.data_jogo,
+      bloco: "Despesas",
+      link,
+    });
+  }
 }
 
 export async function updateGastoBase(

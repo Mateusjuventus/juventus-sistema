@@ -7,6 +7,9 @@ import { getCategoriasTreinador } from "@/lib/auth/role";
 import { parecerCaptacaoSchema } from "@/lib/validation/schemas";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { payloadMudancaStatusCaptacao, type CaptacaoStatusDecidido } from "@/lib/futebol/captacao";
+import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
+import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
+import type { ConfiguracaoParecerCaptacaoBaseRow } from "@/lib/supabase/types";
 
 /**
  * Server Action do Treinador (ver docs/superpowers/specs/2026-08-19-parecer-final-treinador-
@@ -55,7 +58,7 @@ export async function salvarParecerCaptacao(
 
   const { data: candidato } = await supabase
     .from("captacao_base")
-    .select("categoria, status, data_termino")
+    .select("categoria, status, data_termino, nome_completo, numero")
     .eq("id", candidatoId)
     .maybeSingle();
   if (!candidato || candidato.status !== "avaliacao") {
@@ -92,8 +95,44 @@ export async function salvarParecerCaptacao(
     .eq("id", candidatoId);
   if (error) return { error: `Não foi possível salvar: ${error.message}` };
 
+  // O parecer acabou de ser decidido (aprovado/dispensado/não compareceu) — a partir daqui o bloco
+  // de assinatura fica visível na tela (ver app/base/captacao/[id]/page.tsx). A linha marcada
+  // "ehTreinador" assina sozinha agora, com quem realmente enviou (não precisa vincular ninguém
+  // antes — varia por categoria); as outras linhas configuradas são avisadas (sino + push).
+  await assinarComoTreinadorEAvisarDemais(supabase, candidatoId, user.id, candidato.nome_completo, candidato.numero);
+
   revalidatePath("/treinador");
   revalidatePath("/base/captacao");
   revalidatePath(`/base/captacao/${candidatoId}`);
   redirect("/treinador");
+}
+
+/** Best-effort — nunca derruba o salvamento do parecer em si. */
+async function assinarComoTreinadorEAvisarDemais(
+  supabase: ReturnType<typeof createClient>,
+  candidatoId: string,
+  treinadorId: string,
+  nomeCompleto: string,
+  numero: number,
+): Promise<void> {
+  const { data: configData } = await supabase
+    .from("configuracoes_parecer_captacao_base")
+    .select("assinaturas")
+    .limit(1)
+    .maybeSingle();
+  const config = configData as Pick<ConfiguracaoParecerCaptacaoBaseRow, "assinaturas"> | null;
+  const assinaturas = (config?.assinaturas ?? []).filter((a) => a.nome.trim());
+
+  await Promise.all(
+    assinaturas.map((a) =>
+      a.ehTreinador
+        ? autoAssinarComoCreator("parecer_captacao_base", candidatoId, a.id, treinadorId)
+        : notificarSignerConfiguravel({
+            usuarioVinculado: a.usuarioId,
+            tipo: "assinatura_pendente",
+            mensagem: `Parecer Final — ${nomeCompleto} (Nº ${numero}) está esperando sua assinatura.`,
+            link: `/base/captacao/${candidatoId}`,
+          }),
+    ),
+  );
 }

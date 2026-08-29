@@ -281,11 +281,13 @@ export async function atualizarAssinaturasParecer(
   const nomes = formData.getAll("assinaturaNome").map(String);
   const cargos = formData.getAll("assinaturaCargo").map(String);
   const usuarioIds = formData.getAll("assinaturaUsuarioId").map(String);
+  const ehTreinadorFlags = formData.getAll("assinaturaEhTreinador").map(String);
   const assinaturas = nomes.map((nome, i) => ({
     id: ids[i] || randomUUID(),
     nome: nome.trim(),
     cargo: (cargos[i] ?? "").trim(),
     usuarioId: usuarioIds[i] || null,
+    ehTreinador: ehTreinadorFlags[i] === "true",
   }));
 
   const supabase = createClient();

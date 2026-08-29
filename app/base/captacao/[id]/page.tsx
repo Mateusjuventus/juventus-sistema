@@ -44,9 +44,11 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
   const configAssinaturas =
     (configParecerData as Pick<ConfiguracaoParecerCaptacaoBaseRow, "assinaturas"> | null)?.assinaturas ?? [];
   const papeisParecer = papeisAssinaturaParecer(configAssinaturas);
+  // Linha "ehTreinador" nunca entra aqui: assina sozinha quando o Treinador envia o parecer, na
+  // tela dele (/treinador) — não fica disponível pra assinar manualmente nesta tela.
   const papeisQuePossoAssinar = user
     ? configAssinaturas
-        .filter((a) => podeAssinarPapel(a.usuarioId, user.id, master))
+        .filter((a) => !a.ehTreinador && podeAssinarPapel(a.usuarioId, user.id, master))
         .map((a) => a.id)
     : [];
 

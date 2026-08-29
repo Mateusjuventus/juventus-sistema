@@ -18,6 +18,10 @@ interface LinhaAssinatura {
   nome: string;
   cargo: string;
   usuarioId: string;
+  /** Ver `AssinaturaCaptacao.ehTreinador` em lib/supabase/types.ts. Estado controlado (diferente
+   * dos outros campos, uncontrolled) porque um checkbox desmarcado some do FormData — precisa de
+   * um hidden ao lado sempre mandando "true"/"false" pra manter as listas paralelas alinhadas. */
+  ehTreinador: boolean;
 }
 
 /**
@@ -40,29 +44,36 @@ export function AssinaturasConfigForm({
   action,
 }: {
   id: string;
-  assinaturasIniciais: { id: string; nome: string; cargo: string; usuarioId?: string | null }[];
+  assinaturasIniciais: { id: string; nome: string; cargo: string; usuarioId?: string | null; ehTreinador?: boolean }[];
   perfis: PerfilParaSelecao[];
   action: (prevState: AssinaturasParecerState, formData: FormData) => Promise<AssinaturasParecerState>;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const proximoId = useRef(0);
   const [linhas, setLinhas] = useState<LinhaAssinatura[]>(() =>
-    (assinaturasIniciais.length > 0 ? assinaturasIniciais : [{ id: "", nome: "", cargo: "", usuarioId: "" }]).map(
-      (a) => ({
-        id: proximoId.current++,
-        assinaturaId: a.id,
-        nome: a.nome,
-        cargo: a.cargo,
-        usuarioId: a.usuarioId ?? "",
-      }),
-    ),
+    (
+      assinaturasIniciais.length > 0
+        ? assinaturasIniciais
+        : [{ id: "", nome: "", cargo: "", usuarioId: "", ehTreinador: false }]
+    ).map((a) => ({
+      id: proximoId.current++,
+      assinaturaId: a.id,
+      nome: a.nome,
+      cargo: a.cargo,
+      usuarioId: a.usuarioId ?? "",
+      ehTreinador: a.ehTreinador ?? false,
+    })),
   );
 
   function adicionar() {
     setLinhas((atual) => [
       ...atual,
-      { id: proximoId.current++, assinaturaId: "", nome: "", cargo: "", usuarioId: "" },
+      { id: proximoId.current++, assinaturaId: "", nome: "", cargo: "", usuarioId: "", ehTreinador: false },
     ]);
+  }
+
+  function alternarEhTreinador(rowId: number, valor: boolean) {
+    setLinhas((atual) => atual.map((l) => (l.id === rowId ? { ...l, ehTreinador: valor } : l)));
   }
 
   function remover(rowId: number) {
@@ -103,24 +114,38 @@ export function AssinaturasConfigForm({
                   className="field-input"
                 />
               </div>
-              <div className="min-w-[200px] flex-1">
-                <label htmlFor={`assinaturaUsuarioId-${linha.id}`} className="field-label">
-                  Usuário que assina digitalmente
-                </label>
-                <select
-                  id={`assinaturaUsuarioId-${linha.id}`}
-                  name="assinaturaUsuarioId"
-                  defaultValue={linha.usuarioId}
-                  className="field-input"
-                >
-                  <option value="">— Não vincular (qualquer master pode assinar) —</option>
-                  {perfis.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.rotulo}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {linha.ehTreinador ? (
+                <input type="hidden" name="assinaturaUsuarioId" value="" />
+              ) : (
+                <div className="min-w-[200px] flex-1">
+                  <label htmlFor={`assinaturaUsuarioId-${linha.id}`} className="field-label">
+                    Usuário que assina digitalmente
+                  </label>
+                  <select
+                    id={`assinaturaUsuarioId-${linha.id}`}
+                    name="assinaturaUsuarioId"
+                    defaultValue={linha.usuarioId}
+                    className="field-input"
+                  >
+                    <option value="">— Não vincular (qualquer master pode assinar) —</option>
+                    {perfis.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.rotulo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <input type="hidden" name="assinaturaEhTreinador" value={linha.ehTreinador ? "true" : "false"} />
+              <label className="flex items-center gap-1.5 pb-2 text-xs text-neutral-600" title="Em vez de vincular uma pessoa fixa, essa linha assina sozinha com quem realmente enviou o Parecer (o Treinador responsável, na tela dele) — não precisa configurar ninguém.">
+                <input
+                  type="checkbox"
+                  checked={linha.ehTreinador}
+                  onChange={(e) => alternarEhTreinador(linha.id, e.target.checked)}
+                  className="h-3.5 w-3.5"
+                />
+                É o Treinador (assina sozinho ao enviar)
+              </label>
               <button
                 type="button"
                 onClick={() => remover(linha.id)}
