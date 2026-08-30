@@ -153,6 +153,17 @@ export function IconAlojamento({ className }: { className?: string }) {
   );
 }
 
+/** Programação Semanal (Fase 8) — calendário dividido em colunas, pra diferenciar de "Jogos"
+ * (calendário liso com os dois "ganchos" de topo) mesmo sendo os dois um calendário. */
+export function IconProgramacao({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9h18M9 4v17" />
+    </svg>
+  );
+}
+
 /** Documentos Pendentes de Assinatura (Fase 3) — folha com um "check", pra diferenciar de Tarefas
  * (Checklist) mesmo tendo um espírito parecido de "lista do que falta fazer". */
 export function IconAssinaturaPendente({ className }: { className?: string }) {

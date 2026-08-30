@@ -16,6 +16,7 @@ import {
   IconFinanceiro,
   IconHotel,
   IconJogos,
+  IconProgramacao,
   IconRelatorio,
   IconSolicitacoes,
   IconStaff,
@@ -30,9 +31,14 @@ import { PRIORIDADE_MOBILE, type ModuloChave } from "@/lib/auth/modulos";
 
 /** Chave de ícone que o item carrega — string simples, serializável na fronteira Server→Client
  * Component (ver comentário abaixo). "usuarios" não é um `ModuloChave` de verdade (ver
- * `components/app-shell.tsx`), assim como "captacao"/"alojamento" só existem em `ModuloBaseChave`
- * (módulos exclusivos do Futebol de Base) — por isso o tipo aceita as três à parte. */
-export type SidebarIconKey = ModuloChave | "usuarios" | "captacao" | "alojamento";
+ * `components/app-shell.tsx`), assim como "captacao"/"alojamento"/"programacao" só existem em
+ * `ModuloBaseChave` (módulos exclusivos do Futebol de Base) — por isso o tipo aceita essas à parte.
+ * IMPORTANTE: todo `ModuloBaseChave` novo precisa ganhar uma entrada aqui E em `ICONES` logo
+ * abaixo — sem isso, `ICONES[item.icone]` fica `undefined` e o React quebra em produção (erro #130,
+ * "element type is invalid") assim que alguém com aquele módulo liberado carrega a sidebar. O
+ * `as SidebarIconKey` em `app-shell.tsx` (necessário pra reaproveitar `MODULOS_BASE.map` sem
+ * duplicar a lista) não pega esse tipo de furo em tempo de compilação — só em runtime. */
+export type SidebarIconKey = ModuloChave | "usuarios" | "captacao" | "alojamento" | "programacao";
 
 export interface SidebarNavItem {
   href: string;
@@ -53,6 +59,7 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
   competicoes: IconCompeticoes,
   staff_operacional: IconStaff,
   jogos: IconJogos,
+  programacao: IconProgramacao,
   solicitacoes: IconSolicitacoes,
   estoque: IconEstoque,
   termos_retirada: IconTermos,

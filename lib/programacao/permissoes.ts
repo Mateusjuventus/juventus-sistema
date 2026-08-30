@@ -17,9 +17,9 @@ import { TODOS_DEPARTAMENTOS } from "@/lib/auth/departamentos";
  * genérica que protege todas as outras tabelas `*_base` do sistema (policy única pra qualquer
  * usuário autenticado), não uma restrição por categoria.
  *
- * O módulo "Programação" (`/base/programacao`) ainda não existe em `ModuloBaseChave` — até ele ser
- * criado, o ramo do Base sempre devolve `[]` pra quem não é "master" (não há como marcar o módulo
- * como liberado ainda), o que é o comportamento certo enquanto essa tela não existe.
+ * O módulo "Programação" (`/base/programacao`) já existe em `ModuloBaseChave` (ver
+ * `lib/auth/modulos-base.ts`, Fase 8) — quem não é "master" só enxerga as 7 categorias depois de
+ * ter esse módulo liberado em `/usuarios`.
  */
 export function resolverCategoriasProgramacao(perfil: PerfilPermissoes | null): CategoriaBase[] {
   if (!perfil) return [];
