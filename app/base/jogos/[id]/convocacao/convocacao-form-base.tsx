@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
+import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
 import { categoriaDaPosicao, corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
 import type { AtletaBaseRow, ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
 import { nomeExibido, ordenarPorNomeExibido } from "@/lib/futebol/nome-atleta";
@@ -16,32 +17,11 @@ const RESERVAS_MAX = 12;
 
 type AtletaComFoto = AtletaBaseRow & { fotoUrl: string | null };
 
-/** Duas letras pra usar como avatar quando o atleta não tem foto cadastrada — mesmo espírito do
- * fallback já usado em outras telas (ex.: card de próximo jogo na tela inicial). */
-function iniciais(nome: string): string {
-  const partes = nome.trim().split(/\s+/);
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
-}
-
+/** Avatar do atleta na grade de Convocação — foto real quando cadastrada, senão o avatar colorido
+ * de iniciais (ver `components/atleta-avatar.tsx`), mesmo usado em "Meus Atletas" e nos candidatos
+ * da Captação, pra manter a mesma "cara" em qualquer lista de atleta do sistema. */
 function Avatar({ atleta, className = "h-10 w-10" }: { atleta: AtletaComFoto; className?: string }) {
-  if (atleta.fotoUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={atleta.fotoUrl}
-        alt={atleta.nome_completo}
-        className={`${className} shrink-0 rounded-full border border-neutral-200 object-cover`}
-      />
-    );
-  }
-  return (
-    <div
-      className={`${className} flex shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-semibold text-neutral-500`}
-    >
-      {iniciais(atleta.nome_completo)}
-    </div>
-  );
+  return <AtletaAvatarCirculo nome={nomeExibido(atleta)} fotoUrl={atleta.fotoUrl} className={className} />;
 }
 
 function TagPosicao({ atleta }: { atleta: AtletaComFoto }) {

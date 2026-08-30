@@ -12,10 +12,12 @@ export function ClassificacaoSelectTreinador({
   atletaId,
   defaultValue,
   action,
+  className = "w-36",
 }: {
   atletaId: string;
   defaultValue: string | null;
   action: (formData: FormData) => Promise<void>;
+  className?: string;
 }) {
   return (
     <form action={action}>
@@ -24,7 +26,7 @@ export function ClassificacaoSelectTreinador({
         name="classificacao"
         defaultValue={defaultValue ?? ""}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className="w-36 rounded-md border border-linha px-2 py-1.5 text-xs shadow-sm focus:border-grena focus:outline-none focus:ring-1 focus:ring-grena"
+        className={`${className} rounded-md border border-linha px-2 py-1.5 text-xs shadow-sm focus:border-grena focus:outline-none focus:ring-1 focus:ring-grena`}
       >
         <option value="">Não classificado</option>
         {ATLETA_CLASSIFICACAO_OPTIONS.map((opcao) => (

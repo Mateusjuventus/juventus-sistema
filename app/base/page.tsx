@@ -11,11 +11,11 @@ import { hojeBrasilia } from "@/lib/data-brasil";
  * vazia agora, mas o filtro continua aqui por segurança, caso um novo módulo seja adicionado no
  * futuro sem ganhar um cartão de imediato. */
 const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = [
+  "programacao",
   "atletas",
   "comissao_tecnica",
   "staff_operacional",
   "jogos",
-  "programacao",
   "solicitacoes",
   "estoque",
   "financeiro",
@@ -186,6 +186,25 @@ export default async function BasePage() {
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {temModulo("programacao") ? (
+          <Link
+            href="/base/programacao"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-fuchsia-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600">
+              <IconProgramacao className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Programação</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalProgramacaoSemana} atividade{totalProgramacaoSemana === 1 ? "" : "s"} nesta semana
+            </p>
+          </Link>
+        ) : null}
+
         {temModulo("atletas") ? (
           <Link
             href="/base/atletas"
@@ -258,25 +277,6 @@ export default async function BasePage() {
             <h2 className="text-lg font-bold text-grena-escuro">Jogos / Competições</h2>
             <p className="text-sm font-medium text-neutral-500">
               {totalJogos} jogo{totalJogos === 1 ? "" : "s"} cadastrado{totalJogos === 1 ? "" : "s"}
-            </p>
-          </Link>
-        ) : null}
-
-        {temModulo("programacao") ? (
-          <Link
-            href="/base/programacao"
-            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            <span className="absolute inset-x-0 top-0 h-1 bg-fuchsia-600" />
-            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
-              →
-            </span>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600">
-              <IconProgramacao className="h-6 w-6" />
-            </div>
-            <h2 className="text-lg font-bold text-grena-escuro">Programação</h2>
-            <p className="text-sm font-medium text-neutral-500">
-              {totalProgramacaoSemana} atividade{totalProgramacaoSemana === 1 ? "" : "s"} nesta semana
             </p>
           </Link>
         ) : null}
