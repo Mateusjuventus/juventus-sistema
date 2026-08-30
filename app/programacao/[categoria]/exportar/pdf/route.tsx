@@ -15,7 +15,7 @@ import { MicrocicloDocument } from "@/lib/pdf/microciclo-document";
 /**
  * Exportação do microciclo em PDF — acessível por quem já pode ver a Programação daquela categoria
  * (treinador só a sua, Base qualquer uma — mesma checagem de `getCategoriasProgramacao()` usada em
- * `/treinador` e `/base/programacao`, ver docs/superpowers/specs/2026-08-30-area-treinador-
+ * `/treinador` e `/base` (Início da Base), ver docs/superpowers/specs/2026-08-30-area-treinador-
  * programacao-design.md, "Rotas e telas"). `semana` na querystring escolhe qual semana exportar
  * (mesmo formato `YYYY-MM-DD` usado na grade); sem ela, ou com um valor inválido, cai na semana
  * atual.

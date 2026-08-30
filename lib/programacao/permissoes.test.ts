@@ -36,8 +36,8 @@ describe("resolverCategoriasProgramacao", () => {
     expect(resolverCategoriasProgramacao(p)).toEqual([]);
   });
 
-  it("master sempre enxerga as 7 categorias, mesmo sem futebol_base ou módulo liberado", () => {
-    const p = perfil({ role: "master", departamentos_permitidos: [], modulos_base_permitidos: [] });
+  it("master sempre enxerga as 7 categorias, mesmo sem futebol_base liberado", () => {
+    const p = perfil({ role: "master", departamentos_permitidos: [] });
     expect(resolverCategoriasProgramacao(p)).toEqual(TODAS_CATEGORIAS_BASE);
   });
 
@@ -46,26 +46,17 @@ describe("resolverCategoriasProgramacao", () => {
     expect(resolverCategoriasProgramacao(p)).toEqual([]);
   });
 
-  it("regular com Futebol de Base mas sem o módulo Programação liberado não enxerga nada (módulo ainda não existe até a Fase 8)", () => {
+  it("regular com Futebol de Base enxerga as 7 categorias, sem precisar de módulo liberado (deixou de ser módulo em 30/08)", () => {
     const p = perfil({
       role: "regular",
       departamentos_permitidos: ["futebol_base"],
       modulos_base_permitidos: ["atletas", "jogos"],
     });
-    expect(resolverCategoriasProgramacao(p)).toEqual([]);
-  });
-
-  it("regular com Futebol de Base e o módulo Programação liberado enxerga as 7 categorias", () => {
-    const p = perfil({
-      role: "regular",
-      departamentos_permitidos: ["futebol_base"],
-      modulos_base_permitidos: ["atletas", "programacao"],
-    });
     expect(resolverCategoriasProgramacao(p)).toEqual(TODAS_CATEGORIAS_BASE);
   });
 
-  it("regular com departamentos_permitidos nulo (grandfathered = todos) e módulo liberado enxerga as 7", () => {
-    const p = perfil({ role: "regular", departamentos_permitidos: null, modulos_base_permitidos: ["programacao"] });
+  it("regular com departamentos_permitidos nulo (grandfathered = todos) enxerga as 7", () => {
+    const p = perfil({ role: "regular", departamentos_permitidos: null });
     expect(resolverCategoriasProgramacao(p)).toEqual(TODAS_CATEGORIAS_BASE);
   });
 });

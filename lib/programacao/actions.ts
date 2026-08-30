@@ -14,7 +14,8 @@ import { turnoDoHorarioInicio } from "./tipo-atividade";
 /**
  * Server Actions da Programação Semanal (ver
  * docs/superpowers/specs/2026-08-30-area-treinador-programacao-design.md). Usadas tanto por
- * `/treinador` quanto por `/base/programacao` — toda ação re-verifica a categoria contra
+ * `/treinador` quanto por `/base` (Início do Futebol de Base) — toda ação re-verifica a categoria
+ * contra
  * `getCategoriasProgramacao()` antes de gravar, mesmo padrão de dupla checagem já usado em
  * `app/treinador/actions.ts` (RLS nas tabelas `programacao_*` é só a mesma policy genérica de
  * qualquer usuário autenticado, igual a todas as tabelas `*_base` — não filtra por categoria).
@@ -84,7 +85,7 @@ export async function criarAtividade(
   if (error) return { error: `Não foi possível criar a atividade: ${error.message}` };
 
   revalidatePath("/treinador");
-  revalidatePath("/base/programacao");
+  revalidatePath("/base");
   return {};
 }
 
@@ -145,7 +146,7 @@ export async function criarAtividadeDeJogo(
   if (error) return { error: `Não foi possível criar a atividade: ${error.message}` };
 
   revalidatePath("/treinador");
-  revalidatePath("/base/programacao");
+  revalidatePath("/base");
   return {};
 }
 
@@ -236,6 +237,6 @@ export async function criarSubatividade(
   }
 
   revalidatePath("/treinador");
-  revalidatePath("/base/programacao");
+  revalidatePath("/base");
   return {};
 }

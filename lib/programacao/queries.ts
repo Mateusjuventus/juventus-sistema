@@ -49,9 +49,9 @@ export interface AtividadeComDetalhes extends ProgramacaoAtividadeRow {
  * `inicioDaSemana` em `./semana`), com as subatividades já agrupadas por atividade e, quando
  * `tipo` é 'jogo_oficial'/'jogo_treino', os dados de verdade do jogo (nunca duplicados aqui).
  *
- * Não faz nenhuma checagem de permissão — quem chama (Server Component de `/treinador` ou
- * `/base/programacao`) já resolveu `categoria` a partir de `getCategoriasProgramacao()` antes de
- * chegar aqui, do mesmo jeito que as demais telas de categoria do sistema fazem hoje.
+ * Não faz nenhuma checagem de permissão — quem chama (Server Component de `/treinador` ou `/base`,
+ * Início da Base) já resolveu `categoria` a partir de `getCategoriasProgramacao()` antes de chegar
+ * aqui, do mesmo jeito que as demais telas de categoria do sistema fazem hoje.
  */
 export async function buscarSemana(
   supabase: ReturnType<typeof createClient>,

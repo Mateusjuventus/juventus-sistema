@@ -35,7 +35,7 @@ function formatPeriodo(inicioSemana: string): string {
 }
 
 /**
- * Programação Semanal — compartilhado entre `/treinador` (Início) e `/base/programacao` (ver
+ * Programação Semanal — compartilhado entre `/treinador` e `/base` (Início de cada um, ver
  * docs/superpowers/specs/2026-08-30-area-treinador-programacao-design.md). A diferença entre os
  * dois é só a lista de categorias disponíveis (travada em `categorias_treinador` vs. todas) e o
  * container em volta (cabeçalho do treinador vs. `AppShell`) — este componente não sabe qual dos

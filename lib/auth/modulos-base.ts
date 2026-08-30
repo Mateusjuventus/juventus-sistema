@@ -2,20 +2,23 @@
  * Catálogo dos módulos do Futebol de Base — mesmo papel de `lib/auth/modulos.ts`, mas para o
  * segundo departamento (ver docs/superpowers/specs/2026-07-20-futebol-de-base-design.md). Não
  * reaproveita `ModuloChave`/`MODULOS` porque os `prefixo` são diferentes (`/base/atletas`,
- * `/base/jogos` etc.) — mesmo conjunto de 7 chaves, tipo próprio.
+ * `/base/jogos` etc.) — mesmo conjunto de chaves, tipo próprio.
  *
  * Usado em três lugares, espelhando o Profissional:
  *  - `app/usuarios/` — segunda seção de checkboxes ("Módulos do Futebol de Base").
  *  - `lib/supabase/middleware.ts` — bloqueia quem tentar acessar a URL de um módulo de Base que
  *    não tem liberado.
- *  - `app/base/page.tsx` — esconde o cartão do módulo que o usuário não tem liberado.
+ *  - `components/app-shell.tsx` — monta a sidebar com o módulo que o usuário tem liberado.
+ *
+ * "Programação" NÃO é um módulo daqui — desde 30/08 é a própria Home do Futebol de Base
+ * (`app/base/page.tsx`), aberta pra qualquer um com acesso ao departamento, sem checkbox próprio
+ * (ver `lib/programacao/permissoes.ts`).
  */
 export type ModuloBaseChave =
   | "atletas"
   | "comissao_tecnica"
   | "staff_operacional"
   | "jogos"
-  | "programacao"
   | "solicitacoes"
   | "estoque"
   | "financeiro"
@@ -34,7 +37,6 @@ export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "comissao_tecnica", label: "Comissão Técnica / Diretoria", prefixo: "/base/comissao-tecnica" },
   { chave: "staff_operacional", label: "Staff Operacional", prefixo: "/base/staff-operacional" },
   { chave: "jogos", label: "Jogos / Competições", prefixo: "/base/jogos" },
-  { chave: "programacao", label: "Programação", prefixo: "/base/programacao" },
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/base/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/base/estoque" },
   { chave: "financeiro", label: "Financeiro", prefixo: "/base/financeiro" },
