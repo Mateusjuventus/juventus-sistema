@@ -1812,3 +1812,86 @@ export interface AlojamentoBaseConfigRow {
   observacoes: string | null;
   updated_at: string;
 }
+
+/** Turno de uma atividade da Programação Semanal — derivado de `horario_inicio` ao salvar, mas
+ * guardado explícito pra não recalcular toda hora ao montar a grade. */
+export type ProgramacaoTurno = "manha" | "tarde" | "noite";
+
+/** Tipo de uma atividade da Programação Semanal do treinador — ver `lib/programacao/`. Distinto de
+ * `ProgramacaoTipo` (que é dos pôsteres de Concentração/Dia de Jogo, um conceito não relacionado). */
+export type ProgramacaoAtividadeTipo =
+  | "programacao"
+  | "refeicao"
+  | "academia"
+  | "treinamento"
+  | "transporte"
+  | "jogo_oficial"
+  | "jogo_treino"
+  | "imprensa"
+  | "regenerativo";
+
+/** Área do Treinador — Programação Semanal (ver
+ * docs/superpowers/specs/2026-08-30-area-treinador-programacao-design.md). Uma linha por atividade
+ * do dia (treino, refeição, transporte, jogo etc.), por categoria. */
+export interface ProgramacaoAtividadeRow {
+  id: string;
+  categoria: CategoriaBase;
+  data: string;
+  turno: ProgramacaoTurno;
+  nome: string;
+  tipo: ProgramacaoAtividadeTipo;
+  horario_inicio: string;
+  horario_termino: string | null;
+  local: string | null;
+  /** Só preenchido quando `tipo` é `jogo_oficial`/`jogo_treino` contra um jogo já cadastrado —
+   * horário/local/adversário/escudo são sempre lidos de `JogoBaseRow` via este id, nunca duplicados
+   * aqui (ver spec, "Atividade de jogo não duplica dado"). */
+  jogo_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Subatividade dentro de uma `ProgramacaoAtividadeRow` (ex.: um bloco de treino técnico dentro do
+ * treino da tarde). `config` guarda os campos ainda não normalizados do formulário (diagrama de
+ * campo, regras, dimensões, orientações por posição, sliders físico/tático/técnico/comportamental,
+ * métodos de treinamento) — ver spec, "Por que config jsonb". */
+export interface ProgramacaoSubatividadeRow {
+  id: string;
+  atividade_id: string;
+  nome: string;
+  duracao_blocos: number | null;
+  intervalo_min: number | null;
+  video_url: string | null;
+  observacoes: string | null;
+  config: Record<string, unknown>;
+  created_by: string | null;
+  created_at: string;
+}
+
+/** Catálogo de subatividades reutilizáveis, por categoria (não por treinador, não global) —
+ * escolher um item no dropdown "Importar" só copia os valores pra pré-preencher o formulário; não
+ * cria vínculo com a subatividade salva depois (ver spec, "Catálogo não é modificado ao ser
+ * usado"). Mesmo formato de `ProgramacaoSubatividadeRow`, sem `atividade_id`. */
+export interface ProgramacaoCatalogoSubatividadeRow {
+  id: string;
+  categoria: CategoriaBase;
+  nome: string;
+  duracao_blocos: number | null;
+  intervalo_min: number | null;
+  video_url: string | null;
+  observacoes: string | null;
+  config: Record<string, unknown>;
+  created_by: string | null;
+  created_at: string;
+}
+
+/** Época e número do microciclo por categoria, usados só na exportação do microciclo em PDF/JPG —
+ * o Mateus incrementa `microciclo_atual` manualmente a cada semana, do jeito que já faz hoje em
+ * Excel. Singleton por categoria (uma linha por categoria, sempre pré-criada). */
+export interface ConfiguracaoProgramacaoBaseRow {
+  categoria: CategoriaBase;
+  epoca: string | null;
+  microciclo_atual: number;
+  updated_at: string;
+}

@@ -6,7 +6,7 @@ import { TODOS_DEPARTAMENTOS, type DepartamentoChave } from "@/lib/auth/departam
 import { TODAS_TAREFA_CATEGORIAS } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
 
-interface PerfilPermissoes {
+export interface PerfilPermissoes {
   role: PerfilRole;
   modulos_permitidos: string[] | null;
   modulos_base_permitidos: string[] | null;
@@ -17,8 +17,10 @@ interface PerfilPermissoes {
 }
 
 /** Uma única leitura de `perfis` com tudo que as funções abaixo precisam — evita repetir a mesma
- * query quando mais de uma checagem é feita na mesma página. */
-async function getPerfilPermissoes(
+ * query quando mais de uma checagem é feita na mesma página. Exportada pra módulos que precisam
+ * combinar mais de um campo de uma vez (ex.: `lib/programacao/permissoes.ts`) sem repetir a
+ * query uma vez por campo. */
+export async function getPerfilPermissoes(
   supabase: ReturnType<typeof createClient>,
 ): Promise<PerfilPermissoes | null> {
   const {

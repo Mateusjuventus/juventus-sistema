@@ -1064,3 +1064,81 @@ export const eventoCalendarioSchema = z.object({
   observacao: z.string().optional().or(z.literal("")),
 });
 export type EventoCalendarioInput = z.infer<typeof eventoCalendarioSchema>;
+
+/** Tipo de cada atividade da Programação Semanal do treinador (ver
+ * docs/superpowers/specs/2026-08-30-area-treinador-programacao-design.md) — rótulo pro <select> do
+ * formulário de Nova Atividade e pra colorir a grade. "Jogo Oficial"/"Jogo Treino" usam
+ * `criarAtividadeDeJogoSchema` abaixo, não este formulário (horário/local vêm de `jogos_base`, não
+ * são digitados). */
+export const PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS = [
+  { value: "programacao", label: "Programação" },
+  { value: "refeicao", label: "Refeição" },
+  { value: "academia", label: "Academia" },
+  { value: "treinamento", label: "Treinamento" },
+  { value: "transporte", label: "Transporte" },
+  { value: "imprensa", label: "Imprensa" },
+  { value: "regenerativo", label: "Regenerativo" },
+] as const;
+
+const PROGRAMACAO_ATIVIDADE_TIPOS_NAO_JOGO = [
+  "programacao",
+  "refeicao",
+  "academia",
+  "treinamento",
+  "transporte",
+  "imprensa",
+  "regenerativo",
+] as const;
+
+/** Formulário de "+ Nova Atividade" da Programação Semanal, pra qualquer tipo que não seja jogo
+ * (esses usam `criarAtividadeDeJogoSchema`, que troca horário/local por um jogo já cadastrado). */
+export const criarAtividadeSchema = z.object({
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+  data: z.string().min(1, { message: "Data é obrigatória" }),
+  nome: z.string().min(1, { message: "Nome da atividade é obrigatório" }),
+  tipo: z.enum(PROGRAMACAO_ATIVIDADE_TIPOS_NAO_JOGO, {
+    errorMap: () => ({ message: "Tipo é obrigatório" }),
+  }),
+  horarioInicio: z.string().min(1, { message: "Horário de início é obrigatório" }),
+  horarioTermino: z.string().optional().or(z.literal("")),
+  local: z.string().optional().or(z.literal("")),
+});
+export type CriarAtividadeInput = z.infer<typeof criarAtividadeSchema>;
+
+/** "+ Nova Atividade" quando o tipo é Jogo Oficial/Jogo Treino — em vez de digitar horário/local,
+ * escolhe um jogo já cadastrado em `jogos_base` daquela categoria (ver spec, "Atividade de jogo não
+ * duplica dado"). */
+export const criarAtividadeDeJogoSchema = z.object({
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+  tipo: z.enum(["jogo_oficial", "jogo_treino"], {
+    errorMap: () => ({ message: "Tipo é obrigatório" }),
+  }),
+  jogoId: z.string().min(1, { message: "Selecione o jogo" }),
+});
+export type CriarAtividadeDeJogoInput = z.infer<typeof criarAtividadeDeJogoSchema>;
+
+/** "+ Nova Subatividade", dentro do detalhe de uma atividade — só os campos que viram coluna de
+ * verdade (o resto do formulário rico, ainda instável, vai em `config` jsonb — ver spec, "Por que
+ * config jsonb"). */
+export const criarSubatividadeSchema = z.object({
+  nome: z.string().min(1, { message: "Nome da subatividade é obrigatório" }),
+  duracaoBlocos: z.coerce
+    .number()
+    .int({ message: "Duração deve ser um número inteiro de blocos" })
+    .positive({ message: "Duração deve ser maior que zero" })
+    .optional()
+    .nullable(),
+  intervaloMin: z.coerce
+    .number()
+    .int({ message: "Intervalo deve ser um número inteiro de minutos" })
+    .nonnegative({ message: "Intervalo não pode ser negativo" })
+    .optional()
+    .nullable(),
+  videoUrl: z.string().optional().or(z.literal("")),
+  observacoes: z.string().optional().or(z.literal("")),
+});
+export type CriarSubatividadeInput = z.infer<typeof criarSubatividadeSchema>;
