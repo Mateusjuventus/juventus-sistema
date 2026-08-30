@@ -2,8 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCategoriasConvocacao } from "./permissoes";
 
-/** Espelha `app/jogos/[id]/convocacao/actions.ts` para o Futebol de Base. */
+/**
+ * Server Action de Convocação do Futebol de Base — compartilhada entre `/base/jogos/[id]/
+ * convocacao` e `/treinador/jogos/[id]/convocacao` (ver docs/superpowers/plans/2026-08-30-
+ * treinador-programacao-plan.md, Fase 6). Morava só em `app/base/jogos/[id]/convocacao/actions.ts`
+ * antes do treinador precisar chamá-la também; movida pra cá pra não duplicar a lógica de negócio, e
+ * ganhou a checagem explícita de permissão que faltava (antes dependia só do middleware bloquear
+ * `/base/*` de quem não tem o módulo Jogos — o que não cobre `/treinador/*`, que o middleware não
+ * bloqueia por módulo).
+ */
 export interface ConvocacaoFormState {
   error?: string;
   success?: boolean;
@@ -15,6 +24,19 @@ export async function saveConvocacaoBase(
 ): Promise<ConvocacaoFormState> {
   const jogoId = String(formData.get("jogoId") ?? "");
   if (!jogoId) return { error: "Jogo não identificado. Recarregue a página e tente novamente." };
+
+  const supabase = createClient();
+
+  // Dupla checagem de permissão (mesmo padrão de `app/treinador/actions.ts`): a tela já filtra por
+  // categoria, mas Server Actions são endpoints públicos e não devem confiar só na tela.
+  const [categorias, { data: jogo }] = await Promise.all([
+    getCategoriasConvocacao(supabase),
+    supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle(),
+  ]);
+  if (categorias.length === 0) return { error: "Você não tem permissão para fazer isso." };
+  if (!jogo || !categorias.includes(jogo.categoria)) {
+    return { error: "Você não tem permissão para convocar este jogo." };
+  }
 
   const capitaoAtletaId = String(formData.get("capitaoAtletaId") ?? "") || null;
 
@@ -41,8 +63,6 @@ export async function saveConvocacaoBase(
   if (capitaoAtletaId && !atletaStatus.some((a) => a.atletaId === capitaoAtletaId)) {
     return { error: "O capitão precisa ser um atleta marcado como titular ou reserva." };
   }
-
-  const supabase = createClient();
 
   const { data: convocacao, error: convocacaoError } = await supabase
     .from("convocacoes_base")
@@ -88,5 +108,6 @@ export async function saveConvocacaoBase(
   await Promise.all(inserts);
 
   revalidatePath(`/base/jogos/${jogoId}/convocacao`);
+  revalidatePath(`/treinador/jogos/${jogoId}/convocacao`);
   return { success: true };
 }

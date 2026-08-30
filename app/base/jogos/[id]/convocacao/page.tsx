@@ -12,7 +12,7 @@ import type {
   JogoBaseRow,
 } from "@/lib/supabase/types";
 import { ConvocacaoFormBase } from "./convocacao-form-base";
-import { saveConvocacaoBase } from "./actions";
+import { saveConvocacaoBase } from "@/lib/jogos-base/convocacao-actions";
 
 /**
  * Espelha `app/jogos/[id]/convocacao/page.tsx` para o Futebol de Base — com uma diferença

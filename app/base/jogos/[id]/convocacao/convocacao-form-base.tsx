@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { categoriaDaPosicao, corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
 import type { AtletaBaseRow, ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
 import { nomeExibido, ordenarPorNomeExibido } from "@/lib/futebol/nome-atleta";
-import type { ConvocacaoFormState } from "./actions";
+import type { ConvocacaoFormState } from "@/lib/jogos-base/convocacao-actions";
 
 const initialState: ConvocacaoFormState = {};
 

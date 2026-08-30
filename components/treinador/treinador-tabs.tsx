@@ -2,9 +2,7 @@ import Link from "next/link";
 
 /**
  * As 3 abas fixas da Área do Treinador (ver mockup aprovado — pills brancos sobre o grena, dentro
- * do próprio cabeçalho, não uma barra branca separada como em `jogo-tabs-base.tsx`). "Jogos" ainda
- * não tem página própria (chega no próximo pacote, Fase 5/6 do plano de implementação) — o link já
- * existe porque as 3 abas fazem parte do mesmo cabeçalho compartilhado.
+ * do próprio cabeçalho, não uma barra branca separada como em `jogo-tabs-base.tsx`).
  */
 export function TreinadorTabs({ active }: { active: "inicio" | "jogos" | "atletas" }) {
   const tabs = [
