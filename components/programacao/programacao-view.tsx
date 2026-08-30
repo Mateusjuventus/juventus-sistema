@@ -125,9 +125,27 @@ export function ProgramacaoView({
             ›
           </Link>
         </div>
-        <button type="button" onClick={() => setModalNovaAtividadeAberto(true)} className="btn-primary">
-          + Nova Atividade
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/programacao/${categoriaAtiva}/exportar/pdf?semana=${inicioSemana}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+          >
+            Exportar PDF
+          </a>
+          <a
+            href={`/programacao/${categoriaAtiva}/exportar/jpg?semana=${inicioSemana}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+          >
+            Exportar JPG
+          </a>
+          <button type="button" onClick={() => setModalNovaAtividadeAberto(true)} className="btn-primary">
+            + Nova Atividade
+          </button>
+        </div>
       </div>
 
       <div className="card p-4">

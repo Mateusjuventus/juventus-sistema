@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { turnoDoHorarioInicio, turnoLabel, formatHorarioCurto } from "./tipo-atividade";
+import { turnoDoHorarioInicio, turnoLabel, formatHorarioCurto, corHexAtividade } from "./tipo-atividade";
+import { PROGRAMACAO_ATIVIDADE_TIPOS_ORDEM } from "./tipo-atividade";
 
 describe("turnoDoHorarioInicio", () => {
   it("antes de 12h é manhã", () => {
@@ -37,5 +38,19 @@ describe("formatHorarioCurto", () => {
 
   it("devolve string vazia pra horário nulo", () => {
     expect(formatHorarioCurto(null)).toBe("");
+  });
+});
+
+describe("corHexAtividade", () => {
+  it("devolve um par bg/text em hex pra todos os 9 tipos, sem faltar nenhum", () => {
+    for (const tipo of PROGRAMACAO_ATIVIDADE_TIPOS_ORDEM) {
+      const cor = corHexAtividade(tipo);
+      expect(cor.bg).toMatch(/^#[0-9A-F]{6}$/i);
+      expect(cor.text).toMatch(/^#[0-9A-F]{6}$/i);
+    }
+  });
+
+  it("jogo_oficial usa o grena do clube de fundo com texto branco", () => {
+    expect(corHexAtividade("jogo_oficial")).toEqual({ bg: "#5C0A35", text: "#FFFFFF" });
   });
 });

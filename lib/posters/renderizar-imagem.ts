@@ -91,3 +91,34 @@ export async function renderizarPosterComoJpeg(
 
   return sharp(cortado).jpeg({ quality: 92 }).toBuffer();
 }
+
+/**
+ * Versão genérica de `renderizarPosterComoJpeg` pra imagens que não são um dos 3 pôsteres de jogo
+ * (largura/altura fixas, moldura lateral, fonte Anton obrigatória) — hoje só usada pelo microciclo
+ * (`lib/posters/microciclo-imagem.tsx`), que é uma tabela larga, não um pôster retrato. Mesma
+ * técnica de "achatar transparência + cortar só o excesso vertical", mas com largura/altura do
+ * canvas escolhidas por quem chama, e sem registrar nenhuma fonte custom — o Satori já cobre
+ * acentuação em português na fonte padrão dele (ver o comentário em `poster-imagem-shared.tsx`).
+ */
+export async function renderizarImagemLargaComoJpeg(
+  jsx: ReactElement,
+  { width, alturaCanvas }: { width: number; alturaCanvas: number },
+): Promise<Buffer> {
+  const response = new ImageResponse(jsx, { width, height: alturaCanvas });
+
+  const arrayBuffer = await response.arrayBuffer();
+  const pngBuffer = Buffer.from(arrayBuffer);
+  const achatado = await sharp(pngBuffer).flatten({ background: "#ffffff" }).toBuffer();
+
+  const { info } = await sharp(achatado)
+    .trim({ background: "#ffffff" })
+    .toBuffer({ resolveWithObject: true });
+  const topoCortado = Math.max(0, -(info.trimOffsetTop ?? 0));
+  const alturaFinal = info.height;
+
+  const cortado = await sharp(achatado)
+    .extract({ left: 0, top: topoCortado, width, height: alturaFinal })
+    .toBuffer();
+
+  return sharp(cortado).jpeg({ quality: 92 }).toBuffer();
+}

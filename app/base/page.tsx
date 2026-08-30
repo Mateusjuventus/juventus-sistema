@@ -4,15 +4,18 @@ import { JuventusCrest } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getModulosBasePermitidos } from "@/lib/auth/role";
 import { MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-base";
+import { inicioDaSemana, somarDias } from "@/lib/programacao/semana";
+import { hojeBrasilia } from "@/lib/data-brasil";
 
-/** Todos os 7 módulos do Futebol de Base já construídos (Fases 1-4 completas, ver a spec) — a
- * lista de "Em breve" abaixo fica sempre vazia agora, mas o filtro continua aqui por segurança,
- * caso um novo módulo seja adicionado no futuro sem ganhar um cartão de imediato. */
+/** Todos os módulos do Futebol de Base já construídos — a lista de "Em breve" abaixo fica sempre
+ * vazia agora, mas o filtro continua aqui por segurança, caso um novo módulo seja adicionado no
+ * futuro sem ganhar um cartão de imediato. */
 const MODULOS_CONSTRUIDOS: ModuloBaseChave[] = [
   "atletas",
   "comissao_tecnica",
   "staff_operacional",
   "jogos",
+  "programacao",
   "solicitacoes",
   "estoque",
   "financeiro",
@@ -106,6 +109,15 @@ function IconCaptacao({ className }: { className?: string }) {
   );
 }
 
+function IconProgramacao({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
+  );
+}
+
 function IconAlojamento({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
@@ -121,11 +133,15 @@ export default async function BasePage() {
   const modulosPermitidos = await getModulosBasePermitidos(supabase);
   const temModulo = (chave: ModuloBaseChave) => modulosPermitidos.includes(chave);
 
+  const inicioSemanaAtual = inicioDaSemana(hojeBrasilia());
+  const fimSemanaAtual = somarDias(inicioSemanaAtual, 6);
+
   const [
     { count: totalAtletasCount },
     { count: totalComissaoCount },
     { count: totalStaffCount },
     { count: totalJogosCount },
+    { count: totalProgramacaoSemanaCount },
     { count: totalSolicitacoesPendentesCount },
     { count: totalEstoqueItensCount },
     { count: totalCaptacaoEmAvaliacaoCount },
@@ -135,6 +151,11 @@ export default async function BasePage() {
     supabase.from("comissao_tecnica_base").select("*", { count: "exact", head: true }),
     supabase.from("staff_operacional_base").select("*", { count: "exact", head: true }).eq("ativo", true),
     supabase.from("jogos_base").select("*", { count: "exact", head: true }),
+    supabase
+      .from("programacao_atividades")
+      .select("*", { count: "exact", head: true })
+      .gte("data", inicioSemanaAtual)
+      .lte("data", fimSemanaAtual),
     supabase.from("solicitacoes_base").select("*", { count: "exact", head: true }).eq("status", "pendente"),
     supabase.from("estoque_itens_base").select("*", { count: "exact", head: true }),
     supabase.from("captacao_base").select("*", { count: "exact", head: true }).eq("status", "avaliacao"),
@@ -144,6 +165,7 @@ export default async function BasePage() {
   const totalComissao = totalComissaoCount ?? 0;
   const totalStaff = totalStaffCount ?? 0;
   const totalJogos = totalJogosCount ?? 0;
+  const totalProgramacaoSemana = totalProgramacaoSemanaCount ?? 0;
   const totalSolicitacoesPendentes = totalSolicitacoesPendentesCount ?? 0;
   const totalEstoqueItens = totalEstoqueItensCount ?? 0;
   const totalCaptacaoEmAvaliacao = totalCaptacaoEmAvaliacaoCount ?? 0;
@@ -236,6 +258,25 @@ export default async function BasePage() {
             <h2 className="text-lg font-bold text-grena-escuro">Jogos / Competições</h2>
             <p className="text-sm font-medium text-neutral-500">
               {totalJogos} jogo{totalJogos === 1 ? "" : "s"} cadastrado{totalJogos === 1 ? "" : "s"}
+            </p>
+          </Link>
+        ) : null}
+
+        {temModulo("programacao") ? (
+          <Link
+            href="/base/programacao"
+            className="card group relative flex flex-col gap-3 overflow-hidden p-6 pt-7 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-fuchsia-600" />
+            <span className="absolute right-5 top-6 text-neutral-300 transition-transform group-hover:translate-x-1 group-hover:text-dourado">
+              →
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600">
+              <IconProgramacao className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-grena-escuro">Programação</h2>
+            <p className="text-sm font-medium text-neutral-500">
+              {totalProgramacaoSemana} atividade{totalProgramacaoSemana === 1 ? "" : "s"} nesta semana
             </p>
           </Link>
         ) : null}

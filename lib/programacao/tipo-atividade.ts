@@ -45,6 +45,27 @@ const TIPO_COR: Record<ProgramacaoAtividadeTipo, { cartao: string; ponto: string
   regenerativo: { cartao: "bg-yellow-100 text-yellow-800", ponto: "bg-yellow-400" },
 };
 
+/** Mesmas cores de `TIPO_COR` acima, só que em hex — `corCartaoAtividade`/`corPontoAtividade`
+ * devolvem classes Tailwind, que não existem fora do HTML (react-pdf e o next/og usam objetos de
+ * estilo/hex puro). Usado só pela exportação do microciclo (`lib/pdf/microciclo-document.tsx` e
+ * `lib/posters/microciclo-imagem.tsx`) — valores tirados direto da paleta do Tailwind pra ficar
+ * visualmente idêntico ao que já aparece na grade em tela. */
+const TIPO_COR_HEX: Record<ProgramacaoAtividadeTipo, { bg: string; text: string }> = {
+  programacao: { bg: "#E5E5E5", text: "#404040" },
+  refeicao: { bg: "#FEF3C7", text: "#92400E" },
+  academia: { bg: "#EDE9FE", text: "#5B21B6" },
+  treinamento: { bg: "#FFEDD5", text: "#9A3412" },
+  transporte: { bg: "#DBEAFE", text: "#1E40AF" },
+  jogo_oficial: { bg: "#5C0A35", text: "#FFFFFF" },
+  jogo_treino: { bg: "#D4D4D4", text: "#262626" },
+  imprensa: { bg: "#FCE7F3", text: "#9D174D" },
+  regenerativo: { bg: "#FEF9C3", text: "#854D0E" },
+};
+
+export function corHexAtividade(tipo: ProgramacaoAtividadeTipo): { bg: string; text: string } {
+  return TIPO_COR_HEX[tipo];
+}
+
 export function labelTipoAtividade(tipo: ProgramacaoAtividadeTipo): string {
   return TIPO_LABEL[tipo];
 }
