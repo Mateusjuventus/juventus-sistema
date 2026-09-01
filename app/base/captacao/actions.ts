@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { captacaoBaseSchema } from "@/lib/validation/schemas";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { payloadMudancaStatusCaptacao, type CaptacaoStatusDecidido } from "@/lib/futebol/captacao";
-import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import type { CaptacaoStatus } from "@/lib/supabase/types";
 
 /**
@@ -105,11 +105,7 @@ async function uploadFotoIfPresent(
   const file = formData.get("foto");
   if (!(file instanceof File) || file.size === 0) return {};
 
-  const path = buildPhotoPath("captacao-base", captacaoId, file.name);
-  const { error } = await supabase.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
-    upsert: true,
-    contentType: file.type || undefined,
-  });
+  const { path, error } = await uploadFotoRedimensionada(supabase, file, "captacao-base", captacaoId);
 
   if (error) return { error: "Não foi possível enviar a foto. O restante dos dados não foi salvo." };
   return { path };

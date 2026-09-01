@@ -74,17 +74,51 @@ export async function updateSession(request: NextRequest) {
   // Home) — ver docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md. Checado ANTES
   // do bloqueio por departamento/módulo abaixo, porque cobre TUDO — inclusive "/", "/profissional"
   // e "/base", que não são "módulo" nenhum pro código abaixo.
-  let roleDoUsuario: string | null = null;
-  if (user) {
-    const { data: perfilRole } = await supabase.from("perfis").select("role").eq("id", user.id).maybeSingle();
-    roleDoUsuario = (perfilRole as { role?: string } | null)?.role ?? "regular";
+  //
+  // Exceção: "/programacao/<categoria>/exportar/pdf|jpg" — a exportação do microciclo (ver
+  // docs/superpowers/specs/2026-08-30-area-treinador-programacao-design.md) é a única rota fora de
+  // `/treinador/*` que a tela do treinador linka direto (`components/programacao/
+  // programacao-view.tsx`, compartilhada com `/base`); sem essa exceção o clique em "Exportar PDF/
+  // JPG" do treinador caía de volta no `/treinador` em vez de baixar o arquivo — a própria rota
+  // revalida a categoria contra `getCategoriasProgramacao()` antes de gerar qualquer coisa, então
+  // liberar o caminho aqui não abre nada que a rota não fosse já checar sozinha.
+  const isExportacaoProgramacao = request.nextUrl.pathname.startsWith("/programacao/");
 
-    if (roleDoUsuario === "treinador" && !request.nextUrl.pathname.startsWith("/treinador")) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/treinador";
-      redirectUrl.search = "";
-      return NextResponse.redirect(redirectUrl);
-    }
+  // Uma leitura só de `perfis` com tudo que os dois blocos abaixo (treinador e departamento/
+  // módulo) precisam — antes eram duas queries sequenciais (uma só pra `role`, outra com o resto),
+  // uma atrás da outra em toda navegação; juntar num select só corta essa ida a mais ao banco em
+  // cada troca de tela (ver auditoria de performance de 01/09/2026 — essa dupla consulta batendo
+  // toda hora era uma das causas da lentidão geral relatada pelo Mateus).
+  type PerfilMiddleware = {
+    role?: string;
+    modulos_permitidos?: string[];
+    modulos_base_permitidos?: string[];
+    departamentos_permitidos?: string[];
+    estoque_categorias_permitidas?: string[];
+  };
+  let perfil: PerfilMiddleware | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from("perfis")
+      .select(
+        "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, estoque_categorias_permitidas",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+    perfil = data as PerfilMiddleware | null;
+  }
+  const roleDoUsuario = perfil?.role ?? "regular";
+
+  if (
+    user &&
+    roleDoUsuario === "treinador" &&
+    !request.nextUrl.pathname.startsWith("/treinador") &&
+    !isExportacaoProgramacao
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/treinador";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
   }
 
   // Bloqueio por departamento + módulo. "Master" nunca é bloqueado. Rotas que entram aqui:
@@ -110,25 +144,12 @@ export async function updateSession(request: NextRequest) {
   const estoqueCategoria = estoqueCategoriaMatch ? estoqueCategoriaMatch[1] : null;
 
   if (user && (modulo || moduloBase || isHubProfissional || isHubBase)) {
-    const { data: perfil } = await supabase
-      .from("perfis")
-      .select(
-        "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, estoque_categorias_permitidas",
-      )
-      .eq("id", user.id)
-      .maybeSingle();
-    const role = (perfil as { role?: string } | null)?.role ?? "regular";
-    const modulosPermitidos =
-      (perfil as { modulos_permitidos?: string[] } | null)?.modulos_permitidos ?? TODOS_MODULOS;
-    const modulosBasePermitidos =
-      (perfil as { modulos_base_permitidos?: string[] } | null)?.modulos_base_permitidos ??
-      TODOS_MODULOS_BASE;
-    const departamentosPermitidos =
-      (perfil as { departamentos_permitidos?: string[] } | null)?.departamentos_permitidos ??
-      TODOS_DEPARTAMENTOS;
+    const role = roleDoUsuario;
+    const modulosPermitidos = perfil?.modulos_permitidos ?? TODOS_MODULOS;
+    const modulosBasePermitidos = perfil?.modulos_base_permitidos ?? TODOS_MODULOS_BASE;
+    const departamentosPermitidos = perfil?.departamentos_permitidos ?? TODOS_DEPARTAMENTOS;
     const estoqueCategoriasPermitidas =
-      (perfil as { estoque_categorias_permitidas?: string[] } | null)?.estoque_categorias_permitidas ??
-      TODAS_ESTOQUE_CATEGORIAS;
+      perfil?.estoque_categorias_permitidas ?? TODAS_ESTOQUE_CATEGORIAS;
 
     if (role !== "master") {
       let redirecionarPara: string | null = null;

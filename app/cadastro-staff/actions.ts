@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cadastroPublicoStaffSchema } from "@/lib/validation/schemas";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import { normalizeCPF } from "@/lib/validation/cpf";
 
 export interface CadastroPublicoFormState {
@@ -61,11 +61,7 @@ async function uploadFotoIfPresent(
   const file = formData.get("foto");
   if (!(file instanceof File) || file.size === 0) return {};
 
-  const path = buildPhotoPath("staff-operacional", staffId, file.name);
-  const { error } = await admin.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
-    upsert: true,
-    contentType: file.type || undefined,
-  });
+  const { path, error } = await uploadFotoRedimensionada(admin, file, "staff-operacional", staffId);
 
   if (error) return { error: "Não foi possível enviar a foto. O restante do cadastro não foi salvo." };
   return { path };

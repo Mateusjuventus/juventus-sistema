@@ -1,5 +1,15 @@
-import type { createClient } from "@/lib/supabase/server";
+import * as React from "react";
+import { createClient as criarClientePadrao, type createClient } from "@/lib/supabase/server";
 import type { PerfilRole } from "@/lib/supabase/types";
+
+// `React.cache` só existe na versão de "react" que o Next.js usa por baixo dos panos pra
+// Server Components (o `react` 18.3 instalado como dependência comum não exporta isso) — nos
+// testes (vitest, fora do pipeline de build do Next) `React.cache` vem `undefined`. Em vez de
+// quebrar a suíte de teste inteira por causa disso, cai pra uma versão sem cache nenhum (chama a
+// função direto, toda vez) quando `cache` não existir — só perde a otimização de deduplicar a
+// query por request, não quebra nada.
+const cache: <T extends (...args: never[]) => unknown>(fn: T) => T =
+  typeof React.cache === "function" ? React.cache : (fn) => fn;
 import { TODOS_MODULOS, type ModuloChave } from "@/lib/auth/modulos";
 import { TODOS_MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-base";
 import { TODOS_DEPARTAMENTOS, type DepartamentoChave } from "@/lib/auth/departamentos";
@@ -19,10 +29,29 @@ export interface PerfilPermissoes {
 /** Uma única leitura de `perfis` com tudo que as funções abaixo precisam — evita repetir a mesma
  * query quando mais de uma checagem é feita na mesma página. Exportada pra módulos que precisam
  * combinar mais de um campo de uma vez (ex.: `lib/programacao/permissoes.ts`) sem repetir a
- * query uma vez por campo. */
+ * query uma vez por campo.
+ *
+ * A busca de verdade (`buscarPerfilPermissoes` abaixo) é memoizada por request com `cache()` do
+ * React — o AppShell, o middleware^ e a própria página muitas vezes checam permissão mais de uma
+ * vez na mesma navegação (cada `get*Permitidos`/`isMaster`/`getCategoriasProgramacao` chama isto
+ * por baixo), e sem memoizar isso vira uma query em `perfis` repetida 4-5x por carregamento de
+ * tela — parte do que deixava o sistema "lento em geral" (ver auditoria de performance de
+ * 01/09/2026). Por isso ignoramos de propósito o `supabase` recebido aqui e criamos um cliente
+ * novo por dentro: `cache()` do React só deduplica quando os argumentos são os mesmos, e cada
+ * Server Component que chama `createClient()` ganha uma instância nova — usar sempre a mesma
+ * função sem argumento (que lê os cookies da request, iguais em qualquer client criado durante o
+ * mesmo request) é o que faz a deduplicação funcionar de verdade.
+ * ^ (o middleware roda em Edge, fora do escopo de `cache()` do React — lá a otimização é outra,
+ * ver o comentário em `lib/supabase/middleware.ts`.)
+ */
 export async function getPerfilPermissoes(
-  supabase: ReturnType<typeof createClient>,
+  _supabase: ReturnType<typeof createClient>,
 ): Promise<PerfilPermissoes | null> {
+  return buscarPerfilPermissoes();
+}
+
+const buscarPerfilPermissoes = cache(async (): Promise<PerfilPermissoes | null> => {
+  const supabase = criarClientePadrao();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -37,7 +66,7 @@ export async function getPerfilPermissoes(
     .maybeSingle();
 
   return data as PerfilPermissoes | null;
-}
+});
 
 /**
  * Papel do usuário atualmente logado. Se não estiver logado, ou não tiver uma linha em `perfis`

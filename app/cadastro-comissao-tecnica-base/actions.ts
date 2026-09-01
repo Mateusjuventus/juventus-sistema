@@ -9,7 +9,7 @@ import {
   completarCadastroComissaoDadosSchema,
 } from "@/lib/validation/schemas";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import { normalizeCPF } from "@/lib/validation/cpf";
 import { normalizeTelefone } from "@/lib/validation/telefone";
 
@@ -74,11 +74,7 @@ async function uploadFoto(
   const file = formData.get("foto");
   if (!(file instanceof File) || file.size === 0) return {};
 
-  const path = buildPhotoPath("comissao-base", id, file.name);
-  const { error } = await admin.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
-    upsert: true,
-    contentType: file.type || undefined,
-  });
+  const { path, error } = await uploadFotoRedimensionada(admin, file, "comissao-base", id);
 
   if (error) return { error: "Não foi possível enviar a foto. O restante do cadastro não foi salvo." };
   return { path };

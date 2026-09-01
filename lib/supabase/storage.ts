@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 
 export const ENTITY_PHOTOS_BUCKET = "entity-photos";
 
@@ -67,6 +68,49 @@ export function buildPhotoPath(
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "jpg";
   const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
   return `${prefixo}/${entidadeId}/${baseName}.${safeExt}`;
+}
+
+/**
+ * Envia uma foto pro bucket `entity-photos` redimensionando antes (ponto único usado por todo
+ * cadastro com foto — atleta, comissão técnica, staff, logo de adversário, item de solicitação
+ * etc.). Foto de câmera de celular direto, sem redimensionar, costuma vir com vários MB; como o
+ * sistema só mostra em avatar/card (nunca em tela cheia), 1600px no lado maior já é mais resolução
+ * do que qualquer tela usa, e cortar pra JPEG qualidade 82 reduz bastante o peso sem perda visível
+ * — isso deixa a lista de fotos (Campograma, Atletas etc.) mais rápida pra carregar, principalmente
+ * no celular. `rotate()` sem argumento aplica a orientação EXIF antes de cortar o tamanho, senão
+ * foto tirada com o celular "deitado" ficaria birada.
+ *
+ * Se o redimensionamento falhar por qualquer motivo (arquivo corrompido, formato que o `sharp` não
+ * lê), envia o arquivo original sem cortar o cadastro por causa disso — melhor guardar a foto do
+ * jeito que veio do que a pessoa perder o que preencheu.
+ */
+export async function uploadFotoRedimensionada(
+  cliente: SupabaseClient,
+  file: File,
+  prefixo: string,
+  entidadeId: string,
+  baseName: string = "foto",
+): Promise<{ path?: string; error?: boolean }> {
+  try {
+    const bufferOriginal = Buffer.from(await file.arrayBuffer());
+    const bufferRedimensionado = await sharp(bufferOriginal)
+      .rotate()
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 82 })
+      .toBuffer();
+
+    const path = buildPhotoPath(prefixo, entidadeId, "foto.jpg", baseName);
+    const { error } = await cliente.storage
+      .from(ENTITY_PHOTOS_BUCKET)
+      .upload(path, bufferRedimensionado, { upsert: true, contentType: "image/jpeg" });
+    return error ? { error: true } : { path };
+  } catch {
+    const path = buildPhotoPath(prefixo, entidadeId, file.name, baseName);
+    const { error } = await cliente.storage
+      .from(ENTITY_PHOTOS_BUCKET)
+      .upload(path, file, { upsert: true, contentType: file.type || undefined });
+    return error ? { error: true } : { path };
+  }
 }
 
 /** Bucket privado dos documentos de competição (regulamento + anexos) — ver

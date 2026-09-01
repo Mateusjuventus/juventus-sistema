@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import { comissaoTecnicaBaseSchema } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 import { normalizeTelefone } from "@/lib/validation/telefone";
@@ -58,11 +58,7 @@ async function uploadFotoIfPresent(
   const file = formData.get("foto");
   if (!(file instanceof File) || file.size === 0) return {};
 
-  const path = buildPhotoPath("comissao-base", id, file.name);
-  const { error } = await supabase.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
-    upsert: true,
-    contentType: file.type || undefined,
-  });
+  const { path, error } = await uploadFotoRedimensionada(supabase, file, "comissao-base", id);
 
   if (error) return { error: "Não foi possível enviar a foto. O restante dos dados não foi salvo." };
   return { path };

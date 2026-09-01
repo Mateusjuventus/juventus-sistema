@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { buildPhotoPath, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import { jogoSchema } from "@/lib/validation/schemas";
 
 export interface JogoFormState {
@@ -47,11 +47,7 @@ async function uploadLogoIfPresent(
   const file = formData.get("adversarioLogo");
   if (!(file instanceof File) || file.size === 0) return {};
 
-  const path = buildPhotoPath("jogos", id, file.name, "adversario-logo");
-  const { error } = await supabase.storage.from(ENTITY_PHOTOS_BUCKET).upload(path, file, {
-    upsert: true,
-    contentType: file.type || undefined,
-  });
+  const { path, error } = await uploadFotoRedimensionada(supabase, file, "jogos", id, "adversario-logo");
 
   if (error) return { error: "Não foi possível enviar o logo. O restante dos dados não foi salvo." };
   return { path };
