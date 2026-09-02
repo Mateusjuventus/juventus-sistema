@@ -22,7 +22,10 @@ export async function salvarClassificacaoTreinador(formData: FormData): Promise<
   if (!atletaId) return;
 
   const classificacaoRaw = String(formData.get("classificacao") ?? "");
-  const classificacao = ["g1", "g2", "g3"].includes(classificacaoRaw) ? classificacaoRaw : null;
+  // "dispensa" ("Dispensa (pendente)") é a única opção nova que o treinador ganha — ver
+  // docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md. É só um sinalizador; não
+  // muda `status` (só o Relatório de Dispensa formal faz isso).
+  const classificacao = ["g1", "g2", "g3", "dispensa"].includes(classificacaoRaw) ? classificacaoRaw : null;
 
   const { data: atleta } = await supabase
     .from("atletas_base")

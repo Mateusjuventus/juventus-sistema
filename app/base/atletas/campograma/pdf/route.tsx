@@ -24,14 +24,22 @@ export async function GET(request: Request) {
   const supabase = createClient();
   const { data } = await supabase
     .from("atletas_base")
-    .select("id, nome_completo, apelido, posicao, foto_path, classificacao, tipo_contrato, data_nascimento")
+    .select("id, nome_completo, apelido, posicao, foto_path, classificacao, tipo_contrato, data_nascimento, status")
     .eq("categoria", categoria)
     .neq("status", "dispensado")
     .order("nome_completo", { ascending: true });
 
   const atletas = (data ?? []) as Pick<
     AtletaBaseRow,
-    "id" | "nome_completo" | "apelido" | "posicao" | "foto_path" | "classificacao" | "tipo_contrato" | "data_nascimento"
+    | "id"
+    | "nome_completo"
+    | "apelido"
+    | "posicao"
+    | "foto_path"
+    | "classificacao"
+    | "tipo_contrato"
+    | "data_nascimento"
+    | "status"
   >[];
 
   const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));
@@ -45,6 +53,7 @@ export async function GET(request: Request) {
     classificacao: a.classificacao,
     tipoContrato: a.tipo_contrato,
     dataNascimento: a.data_nascimento,
+    status: a.status,
   }));
 
   const grupos = agruparPorPosicaoEspecifica(paraCampograma);

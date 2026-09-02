@@ -101,8 +101,11 @@ export type AtletaBaseStatus = AtletaStatus | "dispensado";
 
 /** Classificação G1/G2/G3 do atleta da Base — rótulo livre, sem significado fixo documentado no
  * sistema (cabe ao clube decidir o que cada grupo representa); o sistema só guarda e mostra a cor
- * de borda (verde/amarelo/laranja). Opcional — nem todo atleta precisa estar classificado. */
-export type AtletaClassificacao = "g1" | "g2" | "g3";
+ * de borda (verde/amarelo/laranja). Opcional — nem todo atleta precisa estar classificado.
+ * "dispensa" ("Dispensa (pendente)", ver docs/superpowers/specs/
+ * 2026-09-02-campograma-edicao-rapida-design.md) é um 4º valor — sinalizador de saída em avaliação,
+ * NÃO muda `AtletaBaseStatus`; só o Relatório de Dispensa formal muda o status pra "dispensado". */
+export type AtletaClassificacao = "g1" | "g2" | "g3" | "dispensa";
 
 /** Espelha `AtletaRow`, mas para o departamento Futebol de Base — tabela `atletas_base`, totalmente
  * independente de `atletas` (ver docs/superpowers/specs/2026-07-20-futebol-de-base-design.md). */
@@ -114,7 +117,11 @@ export interface AtletaBaseRow {
    * aprovado direto de lá normalmente ainda não tem RG/CPF à mão; o Mateus completa depois. */
   rg: string | null;
   cpf: string | null;
-  data_nascimento: string;
+  /** Opcional desde a inclusão rápida pelo Campograma (ver docs/superpowers/specs/
+   * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) — nesse fluxo o atleta é criado só com
+   * nome e posição; `null` aqui, junto de `rg`/`cpf` também nulos, é o que marca "Cadastro
+   * incompleto" nas listagens/página do atleta. */
+  data_nascimento: string | null;
   posicao: string;
   numero_camisa: number | null;
   numero_cbf: number | null;

@@ -20,6 +20,7 @@ function atleta(overrides: Partial<AtletaCampograma>): AtletaCampograma {
     classificacao: null,
     tipoContrato: null,
     dataNascimento: null,
+    status: null,
     ...overrides,
   };
 }

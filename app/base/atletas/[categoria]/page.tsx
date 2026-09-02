@@ -61,6 +61,14 @@ function formatData(data: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+/** Atleta criado pela inclusão rápida do Campograma (ver docs/superpowers/specs/
+ * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) fica marcado assim até RG, CPF e data de
+ * nascimento serem preenchidos pelo formulário normal de edição — calculado na leitura, não é uma
+ * coluna no banco. */
+function cadastroIncompleto(atleta: Pick<AtletaBaseRow, "rg" | "cpf" | "data_nascimento">): boolean {
+  return !atleta.rg || !atleta.cpf || !atleta.data_nascimento;
+}
+
 /** Lista de Atletas do Futebol de Base filtrada por categoria (Sub20 a Sub11) — espelha
  * `app/atletas/page.tsx`, mas sempre restrita à categoria da URL (ver a spec). */
 export default async function AtletasBaseCategoriaPage({
@@ -240,6 +248,11 @@ export default async function AtletasBaseCategoriaPage({
                 {venceLogo ? (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                     Contrato a vencer
+                  </span>
+                ) : null}
+                {cadastroIncompleto(atleta) ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    Cadastro incompleto
                   </span>
                 ) : null}
               </div>

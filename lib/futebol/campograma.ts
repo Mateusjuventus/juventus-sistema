@@ -1,4 +1,4 @@
-import type { AtletaClassificacao, AtletaPosicao } from "@/lib/supabase/types";
+import type { AtletaBaseStatus, AtletaClassificacao, AtletaPosicao } from "@/lib/supabase/types";
 
 /**
  * Dados e agrupamento puro do Campograma (`/base/atletas/campograma`) — o elenco de uma categoria
@@ -26,6 +26,11 @@ export interface AtletaCampograma {
   tipoContrato: string | null;
   /** Data de nascimento em ISO (aaaa-mm-dd), formatada na exibição — ver `formatarDataBrCampograma`. */
   dataNascimento: string | null;
+  /** Status atual (Liberado/Suspenso/Departamento Médico) — só usado pro ícone de cruz médica no
+   * token quando em Departamento Médico (ver docs/superpowers/specs/
+   * 2026-09-02-campograma-edicao-rapida-design.md, seção 2); "Cadastro incompleto" não depende
+   * disso. Atleta dispensado nunca chega aqui — a página já filtra `status != 'dispensado'`. */
+  status: AtletaBaseStatus | null;
 }
 
 /** Ordem de exibição das 9 linhas, do gol (topo) pro ataque (base) — ordem pedida pelo Mateus

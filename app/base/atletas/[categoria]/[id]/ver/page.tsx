@@ -36,6 +36,14 @@ function formatData(data: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+/** Atleta criado pela inclusão rápida do Campograma (ver docs/superpowers/specs/
+ * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) fica marcado assim até RG, CPF e data de
+ * nascimento serem preenchidos pelo formulário normal de edição — calculado na leitura, não é uma
+ * coluna no banco. */
+function cadastroIncompleto(atleta: Pick<AtletaBaseRow, "rg" | "cpf" | "data_nascimento">): boolean {
+  return !atleta.rg || !atleta.cpf || !atleta.data_nascimento;
+}
+
 /** Espelha `app/atletas/[id]/ver/page.tsx` para o Futebol de Base. */
 export default async function VerAtletaBasePage({
   params,
@@ -66,15 +74,22 @@ export default async function VerAtletaBasePage({
       />
 
       <div className="card mt-4 flex flex-wrap items-center justify-between gap-3 p-5">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-neutral-700">Classificação:</span>
-          {atleta.classificacao ? (
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClassificacaoAtleta(atleta.classificacao)}`}>
-              {classificacaoAtletaLabel(atleta.classificacao)}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-neutral-700">Classificação:</span>
+            {atleta.classificacao ? (
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClassificacaoAtleta(atleta.classificacao)}`}>
+                {classificacaoAtletaLabel(atleta.classificacao)}
+              </span>
+            ) : (
+              <span className="text-sm text-neutral-400">Não classificado</span>
+            )}
+          </div>
+          {cadastroIncompleto(atleta) ? (
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+              Cadastro incompleto
             </span>
-          ) : (
-            <span className="text-sm text-neutral-400">Não classificado</span>
-          )}
+          ) : null}
         </div>
         <div className="flex items-center gap-3">
           {atleta.dispensa_data ? (

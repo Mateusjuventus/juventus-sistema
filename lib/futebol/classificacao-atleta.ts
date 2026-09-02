@@ -11,26 +11,32 @@ export const ATLETA_CLASSIFICACAO_OPTIONS: { value: AtletaClassificacao; label: 
   { value: "g1", label: "G1" },
   { value: "g2", label: "G2" },
   { value: "g3", label: "G3" },
+  { value: "dispensa", label: "Dispensa (pendente)" },
 ];
 
 const CLASSIFICACAO_LABEL: Record<AtletaClassificacao, string> = {
   g1: "G1",
   g2: "G2",
   g3: "G3",
+  dispensa: "Dispensa (pendente)",
 };
 
 /** Classe da borda esquerda do card — mesma receita de `app/competicoes/[id]/adversarios/page.tsx`
- * (`.card` + `border-l-4 border-l-<cor>`), não um componente novo. */
+ * (`.card` + `border-l-4 border-l-<cor>`), não um componente novo. "dispensa" usa vermelho — pedido
+ * do Mateus pra deixar claro, só de bater o olho, que o atleta está a caminho da saída (ver
+ * docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md). */
 const CLASSIFICACAO_BORDA: Record<AtletaClassificacao, string> = {
   g1: "border-l-4 border-l-green-500",
   g2: "border-l-4 border-l-yellow-400",
   g3: "border-l-4 border-l-orange-500",
+  dispensa: "border-l-4 border-l-red-600",
 };
 
 const CLASSIFICACAO_BADGE: Record<AtletaClassificacao, string> = {
   g1: "bg-green-100 text-green-800",
   g2: "bg-yellow-100 text-yellow-800",
   g3: "bg-orange-100 text-orange-800",
+  dispensa: "bg-red-100 text-red-800",
 };
 
 /** Cor do anel/borda ao redor da foto do atleta no Campograma (ver docs/superpowers/specs/
@@ -41,6 +47,7 @@ const CLASSIFICACAO_ANEL: Record<AtletaClassificacao, string> = {
   g1: "border-green-500",
   g2: "border-yellow-400",
   g3: "border-orange-500",
+  dispensa: "border-red-600",
 };
 const ANEL_NEUTRO = "border-neutral-300";
 
@@ -50,6 +57,7 @@ export const CLASSIFICACAO_ANEL_HEX: Record<AtletaClassificacao, string> = {
   g1: "#22c55e",
   g2: "#facc15",
   g3: "#f97316",
+  dispensa: "#dc2626",
 };
 export const ANEL_NEUTRO_HEX = "#d4d4d4";
 

@@ -165,8 +165,10 @@ export const atletaBaseSchema = atletaCamposBase
     tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "iniciacao"]).optional().nullable(),
     // Classificação G1/G2/G3 (ver docs/superpowers/specs/
     // 2026-08-25-classificacao-dispensa-atleta-base-design.md) — opcional, nem todo atleta precisa
-    // estar classificado.
-    classificacao: z.enum(["g1", "g2", "g3"]).optional().nullable(),
+    // estar classificado. "dispensa" ("Dispensa (pendente)") é um 4º valor, adicionado em
+    // docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md — sinalizador de saída em
+    // avaliação, não muda `status`.
+    classificacao: z.enum(["g1", "g2", "g3", "dispensa"]).optional().nullable(),
     // "dispensado" só existe no status do Base (ver `AtletaBaseStatus` em lib/supabase/types.ts) —
     // normalmente é a tela de Relatório de Dispensa que grava esse valor, mas o cadastro interno
     // também precisa aceitá-lo aqui, senão o <select> de Status (que já lista "Dispensado" pra
@@ -191,6 +193,25 @@ export const atletaBaseSchema = atletaCamposBase
   })
   .refine(refinoAlergia.check, refinoAlergia.options);
 export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;
+
+/**
+ * Inclusão rápida de atleta pelo Campograma (ver docs/superpowers/specs/
+ * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) — só Nome + Posição; categoria vem do
+ * estado da própria página (a categoria vista no momento), não é um campo digitado. RG/CPF/data de
+ * nascimento ficam de fora de propósito (`null` na criação) — diferente de `atletaBaseSchema`, este
+ * schema é enxuto e autocontido, não uma extensão do grande.
+ */
+export const atletaRapidoCampogramaSchema = z.object({
+  nomeCompleto: z
+    .string()
+    .min(1, { message: "Nome completo é obrigatório" })
+    .transform(normalizarNomeProprio),
+  posicao: posicaoField,
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+    errorMap: () => ({ message: "Categoria inválida" }),
+  }),
+});
+export type AtletaRapidoCampogramaInput = z.infer<typeof atletaRapidoCampogramaSchema>;
 
 /**
  * Captação/Avaliação (banco dos candidatos em teste, ver `docs/superpowers/specs/

@@ -194,10 +194,18 @@ type LogoSrc = string | { data: Buffer; format: "png" | "jpg" } | null;
  * (Profissional) quanto pra `AtletaBaseRow` (Futebol de Base), mesmo que os dois tenham divergido
  * em outros campos (ex.: `tipo_contrato`, que nem é exibido aqui). */
 export interface AtletaPresskitItem {
-  atleta: Pick<
-    AtletaRow,
-    "id" | "numero_camisa" | "nome_completo" | "posicao" | "data_nascimento" | "cidade_natal" | "uf_natal"
-  >;
+  atleta: Omit<
+    Pick<
+      AtletaRow,
+      "id" | "numero_camisa" | "nome_completo" | "posicao" | "data_nascimento" | "cidade_natal" | "uf_natal"
+    >,
+    "data_nascimento"
+  > & {
+    // `string | null` (não só `string` como em `AtletaRow`) — `AtletaBaseRow.data_nascimento`
+    // aceita `null` desde a inclusão rápida pelo Campograma (ver docs/superpowers/specs/
+    // 2026-09-02-campograma-edicao-rapida-design.md); `formatDataBr` abaixo já é nulo-tolerante.
+    data_nascimento: string | null;
+  };
   fotoSrc: LogoSrc;
 }
 

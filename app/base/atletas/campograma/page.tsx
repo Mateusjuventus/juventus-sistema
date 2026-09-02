@@ -24,7 +24,7 @@ export default async function CampogramaPage({
   const supabase = createClient();
   const { data } = await supabase
     .from("atletas_base")
-    .select("id, nome_completo, apelido, posicao, foto_path, classificacao, tipo_contrato, data_nascimento")
+    .select("id, nome_completo, apelido, posicao, foto_path, classificacao, tipo_contrato, data_nascimento, status")
     .eq("categoria", categoria)
     // Atleta dispensado não faz sentido continuar aparecendo posicionado no elenco (ver
     // docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 4).
@@ -33,7 +33,15 @@ export default async function CampogramaPage({
 
   const atletas = (data ?? []) as Pick<
     AtletaBaseRow,
-    "id" | "nome_completo" | "apelido" | "posicao" | "foto_path" | "classificacao" | "tipo_contrato" | "data_nascimento"
+    | "id"
+    | "nome_completo"
+    | "apelido"
+    | "posicao"
+    | "foto_path"
+    | "classificacao"
+    | "tipo_contrato"
+    | "data_nascimento"
+    | "status"
   >[];
 
   const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));
@@ -47,6 +55,7 @@ export default async function CampogramaPage({
     classificacao: a.classificacao,
     tipoContrato: a.tipo_contrato,
     dataNascimento: a.data_nascimento,
+    status: a.status,
   }));
 
   const grupos = agruparPorPosicaoEspecifica(paraCampograma);
@@ -88,7 +97,7 @@ export default async function CampogramaPage({
       ) : null}
 
       <div className="mt-4">
-        <CampogramaElenco grupos={grupos} />
+        <CampogramaElenco grupos={grupos} categoria={categoria} />
       </div>
     </AppShell>
   );

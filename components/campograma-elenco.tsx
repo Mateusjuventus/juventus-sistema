@@ -12,17 +12,28 @@ import {
   type AtletaCampograma,
   type GrupoCampograma,
 } from "@/lib/futebol/campograma";
-import { anelClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
-import { moverAtletaCampograma } from "@/app/base/atletas/campograma/actions";
+import { ATLETA_CLASSIFICACAO_OPTIONS, anelClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
+import {
+  criarAtletaRapidoCampograma,
+  moverAtletaCampograma,
+  salvarClassificacaoStatusCampograma,
+} from "@/app/base/atletas/campograma/actions";
+import { ModalShell } from "@/components/programacao/modal";
 import type { AtletaPosicao } from "@/lib/supabase/types";
 
 /**
  * Campograma: o elenco de uma categoria, separado por posição (9 linhas, uma por posição específica
  * — ver docs/superpowers/specs/2026-08-26-campograma-foto-classificacao-design.md). Cada atleta é um
- * token com foto (anel na cor da classificação G1/G2/G3), selo de contrato P/F, nome e data de
- * nascimento. Arrastar um token de uma linha pra outra grava a nova posição na hora (Server Action);
- * atleta sem posição cadastrada aparece numa lista auxiliar abaixo, sem interação (não tem uma
- * posição de origem definida).
+ * token com foto (anel na cor da classificação G1/G2/G3/Dispensa), selo de contrato P/F, ícone de
+ * Departamento Médico, nome e data de nascimento. Arrastar um token de uma linha pra outra grava a
+ * nova posição na hora (Server Action); atleta sem posição cadastrada aparece numa lista auxiliar
+ * abaixo, sem arrastar (não tem uma posição de origem definida) mas ainda clicável.
+ *
+ * Duas interações novas (ver docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md):
+ * clicar num token (sem arrastar — um gesto de arrastar de verdade nunca dispara `click` no HTML5
+ * drag-and-drop nativo) abre o painel de edição rápida de Classificação/Status
+ * (`PainelEdicaoAtleta`); o botão "+ Adicionar" em cada linha abre o painel de inclusão rápida
+ * (`PainelNovoAtleta`).
  */
 
 // A "tela" do gráfico (viewBox) é mais larga que o círculo em si — sobra margem nas duas laterais
@@ -54,16 +65,33 @@ function anchorRotulo(x: number, centroX: number): "start" | "middle" | "end" {
   return "middle";
 }
 
+/** Ícone de cruz médica (estilo suíço/hospitalar: quadrado branco, cruz vermelha) — sinaliza atleta
+ * no Departamento Médico no token do Campograma (ver spec, seção 2). Mesmo tamanho do selo de
+ * contrato (h-5 w-5) pro par ficar equilibrado nos dois cantos superiores do token; cor da cruz
+ * (`#dc2626`) é a mesma já usada pro selo "F" de contrato e pro anel "Dispensa (pendente)" —
+ * reaproveita a paleta existente. */
+function IconeCruzMedica() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-label="Departamento Médico" role="img">
+      <rect x="0.5" y="0.5" width="19" height="19" rx="4" fill="white" stroke="#d4d4d4" strokeWidth="1" />
+      <rect x="8.25" y="4" width="3.5" height="12" fill="#dc2626" />
+      <rect x="4" y="8.25" width="12" height="3.5" fill="#dc2626" />
+    </svg>
+  );
+}
+
 function TokenAtleta({
   atleta,
   arrastavel,
   onDragStart,
   onDragEnd,
+  onClick,
 }: {
   atleta: AtletaCampograma;
   arrastavel: boolean;
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  onClick?: () => void;
 }) {
   const selo = seloContratoAtleta(atleta.tipoContrato);
   const nascimento = formatarDataBrCampograma(atleta.dataNascimento);
@@ -79,20 +107,27 @@ function TokenAtleta({
         onDragStart?.();
       }}
       onDragEnd={onDragEnd}
-      className={`flex w-[76px] flex-col items-center gap-1 ${arrastavel ? "cursor-grab active:cursor-grabbing" : ""}`}
+      onClick={onClick}
+      className={`flex w-[76px] flex-col items-center gap-1 ${arrastavel ? "cursor-grab active:cursor-grabbing" : ""} ${
+        onClick ? "cursor-pointer" : ""
+      }`}
       title={atleta.nome}
     >
       <div
-        className={`relative h-[72px] w-[66px] shrink-0 overflow-hidden rounded-md border-[3px] bg-neutral-100 ${anelClassificacaoAtleta(atleta.classificacao)}`}
+        className={`relative h-[72px] w-[66px] shrink-0 rounded-md border-[3px] bg-neutral-100 ${anelClassificacaoAtleta(atleta.classificacao)}`}
       >
-        {atleta.fotoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={atleta.fotoUrl} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-lg font-bold text-neutral-400">
-            {nome.charAt(0).toUpperCase()}
-          </div>
-        )}
+        {/* Só esta camada interna corta conteúdo (`overflow-hidden`) — os dois selos abaixo ficam
+            fora dela, como irmãos, então nunca são clipados pela foto (bug corrigido, ver spec). */}
+        <div className="h-full w-full overflow-hidden rounded-[3px]">
+          {atleta.fotoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={atleta.fotoUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-lg font-bold text-neutral-400">
+              {nome.charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
         {selo ? (
           <span
             className={`absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white ${
@@ -100,6 +135,11 @@ function TokenAtleta({
             }`}
           >
             {selo}
+          </span>
+        ) : null}
+        {atleta.status === "departamento_medico" ? (
+          <span className="absolute -left-1.5 -top-1.5">
+            <IconeCruzMedica />
           </span>
         ) : null}
       </div>
@@ -187,6 +227,9 @@ function Legenda() {
         <span className="h-3 w-3 rounded-sm border-2 border-orange-500" /> G3
       </span>
       <span className="flex items-center gap-1.5">
+        <span className="h-3 w-3 rounded-sm border-2 border-red-600" /> Dispensa (pendente)
+      </span>
+      <span className="flex items-center gap-1.5">
         <span className="h-3 w-3 rounded-sm border-2 border-neutral-300" /> Não classificado
       </span>
       <span className="flex items-center gap-1.5">
@@ -205,12 +248,14 @@ function Legenda() {
   );
 }
 
-export function CampogramaElenco({ grupos }: { grupos: GrupoCampograma }) {
+export function CampogramaElenco({ grupos, categoria }: { grupos: GrupoCampograma; categoria: string }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
   const [sobrePosicao, setSobrePosicao] = useState<AtletaPosicao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [atletaEmEdicao, setAtletaEmEdicao] = useState<AtletaCampograma | null>(null);
+  const [posicaoNovoAtleta, setPosicaoNovoAtleta] = useState<AtletaPosicao | null>(null);
 
   const semPosicao = grupos.sem_posicao;
 
@@ -263,11 +308,18 @@ export function CampogramaElenco({ grupos }: { grupos: GrupoCampograma }) {
                 {posicao} ({atletasDaLinha.length})
               </p>
               {atletasDaLinha.length === 0 ? (
-                <p className="text-xs text-neutral-300">
-                  {emFoco ? "Solte aqui" : "Ninguém cadastrado"}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-xs text-neutral-300">{emFoco ? "Solte aqui" : "Ninguém cadastrado"}</p>
+                  <button
+                    type="button"
+                    onClick={() => setPosicaoNovoAtleta(posicao)}
+                    className="text-xs font-semibold text-grena hover:underline"
+                  >
+                    + Adicionar
+                  </button>
+                </div>
               ) : (
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {atletasDaLinha.map((atleta) => (
                     <TokenAtleta
                       key={atleta.id}
@@ -278,8 +330,16 @@ export function CampogramaElenco({ grupos }: { grupos: GrupoCampograma }) {
                         setArrastandoId(null);
                         setSobrePosicao(null);
                       }}
+                      onClick={() => setAtletaEmEdicao(atleta)}
                     />
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setPosicaoNovoAtleta(posicao)}
+                    className="text-xs font-semibold text-grena hover:underline"
+                  >
+                    + Adicionar
+                  </button>
                 </div>
               )}
             </div>
@@ -297,7 +357,12 @@ export function CampogramaElenco({ grupos }: { grupos: GrupoCampograma }) {
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
             {semPosicao.map((atleta) => (
-              <TokenAtleta key={atleta.id} atleta={atleta} arrastavel={false} />
+              <TokenAtleta
+                key={atleta.id}
+                atleta={atleta}
+                arrastavel={false}
+                onClick={() => setAtletaEmEdicao(atleta)}
+              />
             ))}
           </div>
         </div>
@@ -310,6 +375,190 @@ export function CampogramaElenco({ grupos }: { grupos: GrupoCampograma }) {
       <div className="card p-4">
         <GraficoPosicoes grupos={grupos} />
       </div>
+
+      {atletaEmEdicao ? (
+        <PainelEdicaoAtleta
+          atleta={atletaEmEdicao}
+          categoria={categoria}
+          onClose={() => setAtletaEmEdicao(null)}
+        />
+      ) : null}
+
+      {posicaoNovoAtleta ? (
+        <PainelNovoAtleta
+          posicao={posicaoNovoAtleta}
+          categoria={categoria}
+          onClose={() => setPosicaoNovoAtleta(null)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function PainelEdicaoAtleta({
+  atleta,
+  categoria,
+  onClose,
+}: {
+  atleta: AtletaCampograma;
+  categoria: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [classificacao, setClassificacao] = useState<string>(atleta.classificacao ?? "");
+  const [status, setStatus] = useState<string>(atleta.status ?? "liberado");
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  function salvar() {
+    setErro(null);
+    setSalvando(true);
+    startTransition(async () => {
+      const resultado = await salvarClassificacaoStatusCampograma(atleta.id, classificacao || null, status);
+      setSalvando(false);
+      if (resultado.error) {
+        setErro(resultado.error);
+        return;
+      }
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <ModalShell
+      titulo={`Editar — ${atleta.nome}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary">
+            Cancelar
+          </button>
+          <button type="button" onClick={salvar} disabled={salvando} className="btn-primary">
+            {salvando ? "Salvando..." : "Salvar"}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {erro ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p> : null}
+        <div>
+          <label className="field-label">Classificação</label>
+          <select
+            value={classificacao}
+            onChange={(e) => setClassificacao(e.target.value)}
+            className="field-input"
+          >
+            <option value="">Não classificado</option>
+            {ATLETA_CLASSIFICACAO_OPTIONS.map((opcao) => (
+              <option key={opcao.value} value={opcao.value}>
+                {opcao.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="field-label">Status</label>
+          <select value={status ?? "liberado"} onChange={(e) => setStatus(e.target.value)} className="field-input">
+            <option value="liberado">Liberado</option>
+            <option value="suspenso">Suspenso</option>
+            <option value="departamento_medico">Departamento Médico</option>
+          </select>
+        </div>
+        {classificacao === "dispensa" ? (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            Dispensa pendente — a saída só é efetivada ao gerar o Relatório de Dispensa.{" "}
+            <a href={`/base/atletas/${categoria}/${atleta.id}/dispensa`} className="font-semibold underline">
+              Gerar relatório de dispensa
+            </a>
+          </p>
+        ) : null}
+      </div>
+    </ModalShell>
+  );
+}
+
+function PainelNovoAtleta({
+  posicao,
+  categoria,
+  onClose,
+}: {
+  posicao: AtletaPosicao;
+  categoria: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [nomeCompleto, setNomeCompleto] = useState("");
+  const [posicaoEscolhida, setPosicaoEscolhida] = useState<string>(posicao);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  function salvar() {
+    setErro(null);
+    setSalvando(true);
+    startTransition(async () => {
+      const resultado = await criarAtletaRapidoCampograma(nomeCompleto, posicaoEscolhida, categoria);
+      setSalvando(false);
+      if (resultado.error) {
+        setErro(resultado.error);
+        return;
+      }
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <ModalShell
+      titulo="Novo atleta rápido"
+      subtitulo="Nome e posição — o resto do cadastro pode ser completado depois."
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={salvar}
+            disabled={salvando || !nomeCompleto.trim()}
+            className="btn-primary"
+          >
+            {salvando ? "Salvando..." : "Salvar"}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {erro ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p> : null}
+        <div>
+          <label className="field-label">Nome completo</label>
+          <input
+            type="text"
+            value={nomeCompleto}
+            onChange={(e) => setNomeCompleto(e.target.value)}
+            className="field-input"
+            placeholder="Nome completo do atleta"
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="field-label">Posição</label>
+          <select
+            value={posicaoEscolhida}
+            onChange={(e) => setPosicaoEscolhida(e.target.value)}
+            className="field-input"
+          >
+            {ORDEM_POSICOES_CAMPOGRAMA.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </ModalShell>
   );
 }

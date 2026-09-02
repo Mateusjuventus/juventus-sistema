@@ -30,7 +30,7 @@ export default async function EditarAtletaBasePage({
     apelido: atleta.apelido ?? "",
     rg: atleta.rg ?? "",
     cpf: atleta.cpf ? formatCPF(atleta.cpf) : "",
-    dataNascimento: atleta.data_nascimento,
+    dataNascimento: atleta.data_nascimento ?? "",
     posicao: atleta.posicao,
     numeroCamisa: atleta.numero_camisa?.toString() ?? "",
     numeroCbf: atleta.numero_cbf?.toString() ?? "",
