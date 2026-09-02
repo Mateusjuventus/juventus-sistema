@@ -7,9 +7,11 @@ import {
   criarAtividadeSchema,
   criarAtividadeDeJogoSchema,
   criarSubatividadeSchema,
+  copiarDiaProgramacaoSchema,
 } from "@/lib/validation/schemas";
 import type { CategoriaBase } from "@/lib/auth/categorias-base";
 import { turnoDoHorarioInicio } from "./tipo-atividade";
+import { buscarDia } from "./queries";
 
 /**
  * Server Actions da Programação Semanal (ver
@@ -235,6 +237,128 @@ export async function criarSubatividade(
       return { error: "Subatividade salva, mas não foi possível adicioná-la ao catálogo." };
     }
   }
+
+  revalidatePath("/treinador");
+  revalidatePath("/base");
+  return {};
+}
+
+/**
+ * "Copiar Dia" (ver spec, docs/superpowers/specs/2026-09-02-programacao-copiar-dia-layout-geral-
+ * design.md, Parte 1) — chamada direto via `useTransition` no client (não `useFormState`/
+ * `<form action>` como as ações acima): o payload é um array de datas de destino, que não mapeia
+ * bem em FormData. Delete-then-insert em cada data de destino (decisão já fechada: "substitui
+ * tudo"); jogos nunca são copiados (evento específico daquela data, ver `jogo_oficial`/
+ * `jogo_treino` filtrados fora); cada atividade copiada leva suas subatividades junto, senão o
+ * treinador teria que remontar manualmente o treino que já tinha montado.
+ */
+export async function copiarDiaProgramacao(
+  categoria: CategoriaBase,
+  dataOrigem: string,
+  datasDestino: string[],
+): Promise<ProgramacaoFormState> {
+  const supabase = createClient();
+
+  const result = copiarDiaProgramacaoSchema.safeParse({ categoria, dataOrigem, datasDestino });
+  if (!result.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
+    return { fieldErrors };
+  }
+  const data = result.data;
+
+  if (!(await categoriaLiberada(supabase, data.categoria))) {
+    return { error: "Você não tem permissão para copiar atividades nesta categoria." };
+  }
+
+  const atividadesOrigem = await buscarDia(supabase, data.categoria, data.dataOrigem);
+  const atividadesParaCopiar = atividadesOrigem.filter(
+    (a) => a.tipo !== "jogo_oficial" && a.tipo !== "jogo_treino",
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  for (const dataDestino of data.datasDestino) {
+    const { error: erroDelete } = await supabase
+      .from("programacao_atividades")
+      .delete()
+      .eq("categoria", data.categoria)
+      .eq("data", dataDestino);
+    if (erroDelete) {
+      return {
+        error: `Não foi possível limpar as atividades existentes em ${dataDestino}: ${erroDelete.message}`,
+      };
+    }
+
+    for (const origem of atividadesParaCopiar) {
+      const { data: novaAtividade, error: erroInsert } = await supabase
+        .from("programacao_atividades")
+        .insert({
+          categoria: data.categoria,
+          data: dataDestino,
+          turno: turnoDoHorarioInicio(origem.horario_inicio),
+          nome: origem.nome,
+          tipo: origem.tipo,
+          horario_inicio: origem.horario_inicio,
+          horario_termino: origem.horario_termino,
+          local: origem.local,
+          created_by: user?.id ?? null,
+        })
+        .select("id")
+        .single();
+      if (erroInsert || !novaAtividade) {
+        return {
+          error: `Não foi possível copiar "${origem.nome}" para ${dataDestino}: ${erroInsert?.message ?? "erro desconhecido"}`,
+        };
+      }
+
+      if (origem.subatividades.length > 0) {
+        const { error: erroSub } = await supabase.from("programacao_subatividades").insert(
+          origem.subatividades.map((s) => ({
+            atividade_id: novaAtividade.id,
+            nome: s.nome,
+            duracao_blocos: s.duracao_blocos,
+            intervalo_min: s.intervalo_min,
+            video_url: s.video_url,
+            observacoes: s.observacoes,
+            config: s.config,
+            created_by: user?.id ?? null,
+          })),
+        );
+        if (erroSub) {
+          return {
+            error: `"${origem.nome}" copiada em ${dataDestino}, mas os detalhes de treino não foram copiados: ${erroSub.message}`,
+          };
+        }
+      }
+    }
+  }
+
+  revalidatePath("/treinador");
+  revalidatePath("/base");
+  return {};
+}
+
+/** Campo de texto livre "Descrição do microciclo" (ver spec, "Microciclo em texto livre") — sem
+ * schema zod, é um texto opcional sem formato a validar; só a permissão de categoria importa. Mesmo
+ * padrão de chamada direta (não `useFormState`) de `copiarDiaProgramacao` acima. */
+export async function salvarMicrocicloTexto(
+  categoria: CategoriaBase,
+  texto: string,
+): Promise<ProgramacaoFormState> {
+  const supabase = createClient();
+
+  if (!(await categoriaLiberada(supabase, categoria))) {
+    return { error: "Você não tem permissão para editar esta categoria." };
+  }
+
+  const { error } = await supabase
+    .from("configuracoes_programacao_base")
+    .update({ microciclo_texto: texto.trim() || null })
+    .eq("categoria", categoria);
+  if (error) return { error: `Não foi possível salvar a descrição do microciclo: ${error.message}` };
 
   revalidatePath("/treinador");
   revalidatePath("/base");

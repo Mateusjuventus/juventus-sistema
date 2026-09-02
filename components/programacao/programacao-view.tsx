@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AtividadeCard } from "./atividade-card";
 import { NovaAtividadeModal } from "./nova-atividade-modal";
 import { AtividadeDetalheModal } from "./atividade-detalhe-modal";
+import { CopiarDiaModal } from "./copiar-dia-modal";
+import { MicrocicloTextoEditor } from "./microciclo-texto-editor";
 import { diasDaSemana, somarDias } from "@/lib/programacao/semana";
 import type { AtividadeComDetalhes, JogoResumoAtividade } from "@/lib/programacao/queries";
 import type { ProgramacaoCatalogoSubatividadeRow, ProgramacaoAtividadeTipo } from "@/lib/supabase/types";
@@ -54,6 +56,8 @@ export function ProgramacaoView({
   atividades,
   jogosParaSelecao,
   catalogo,
+  microcicloTexto,
+  permitirProgramacaoGeral,
 }: {
   basePath: string;
   categoriaAtiva: CategoriaBase;
@@ -62,10 +66,15 @@ export function ProgramacaoView({
   atividades: AtividadeComDetalhes[];
   jogosParaSelecao: JogoResumoAtividade[];
   catalogo: ProgramacaoCatalogoSubatividadeRow[];
+  microcicloTexto: string | null;
+  /** Botão "Gerar Programação Geral" (ver spec, Parte 3) — só em `/base` (visão administrativa das
+   * 7 categorias), não em `/treinador` (que só enxerga a própria categoria). */
+  permitirProgramacaoGeral?: boolean;
 }) {
   const [modalNovaAtividadeAberto, setModalNovaAtividadeAberto] = useState(false);
   const [atividadeSelecionadaId, setAtividadeSelecionadaId] = useState<string | null>(null);
   const [tiposEscondidos, setTiposEscondidos] = useState<Set<ProgramacaoAtividadeTipo>>(new Set());
+  const [dataCopiarDia, setDataCopiarDia] = useState<string | null>(null);
 
   function hrefComQuery(params: { semana?: string; categoria?: string }) {
     const query = new URLSearchParams({
@@ -107,6 +116,10 @@ export function ProgramacaoView({
         </div>
       ) : null}
 
+      <div className="mb-3">
+        <MicrocicloTextoEditor key={categoriaAtiva} categoria={categoriaAtiva} valorInicial={microcicloTexto} />
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link
@@ -142,6 +155,16 @@ export function ProgramacaoView({
           >
             Exportar JPG
           </a>
+          {permitirProgramacaoGeral ? (
+            <a
+              href={`/programacao/geral/exportar/pdf?semana=${inicioSemana}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              Gerar Programação Geral
+            </a>
+          ) : null}
           <button type="button" onClick={() => setModalNovaAtividadeAberto(true)} className="btn-primary">
             + Nova Atividade
           </button>
@@ -163,6 +186,13 @@ export function ProgramacaoView({
                   <div className="mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-grena text-sm font-extrabold text-white">
                     {diaNumero(dataIso)}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setDataCopiarDia(dataIso)}
+                    className="mt-1.5 w-full rounded-md border border-linha bg-white px-1.5 py-1 text-[10px] font-medium text-neutral-500 transition-colors hover:bg-neutral-50"
+                  >
+                    Copiar Dia
+                  </button>
                 </div>
                 <div className="flex min-h-[60px] flex-col gap-1.5">
                   {atividadesDoDia.length === 0 ? (
@@ -213,6 +243,14 @@ export function ProgramacaoView({
           categoria={categoriaAtiva}
           jogosParaSelecao={jogosParaSelecao}
           onClose={() => setModalNovaAtividadeAberto(false)}
+        />
+      ) : null}
+
+      {dataCopiarDia ? (
+        <CopiarDiaModal
+          categoria={categoriaAtiva}
+          dataOrigem={dataCopiarDia}
+          onClose={() => setDataCopiarDia(null)}
         />
       ) : null}
 

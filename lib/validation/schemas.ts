@@ -1099,6 +1099,9 @@ export const PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS = [
   { value: "transporte", label: "Transporte" },
   { value: "imprensa", label: "Imprensa" },
   { value: "regenerativo", label: "Regenerativo" },
+  { value: "apresentacao", label: "Apresentação" },
+  { value: "cafe_manha", label: "Café da Manhã" },
+  { value: "video", label: "Vídeo" },
 ] as const;
 
 const PROGRAMACAO_ATIVIDADE_TIPOS_NAO_JOGO = [
@@ -1109,6 +1112,9 @@ const PROGRAMACAO_ATIVIDADE_TIPOS_NAO_JOGO = [
   "transporte",
   "imprensa",
   "regenerativo",
+  "apresentacao",
+  "cafe_manha",
+  "video",
 ] as const;
 
 /** Formulário de "+ Nova Atividade" da Programação Semanal, pra qualquer tipo que não seja jogo
@@ -1141,6 +1147,20 @@ export const criarAtividadeDeJogoSchema = z.object({
   jogoId: z.string().min(1, { message: "Selecione o jogo" }),
 });
 export type CriarAtividadeDeJogoInput = z.infer<typeof criarAtividadeDeJogoSchema>;
+
+/** "Copiar Dia" da Programação Semanal (ver spec, Parte 1) — copia as atividades de `dataOrigem`
+ * pra uma ou mais `datasDestino`, de qualquer semana. Mesmo padrão de array-de-enum usado em
+ * `comissaoTecnicaBaseSchema.categorias`, aqui pra um array de datas em vez de categorias. */
+export const copiarDiaProgramacaoSchema = z.object({
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+    errorMap: () => ({ message: "Categoria é obrigatória" }),
+  }),
+  dataOrigem: z.string().min(1, { message: "Data de origem é obrigatória" }),
+  datasDestino: z
+    .array(z.string().min(1))
+    .min(1, { message: "Selecione ao menos uma data de destino" }),
+});
+export type CopiarDiaProgramacaoInput = z.infer<typeof copiarDiaProgramacaoSchema>;
 
 /** "+ Nova Subatividade", dentro do detalhe de uma atividade — só os campos que viram coluna de
  * verdade (o resto do formulário rico, ainda instável, vai em `config` jsonb — ver spec, "Por que

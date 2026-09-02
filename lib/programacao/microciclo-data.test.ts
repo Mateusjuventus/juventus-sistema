@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { nomeDiaSemanaCompleto, formatDataCurta, montarPeriodoTexto, montarMicrocicloDias } from "./microciclo-data";
+import {
+  nomeDiaSemanaCompleto,
+  formatDataCurta,
+  montarPeriodoTexto,
+  montarMicrocicloDias,
+  montarLinhaMicrociclo,
+} from "./microciclo-data";
 import { corHexAtividade } from "./tipo-atividade";
 import type { AtividadeComDetalhes } from "./queries";
 
@@ -99,5 +105,23 @@ describe("montarMicrocicloDias", () => {
     const resultado = montarMicrocicloDias(dias, atividades, corHexAtividade);
     const quinta = resultado.find((d) => d.data === "2026-08-27")!;
     expect(quinta.atividadesPorTurno.tarde[0].jogo).toEqual(jogo);
+  });
+});
+
+describe("montarLinhaMicrociclo", () => {
+  it("texto e época preenchidos: junta os dois", () => {
+    expect(montarLinhaMicrociclo("Semana de adaptação", "2026")).toBe("Semana de adaptação · Época 2026");
+  });
+
+  it("só texto preenchido: sem 'Época'", () => {
+    expect(montarLinhaMicrociclo("Semana de adaptação", null)).toBe("Semana de adaptação");
+  });
+
+  it("só época preenchida: 'Época X', sem rótulo 'Microciclo' órfão", () => {
+    expect(montarLinhaMicrociclo(null, "2026")).toBe("Época 2026");
+  });
+
+  it("nenhum dos dois preenchido: null (chamador não desenha a linha)", () => {
+    expect(montarLinhaMicrociclo(null, null)).toBeNull();
   });
 });

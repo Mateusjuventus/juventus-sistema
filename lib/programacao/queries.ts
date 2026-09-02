@@ -45,27 +45,27 @@ export interface AtividadeComDetalhes extends ProgramacaoAtividadeRow {
 }
 
 /**
- * Atividades de uma categoria numa semana (Segunda a Domingo, a partir de `dataInicioSemana` — ver
- * `inicioDaSemana` em `./semana`), com as subatividades já agrupadas por atividade e, quando
+ * Miolo compartilhado por `buscarSemana` e `buscarDia` — atividades de uma categoria num intervalo
+ * de datas (inclusive nas duas pontas), com as subatividades já agrupadas por atividade e, quando
  * `tipo` é 'jogo_oficial'/'jogo_treino', os dados de verdade do jogo (nunca duplicados aqui).
  *
  * Não faz nenhuma checagem de permissão — quem chama (Server Component de `/treinador` ou `/base`,
- * Início da Base) já resolveu `categoria` a partir de `getCategoriasProgramacao()` antes de chegar
- * aqui, do mesmo jeito que as demais telas de categoria do sistema fazem hoje.
+ * Início da Base, ou uma Server Action como `copiarDiaProgramacao`) já resolveu `categoria` a
+ * partir de `getCategoriasProgramacao()` antes de chegar aqui, do mesmo jeito que as demais telas
+ * de categoria do sistema fazem hoje.
  */
-export async function buscarSemana(
+async function buscarAtividadesComDetalhes(
   supabase: ReturnType<typeof createClient>,
   categoria: CategoriaBase,
-  dataInicioSemana: string,
+  dataInicio: string,
+  dataFim: string,
 ): Promise<AtividadeComDetalhes[]> {
-  const dataFimSemana = somarDias(dataInicioSemana, 6);
-
   const { data: atividadesData } = await supabase
     .from("programacao_atividades")
     .select("*")
     .eq("categoria", categoria)
-    .gte("data", dataInicioSemana)
-    .lte("data", dataFimSemana)
+    .gte("data", dataInicio)
+    .lte("data", dataFim)
     .order("data", { ascending: true })
     .order("horario_inicio", { ascending: true });
   const atividades = (atividadesData ?? []) as ProgramacaoAtividadeRow[];
@@ -91,6 +91,26 @@ export async function buscarSemana(
     subatividades: subatividades.filter((s) => s.atividade_id === atividade.id),
     jogo: atividade.jogo_id ? (jogos.find((j) => j.id === atividade.jogo_id) ?? null) : null,
   }));
+}
+
+/** Atividades de uma categoria numa semana (Segunda a Domingo, a partir de `dataInicioSemana` — ver
+ * `inicioDaSemana` em `./semana`). */
+export async function buscarSemana(
+  supabase: ReturnType<typeof createClient>,
+  categoria: CategoriaBase,
+  dataInicioSemana: string,
+): Promise<AtividadeComDetalhes[]> {
+  return buscarAtividadesComDetalhes(supabase, categoria, dataInicioSemana, somarDias(dataInicioSemana, 6));
+}
+
+/** Atividades de UM dia só de uma categoria — usada por `copiarDiaProgramacao` (ver
+ * `lib/programacao/actions.ts`), que só precisa do dia de origem, não da semana inteira. */
+export async function buscarDia(
+  supabase: ReturnType<typeof createClient>,
+  categoria: CategoriaBase,
+  data: string,
+): Promise<AtividadeComDetalhes[]> {
+  return buscarAtividadesComDetalhes(supabase, categoria, data, data);
 }
 
 /** Catálogo de subatividades reutilizáveis de uma categoria — alimenta o dropdown "Importar" do

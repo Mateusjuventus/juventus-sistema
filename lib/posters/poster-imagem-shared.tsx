@@ -111,6 +111,65 @@ export function PosterCabecalhoImg({
   );
 }
 
+/**
+ * Faixa grená do topo da exportação da Programação Semanal (por categoria e Geral, versão JPG — ver
+ * `lib/pdf/programacao-export-shared.tsx` pra versão PDF, mesmo contrato visual): escudo do
+ * Juventus + duas estrelinhas à esquerda, título centralizado em branco, SEM brasão da FPF (pedido
+ * explícito do Mateus). Uma coluna vazia do mesmo tamanho do escudo do lado direito garante
+ * centralização real do título.
+ */
+export function CabecalhoExportacaoImg({
+  titulo,
+  subtitulo,
+}: {
+  titulo: string;
+  subtitulo?: string | null;
+}) {
+  const juventus = getJuventusEscudoDataUri();
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        backgroundColor: "#1E3A5F",
+        padding: 16,
+        borderRadius: 6,
+        width: "100%",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 90 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+          <Estrela cor="#B9B9B9" tamanho={14} />
+          <Estrela cor={CORES_POSTER.dourado} tamanho={14} />
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={juventus} width={48} height={48} style={{ objectFit: "contain" }} />
+      </div>
+      <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 22,
+            fontWeight: 700,
+            color: "#ffffff",
+            textTransform: "uppercase",
+            letterSpacing: 0.5,
+            textAlign: "center",
+          }}
+        >
+          {titulo}
+        </div>
+        {subtitulo ? (
+          <div style={{ display: "flex", fontSize: 14, color: "#dbe3ee", marginTop: 4, textAlign: "center" }}>
+            {subtitulo}
+          </div>
+        ) : null}
+      </div>
+      <div style={{ display: "flex", width: 90 }} />
+    </div>
+  );
+}
+
 export function PosterTituloImg({ texto }: { texto: string }) {
   return (
     <div

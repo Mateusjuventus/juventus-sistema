@@ -14,6 +14,9 @@ export const PROGRAMACAO_ATIVIDADE_TIPOS_ORDEM: ProgramacaoAtividadeTipo[] = [
   "jogo_treino",
   "imprensa",
   "regenerativo",
+  "apresentacao",
+  "cafe_manha",
+  "video",
 ];
 
 const TIPO_LABEL: Record<ProgramacaoAtividadeTipo, string> = {
@@ -26,6 +29,9 @@ const TIPO_LABEL: Record<ProgramacaoAtividadeTipo, string> = {
   jogo_treino: "Jogo Treino",
   imprensa: "Imprensa",
   regenerativo: "Regenerativo",
+  apresentacao: "Apresentação",
+  cafe_manha: "Café da Manhã",
+  video: "Vídeo",
 };
 
 /** Cor de cada tipo — cartão (fundo claro + texto escuro, mesmo padrão de `corCaptacaoStatus`) e o
@@ -43,6 +49,9 @@ const TIPO_COR: Record<ProgramacaoAtividadeTipo, { cartao: string; ponto: string
   jogo_treino: { cartao: "bg-neutral-300 text-neutral-800", ponto: "bg-neutral-400" },
   imprensa: { cartao: "bg-pink-100 text-pink-800", ponto: "bg-pink-400" },
   regenerativo: { cartao: "bg-yellow-100 text-yellow-800", ponto: "bg-yellow-400" },
+  apresentacao: { cartao: "bg-sky-100 text-sky-800", ponto: "bg-sky-400" },
+  cafe_manha: { cartao: "bg-lime-100 text-lime-800", ponto: "bg-lime-400" },
+  video: { cartao: "bg-emerald-100 text-emerald-800", ponto: "bg-emerald-400" },
 };
 
 /** Mesmas cores de `TIPO_COR` acima, só que em hex — `corCartaoAtividade`/`corPontoAtividade`
@@ -60,6 +69,9 @@ const TIPO_COR_HEX: Record<ProgramacaoAtividadeTipo, { bg: string; text: string 
   jogo_treino: { bg: "#D4D4D4", text: "#262626" },
   imprensa: { bg: "#FCE7F3", text: "#9D174D" },
   regenerativo: { bg: "#FEF9C3", text: "#854D0E" },
+  apresentacao: { bg: "#E0F2FE", text: "#075985" },
+  cafe_manha: { bg: "#ECFCCB", text: "#3F6212" },
+  video: { bg: "#D1FAE5", text: "#065F46" },
 };
 
 export function corHexAtividade(tipo: ProgramacaoAtividadeTipo): { bg: string; text: string } {

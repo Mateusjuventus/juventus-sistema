@@ -1835,7 +1835,10 @@ export type ProgramacaoAtividadeTipo =
   | "jogo_oficial"
   | "jogo_treino"
   | "imprensa"
-  | "regenerativo";
+  | "regenerativo"
+  | "apresentacao"
+  | "cafe_manha"
+  | "video";
 
 /** Área do Treinador — Programação Semanal (ver
  * docs/superpowers/specs/2026-08-30-area-treinador-programacao-design.md). Uma linha por atividade
@@ -1900,5 +1903,9 @@ export interface ConfiguracaoProgramacaoBaseRow {
   categoria: CategoriaBase;
   epoca: string | null;
   microciclo_atual: number;
+  /** Substitui o número fixo "Microciclo Nº X" no cabeçalho da exportação por uma descrição livre,
+   * a critério do treinador (ex.: "Semana de adaptação") — ver spec, "Microciclo em texto livre".
+   * `microciclo_atual` continua existindo sem mudança, só deixou de ser usado na exportação. */
+  microciclo_texto: string | null;
   updated_at: string;
 }

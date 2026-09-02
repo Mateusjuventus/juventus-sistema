@@ -6,6 +6,7 @@ import { JuventusCrestMark } from "@/components/juventus-crest";
 import { logout } from "@/app/actions";
 import { buscarNotificacoes } from "@/lib/notificacoes/actions";
 import { buscarSemana, buscarCatalogo, buscarJogosParaSelecao } from "@/lib/programacao/queries";
+import { buscarMicrocicloTexto } from "@/lib/programacao/microciclo-data";
 import { inicioDaSemana } from "@/lib/programacao/semana";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { ProgramacaoView } from "@/components/programacao/programacao-view";
@@ -52,10 +53,11 @@ export default async function TreinadorInicioPage({
     ? inicioDaSemana(searchParams.semana)
     : inicioDaSemana(hojeBrasilia());
 
-  const [atividades, catalogo, jogosParaSelecao] = await Promise.all([
+  const [atividades, catalogo, jogosParaSelecao, microcicloTexto] = await Promise.all([
     buscarSemana(supabase, categoriaAtiva, inicioSemana),
     buscarCatalogo(supabase, categoriaAtiva),
     buscarJogosParaSelecao(supabase, categoriaAtiva),
+    buscarMicrocicloTexto(supabase, categoriaAtiva),
   ]);
 
   return (
@@ -71,6 +73,7 @@ export default async function TreinadorInicioPage({
           atividades={atividades}
           jogosParaSelecao={jogosParaSelecao}
           catalogo={catalogo}
+          microcicloTexto={microcicloTexto}
         />
       </main>
     </div>

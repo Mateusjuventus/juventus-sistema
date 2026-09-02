@@ -3,58 +3,20 @@ import { categoriaBaseLabel, type CategoriaBase } from "@/lib/auth/categorias-ba
 import type { ProgramacaoTurno } from "@/lib/supabase/types";
 import { buscarSemana, type AtividadeComDetalhes, type JogoResumoAtividade } from "./queries";
 import { diasDaSemana } from "./semana";
-import { corHexAtividade, formatHorarioCurto, labelTipoAtividade } from "./tipo-atividade";
+import { formatHorarioCurto, labelTipoAtividade } from "./tipo-atividade";
+import { corExportacaoAtividade } from "./cores-exportacao";
+import { nomeDiaSemanaCompleto, formatDataCurta, montarPeriodoTexto, montarLinhaMicrociclo } from "./microciclo-texto";
 
-const DIAS_SEMANA_COMPLETO = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
-const MESES_EXTENSO = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-];
-
-/** Nome completo do dia da semana em maiúsculas ("SEGUNDA") — mesmo vocabulário do modelo impresso
- * que o Mateus já usa (ver mockup aprovado), diferente da abreviação de 3 letras usada na grade em
- * tela (`DIA_SEMANA_LABEL` em `components/programacao/programacao-view.tsx`). */
-export function nomeDiaSemanaCompleto(dataIso: string): string {
-  const [ano, mes, dia] = dataIso.split("-").map(Number);
-  return DIAS_SEMANA_COMPLETO[new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay()];
-}
-
-/** "2026-08-24" -> "24/08". */
-export function formatDataCurta(dataIso: string): string {
-  const [, mes, dia] = dataIso.split("-");
-  return `${dia}/${mes}`;
-}
-
-/** Texto do período do microciclo, no mesmo formato do modelo impresso ("Plano de 24 a 30 de
- * Agosto") — quando a semana atravessa a virada do mês, cada ponta ganha seu próprio mês por
- * extenso ("Plano de 31 de Agosto a 6 de Setembro") pra não ficar ambíguo. */
-export function montarPeriodoTexto(dataInicio: string, dataFim: string): string {
-  const [, mesInicioStr, diaInicioStr] = dataInicio.split("-");
-  const [, mesFimStr, diaFimStr] = dataFim.split("-");
-  const diaInicio = String(Number(diaInicioStr));
-  const diaFim = String(Number(diaFimStr));
-  const mesInicio = MESES_EXTENSO[Number(mesInicioStr) - 1];
-  const mesFim = MESES_EXTENSO[Number(mesFimStr) - 1];
-
-  if (mesInicioStr === mesFimStr) {
-    return `Plano de ${diaInicio} a ${diaFim} de ${mesFim}`;
-  }
-  return `Plano de ${diaInicio} de ${mesInicio} a ${diaFim} de ${mesFim}`;
-}
+/** Reexportadas de `microciclo-texto.ts` (módulo puro, sem import de `./queries`/Supabase) pra não
+ * quebrar quem já importa estas funções daqui — ver o comentário no topo de `microciclo-texto.ts`
+ * pro motivo da extração (Client Components como `copiar-dia-modal.tsx` precisam de
+ * `formatDataCurta` sem arrastar `sharp` pro bundle do navegador). */
+export { nomeDiaSemanaCompleto, formatDataCurta, montarPeriodoTexto, montarLinhaMicrociclo };
 
 export interface MicrocicloAtividade {
   id: string;
   nome: string;
+  tipo: AtividadeComDetalhes["tipo"];
   tipoLabel: string;
   turno: ProgramacaoTurno;
   horarioInicio: string;
@@ -78,15 +40,20 @@ export interface MicrocicloData {
   categoriaLabel: string;
   epoca: string | null;
   microcicloAtual: number | null;
+  /** Descrição livre do microciclo (ver spec, "Microciclo em texto livre") — substitui o número
+   * fixo `microcicloAtual` no cabeçalho da exportação; `null` quando o treinador não preencheu. */
+  microcicloTexto: string | null;
   periodoTexto: string;
   dias: MicrocicloDia[];
 }
 
 /** Agrupa as atividades já carregadas (`buscarSemana`) nos 7 dias da semana, por turno — puro, sem
- * tocar o Supabase, pra poder ser testado direto (ver `microciclo-data.test.ts`). Precisa das cores
- * de `corHexAtividade` aqui dentro (em vez de só no documento) porque tanto o PDF (react-pdf) quanto
- * o JPG (next/og) leem o mesmo `MicrocicloAtividade` já pronto, sem duplicar o mapeamento de cor
- * nos dois lugares. */
+ * tocar o Supabase, pra poder ser testado direto (ver `microciclo-data.test.ts`). Recebe a função de
+ * cor como parâmetro (em vez de decidir sozinha) porque tanto o PDF (react-pdf) quanto o JPG
+ * (next/og) leem o mesmo `MicrocicloAtividade` já pronto, sem duplicar o mapeamento de cor nos dois
+ * lugares — hoje o único chamador real (`buscarMicrocicloData` abaixo) sempre passa
+ * `corExportacaoAtividade` (paleta da exportação); os testes deste arquivo continuam passando
+ * `corHexAtividade` (paleta da grade em tela) diretamente pra exercitar a função isoladamente. */
 export function montarMicrocicloDias(
   dias: string[],
   atividades: AtividadeComDetalhes[],
@@ -101,6 +68,7 @@ export function montarMicrocicloDias(
       porTurno[a.turno].push({
         id: a.id,
         nome: a.nome,
+        tipo: a.tipo,
         tipoLabel: labelTipoAtividade(a.tipo),
         turno: a.turno,
         horarioInicio: formatHorarioCurto(a.horario_inicio),
@@ -139,7 +107,11 @@ export async function buscarMicrocicloData(
 
   const [atividades, { data: configData }] = await Promise.all([
     buscarSemana(supabase, categoria, dataInicioSemana),
-    supabase.from("configuracoes_programacao_base").select("epoca, microciclo_atual").eq("categoria", categoria).maybeSingle(),
+    supabase
+      .from("configuracoes_programacao_base")
+      .select("epoca, microciclo_atual, microciclo_texto")
+      .eq("categoria", categoria)
+      .maybeSingle(),
   ]);
 
   return {
@@ -147,7 +119,22 @@ export async function buscarMicrocicloData(
     categoriaLabel: categoriaBaseLabel(categoria),
     epoca: configData?.epoca ?? null,
     microcicloAtual: configData?.microciclo_atual ?? null,
+    microcicloTexto: configData?.microciclo_texto ?? null,
     periodoTexto: montarPeriodoTexto(dias[0], dias[dias.length - 1]),
-    dias: montarMicrocicloDias(dias, atividades, corHexAtividade),
+    dias: montarMicrocicloDias(dias, atividades, corExportacaoAtividade),
   };
+}
+
+/** Só o campo de texto livre do microciclo — usado pelo editor inline em `ProgramacaoView`, que não
+ * precisa da `MicrocicloData` inteira (nem de buscar a semana de atividades). */
+export async function buscarMicrocicloTexto(
+  supabase: ReturnType<typeof createClient>,
+  categoria: CategoriaBase,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("configuracoes_programacao_base")
+    .select("microciclo_texto")
+    .eq("categoria", categoria)
+    .maybeSingle();
+  return data?.microciclo_texto ?? null;
 }
