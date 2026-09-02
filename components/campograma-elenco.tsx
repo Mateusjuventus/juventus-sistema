@@ -68,8 +68,8 @@ function anchorRotulo(x: number, centroX: number): "start" | "middle" | "end" {
 /** Ícone de cruz médica (estilo suíço/hospitalar: quadrado branco, cruz vermelha) — sinaliza atleta
  * no Departamento Médico no token do Campograma (ver spec, seção 2). Mesmo tamanho do selo de
  * contrato (h-5 w-5) pro par ficar equilibrado nos dois cantos superiores do token; cor da cruz
- * (`#dc2626`) é a mesma já usada pro selo "F" de contrato e pro anel "Dispensa (pendente)" —
- * reaproveita a paleta existente. */
+ * (`#dc2626`) é a mesma já usada pro selo "F" de contrato — reaproveita a paleta existente, e é a
+ * cor universal de cruz médica de qualquer forma. */
 function IconeCruzMedica() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" aria-label="Departamento Médico" role="img">
@@ -227,7 +227,7 @@ function Legenda() {
         <span className="h-3 w-3 rounded-sm border-2 border-orange-500" /> G3
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="h-3 w-3 rounded-sm border-2 border-red-600" /> Dispensa (pendente)
+        <span className="h-3 w-3 rounded-sm border-2 border-purple-700" /> Dispensa (pendente)
       </span>
       <span className="flex items-center gap-1.5">
         <span className="h-3 w-3 rounded-sm border-2 border-neutral-300" /> Não classificado

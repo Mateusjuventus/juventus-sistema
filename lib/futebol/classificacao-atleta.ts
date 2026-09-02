@@ -22,21 +22,22 @@ const CLASSIFICACAO_LABEL: Record<AtletaClassificacao, string> = {
 };
 
 /** Classe da borda esquerda do card — mesma receita de `app/competicoes/[id]/adversarios/page.tsx`
- * (`.card` + `border-l-4 border-l-<cor>`), não um componente novo. "dispensa" usa vermelho — pedido
- * do Mateus pra deixar claro, só de bater o olho, que o atleta está a caminho da saída (ver
+ * (`.card` + `border-l-4 border-l-<cor>`), não um componente novo. "dispensa" usa roxo escuro — o
+ * vermelho usado antes ficava parecido demais com o laranja do G3 (confundia à primeira vista); o
+ * roxo mantém o peso de "sinal de alerta" sem colidir com nenhuma das outras 3 cores (ver
  * docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md). */
 const CLASSIFICACAO_BORDA: Record<AtletaClassificacao, string> = {
   g1: "border-l-4 border-l-green-500",
   g2: "border-l-4 border-l-yellow-400",
   g3: "border-l-4 border-l-orange-500",
-  dispensa: "border-l-4 border-l-red-600",
+  dispensa: "border-l-4 border-l-purple-700",
 };
 
 const CLASSIFICACAO_BADGE: Record<AtletaClassificacao, string> = {
   g1: "bg-green-100 text-green-800",
   g2: "bg-yellow-100 text-yellow-800",
   g3: "bg-orange-100 text-orange-800",
-  dispensa: "bg-red-100 text-red-800",
+  dispensa: "bg-purple-100 text-purple-800",
 };
 
 /** Cor do anel/borda ao redor da foto do atleta no Campograma (ver docs/superpowers/specs/
@@ -47,7 +48,7 @@ const CLASSIFICACAO_ANEL: Record<AtletaClassificacao, string> = {
   g1: "border-green-500",
   g2: "border-yellow-400",
   g3: "border-orange-500",
-  dispensa: "border-red-600",
+  dispensa: "border-purple-700",
 };
 const ANEL_NEUTRO = "border-neutral-300";
 
@@ -57,7 +58,7 @@ export const CLASSIFICACAO_ANEL_HEX: Record<AtletaClassificacao, string> = {
   g1: "#22c55e",
   g2: "#facc15",
   g3: "#f97316",
-  dispensa: "#dc2626",
+  dispensa: "#7e22ce",
 };
 export const ANEL_NEUTRO_HEX = "#d4d4d4";
 
