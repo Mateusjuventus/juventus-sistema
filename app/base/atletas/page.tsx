@@ -44,6 +44,9 @@ export default async function AtletasBasePage() {
         <Link href="/base/atletas/campograma" className="btn-secondary">
           Ver campograma por categoria
         </Link>
+        <Link href="/base/atletas/relacao" className="btn-secondary">
+          Exportar relação
+        </Link>
         <Link href="/base/atletas/configuracoes" className="btn-secondary">
           Configurações
         </Link>

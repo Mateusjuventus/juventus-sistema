@@ -154,6 +154,9 @@ export default async function AtletasBaseCategoriaPage({
         >
           Exportar para Excel
         </a>
+        <Link href={`/base/atletas/relacao?categoria=${categoria}`} className="btn-secondary">
+          Exportar relação
+        </Link>
         <Link href={`/base/atletas/${categoria}/novo`} className="btn-primary">
           + Novo atleta
         </Link>
