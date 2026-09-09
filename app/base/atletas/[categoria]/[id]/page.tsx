@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { AtletaBaseRow } from "@/lib/supabase/types";
 import { AtletaBaseForm } from "../../atleta-base-form";
-import { updateAtletaBase } from "../../actions";
+import { updateAtletaBase, deleteAtletaBase } from "../../actions";
 
 export default async function EditarAtletaBasePage({
   params,
@@ -82,6 +83,11 @@ export default async function EditarAtletaBasePage({
           fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"
         />
+      </div>
+      {/* Excluir saiu da listagem (o card virou só uma foto clicável, sem botões) — mesmo lugar que
+          "Excluir" já ocupa no cadastro de Jogos: o fim do formulário de edição. */}
+      <div className="mt-6 flex justify-end border-t border-linha pt-4">
+        <DeleteButton errorAction={deleteAtletaBase} id={atleta.id} entityLabel="atleta" />
       </div>
     </AppShell>
   );

@@ -212,5 +212,9 @@ export async function deleteAtleta(
   }
 
   revalidatePath("/atletas");
-  return {};
+  // Chamado agora de dentro do próprio cadastro (`/atletas/[id]`, ver `DeleteButton` no fim do
+  // formulário de edição — a listagem virou uma grade de cards só de foto, sem botão de excluir,
+  // mesmo ajuste já feito em `app/base/atletas/actions.ts`/`deleteAtletaBase`) — sem o redirect, a
+  // pessoa ficava numa tela de um atleta que acabou de apagar.
+  redirect("/atletas");
 }

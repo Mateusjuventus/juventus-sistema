@@ -5,6 +5,7 @@ import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { atletaPassaFiltro, filtrosDaQueryString } from "@/lib/futebol/atletas-filtro";
 import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -33,26 +34,30 @@ function formatData(data: string | null): string {
 }
 
 /** Exporta a lista de Atletas de uma categoria do Futebol de Base pra Excel — espelha
- * `app/atletas/export/route.ts`, filtrado pela categoria da URL. */
+ * `app/atletas/export/route.ts`, filtrado pela categoria da URL, e respeitando os mesmos filtros de
+ * Status/Posição/Contrato e busca por nome ativos na tela. `statusOcultoPorPadrao: "dispensado"`
+ * preserva a mesma regra da tela: sem nenhum status marcado, quem está dispensado não entra na
+ * exportação (só entra se a pessoa marcar o chip "Dispensado" explicitamente). */
 export async function GET(request: NextRequest, { params }: { params: { categoria: string } }) {
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
   const categoria = params.categoria;
 
   const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q")?.trim() ?? "";
-  const status = searchParams.get("status")?.trim() ?? "";
+  const filtros = filtrosDaQueryString(searchParams);
   const supabase = createClient();
 
-  let query = supabase
+  const { data } = await supabase
     .from("atletas_base")
     .select("*")
     .eq("categoria", categoria)
     .order("nome_completo", { ascending: true });
-  if (q) query = query.ilike("nome_completo", `%${q}%`);
-  if (status) query = query.eq("status", status);
-
-  const { data } = await query;
-  const atletas = (data ?? []) as AtletaBaseRow[];
+  const atletas = ((data ?? []) as AtletaBaseRow[]).filter((a) =>
+    atletaPassaFiltro(
+      { status: a.status, posicao: a.posicao, tipoContrato: a.tipo_contrato, nome: a.nome_completo },
+      filtros,
+      "dispensado",
+    ),
+  );
 
   const linhas = atletas.map((a) => ({
     "Nome completo": a.nome_completo,

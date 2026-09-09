@@ -283,7 +283,12 @@ export async function deleteAtletaBase(
 
   revalidatePath("/base/atletas");
   if (categoria) revalidatePath(`/base/atletas/${categoria}`);
-  return {};
+  // Chamado agora de dentro do próprio cadastro (`/base/atletas/[categoria]/[id]`, ver DeleteButton
+  // no fim do formulário de edição — a listagem virou um card só de foto, sem botão de excluir) —
+  // sem o redirect, a pessoa ficava numa tela de um atleta que acabou de apagar (mesmo ajuste já
+  // feito em `deleteJogo`, ver app/jogos/actions.ts).
+  if (categoria) redirect(`/base/atletas/${categoria}`);
+  redirect("/base/atletas");
 }
 
 /** Liga/desliga a Ficha de Cadastro pública (`/cadastro-atleta-base`) — desde o ajuste de 19/08 essa

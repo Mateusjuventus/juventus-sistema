@@ -95,9 +95,13 @@ export function PerfilMenu({
 export function PerfilMenuSidebar({
   email,
   logoutAction,
+  compacto = false,
 }: {
   email: string | null;
   logoutAction: () => Promise<void>;
+  /** Barra lateral recolhida (ver `components/app-sidebar.tsx`) — mostra só o círculo de iniciais,
+   * sem o e-mail por extenso, mas o menu continua funcionando igual ao clicar. */
+  compacto?: boolean;
 }) {
   const { aberto, setAberto, containerRef } = useMenuSuspenso();
 
@@ -126,15 +130,20 @@ export function PerfilMenuSidebar({
       <button
         type="button"
         onClick={() => setAberto((v) => !v)}
-        className="flex w-full items-center gap-2.5 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-white/5"
+        className={`flex w-full items-center gap-2.5 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-white/5 ${
+          compacto ? "justify-center" : ""
+        }`}
         aria-label="Minha conta"
+        title={compacto ? (email ?? "Minha conta") : undefined}
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-dourado text-xs font-bold text-grena-escuro">
           {IniciaisDoEmail(email)}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-white/90">
-          {email ?? "Minha conta"}
-        </span>
+        {!compacto ? (
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-white/90">
+            {email ?? "Minha conta"}
+          </span>
+        ) : null}
       </button>
     </div>
   );

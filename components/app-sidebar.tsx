@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FocusEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { JuventusCrestMark } from "@/components/juventus-crest";
@@ -92,17 +92,25 @@ function ItemLink({
   ativo,
   classe,
   recuado,
+  compacto,
 }: {
   item: SidebarNavItem;
   ativo: boolean;
-  classe: (ativo: boolean) => string;
+  classe: (ativo: boolean, compacto?: boolean) => string;
   recuado?: boolean;
+  /** Barra recolhida (ver `AppSidebar`) — mostra só o ícone, com o rótulo virando tooltip nativo
+   * (`title`) em vez de texto ao lado. */
+  compacto?: boolean;
 }) {
   const Icone = ICONES[item.icone];
   return (
-    <Link href={item.href} className={`${classe(ativo)}${recuado ? " pl-6" : ""}`}>
+    <Link
+      href={item.href}
+      title={item.label}
+      className={`${classe(ativo, compacto)}${recuado && !compacto ? " pl-6" : ""}`}
+    >
       <Icone className="h-[18px] w-[18px] shrink-0" />
-      {item.label}
+      {!compacto ? item.label : null}
     </Link>
   );
 }
@@ -123,14 +131,28 @@ function GrupoRecolhivel({
   itens,
   itemAtivo,
   linkClasse,
+  compacto,
 }: {
   titulo: string;
   itens: SidebarNavItem[];
   itemAtivo: (href: string) => boolean;
-  linkClasse: (ativo: boolean) => string;
+  linkClasse: (ativo: boolean, compacto?: boolean) => string;
+  /** Barra recolhida (ver `AppSidebar`) — não tem espaço pro título/seta do grupo, então os itens
+   * aparecem soltos, só ícone, igual aos itens sem grupo. */
+  compacto?: boolean;
 }) {
   const temAtivo = itens.some((item) => itemAtivo(item.href));
   const [aberto, setAberto] = useState(temAtivo);
+
+  if (compacto) {
+    return (
+      <div className="space-y-0.5 pt-2">
+        {itens.map((item) => (
+          <ItemLink key={item.href} item={item} ativo={itemAtivo(item.href)} classe={linkClasse} compacto />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="pt-3">
@@ -169,9 +191,12 @@ function GrupoRecolhivel({
 }
 
 /**
- * Sidebar fixa à esquerda (232px) — substitui a barra horizontal no topo que o sistema usava antes
- * (ver docs/superpowers/specs/2026-08-07-redesign-visual-painel-financeiro-design.md). Client
- * Component porque precisa de `usePathname()` pra destacar o item ativo — todo o resto (lista de
+ * Sidebar fixa à esquerda — substitui a barra horizontal no topo que o sistema usava antes (ver
+ * docs/superpowers/specs/2026-08-07-redesign-visual-painel-financeiro-design.md). No desktop nasce
+ * recolhida (64px, só ícones) e expande pra 232px ao passar o mouse ou navegar por teclado pra
+ * dentro dela (ver docs/superpowers/specs/2026-09-09-atletas-resumo-filtros-design.md, item 3 —
+ * mudança global, não só das telas de Atletas). Client Component porque precisa de `usePathname()`
+ * pra destacar o item ativo e de estado local pro recolher/expandir — todo o resto (lista de
  * módulos já filtrada por permissão, e-mail do usuário) vem resolvido do `AppShell` (server).
  */
 export function AppSidebar({
@@ -198,6 +223,16 @@ export function AppSidebar({
   const [menuAberto, setMenuAberto] = useState(false);
   const fechar = () => setMenuAberto(false);
 
+  // Barra fixa do desktop nasce recolhida (só ícones, 64px) e expande ao passar o mouse ou ao
+  // navegar por teclado pra dentro dela — sem botão de alternar. `onBlur` só recolhe quando o foco
+  // sai de vez da barra (`relatedTarget` fora dela), senão trocar de item por Tab recolheria e
+  // reabriria a cada passo.
+  const [expandida, setExpandida] = useState(false);
+  const expandir = () => setExpandida(true);
+  const recolher = (e: FocusEvent<HTMLElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setExpandida(false);
+  };
+
   // Fecha a gaveta ao trocar de rota. Sem isto, tocar num item do menu no celular navegava mas
   // deixava a gaveta aberta por cima da tela nova.
   useEffect(() => {
@@ -211,9 +246,12 @@ export function AppSidebar({
 
   // O hex do inset shadow precisa ficar literal (classe arbitrária do Tailwind — o scanner do
   // JIT não executa JS, então não dá pra interpolar `juventusTheme.dourado` aqui). Mantém em
-  // sincronia manualmente com `dourado` em lib/theme.ts se a cor mudar de novo.
-  const linkClasse = (ativo: boolean) =>
-    `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+  // sincronia manualmente com `dourado` em lib/theme.ts se a cor mudar de novo. `compacto` (barra
+  // recolhida, só ícone) centraliza o ícone em vez de alinhar à esquerda de um texto que não existe.
+  const linkClasse = (ativo: boolean, compacto?: boolean) =>
+    `flex items-center gap-2.5 rounded-md py-2 text-sm font-medium transition-colors ${
+      compacto ? "justify-center px-2" : "px-3"
+    } ${
       ativo
         ? "bg-white/10 text-white shadow-[inset_3px_0_0_#B98F1E]"
         : "text-white/75 hover:bg-white/5 hover:text-white"
@@ -230,59 +268,89 @@ export function AppSidebar({
     else grupos.push([item.grupo, [item]]);
   }
 
-  /* O mesmo conteúdo serve à barra fixa do desktop e à gaveta do celular — duplicar essa lista em
-     dois lugares era garantia de um item novo aparecer só num deles. */
-  const conteudo = (
-    <>
-      <div className="px-4 pb-4 pt-5">
-        <Link href="/" onClick={fechar} className="flex items-center gap-2 text-[15px] font-bold tracking-wide">
-          <JuventusCrestMark className="h-8 w-8 shrink-0" />
-          <span>Juventus - SAF</span>
-        </Link>
-      </div>
+  /* O mesmo conteúdo serve à barra fixa do desktop (recolhida OU expandida) e à gaveta do celular
+     (sempre expandida) — função em vez de duplicar a lista de itens em dois lugares, garantia de um
+     item novo aparecer nos três. `compacto` só existe pra barra fixa recolhida: esconde rótulos,
+     cabeçalhos de seção e o texto do brasão, mantendo só os ícones (com tooltip via `title`). */
+  function renderConteudo(compacto: boolean) {
+    return (
+      <>
+        <div className={`pb-4 pt-5 ${compacto ? "flex justify-center px-0" : "px-4"}`}>
+          <Link
+            href="/"
+            onClick={fechar}
+            title={compacto ? "Juventus - SAF" : undefined}
+            className="flex items-center gap-2 text-[15px] font-bold tracking-wide"
+          >
+            <JuventusCrestMark className="h-8 w-8 shrink-0" />
+            {!compacto ? <span>Juventus - SAF</span> : null}
+          </Link>
+        </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
-        <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wide text-white/45">
-          {departamentoLabel}
-        </p>
-        <Link href={homeHref} title={homeTitle} className={linkClasse(homeAtivo)}>
-          <HomeIcon className="h-[18px] w-[18px] shrink-0" />
-          Início
-        </Link>
-        {soltos.map((item) => (
-          <ItemLink key={item.href} item={item} ativo={itemAtivo(item.href)} classe={linkClasse} />
-        ))}
+        <nav className={`flex-1 space-y-0.5 overflow-y-auto pb-4 ${compacto ? "px-2" : "px-3"}`}>
+          {!compacto ? (
+            <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wide text-white/45">
+              {departamentoLabel}
+            </p>
+          ) : null}
+          <Link href={homeHref} title={homeTitle} className={linkClasse(homeAtivo, compacto)}>
+            <HomeIcon className="h-[18px] w-[18px] shrink-0" />
+            {!compacto ? "Início" : null}
+          </Link>
+          {soltos.map((item) => (
+            <ItemLink
+              key={item.href}
+              item={item}
+              ativo={itemAtivo(item.href)}
+              classe={linkClasse}
+              compacto={compacto}
+            />
+          ))}
 
-        {grupos.map(([titulo, itens]) => (
-          <GrupoRecolhivel
-            key={titulo}
-            titulo={titulo}
-            itens={itens}
-            itemAtivo={itemAtivo}
-            linkClasse={linkClasse}
-          />
-        ))}
+          {grupos.map(([titulo, itens]) => (
+            <GrupoRecolhivel
+              key={titulo}
+              titulo={titulo}
+              itens={itens}
+              itemAtivo={itemAtivo}
+              linkClasse={linkClasse}
+              compacto={compacto}
+            />
+          ))}
 
-        <p className="px-3 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wide text-white/45">
-          Geral
-        </p>
-        <Link href="/tarefas" className={linkClasse(itemAtivo("/tarefas"))}>
-          <ChecklistIcon className="h-[18px] w-[18px] shrink-0" />
-          Tarefas
-        </Link>
-        <Link href="/documentos-pendentes" className={linkClasse(itemAtivo("/documentos-pendentes"))}>
-          <IconAssinaturaPendente className="h-[18px] w-[18px] shrink-0" />
-          Documentos Pendentes
-        </Link>
-      </nav>
+          {!compacto ? (
+            <p className="px-3 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wide text-white/45">
+              Geral
+            </p>
+          ) : (
+            <div className="pt-2" />
+          )}
+          <Link href="/tarefas" title="Tarefas" className={linkClasse(itemAtivo("/tarefas"), compacto)}>
+            <ChecklistIcon className="h-[18px] w-[18px] shrink-0" />
+            {!compacto ? "Tarefas" : null}
+          </Link>
+          <Link
+            href="/documentos-pendentes"
+            title="Documentos Pendentes"
+            className={linkClasse(itemAtivo("/documentos-pendentes"), compacto)}
+          >
+            <IconAssinaturaPendente className="h-[18px] w-[18px] shrink-0" />
+            {!compacto ? "Documentos Pendentes" : null}
+          </Link>
+        </nav>
 
-      <div className="space-y-2 border-t border-white/10 px-3 py-2">
-        <SinoNotificacoes notificacoes={notificacoes} caminhoAtual={pathname} linkAvisos={showAvisos} />
-        <PushOptIn />
-      </div>
-      <PerfilMenuSidebar email={email} logoutAction={logoutAction} />
-    </>
-  );
+        <div className={`space-y-2 border-t border-white/10 py-2 ${compacto ? "px-2" : "px-3"}`}>
+          <div className={compacto ? "flex justify-center" : ""}>
+            <SinoNotificacoes notificacoes={notificacoes} caminhoAtual={pathname} linkAvisos={showAvisos} />
+          </div>
+          {/* Cartão de texto completo (convite pra ativar push) não cabe na barra recolhida — some
+              enquanto compacta, volta ao expandir. */}
+          {!compacto ? <PushOptIn /> : null}
+        </div>
+        <PerfilMenuSidebar email={email} logoutAction={logoutAction} compacto={compacto} />
+      </>
+    );
+  }
 
   /* Barra inferior do celular: Início + 3 módulos + Menu. Cinco é o limite prático — com seis os
      rótulos começam a cortar em tela de 360px. Quem fica de fora continua acessível pelo Menu, que
@@ -362,13 +430,27 @@ export function AppSidebar({
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
-          {conteudo}
+          {renderConteudo(false)}
         </aside>
       </div>
 
-      {/* Desktop: a barra fixa de sempre. */}
-      <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col bg-grena text-white lg:flex">
-        {conteudo}
+      {/* Desktop: a barra em si fica sempre `fixed` (nunca participa do fluxo — largura mudando de
+          64px pra 232px nunca reflui o resto da página) — o espaçador logo abaixo é quem reserva
+          64px no `flex-row` do AppShell pro conteúdo começar no lugar certo. Um `aside` só (não dois
+          separados por estado) evita ter dois conjuntos de links tabuláveis ao mesmo tempo.
+          `onMouseEnter`/`onFocus` expandem; `onBlur` com `recolher` só recolhe quando o foco sai de
+          vez da barra (não a cada Tab entre itens dela). */}
+      <div aria-hidden className="hidden w-16 shrink-0 lg:block" />
+      <aside
+        onMouseEnter={expandir}
+        onMouseLeave={() => setExpandida(false)}
+        onFocus={expandir}
+        onBlur={recolher}
+        className={`fixed inset-y-0 left-0 z-40 hidden h-screen flex-col bg-grena text-white shadow-2xl transition-[width] duration-200 lg:flex ${
+          expandida ? "w-[232px]" : "w-16"
+        }`}
+      >
+        {renderConteudo(!expandida)}
       </aside>
     </>
   );

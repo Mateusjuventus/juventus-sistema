@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { atletaPassaFiltro, filtrosDaQueryString } from "@/lib/futebol/atletas-filtro";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -29,19 +30,23 @@ function formatData(data: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-/** Exporta a lista de Atletas para Excel, respeitando os mesmos filtros de busca/status da tela. */
+/** Exporta a lista de Atletas para Excel, respeitando os mesmos filtros de Status/Posição/Contrato
+ * e a busca por nome que estiverem ativos na tela (`AtletasResumoFiltros` monta esses mesmos
+ * parâmetros no link com `filtrosParaQueryString` — ver docs/superpowers/specs/2026-09-09-atletas-
+ * resumo-filtros-design.md). Sem parâmetro nenhum, exporta a lista inteira, igual à tela sem
+ * nenhum filtro marcado. */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q")?.trim() ?? "";
-  const status = searchParams.get("status")?.trim() ?? "";
+  const filtros = filtrosDaQueryString(searchParams);
   const supabase = createClient();
 
-  let query = supabase.from("atletas").select("*").order("nome_completo", { ascending: true });
-  if (q) query = query.ilike("nome_completo", `%${q}%`);
-  if (status) query = query.eq("status", status);
-
-  const { data } = await query;
-  const atletas = (data ?? []) as AtletaRow[];
+  const { data } = await supabase.from("atletas").select("*").order("nome_completo", { ascending: true });
+  const atletas = ((data ?? []) as AtletaRow[]).filter((a) =>
+    atletaPassaFiltro(
+      { status: a.status, posicao: a.posicao, tipoContrato: a.tipo_contrato, nome: a.nome_completo },
+      filtros,
+    ),
+  );
 
   const linhas = atletas.map((a) => ({
     "Nome completo": a.nome_completo,

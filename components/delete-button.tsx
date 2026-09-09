@@ -36,18 +36,24 @@ export function DeleteButton({
   errorAction,
   id,
   entityLabel = "registro",
+  className,
 }: {
   action?: (formData: FormData) => Promise<void>;
   errorAction?: (prevState: DeleteActionState, formData: FormData) => Promise<DeleteActionState>;
   id: string;
   entityLabel?: string;
+  /** Estilo do botão-gatilho ("Excluir") — default `.btn-secondary` (pílula, como em toda tela que
+   * já usa este componente). Só existe pra encaixar num rodapé de ações mais compacto (ver cartão de
+   * atleta em `app/base/atletas/[categoria]/page.tsx`); a caixa de confirmação em duas etapas abaixo
+   * não muda. */
+  className?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [state, formAction] = useFormState(errorAction ?? (async () => initialState), initialState);
 
   if (!confirming) {
     return (
-      <button type="button" className="btn-secondary" onClick={() => setConfirming(true)}>
+      <button type="button" className={className ?? "btn-secondary"} onClick={() => setConfirming(true)}>
         Excluir
       </button>
     );

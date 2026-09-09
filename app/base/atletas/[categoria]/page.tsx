@@ -1,19 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
-import { SearchBar } from "@/components/search-bar";
-import { DeleteButton } from "@/components/delete-button";
+import { AtletasResumoFiltros, type AtletaResumoItem, type StatusFiltroOpcao } from "@/components/atletas/atletas-resumo-filtros";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import { bordaClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
 import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
-import { deleteAtletaBase } from "../actions";
-
-const CONTRATO_A_VENCER_DIAS = 90;
 
 const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
   liberado: "Liberado",
@@ -22,186 +14,76 @@ const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
   dispensado: "Dispensado",
 };
 
-const STATUS_BADGE_CLASS: Record<AtletaBaseStatus, string> = {
-  liberado: "bg-green-100 text-green-800",
-  suspenso: "bg-red-100 text-red-800",
-  departamento_medico: "bg-amber-100 text-amber-800",
-  dispensado: "bg-neutral-100 text-neutral-500",
-};
+// Ordem de exibição dos chips de Status — "Dispensado" por último, de propósito (é o status que
+// some por padrão, ver `statusOcultoPorPadrao` abaixo).
+const STATUS_OPTIONS: StatusFiltroOpcao[] = [
+  { value: "liberado", label: STATUS_LABEL.liberado },
+  { value: "suspenso", label: STATUS_LABEL.suspenso },
+  { value: "departamento_medico", label: STATUS_LABEL.departamento_medico },
+  { value: "dispensado", label: STATUS_LABEL.dispensado },
+];
 
-const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
-  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
-);
-
-function StatusBadge({ status }: { status: AtletaBaseStatus }) {
-  return (
-    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[status]}`}>
-      {STATUS_LABEL[status]}
-    </span>
-  );
-}
-
-function TipoContratoBadge({ tipoContrato }: { tipoContrato: string }) {
-  return (
-    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
-      {TIPO_CONTRATO_LABEL[tipoContrato] ?? tipoContrato}
-    </span>
-  );
-}
-
-function diasAte(data: string, hoje: Date): number {
-  const alvo = new Date(data);
-  const msPorDia = 1000 * 60 * 60 * 24;
-  return Math.round((alvo.getTime() - hoje.getTime()) / msPorDia);
-}
-
-function formatData(data: string | null): string {
-  if (!data) return "—";
-  const [ano, mes, dia] = data.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
-
-/** Atleta criado pela inclusão rápida do Campograma (ver docs/superpowers/specs/
- * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) fica marcado assim até RG, CPF e data de
- * nascimento serem preenchidos pelo formulário normal de edição — calculado na leitura, não é uma
- * coluna no banco. */
-function cadastroIncompleto(atleta: Pick<AtletaBaseRow, "rg" | "cpf" | "data_nascimento">): boolean {
-  return !atleta.rg || !atleta.cpf || !atleta.data_nascimento;
-}
+const CONTRATO_OPTIONS_BASE = ["definitivo", "emprestimo", "amador", "iniciacao"] as const;
 
 /** Lista de Atletas do Futebol de Base filtrada por categoria (Sub20 a Sub11) — espelha
- * `app/atletas/page.tsx`, mas sempre restrita à categoria da URL (ver a spec). */
+ * `app/atletas/page.tsx`, mas sempre restrita à categoria da URL. Resumo/filtros e busca são
+ * inteiramente no client agora (ver docs/superpowers/specs/2026-09-09-atletas-resumo-filtros-design.md):
+ * a página só busca a lista completa da categoria, sem filtro nenhum de status/busca na query. */
 export default async function AtletasBaseCategoriaPage({
   params,
-  searchParams,
 }: {
   params: { categoria: string };
-  searchParams: { q?: string; status?: string };
 }) {
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
   const categoria = params.categoria;
 
-  const q = searchParams.q?.trim() ?? "";
-  const status = searchParams.status?.trim() ?? "";
   const supabase = createClient();
 
-  let query = supabase
+  const { data, error } = await supabase
     .from("atletas_base")
     .select("*")
     .eq("categoria", categoria)
     .order("nome_completo", { ascending: true });
-  if (q) query = query.ilike("nome_completo", `%${q}%`);
-  // Atleta dispensado some da listagem por padrão (ver docs/superpowers/specs/
-  // 2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 4) — só aparece se a pessoa
-  // filtrar explicitamente por "Dispensado" no próprio filtro de status.
-  if (status) query = query.eq("status", status);
-  else query = query.neq("status", "dispensado");
-
-  const [{ data, error }, { data: todosData }] = await Promise.all([
-    query,
-    supabase
-      .from("atletas_base")
-      .select("status, data_fim_contrato")
-      .eq("categoria", categoria)
-      .neq("status", "dispensado"),
-  ]);
   const atletas = (data ?? []) as AtletaBaseRow[];
-  const todos = (todosData ?? []) as Pick<AtletaBaseRow, "status" | "data_fim_contrato">[];
 
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));
 
-  const contratosAVencer = todos.filter(
-    (a) => a.data_fim_contrato && diasAte(a.data_fim_contrato, hoje) <= CONTRATO_A_VENCER_DIAS,
-  ).length;
+  const itens: AtletaResumoItem[] = atletas.map((atleta, i) => ({
+    id: atleta.id,
+    nome: atleta.nome_completo,
+    cpf: atleta.cpf,
+    fotoUrl: fotoUrls[i],
+    dataNascimento: atleta.data_nascimento,
+    dataFimContrato: atleta.data_fim_contrato,
+    tipoContrato: atleta.tipo_contrato,
+    posicao: atleta.posicao,
+    numeroCamisa: atleta.numero_camisa,
+    dispensado: atleta.status === "dispensado",
+    classificacao: atleta.classificacao,
+    status: atleta.status,
+    href: `/base/atletas/${categoria}/${atleta.id}/ver`,
+  }));
 
-  const totais = {
-    total: todos.length,
-    liberados: todos.filter((a) => a.status === "liberado").length,
-    suspensos: todos.filter((a) => a.status === "suspenso").length,
-    departamentoMedico: todos.filter((a) => a.status === "departamento_medico").length,
-    contratosAVencer,
-  };
-
-  const fotoUrls = await Promise.all(
-    atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)),
-  );
-
-  const pendenciasAtletas: string[] = [];
-  if (totais.contratosAVencer > 0) {
-    pendenciasAtletas.push(
-      `${totais.contratosAVencer} contrato${totais.contratosAVencer > 1 ? "s" : ""} a vencer`,
-    );
-  }
-  if (totais.suspensos > 0) {
-    pendenciasAtletas.push(`${totais.suspensos} suspenso${totais.suspensos > 1 ? "s" : ""}`);
-  }
-  const pendenciaAtletas = pendenciasAtletas.length > 0 ? pendenciasAtletas.join(" · ") : null;
+  // Pendência do sino/rodapé (ver `PageHeader` antigo) fica de fora aqui — o resumo/filtros logo
+  // abaixo do título já mostra contagem de Suspensos e Contratos a vencer de forma bem mais visível
+  // do que uma linha de texto no cabeçalho.
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" largura="total">
       <Link href="/base/atletas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
-      <PageHeader title={`Atletas — ${categoriaBaseLabel(categoria)}`} pendencia={pendenciaAtletas} />
-      <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <Link href={`/base/atletas/campograma?categoria=${categoria}`} className="btn-secondary">
-          Ver campograma
-        </Link>
-        <a
-          href={`/base/atletas/${categoria}/export?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`}
-          className="btn-secondary"
-        >
-          Exportar para Excel
-        </a>
-        <Link href={`/base/atletas/relacao?categoria=${categoria}`} className="btn-secondary">
-          Exportar relação
-        </Link>
-        <Link href={`/base/atletas/${categoria}/novo`} className="btn-primary">
-          + Novo atleta
-        </Link>
-      </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Total</p>
-          <p className="mt-1 text-2xl font-bold text-grena-escuro">{totais.total}</p>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-grena-escuro">Atletas — {categoriaBaseLabel(categoria)}</h1>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/base/atletas/campograma?categoria=${categoria}`} className="btn-secondary">
+            Ver campograma
+          </Link>
+          <Link href={`/base/atletas/${categoria}/novo`} className="btn-primary">
+            + Novo atleta
+          </Link>
         </div>
-        <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Liberados</p>
-          <p className="mt-1 text-2xl font-bold text-green-700">{totais.liberados}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Suspensos</p>
-          <p className="mt-1 text-2xl font-bold text-red-700">{totais.suspensos}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Dept. Médico</p>
-          <p className="mt-1 text-2xl font-bold text-amber-700">{totais.departamentoMedico}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-            Contratos a vencer (90d)
-          </p>
-          <p className="mt-1 text-2xl font-bold text-amber-700">{totais.contratosAVencer}</p>
-        </div>
-      </div>
-
-      <div className="card mt-4 p-4">
-        <SearchBar action={`/base/atletas/${categoria}`} defaultValue={q} placeholder="Buscar atleta por nome...">
-          <div className="min-w-[180px]">
-            <label htmlFor="status" className="field-label">
-              Status
-            </label>
-            <select id="status" name="status" defaultValue={status} className="field-input">
-              <option value="">Todos</option>
-              <option value="liberado">Liberado</option>
-              <option value="suspenso">Suspenso</option>
-              <option value="departamento_medico">Departamento Médico</option>
-              <option value="dispensado">Dispensado</option>
-            </select>
-          </div>
-        </SearchBar>
       </div>
 
       {error ? (
@@ -210,77 +92,17 @@ export default async function AtletasBaseCategoriaPage({
         </p>
       ) : null}
 
-      {atletas.length === 0 && !error ? (
-        <div className="card mt-4 p-8 text-center text-neutral-400">Nenhum atleta encontrado.</div>
-      ) : null}
-
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {atletas.map((atleta, i) => {
-          const venceLogo =
-            atleta.data_fim_contrato && diasAte(atleta.data_fim_contrato, hoje) <= CONTRATO_A_VENCER_DIAS;
-          return (
-            <div
-              key={atleta.id}
-              className={`card flex flex-col gap-4 p-5 ${bordaClassificacaoAtleta(atleta.classificacao)}`}
-            >
-              <div className="flex items-center gap-4">
-                {fotoUrls[i] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={fotoUrls[i]!}
-                    alt={atleta.nome_completo}
-                    className="h-16 w-16 flex-shrink-0 rounded-full object-cover ring-2 ring-neutral-100"
-                  />
-                ) : (
-                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-lg font-bold text-neutral-400">
-                    {atleta.nome_completo.slice(0, 1).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-neutral-800">{atleta.nome_completo}</p>
-                  <p className="text-sm text-neutral-500">
-                    {atleta.posicao}
-                    {atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={atleta.status} />
-                {atleta.tipo_contrato ? <TipoContratoBadge tipoContrato={atleta.tipo_contrato} /> : null}
-                {venceLogo ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                    Contrato a vencer
-                  </span>
-                ) : null}
-                {cadastroIncompleto(atleta) ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                    Cadastro incompleto
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-neutral-100 pt-3 text-sm">
-                <span className="text-neutral-400">CPF</span>
-                <span className="text-neutral-700">{atleta.cpf ? formatCPF(atleta.cpf) : "—"}</span>
-                <span className="text-neutral-400">Contrato até</span>
-                <span className={venceLogo ? "font-medium text-amber-700" : "text-neutral-700"}>
-                  {formatData(atleta.data_fim_contrato)}
-                </span>
-              </div>
-
-              <div className="flex justify-end gap-2 border-t border-neutral-100 pt-3">
-                <Link href={`/base/atletas/${categoria}/${atleta.id}/ver`} className="btn-secondary">
-                  Ver
-                </Link>
-                <Link href={`/base/atletas/${categoria}/${atleta.id}`} className="btn-secondary">
-                  Editar
-                </Link>
-                <DeleteButton errorAction={deleteAtletaBase} id={atleta.id} entityLabel="atleta" />
-              </div>
-            </div>
-          );
-        })}
+      <div className="mt-4">
+        <AtletasResumoFiltros
+          atletas={itens}
+          statusOptions={STATUS_OPTIONS}
+          contratoOptions={[...CONTRATO_OPTIONS_BASE]}
+          statusOcultoPorPadrao="dispensado"
+          exportar={{
+            excelHref: `/base/atletas/${categoria}/export`,
+            extras: [{ label: "Exportar relação", href: `/base/atletas/relacao?categoria=${categoria}` }],
+          }}
+        />
       </div>
     </AppShell>
   );
