@@ -49,6 +49,9 @@ export function AtletaBaseForm({
       {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
       <FormSection title="Dados pessoais">
         <FieldGroup>
+          <div className="sm:col-span-2">
+            <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} showDownload />
+          </div>
           <TextField
             label="Nome completo"
             name="nomeCompleto"
@@ -80,9 +83,6 @@ export function AtletaBaseForm({
             error={errors.telefone}
           />
           <div className="sm:col-span-2">
-            <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} showDownload />
-          </div>
-          <div className="sm:col-span-2">
             <div className="flex items-center gap-2">
               <input
                 id="possuiAlergiaMedicamento"
@@ -108,7 +108,7 @@ export function AtletaBaseForm({
             ) : null}
           </div>
           <TextField
-            label="Cidade natal"
+            label="Naturalidade"
             name="cidadeNatal"
             defaultValue={values.cidadeNatal}
             error={errors.cidadeNatal}

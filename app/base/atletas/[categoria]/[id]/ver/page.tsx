@@ -133,7 +133,7 @@ export default async function VerAtletaBasePage({
             {atleta.possui_alergia_medicamento ? (
               <DetailField label="Qual" value={atleta.alergia_medicamento_qual} />
             ) : null}
-            <DetailField label="Cidade natal" value={atleta.cidade_natal} />
+            <DetailField label="Naturalidade" value={atleta.cidade_natal} />
             <DetailField label="UF natal" value={atleta.uf_natal} />
             {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
                 formulário de editar não grava mais nele, só continua aqui pra não sumir com dados

@@ -84,7 +84,7 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             {atleta.possui_alergia_medicamento ? (
               <DetailField label="Qual" value={atleta.alergia_medicamento_qual} />
             ) : null}
-            <DetailField label="Cidade natal" value={atleta.cidade_natal} />
+            <DetailField label="Naturalidade" value={atleta.cidade_natal} />
             <DetailField label="UF natal" value={atleta.uf_natal} />
             <div className="sm:col-span-2">
               <DetailField label="Endereço atual" value={atleta.endereco_atual} />
