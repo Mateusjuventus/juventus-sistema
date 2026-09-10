@@ -13,15 +13,18 @@ export const CONTRATO_ATLETA_LABEL: Record<AtletaBaseTipoContrato, string> = Obj
  * 2026-09-09-atletas-resumo-filtros-design.md, seção 2), pra selo e fatia nunca ficarem com cores
  * diferentes pro mesmo tipo.
  *
- * `AtletaBaseTipoContrato` cobre os 4 tipos reais (a Base tem os 3 do Profissional + Iniciação —
+ * `AtletaBaseTipoContrato` cobre os 5 tipos reais (a Base tem os 4 do Profissional + Iniciação —
  * ver `ATLETA_TIPO_CONTRATO_OPTIONS`/`ATLETA_BASE_TIPO_CONTRATO_OPTIONS` em
- * `lib/validation/schemas.ts`); o Profissional só usa os 3 primeiros. Não existe "Formação" no
- * sistema — só apareceu no protótipo inicial, corrigido antes de virar código.
+ * `lib/validation/schemas.ts`); o Profissional não usa "iniciacao". "Formação" é valor próprio
+ * desde a migração 0097 (antes era só um sub-flag de "Amador") — cor dourada, puxando pro acento
+ * `dourado` do sistema (`lib/theme.ts`), pra não colidir com o verde de Amador nem o rosa de
+ * Iniciação.
  */
 export const CONTRATO_ATLETA_COR: Record<AtletaBaseTipoContrato, string> = {
   definitivo: "#2a78d6",
   emprestimo: "#eb6834",
   amador: "#1baf7a",
+  formacao: "#b98f1e",
   iniciacao: "#e87ba4",
 };
 
@@ -31,6 +34,7 @@ export const CONTRATO_ATLETA_COR_TEXTO: Record<AtletaBaseTipoContrato, string> =
   definitivo: "#1c5cab",
   emprestimo: "#b5501f",
   amador: "#0f7d54",
+  formacao: "#8a6a12",
   iniciacao: "#a8355f",
 };
 
@@ -39,6 +43,7 @@ export const CONTRATO_ATLETA_INICIAL: Record<AtletaBaseTipoContrato, string> = {
   definitivo: "D",
   emprestimo: "E",
   amador: "A",
+  formacao: "F",
   iniciacao: "I",
 };
 

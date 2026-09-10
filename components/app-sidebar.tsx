@@ -434,13 +434,20 @@ export function AppSidebar({
         </aside>
       </div>
 
-      {/* Desktop: a barra em si fica sempre `fixed` (nunca participa do fluxo — largura mudando de
-          64px pra 232px nunca reflui o resto da página) — o espaçador logo abaixo é quem reserva
-          64px no `flex-row` do AppShell pro conteúdo começar no lugar certo. Um `aside` só (não dois
-          separados por estado) evita ter dois conjuntos de links tabuláveis ao mesmo tempo.
-          `onMouseEnter`/`onFocus` expandem; `onBlur` com `recolher` só recolhe quando o foco sai de
-          vez da barra (não a cada Tab entre itens dela). */}
-      <div aria-hidden className="hidden w-16 shrink-0 lg:block" />
+      {/* Desktop: a barra em si fica sempre `fixed` (não participa do `flex-row` do AppShell) — o
+          espaçador logo abaixo é quem reserva o espaço pro conteúdo começar no lugar certo, e agora
+          acompanha a mesma largura da barra (64px -> 232px) pra expandir empurrar a página em vez de
+          flutuar por cima dela (flutuando por cima, a barra expandida tapava título/filtros que
+          começavam colados na borda esquerda — ver print do Mateus). Um `aside` só (não dois
+          separados por estado) continua evitando ter dois conjuntos de links tabuláveis ao mesmo
+          tempo. `onMouseEnter`/`onFocus` expandem; `onBlur` com `recolher` só recolhe quando o foco
+          sai de vez da barra (não a cada Tab entre itens dela). */}
+      <div
+        aria-hidden
+        className={`hidden shrink-0 transition-[width] duration-200 lg:block ${
+          expandida ? "w-[232px]" : "w-16"
+        }`}
+      />
       <aside
         onMouseEnter={expandir}
         onMouseLeave={() => setExpandida(false)}

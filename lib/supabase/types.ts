@@ -28,10 +28,12 @@ export type AtletaPosicao =
   | "Ponta Direita"
   | "Ponta Esquerda";
 
-/** Tipo de contrato do atleta no Futebol Profissional — Amador libera o campo "possui contrato de
- * formação" no formulário (ver `AtletaForm`). O Futebol de Base tem uma opção a mais (Iniciação),
- * ver `AtletaBaseTipoContrato`. */
-export type AtletaTipoContrato = "definitivo" | "emprestimo" | "amador";
+/** Tipo de contrato do atleta no Futebol Profissional. "Formação" é seu próprio valor aqui (ver
+ * migração 0097) — separado de "Amador" desde que passou a existir na tela de Atletas como uma
+ * categoria própria, não mais um sub-flag ("possui contrato de formação", que continua existindo
+ * só pra registros antigos de "Amador" sem essa marcação). O Futebol de Base tem uma opção a mais
+ * (Iniciação), ver `AtletaBaseTipoContrato`. */
+export type AtletaTipoContrato = "definitivo" | "emprestimo" | "amador" | "formacao";
 
 export interface AtletaRow {
   id: string;
@@ -89,9 +91,9 @@ export interface AtletaDocumentoRow {
 /** Categorias de idade do Futebol de Base (Sub20 a Sub11) — ver `lib/auth/categorias-base.ts`. */
 export type CategoriaBase = "sub20" | "sub17" | "sub15" | "sub14" | "sub13" | "sub12" | "sub11";
 
-/** Tipo de contrato do atleta no Futebol de Base — mesmas opções de `AtletaTipoContrato`, mais
- * "Iniciação" (categorias mais jovens, sem vínculo formal ainda). */
-export type AtletaBaseTipoContrato = "definitivo" | "emprestimo" | "amador" | "iniciacao";
+/** Tipo de contrato do atleta no Futebol de Base — mesmas opções de `AtletaTipoContrato` (incluindo
+ * "formacao"), mais "Iniciação" (categorias mais jovens, sem vínculo formal ainda). */
+export type AtletaBaseTipoContrato = "definitivo" | "emprestimo" | "amador" | "formacao" | "iniciacao";
 
 /** Status do atleta no Futebol de Base — mesmas opções de `AtletaStatus`, mais "dispensado" (ver
  * docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md e

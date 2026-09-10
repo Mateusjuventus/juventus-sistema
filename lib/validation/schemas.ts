@@ -58,11 +58,16 @@ export const enderecoFields = {
   uf: z.string().optional().or(z.literal("")),
 };
 
-/** Tipo de contrato do Futebol Profissional — ver `AtletaTipoContrato` em `lib/supabase/types.ts`. */
+/** Tipo de contrato do Futebol Profissional — ver `AtletaTipoContrato` em `lib/supabase/types.ts`.
+ * "Formação" migrou de sub-flag de "Amador" (`possuiContratoFormacao`) pra valor próprio em
+ * 2026-09-10 (ver supabase/migrations/0097_atleta_contrato_formacao_tipo.sql) — o campo antigo
+ * continua existindo pra registros legados, mas só faz sentido escolher "Formação" direto daqui em
+ * diante. */
 export const ATLETA_TIPO_CONTRATO_OPTIONS = [
   { value: "definitivo", label: "Definitivo" },
   { value: "emprestimo", label: "Empréstimo" },
   { value: "amador", label: "Amador" },
+  { value: "formacao", label: "Formação" },
 ] as const;
 
 /** Tipo de contrato do Futebol de Base — mesmas opções do Profissional, mais Iniciação. */
@@ -142,7 +147,7 @@ const atletaCamposBase = z.object({
   empresarioNome: z.string().optional().or(z.literal("")),
   status: z.enum(["liberado", "suspenso", "departamento_medico"]).default("liberado"),
   dataFimContrato: z.string().optional().or(z.literal("")),
-  tipoContrato: z.enum(["definitivo", "emprestimo", "amador"]).optional().nullable(),
+  tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "formacao"]).optional().nullable(),
   possuiContratoFormacao: z.boolean().default(false),
   // Pedido de 25/08: "Possui alergia a algum medicamento? Se sim, qual". Opcional no cadastro
   // interno (a maioria dos campos do admin também é); a checagem de "se sim, qual é obrigatório"
@@ -162,7 +167,10 @@ export const atletaBaseSchema = atletaCamposBase
     categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
       errorMap: () => ({ message: "Categoria é obrigatória" }),
     }),
-    tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "iniciacao"]).optional().nullable(),
+    tipoContrato: z
+      .enum(["definitivo", "emprestimo", "amador", "formacao", "iniciacao"])
+      .optional()
+      .nullable(),
     // Classificação G1/G2/G3 (ver docs/superpowers/specs/
     // 2026-08-25-classificacao-dispensa-atleta-base-design.md) — opcional, nem todo atleta precisa
     // estar classificado. "dispensa" ("Dispensa (pendente)") é um 4º valor, adicionado em

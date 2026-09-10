@@ -23,7 +23,10 @@ const STATUS_OPTIONS: StatusFiltroOpcao[] = [
   { value: "dispensado", label: STATUS_LABEL.dispensado },
 ];
 
-const CONTRATO_OPTIONS_BASE = ["definitivo", "emprestimo", "amador", "iniciacao"] as const;
+// "formacao" migrou de sub-flag de "amador" pra valor próprio em 2026-09-10 (ver
+// supabase/migrations/0097_atleta_contrato_formacao_tipo.sql) — ordem espelha
+// ATLETA_BASE_TIPO_CONTRATO_OPTIONS.
+const CONTRATO_OPTIONS_BASE = ["definitivo", "emprestimo", "amador", "formacao", "iniciacao"] as const;
 
 /** Lista de Atletas do Futebol de Base filtrada por categoria (Sub20 a Sub11) — espelha
  * `app/atletas/page.tsx`, mas sempre restrita à categoria da URL. Resumo/filtros e busca são

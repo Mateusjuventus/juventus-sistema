@@ -211,6 +211,7 @@ export function AtletasResumoFiltros({
               {contratoOptions.map((tipo) => {
                 const count = contagensContrato.get(tipo) ?? 0;
                 const ativo = contratoSel.has(tipo);
+                const percentual = totalComContrato > 0 ? Math.round((count / totalComContrato) * 100) : 0;
                 return (
                   <button
                     key={tipo}
@@ -229,6 +230,7 @@ export function AtletasResumoFiltros({
                       {CONTRATO_ATLETA_LABEL[tipo]}
                     </span>
                     <span className="font-bold tabular-nums text-neutral-800">{count}</span>
+                    <span className="w-9 shrink-0 text-right tabular-nums text-neutral-400">{percentual}%</span>
                   </button>
                 );
               })}
@@ -276,7 +278,7 @@ export function AtletasResumoFiltros({
           Nenhum atleta encontrado com essa combinação de filtros.
         </div>
       ) : (
-        <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
+        <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-3">
           {filtrados.map((atleta) => (
             <AtletaCard key={atleta.id} atleta={atleta} href={atleta.href} />
           ))}

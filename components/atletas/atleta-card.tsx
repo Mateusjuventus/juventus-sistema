@@ -92,16 +92,16 @@ export function AtletaCard({
         ) : null}
       </div>
 
-      <div className="truncate bg-grena/35 px-2 py-1 text-center text-[11px] font-bold text-grena-escuro">
+      <div className="line-clamp-2 break-words bg-grena/35 px-2 py-1 text-center text-[11px] font-bold leading-tight text-grena-escuro">
         {atleta.nome}
       </div>
 
-      <div className="bg-grena-escuro px-3 py-2.5">
-        <p className="truncate text-center text-sm font-bold text-white">{formatDataBR(atleta.dataNascimento)}</p>
-        <p className="mt-1 truncate text-center text-[11px] text-white/75">
+      <div className="bg-grena-escuro px-2.5 py-2.5">
+        <p className="text-center text-sm font-bold leading-tight text-white">{formatDataBR(atleta.dataNascimento)}</p>
+        <p className="mt-1 text-center text-[11px] leading-tight text-white/75">
           CPF {atleta.cpf ? formatCPF(atleta.cpf) : "—"}
         </p>
-        <p className="truncate text-center text-[11px] text-white/75">
+        <p className="text-center text-[11px] leading-tight text-white/75">
           {atleta.dispensado ? "Encerrado em " : "Contrato até "}
           {formatDataBR(atleta.dataFimContrato)}
         </p>

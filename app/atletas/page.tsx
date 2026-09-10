@@ -18,8 +18,9 @@ const STATUS_OPTIONS: StatusFiltroOpcao[] = [
 ];
 
 // Sem "iniciacao" aqui — só existe na Base (ver docs/superpowers/specs/
-// 2026-09-09-atletas-resumo-filtros-design.md, seção 2).
-const CONTRATO_OPTIONS_PROFISSIONAL = ["definitivo", "emprestimo", "amador"] as const;
+// 2026-09-09-atletas-resumo-filtros-design.md, seção 2). "formacao" migrou de sub-flag de "amador"
+// pra valor próprio em 2026-09-10 (ver supabase/migrations/0097_atleta_contrato_formacao_tipo.sql).
+const CONTRATO_OPTIONS_PROFISSIONAL = ["definitivo", "emprestimo", "amador", "formacao"] as const;
 
 function calcularIdade(dataNascimento: string, hoje: Date): number {
   const nascimento = new Date(dataNascimento);
