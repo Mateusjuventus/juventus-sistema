@@ -4,6 +4,7 @@ import { calcularEscalaCardsAtletas } from "./atletas-resumo-escala";
 import { fatiasPizza } from "@/lib/futebol/grafico-pizza";
 import { categoriaDaPosicao, CATEGORIA_POSICAO_SIGLA } from "@/lib/futebol/categoria-posicao";
 import { CONTRATO_ATLETA_COR, CONTRATO_ATLETA_LABEL } from "@/lib/futebol/contrato-atleta";
+import { nomeExibido } from "@/lib/futebol/nome-atleta";
 import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaBaseTipoContrato } from "@/lib/supabase/types";
 
@@ -22,7 +23,11 @@ import type { AtletaBaseTipoContrato } from "@/lib/supabase/types";
 
 export interface AtletaResumoPdfItem {
   id: string;
+  /** Nome completo — mostrado junto do CPF, igual à tela (`AtletaCard`). */
   nome: string;
+  /** Como o atleta é chamado no dia a dia — aparece na faixa clara, com fallback pro nome completo
+   * quando não há apelido (`nomeExibido`), igual à tela. */
+  apelido: string | null;
   cpf: string | null;
   fotoUrl: string | null;
   dataNascimento: string | null;
@@ -114,15 +119,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   seloContratoTexto: { color: "#ffffff", fontWeight: 700 },
+  // Cinza claro (voltou a ser assim, era a cor original da faixa antes do redesign — mesmo pedido
+  // do Mateus aplicado na tela, ver `AtletaCard`) em vez do grená translúcido usado no meio do
+  // caminho.
   nomeFaixa: {
-    backgroundColor: "rgba(92,10,53,0.35)",
+    backgroundColor: "#f5f5f5",
     textAlign: "center",
     fontWeight: 700,
     color: CORES.grenaEscuro,
     paddingVertical: 1.5,
   },
-  infoBloco: { backgroundColor: CORES.grenaEscuro, paddingVertical: 3, paddingHorizontal: 3 },
-  infoNascimento: { textAlign: "center", fontWeight: 700, color: "#ffffff" },
+  infoBloco: { backgroundColor: CORES.grenaEscuro, paddingVertical: 4, paddingHorizontal: 3 },
+  // Nome completo — fica junto do CPF por ser o par que documento pede (mesmo raciocínio de
+  // `lib/futebol/nome-atleta.ts`).
+  infoNomeCompleto: { textAlign: "center", fontWeight: 600, color: "rgba(255,255,255,0.9)" },
+  infoNascimento: { textAlign: "center", fontWeight: 700, color: "#ffffff", marginTop: 2 },
   infoLinha: { textAlign: "center", color: "rgba(255,255,255,0.75)", marginTop: 1 },
 });
 
@@ -218,6 +229,7 @@ function CardAtletaPdf({ atleta, escala }: { atleta: AtletaResumoPdfItem; escala
   const largura = CARD_LARGURA_BASE * escala;
   const alturaFoto = FOTO_ALTURA_BASE * escala;
   const seloTamanho = SELO_TAMANHO_BASE * escala;
+  const apelidoOuNome = nomeExibido({ apelido: atleta.apelido, nome_completo: atleta.nome });
 
   return (
     <View style={[styles.card, { width: largura, margin: 2 * escala }]} wrap={false}>
@@ -251,10 +263,13 @@ function CardAtletaPdf({ atleta, escala }: { atleta: AtletaResumoPdfItem; escala
       </View>
 
       <Text style={[styles.nomeFaixa, { fontSize: NOME_FONTE_BASE * escala, paddingHorizontal: 2 }]}>
-        {atleta.nome}
+        {apelidoOuNome}
       </Text>
 
       <View style={styles.infoBloco}>
+        <Text style={[styles.infoNomeCompleto, { fontSize: (INFO_FONTE_BASE - 0.5) * escala }]}>
+          {atleta.nome}
+        </Text>
         <Text style={[styles.infoNascimento, { fontSize: (NOME_FONTE_BASE - 0.5) * escala }]}>
           {formatDataBr(atleta.dataNascimento)}
         </Text>
@@ -304,7 +319,10 @@ export function AtletasResumoDocument({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      {/* Paisagem (em vez de retrato) — a grade de cards fica bem mais larga que alta, então deitar
+          a folha aproveita melhor o espaço e cabe mais atletas por linha antes de precisar encolher
+          os cards (`calcularEscalaCardsAtletas`) — pedido do Mateus em 2026-09-10. */}
+      <Page size="A4" orientation="landscape" style={styles.page}>
         <View style={styles.topo}>
           {juventusLogoSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text

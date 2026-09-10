@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
   const itens: AtletaResumoPdfItem[] = atletas.map((a, i) => ({
     id: a.id,
     nome: a.nome_completo,
+    apelido: a.apelido,
     cpf: a.cpf ? formatCPF(a.cpf) : null,
     fotoUrl: fotoUrls[i],
     dataNascimento: a.data_nascimento,
