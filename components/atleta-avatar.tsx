@@ -60,8 +60,13 @@ export function AtletaAvatarBloco({
 }: AtletaAvatarBlocoProps) {
   if (fotoUrl) {
     return (
+      // object-top (em vez do center padrão do object-cover) ancora o corte no topo — as fotos
+      // oficiais são retrato de cima pra baixo (cabeça no topo do enquadramento, sobra mais espaço
+      // embaixo no peito/ombros do que em cima no cabelo), então cortar de baixo pra cima evita
+      // cortar testa/cabelo, que é o que aconteceu com o corte central de sempre (ver reclamação do
+      // Mateus em 2026-09-10, mesmo depois de já ter mudado o card pra 3:4).
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={fotoUrl} alt={nome} className={`${className} rounded-t-lg object-cover`} />
+      <img src={fotoUrl} alt={nome} className={`${className} rounded-t-lg object-cover object-top`} />
     );
   }
   const cor = corFallback ?? corAvatar(nome);

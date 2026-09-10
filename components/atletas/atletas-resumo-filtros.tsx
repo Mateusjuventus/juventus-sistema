@@ -224,7 +224,7 @@ export function AtletasResumoFiltros({
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
               Posições · clique para filtrar (uma ou mais)
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {ATLETA_POSICAO_OPTIONS.map((posicao) => {
                 const detalhe = contagensPosicao.get(posicao);
                 const apto = detalhe?.apto ?? 0;
@@ -234,21 +234,21 @@ export function AtletasResumoFiltros({
                     key={posicao}
                     type="button"
                     onClick={() => setPosicaoSel((atual) => alternarNoConjunto(atual, posicao))}
-                    className={filtroChipClasse(posicaoSel.has(posicao))}
+                    className={`rounded-md border px-2 py-1 text-left transition-colors ${
+                      posicaoSel.has(posicao)
+                        ? "border-grena bg-grena/10 text-grena-escuro"
+                        : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
+                    }`}
                   >
-                    <p className="text-[11px] font-bold text-neutral-800">{posicao}</p>
+                    <p className="text-[10px] font-bold leading-tight text-neutral-800">{posicao}</p>
                     {detalhe ? (
-                      <p className="mt-0.5 whitespace-nowrap text-[10px] font-medium">
-                        <span className="text-emerald-600">
-                          {apto} apto{apto === 1 ? "" : "s"}
-                        </span>
+                      <p className="whitespace-nowrap text-[9px] font-medium leading-tight">
+                        <span className="text-emerald-600">{apto} apto{apto === 1 ? "" : "s"}</span>
                         <span className="text-neutral-400"> · </span>
-                        <span className="text-red-500">
-                          {naoApto} não apto{naoApto === 1 ? "" : "s"}
-                        </span>
+                        <span className="text-red-500">{naoApto} não apto{naoApto === 1 ? "" : "s"}</span>
                       </p>
                     ) : (
-                      <p className="mt-0.5 text-[10px] text-neutral-400">sem cadastro</p>
+                      <p className="text-[9px] leading-tight text-neutral-400">sem cadastro</p>
                     )}
                   </button>
                 );
@@ -261,7 +261,12 @@ export function AtletasResumoFiltros({
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
             Contrato · clique para filtrar
           </p>
-          <div className="flex items-center gap-3">
+          {/* Pizza continua vindo primeiro (à esquerda da legenda) — mas o grupo inteiro
+              (pizza + legenda) fica encostado na borda direita do card via `justify-end`, em vez de
+              ficar solto perto do título com espaço vazio sobrando entre os dois (pedido do Mateus
+              em 2026-09-10). A legenda também deixou de esticar (`flex-1`) pra não empurrar os
+              números pra longe da pizza. */}
+          <div className="flex items-center justify-end gap-3">
             <PizzaContrato
               contratoOptions={contratoOptions}
               contagens={contagensContrato}
@@ -269,7 +274,7 @@ export function AtletasResumoFiltros({
               selecionados={contratoSel}
               aoClicar={(tipo) => setContratoSel((atual) => alternarNoConjunto(atual, tipo))}
             />
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div className="flex w-44 shrink-0 flex-col gap-0.5">
               {contratoOptions.map((tipo) => {
                 const count = contagensContrato.get(tipo) ?? 0;
                 const ativo = contratoSel.has(tipo);
@@ -338,7 +343,7 @@ export function AtletasResumoFiltros({
           Nenhum atleta encontrado com essa combinação de filtros.
         </div>
       ) : (
-        <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-3">
+        <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
           {filtrados.map((atleta) => (
             <AtletaCard key={atleta.id} atleta={atleta} href={atleta.href} />
           ))}
