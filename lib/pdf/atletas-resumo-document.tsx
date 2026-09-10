@@ -1,20 +1,24 @@
-import { Document, Page, Text, View, Image, Svg, Path, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image, Svg, Path, Defs, RadialGradient, Stop, Rect, StyleSheet } from "@react-pdf/renderer";
 import { CORES, DocumentoFooter, formatDataBr, type LogoSrc } from "./logistica-shared";
 import { calcularEscalaCardsAtletas } from "./atletas-resumo-escala";
 import { fatiasPizza } from "@/lib/futebol/grafico-pizza";
 import { categoriaDaPosicao, CATEGORIA_POSICAO_SIGLA } from "@/lib/futebol/categoria-posicao";
 import { CONTRATO_ATLETA_COR, CONTRATO_ATLETA_LABEL } from "@/lib/futebol/contrato-atleta";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
+import { iniciaisNome } from "@/lib/futebol/avatar-cor";
 import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaBaseTipoContrato } from "@/lib/supabase/types";
 
 /**
  * PDF "Resumo de Atletas" — resumo (Status/Posições/Contrato, mesmos três blocos da tela) + a grade
- * de cards dos atletas, tudo numa folha só (pedido explícito do Mateus: "tudo numa única página"),
- * no mesmo espírito do Campograma (`campograma-document.tsx`): cards encolhem proporcionalmente pra
- * caber elencos grandes sem quebrar página (ver `calcularEscalaCardsAtletas`). Reaproveita
- * `fatiasPizza` (a mesma matemática do gráfico de pizza da tela) pro gráfico de Contrato, pra nunca
- * ficar diferente do que aparece no navegador.
+ * de cards dos atletas. Os cards saem sempre no tamanho de referência (`calcularEscalaCardsAtletas`
+ * ficou fixa em 1 a partir de 2026-09-10 — o Mateus preferiu card grande a caber tudo numa página
+ * só: "pode jogar mais atletas para baixo se precisar... pra que aumente eles"); quando o elenco não
+ * cabe inteiro numa folha A4, o react-pdf pagina sozinho (nenhuma `View` da grade usa `wrap={false}`,
+ * só cada card — ver `CardAtletaPdf` — pra não ser cortado ao meio numa quebra), e o rodapé
+ * (`DocumentoFooter`, `fixed`) se repete em toda página gerada. Reaproveita `fatiasPizza` (a mesma
+ * matemática do gráfico de pizza da tela) pro gráfico de Contrato, pra nunca ficar diferente do que
+ * aparece no navegador.
  *
  * Cards mostram os mesmos dados do `AtletaCard` da tela (foto, sigla de posição, número da camisa,
  * selo de contrato, nome, nascimento, CPF e contrato) — não depende da escolha de colunas do export
@@ -45,10 +49,9 @@ export interface StatusOpcaoPdf {
 }
 
 // Cards maiores (pedido do Mateus em 2026-09-10: "aumentar os cards", tamanho antigo ficava
-// pequeno demais mesmo pra elencos enxutos) — a referência de encolhimento
-// (`calcularEscalaCardsAtletas`) foi ajustada junto (ver `atletas-resumo-escala.ts`) pra ainda
-// caber numa folha só com elencos cheios; só quem exporta um elenco pequeno ou uma lista já
-// filtrada na tela (ex.: só uma posição) é que vê o card no tamanho de referência cheio.
+// pequeno demais mesmo pra elencos enxutos) — sempre nesse tamanho de referência, elenco cheio ou
+// não (`calcularEscalaCardsAtletas` não encolhe mais; ver `atletas-resumo-escala.ts`). Elenco que
+// não cabe numa folha só simplesmente continua na próxima página.
 const CARD_LARGURA_BASE = 90;
 // Foto na mesma proporção 3:4 do card da tela (`AtletaCard`, `aspect-[3/4]`) em vez de um valor
 // fixo solto — mantém a mesma moldura em vez de aparecer mais "quadrada" no PDF do que na tela.
@@ -104,8 +107,15 @@ const styles = StyleSheet.create({
   contratoLabel: { fontSize: 6, color: "#525252", flex: 1 },
   contratoValor: { fontSize: 6, fontWeight: 700, color: "#262626" },
 
-  cardsGrid: { flexDirection: "row", flexWrap: "wrap", alignContent: "flex-start" },
+  // `alignItems: "stretch"` (junto do `flexGrow` no `infoBloco`, mais abaixo): mesmo raciocínio do
+  // card da tela (`AtletaCard`) — cards com nome completo mais longo (mais linhas) ficavam
+  // visivelmente maiores que os vizinhos na mesma linha, já que o react-pdf não estica um card pra
+  // acompanhar o mais alto da linha por padrão. Com `stretch`, cada linha da grade estica todo card
+  // até a altura do maior vizinho; quem absorve esse espaço extra é o bloco escuro (`flexGrow: 1`),
+  // que continua com o fundo grená até o fim do card.
+  cardsGrid: { flexDirection: "row", flexWrap: "wrap", alignContent: "flex-start", alignItems: "stretch" },
   card: {
+    flexDirection: "column",
     borderWidth: 0.75,
     borderColor: "#e5e5e5",
     borderRadius: 3,
@@ -113,7 +123,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   fotoWrap: { width: "100%", backgroundColor: "#f5f5f5", position: "relative" },
-  fotoPlaceholder: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: CORES.grena },
+  // `backgroundColor` é só o fallback caso o degradê SVG (ver `CardAtletaPdf`) não renderize por
+  // algum motivo — o visual de verdade vem do degradê, pra bater com o fundo do avatar de
+  // fallback da tela (`FundoEstudioAtleta`/`AtletaAvatarBloco`, pedido do Mateus em 2026-09-10).
+  fotoPlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: CORES.grena,
+    position: "relative",
+  },
+  fotoPlaceholderGradiente: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%" },
   fotoPlaceholderTexto: { color: "#ffffff", fontWeight: 700 },
   siglaOverlay: { position: "absolute", top: 2, left: 3, color: "#ffffff", fontWeight: 700 },
   numeroOverlay: { position: "absolute", top: 2, right: 3, color: "#ffffff", fontWeight: 700 },
@@ -136,7 +157,16 @@ const styles = StyleSheet.create({
     color: CORES.grenaEscuro,
     paddingVertical: 1.5,
   },
-  infoBloco: { backgroundColor: CORES.grenaEscuro, paddingVertical: 4, paddingHorizontal: 3 },
+  // `flexGrow: 1` + `justifyContent: "center"`: ver comentário em `cardsGrid` — cresce pra absorver
+  // a altura extra quando o `stretch` da linha deixa este card mais alto que o necessário pro seu
+  // próprio conteúdo, centralizando as 4 linhas nesse espaço em vez de deixá-las coladas no topo.
+  infoBloco: {
+    flexGrow: 1,
+    justifyContent: "center",
+    backgroundColor: CORES.grenaEscuro,
+    paddingVertical: 4,
+    paddingHorizontal: 3,
+  },
   // Nome completo — fica junto do CPF por ser o par que documento pede (mesmo raciocínio de
   // `lib/futebol/nome-atleta.ts`).
   infoNomeCompleto: { textAlign: "center", fontWeight: 600, color: "rgba(255,255,255,0.9)" },
@@ -230,7 +260,21 @@ function ResumoContrato({
   );
 }
 
-function CardAtletaPdf({ atleta, escala }: { atleta: AtletaResumoPdfItem; escala: number }) {
+function CardAtletaPdf({
+  atleta,
+  escala,
+  mostrarCpf,
+  mostrarContrato,
+}: {
+  atleta: AtletaResumoPdfItem;
+  escala: number;
+  /** Checkbox "Mostrar no card" da tela (`AtletasResumoFiltros`, pedido do Mateus em 2026-09-10) —
+   * mesmas duas props do `AtletaCard` da tela, aplicadas aqui pro PDF sair igual ao que está
+   * marcado. `mostrarContrato` esconde o selo colorido na foto E a linha "Contrato até"/"Encerrado
+   * em"; `mostrarCpf` só a linha de CPF. */
+  mostrarCpf: boolean;
+  mostrarContrato: boolean;
+}) {
   const categoria = categoriaDaPosicao(atleta.posicao);
   const sigla = categoria ? CATEGORIA_POSICAO_SIGLA[categoria] : "—";
   const largura = CARD_LARGURA_BASE * escala;
@@ -251,17 +295,46 @@ function CardAtletaPdf({ atleta, escala }: { atleta: AtletaResumoPdfItem; escala
             src={atleta.fotoUrl}
           />
         ) : (
+          // Duas iniciais (primeira + última) em vez de uma letra só, sobre o mesmo degradê grená
+          // radial do avatar de fallback da tela (`FundoEstudioAtleta`/`AtletaAvatarBloco`, pedido
+          // do Mateus em 2026-09-10 — "manter o padrão... do mesmo jeito que fica o sistema"). O
+          // id do gradiente leva o id do atleta pra não colidir entre os vários cards da página
+          // (ids de SVG são globais no documento, mesmo problema que a versão da tela já resolvia).
           <View style={styles.fotoPlaceholder}>
-            <Text style={[styles.fotoPlaceholderTexto, { fontSize: 12 * escala }]}>
-              {atleta.nome.charAt(0).toUpperCase()}
-            </Text>
+            {/* Mesmo `viewBox`/retângulo 300×400 do `FundoEstudioAtleta` da tela (não um quadrado
+                100×100): o degradê é definido em fração do próprio retângulo que ele preenche
+                (objectBoundingBox), então um `viewBox` quadrado deixava o glow redondo — na tela,
+                com a caixa 300×400 (mesma proporção 3:4 da foto), o glow sai ovalado/deslocado pro
+                canto. Sem isso o card no PDF batia na cor certa mas com o formato errado do degradê
+                (pedido do Mateus em 2026-09-10: "é pra deixar o mesmo design do mesmo cartão do
+                sistema"). As linhas onduladas do fundo real usam `feGaussianBlur`, que o react-pdf
+                não suporta — sem o desfoque elas ficariam como riscos duros em vez de um brilho
+                suave, então ficam de fora aqui; o degradê (cor + forma) é o que carrega o visual.
+                */}
+            <Svg viewBox="0 0 300 400" style={styles.fotoPlaceholderGradiente}>
+              <Defs>
+                {/* cx/cy/r/offset em fração (0–1), não porcentagem: o cálculo do react-pdf
+                    (`setRadialGradientFill`) faz `bbox * valor` direto — uma string "18%" viraria
+                    NaN aí, diferente de SVG puro no navegador. `r` não está no tipo de
+                    `RadialGradientProps` do react-pdf mesmo lendo esse valor em tempo de render
+                    (falta na definição de tipos da lib) — daí o `@ts-expect-error` pontual. */}
+                {/* @ts-expect-error r existe em tempo de execução (setRadialGradientFill), só falta no d.ts do react-pdf */}
+                <RadialGradient id={`fundo-glow-${atleta.id}`} cx={0.18} cy={0.18} r={0.85}>
+                  <Stop offset={0} stopColor="#9E2462" />
+                  <Stop offset={0.4} stopColor="#7A1650" />
+                  <Stop offset={1} stopColor="#48122F" />
+                </RadialGradient>
+              </Defs>
+              <Rect x={0} y={0} width={300} height={400} fill={`url(#fundo-glow-${atleta.id})`} />
+            </Svg>
+            <Text style={[styles.fotoPlaceholderTexto, { fontSize: 14 * escala }]}>{iniciaisNome(atleta.nome)}</Text>
           </View>
         )}
         <Text style={[styles.siglaOverlay, { fontSize: SIGLA_FONTE_BASE * escala }]}>{sigla}</Text>
         {atleta.numeroCamisa ? (
           <Text style={[styles.numeroOverlay, { fontSize: SIGLA_FONTE_BASE * escala }]}>{atleta.numeroCamisa}</Text>
         ) : null}
-        {atleta.tipoContrato ? (
+        {mostrarContrato && atleta.tipoContrato ? (
           <View
             style={[
               styles.seloContrato,
@@ -286,13 +359,17 @@ function CardAtletaPdf({ atleta, escala }: { atleta: AtletaResumoPdfItem; escala
         <Text style={[styles.infoNascimento, { fontSize: (NOME_FONTE_BASE - 0.5) * escala }]}>
           {formatDataBr(atleta.dataNascimento)}
         </Text>
-        <Text style={[styles.infoLinha, { fontSize: INFO_FONTE_BASE * escala }]}>
-          CPF {atleta.cpf ?? "—"}
-        </Text>
-        <Text style={[styles.infoLinha, { fontSize: INFO_FONTE_BASE * escala }]}>
-          {atleta.dispensado ? "Encerrado " : "Até "}
-          {formatDataBr(atleta.dataFimContrato)}
-        </Text>
+        {mostrarCpf ? (
+          <Text style={[styles.infoLinha, { fontSize: INFO_FONTE_BASE * escala }]}>
+            CPF {atleta.cpf ?? "—"}
+          </Text>
+        ) : null}
+        {mostrarContrato ? (
+          <Text style={[styles.infoLinha, { fontSize: INFO_FONTE_BASE * escala }]}>
+            {atleta.dispensado ? "Encerrado " : "Até "}
+            {formatDataBr(atleta.dataFimContrato)}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -305,6 +382,8 @@ export function AtletasResumoDocument({
   statusOptions,
   juventusLogoSrc,
   geradoEm,
+  mostrarCpf = true,
+  mostrarContrato = true,
 }: {
   titulo: string;
   atletas: AtletaResumoPdfItem[];
@@ -312,6 +391,12 @@ export function AtletasResumoDocument({
   statusOptions: StatusOpcaoPdf[];
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
+  /** Espelha o checkbox "Mostrar no card" de `AtletasResumoFiltros` (pedido do Mateus em
+   * 2026-09-10) — as rotas de export leem `camposOcultosDaQueryString` e passam aqui, pro PDF sair
+   * igual ao que está marcado na tela. Ligados por padrão pra não quebrar quem chama sem passar
+   * (ex.: o script de verificação visual). */
+  mostrarCpf?: boolean;
+  mostrarContrato?: boolean;
 }) {
   const contagensStatus = new Map<string, number>();
   const contagensPosicao = new Map<string, number>();
@@ -357,7 +442,13 @@ export function AtletasResumoDocument({
 
         <View style={styles.cardsGrid}>
           {atletas.map((atleta) => (
-            <CardAtletaPdf key={atleta.id} atleta={atleta} escala={escala} />
+            <CardAtletaPdf
+              key={atleta.id}
+              atleta={atleta}
+              escala={escala}
+              mostrarCpf={mostrarCpf}
+              mostrarContrato={mostrarContrato}
+            />
           ))}
         </View>
 

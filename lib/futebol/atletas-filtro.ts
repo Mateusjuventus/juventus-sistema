@@ -67,6 +67,11 @@ export function atletaPassaFiltro(
   return true;
 }
 
+/** Campo do card que dá pra esconder — ver checkbox "Mostrar no card" em `AtletasResumoFiltros`
+ * (pedido do Mateus em 2026-09-10). Apelido/nome completo e nascimento continuam sempre visíveis;
+ * só esses dois têm informação sensível/dispensável dependendo de quem vai ver o card ou o PDF. */
+export type CampoCardOpcional = "cpf" | "contrato";
+
 /**
  * Serializa os filtros ativos numa query string (`status=a,b&posicao=c&contrato=d&q=busca`) — usada
  * pra levar o filtro/busca atual da tela pro link de "Exportar para Excel", que virou puramente
@@ -79,14 +84,24 @@ export function atletaPassaFiltro(
  * `mostrarInativos` vira `inativos=1` na query — só faz sentido na Base (ver checkbox "Mostrar
  * inativos" em `AtletasResumoFiltros`); a rota de export da Base lê esse parâmetro pra decidir se
  * passa `statusOcultoPorPadrao` ou não, mantendo a exportação igual ao que está na tela.
+ *
+ * `camposOcultos` vira `camposOcultos=cpf,contrato` — só afeta o PDF (`?campos...` chega em
+ * `app/atletas/export/pdf/route.tsx`/`app/base/atletas/[categoria]/export/pdf/route.tsx`), não a
+ * exportação em Excel, que já tem sua própria escolha de colunas (`ExportColunasModal`).
  */
-export function filtrosParaQueryString(filtros: FiltrosAtletas, opts?: { mostrarInativos?: boolean }): string {
+export function filtrosParaQueryString(
+  filtros: FiltrosAtletas,
+  opts?: { mostrarInativos?: boolean; camposOcultos?: Set<CampoCardOpcional> },
+): string {
   const params = new URLSearchParams();
   if (filtros.status.size > 0) params.set("status", [...filtros.status].join(","));
   if (filtros.posicoes.size > 0) params.set("posicao", [...filtros.posicoes].join(","));
   if (filtros.contratos.size > 0) params.set("contrato", [...filtros.contratos].join(","));
   if (filtros.buscaNormalizada) params.set("q", filtros.buscaNormalizada);
   if (opts?.mostrarInativos) params.set("inativos", "1");
+  if (opts?.camposOcultos && opts.camposOcultos.size > 0) {
+    params.set("camposOcultos", [...opts.camposOcultos].join(","));
+  }
   return params.toString();
 }
 
@@ -110,4 +125,12 @@ export function filtrosDaQueryString(searchParams: URLSearchParams): FiltrosAtle
  * o status default (dispensado)", igual ao checkbox "Mostrar inativos" marcado na tela. */
 export function mostrarInativosDaQueryString(searchParams: URLSearchParams): boolean {
   return searchParams.get("inativos") === "1";
+}
+
+/** Lê o `camposOcultos=cpf,contrato` da query string (ver `filtrosParaQueryString`) — usado pelas
+ * rotas de PDF pra saber quais campos do checkbox "Mostrar no card" desmarcar no documento. */
+export function camposOcultosDaQueryString(searchParams: URLSearchParams): Set<CampoCardOpcional> {
+  const valor = searchParams.get("camposOcultos");
+  if (!valor) return new Set();
+  return new Set(valor.split(",").filter((v): v is CampoCardOpcional => v === "cpf" || v === "contrato"));
 }

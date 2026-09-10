@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   atletaPassaFiltro,
+  camposOcultosDaQueryString,
   filtrosDaQueryString,
   filtrosParaQueryString,
   mostrarInativosDaQueryString,
@@ -143,5 +144,25 @@ describe("mostrarInativosDaQueryString", () => {
     expect(mostrarInativosDaQueryString(new URLSearchParams("inativos=1"))).toBe(true);
     expect(mostrarInativosDaQueryString(new URLSearchParams(""))).toBe(false);
     expect(mostrarInativosDaQueryString(new URLSearchParams("inativos=true"))).toBe(false);
+  });
+});
+
+describe("checkbox \"Mostrar no card\" (camposOcultos)", () => {
+  it("filtrosParaQueryString acrescenta camposOcultos só quando o conjunto não está vazio", () => {
+    expect(filtrosParaQueryString(filtrosVazios(), { camposOcultos: new Set() })).toBe("");
+    expect(filtrosParaQueryString(filtrosVazios(), { camposOcultos: new Set(["cpf"]) })).toBe("camposOcultos=cpf");
+    expect(filtrosParaQueryString(filtrosVazios(), { camposOcultos: new Set(["cpf", "contrato"]) })).toBe(
+      "camposOcultos=cpf%2Ccontrato",
+    );
+  });
+
+  it("camposOcultosDaQueryString lê de volta só os valores válidos (cpf/contrato)", () => {
+    expect(camposOcultosDaQueryString(new URLSearchParams("camposOcultos=cpf,contrato"))).toEqual(
+      new Set(["cpf", "contrato"]),
+    );
+    expect(camposOcultosDaQueryString(new URLSearchParams("camposOcultos=cpf"))).toEqual(new Set(["cpf"]));
+    expect(camposOcultosDaQueryString(new URLSearchParams(""))).toEqual(new Set());
+    // Lixo na query string não vira campo válido nenhum, só é ignorado.
+    expect(camposOcultosDaQueryString(new URLSearchParams("camposOcultos=cpf,lixo"))).toEqual(new Set(["cpf"]));
   });
 });

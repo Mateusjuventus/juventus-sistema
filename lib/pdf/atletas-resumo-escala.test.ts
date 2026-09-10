@@ -2,20 +2,14 @@ import { describe, expect, it } from "vitest";
 import { calcularEscalaCardsAtletas } from "./atletas-resumo-escala";
 
 describe("calcularEscalaCardsAtletas", () => {
-  it("até o tamanho de referência, escala 1 (tamanho normal)", () => {
+  it("sempre escala 1 (tamanho de referência cheio) — elenco grande vira mais páginas, não cards menores", () => {
     expect(calcularEscalaCardsAtletas(10)).toBe(1);
     expect(calcularEscalaCardsAtletas(16)).toBe(1);
+    expect(calcularEscalaCardsAtletas(32)).toBe(1);
+    expect(calcularEscalaCardsAtletas(1000)).toBe(1);
   });
 
-  it("acima da referência, encolhe proporcionalmente", () => {
-    expect(calcularEscalaCardsAtletas(32)).toBeCloseTo(0.5, 5);
-  });
-
-  it("nunca encolhe abaixo do piso de legibilidade, mesmo com elenco enorme", () => {
-    expect(calcularEscalaCardsAtletas(1000)).toBe(0.5);
-  });
-
-  it("zero atletas não quebra (divisão por zero não acontece por causa do <=)", () => {
+  it("zero atletas não quebra", () => {
     expect(calcularEscalaCardsAtletas(0)).toBe(1);
   });
 });

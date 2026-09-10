@@ -9,7 +9,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import { atletaPassaFiltro, filtrosDaQueryString, mostrarInativosDaQueryString } from "@/lib/futebol/atletas-filtro";
+import {
+  atletaPassaFiltro,
+  camposOcultosDaQueryString,
+  filtrosDaQueryString,
+  mostrarInativosDaQueryString,
+} from "@/lib/futebol/atletas-filtro";
 import { AtletasResumoDocument, type AtletaResumoPdfItem } from "@/lib/pdf/atletas-resumo-document";
 import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
@@ -44,6 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: { categori
   const { searchParams } = new URL(request.url);
   const filtros = filtrosDaQueryString(searchParams);
   const mostrarInativos = mostrarInativosDaQueryString(searchParams);
+  const camposOcultos = camposOcultosDaQueryString(searchParams);
   const supabase = createClient();
 
   const { data } = await supabase
@@ -89,6 +95,8 @@ export async function GET(request: NextRequest, { params }: { params: { categori
       statusOptions={STATUS_OPTIONS}
       juventusLogoSrc={juventusLogoSrc}
       geradoEm={new Date()}
+      mostrarCpf={!camposOcultos.has("cpf")}
+      mostrarContrato={!camposOcultos.has("contrato")}
     />,
   );
 

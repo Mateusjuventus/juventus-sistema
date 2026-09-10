@@ -44,11 +44,19 @@ export function AtletaCard({
   atleta,
   href,
   hoje = new Date(),
+  mostrarCpf = true,
+  mostrarContrato = true,
 }: {
   atleta: AtletaCardDados;
   href: string;
   /** Injetável só pra teste — no app real é sempre "agora". */
   hoje?: Date;
+  /** Checkbox "Mostrar no card" de `AtletasResumoFiltros` (pedido do Mateus em 2026-09-10) — CPF é
+   * informação sensível, e o contrato (selo + data) nem sempre precisa aparecer pra quem só quer
+   * ver a foto/posição do elenco. Ligados por padrão pra não mudar o comportamento de quem chama
+   * sem passar essas props. */
+  mostrarCpf?: boolean;
+  mostrarContrato?: boolean;
 }) {
   const sigla = siglaCategoriaPosicao(categoriaDaPosicao(atleta.posicao));
   const vencendo = contratoEstaVencendo(atleta.dataFimContrato, atleta.dispensado, hoje);
@@ -85,7 +93,7 @@ export function AtletaCard({
             {atleta.numeroCamisa}
           </span>
         ) : null}
-        {atleta.tipoContrato ? (
+        {mostrarContrato && atleta.tipoContrato ? (
           <span
             className="absolute bottom-1.5 left-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-extrabold text-white shadow-[0_1px_3px_rgba(0,0,0,0.45)]"
             style={{ backgroundColor: corContratoAtleta(atleta.tipoContrato) }}
@@ -143,14 +151,19 @@ export function AtletaCard({
             10px — sem a redução, o texto ficava mais largo que o card e o canto arredondado
             (`overflow-hidden` no `Link`) cortava o fim da data. "Contrato até"/"Encerrado em" não
             tem `whitespace-nowrap`: se ainda assim não couber (nome de tipo de contrato + data),
-            quebra em duas linhas em vez de cortar. */}
-        <p className="mt-1 whitespace-nowrap text-center text-[9px] leading-tight text-white/75">
-          CPF {atleta.cpf ? formatCPF(atleta.cpf) : "—"}
-        </p>
-        <p className="mt-0.5 break-words text-center text-[9px] leading-tight text-white/75">
-          {atleta.dispensado ? "Encerrado em " : "Contrato até "}
-          {formatDataBR(atleta.dataFimContrato)}
-        </p>
+            quebra em duas linhas em vez de cortar. Ambas as linhas somem junto do checkbox "Mostrar
+            no card" correspondente (`mostrarCpf`/`mostrarContrato`, ver `AtletasResumoFiltros`). */}
+        {mostrarCpf ? (
+          <p className="mt-1 whitespace-nowrap text-center text-[9px] leading-tight text-white/75">
+            CPF {atleta.cpf ? formatCPF(atleta.cpf) : "—"}
+          </p>
+        ) : null}
+        {mostrarContrato ? (
+          <p className="mt-0.5 break-words text-center text-[9px] leading-tight text-white/75">
+            {atleta.dispensado ? "Encerrado em " : "Contrato até "}
+            {formatDataBR(atleta.dataFimContrato)}
+          </p>
+        ) : null}
       </div>
     </Link>
   );

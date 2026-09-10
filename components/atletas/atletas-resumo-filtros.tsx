@@ -6,7 +6,12 @@ import { ExportColunasModal } from "@/components/atletas/export-colunas-modal";
 import { ExportDropdown, type ExportOpcao } from "@/components/atletas/export-dropdown";
 import { CONTRATO_ATLETA_COR, CONTRATO_ATLETA_LABEL } from "@/lib/futebol/contrato-atleta";
 import { fatiasPizza } from "@/lib/futebol/grafico-pizza";
-import { atletaPassaFiltro, filtrosParaQueryString, nenhumFiltroAtivo } from "@/lib/futebol/atletas-filtro";
+import {
+  atletaPassaFiltro,
+  filtrosParaQueryString,
+  nenhumFiltroAtivo,
+  type CampoCardOpcional,
+} from "@/lib/futebol/atletas-filtro";
 import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaBaseTipoContrato } from "@/lib/supabase/types";
 
@@ -87,6 +92,13 @@ export function AtletasResumoFiltros({
   // Só tem efeito quando `statusOcultoPorPadrao` existe (Base) — ver checkbox "Mostrar inativos"
   // mais abaixo. Ligado, desliga o "esconder por padrão" sem precisar marcar o chip de Status.
   const [mostrarInativos, setMostrarInativos] = useState(false);
+  // "Mostrar no card": CPF e Contrato têm checkbox pra esconder (pedido do Mateus em 2026-09-10) —
+  // apelido/nome completo e nascimento continuam sempre visíveis. Guarda o que está ESCONDIDO (não
+  // o oposto) pra bater com `CampoCardOpcional`/`filtrosParaQueryString`: conjunto vazio (o padrão)
+  // já significa "mostra tudo", sem precisar inicializar os dois marcados. Afeta os cards da grade
+  // aqui na tela e o PDF (`pdfHrefComFiltros`, mais abaixo) — não a exportação em Excel, que já tem
+  // sua própria escolha de colunas (`ExportColunasModal`).
+  const [camposOcultos, setCamposOcultos] = useState<Set<CampoCardOpcional>>(new Set());
   // Abre o modal de escolha de colunas (ver `ExportColunasModal`) ao clicar em "Exportar para
   // Excel" — a exportação em si só acontece quando a pessoa confirma no modal.
   const [exportModalAberto, setExportModalAberto] = useState(false);
@@ -155,9 +167,9 @@ export function AtletasResumoFiltros({
 
   const pdfHrefComFiltros = useMemo(() => {
     if (!exportar?.pdfHref) return undefined;
-    const query = filtrosParaQueryString(filtros, { mostrarInativos });
+    const query = filtrosParaQueryString(filtros, { mostrarInativos, camposOcultos });
     return query ? `${exportar.pdfHref}?${query}` : exportar.pdfHref;
-  }, [exportar, filtros, mostrarInativos]);
+  }, [exportar, filtros, mostrarInativos, camposOcultos]);
 
   function limparFiltros() {
     setStatusSel(new Set());
@@ -165,6 +177,10 @@ export function AtletasResumoFiltros({
     setContratoSel(new Set());
     setBusca("");
     setMostrarInativos(false);
+  }
+
+  function alternarCampoCard(campo: CampoCardOpcional) {
+    setCamposOcultos((atual) => alternarNoConjunto(atual, campo));
   }
 
   return (
@@ -314,11 +330,36 @@ export function AtletasResumoFiltros({
           placeholder="Buscar atleta por nome..."
           className="field-input min-w-0 flex-1"
         />
+        {/* "Mostrar no card": esconde CPF/Contrato dos cards aqui na tela e do PDF exportado (pedido
+            do Mateus em 2026-09-10) — não afeta a exportação em Excel, que já tem sua própria
+            escolha de colunas (`ExportColunasModal`). Marcado = mostra (estado guardado é o
+            oposto, `camposOcultos`, ver comentário onde é declarado). */}
+        <div className="flex items-center gap-3 whitespace-nowrap text-xs font-medium text-neutral-500">
+          <span className="uppercase tracking-wide">Mostrar no card</span>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={!camposOcultos.has("cpf")}
+              onChange={() => alternarCampoCard("cpf")}
+              className="h-3.5 w-3.5 rounded border-neutral-300 text-grena focus:ring-grena"
+            />
+            CPF
+          </label>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={!camposOcultos.has("contrato")}
+              onChange={() => alternarCampoCard("contrato")}
+              className="h-3.5 w-3.5 rounded border-neutral-300 text-grena focus:ring-grena"
+            />
+            Contrato
+          </label>
+        </div>
         {excelHrefComFiltros ? (
           <ExportDropdown
             opcoes={[
               { label: "Exportar para Excel", onClick: () => setExportModalAberto(true) },
-              ...(pdfHrefComFiltros ? [{ label: "Exportar PDF", href: pdfHrefComFiltros }] : []),
+              ...(pdfHrefComFiltros ? [{ label: "Exportar PDF", href: pdfHrefComFiltros, abrirNovaAba: true }] : []),
               ...(exportar?.extras ?? []),
             ]}
           />
@@ -345,7 +386,13 @@ export function AtletasResumoFiltros({
       ) : (
         <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
           {filtrados.map((atleta) => (
-            <AtletaCard key={atleta.id} atleta={atleta} href={atleta.href} />
+            <AtletaCard
+              key={atleta.id}
+              atleta={atleta}
+              href={atleta.href}
+              mostrarCpf={!camposOcultos.has("cpf")}
+              mostrarContrato={!camposOcultos.has("contrato")}
+            />
           ))}
         </div>
       )}

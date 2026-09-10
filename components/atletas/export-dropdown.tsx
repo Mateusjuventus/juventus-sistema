@@ -8,6 +8,12 @@ export interface ExportOpcao {
    * colunas antes de exportar — ver `ExportColunasModal`). */
   href?: string;
   onClick?: () => void;
+  /** Abre `href` numa aba nova em vez de navegar na aba atual — usado no "Exportar PDF" (o PDF sai
+   * com `Content-Disposition: inline`, então sem isso ele substituía a própria tela de Atletas em
+   * vez de abrir por cima; pedido do Mateus em 2026-09-10). Não se aplica a links que levam pra
+   * outra tela de verdade do sistema (ex.: "Exportar relação" da Base), que continuam navegando
+   * normalmente na mesma aba. */
+  abrirNovaAba?: boolean;
 }
 
 /**
@@ -72,7 +78,20 @@ export function ExportDropdown({ opcoes }: { opcoes: ExportOpcao[] }) {
               <a
                 key={opcao.label}
                 href={opcao.href}
-                onClick={() => setAberto(false)}
+                target={opcao.abrirNovaAba ? "_blank" : undefined}
+                rel={opcao.abrirNovaAba ? "noopener noreferrer" : undefined}
+                onClick={(e) => {
+                  setAberto(false);
+                  // Reforço além do `target="_blank"` acima: o Mateus viu o PDF ainda abrindo por
+                  // cima da tela de Atletas mesmo com o `target` certo (2026-09-10). Forçando o
+                  // `window.open` num clique simples (sem Ctrl/Cmd/Shift/botão do meio, que continuam
+                  // usando o comportamento nativo do navegador — abrir em aba nova por conta própria/
+                  // nova janela) garante a aba nova mesmo se algo no navegador ignorasse o atributo.
+                  if (opcao.abrirNovaAba && opcao.href && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                    e.preventDefault();
+                    window.open(opcao.href, "_blank", "noopener,noreferrer");
+                  }
+                }}
                 className="block px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
               >
                 {opcao.label}

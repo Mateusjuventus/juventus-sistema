@@ -7,7 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
-import { atletaPassaFiltro, filtrosDaQueryString } from "@/lib/futebol/atletas-filtro";
+import { atletaPassaFiltro, camposOcultosDaQueryString, filtrosDaQueryString } from "@/lib/futebol/atletas-filtro";
 import { AtletasResumoDocument, type AtletaResumoPdfItem } from "@/lib/pdf/atletas-resumo-document";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
@@ -38,6 +38,7 @@ const CONTRATO_OPTIONS_PROFISSIONAL = ["definitivo", "emprestimo", "amador", "fo
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const filtros = filtrosDaQueryString(searchParams);
+  const camposOcultos = camposOcultosDaQueryString(searchParams);
   const supabase = createClient();
 
   const { data } = await supabase.from("atletas").select("*").order("nome_completo", { ascending: true });
@@ -78,6 +79,8 @@ export async function GET(request: NextRequest) {
       statusOptions={STATUS_OPTIONS}
       juventusLogoSrc={juventusLogoSrc}
       geradoEm={new Date()}
+      mostrarCpf={!camposOcultos.has("cpf")}
+      mostrarContrato={!camposOcultos.has("contrato")}
     />,
   );
 
