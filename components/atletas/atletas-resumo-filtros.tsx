@@ -4,11 +4,6 @@ import { useMemo, useState } from "react";
 import { AtletaCard, type AtletaCardDados } from "@/components/atletas/atleta-card";
 import { ExportColunasModal } from "@/components/atletas/export-colunas-modal";
 import { ExportDropdown, type ExportOpcao } from "@/components/atletas/export-dropdown";
-import {
-  CATEGORIA_POSICAO_COR,
-  CATEGORIA_POSICAO_SIGLA,
-  categoriaDaPosicao,
-} from "@/lib/futebol/categoria-posicao";
 import { CONTRATO_ATLETA_COR, CONTRATO_ATLETA_LABEL } from "@/lib/futebol/contrato-atleta";
 import { fatiasPizza } from "@/lib/futebol/grafico-pizza";
 import { atletaPassaFiltro, filtrosParaQueryString, nenhumFiltroAtivo } from "@/lib/futebol/atletas-filtro";
@@ -174,88 +169,91 @@ export function AtletasResumoFiltros({
 
   return (
     <div>
-      <div className="card grid gap-4 p-4 lg:grid-cols-3">
-        <div>
-          <div className="mb-1.5 flex items-baseline justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-              Status · clique para filtrar
-            </p>
-            {estatisticaExtra ? (
-              <p className="whitespace-nowrap text-xs text-neutral-500">
-                {estatisticaExtra.label}: <strong className="text-neutral-700">{estatisticaExtra.valor}</strong>
+      <div className="card grid gap-4 p-4 lg:grid-cols-2">
+        {/* Status e Posições dividem a mesma coluna, um embaixo do outro — Posições ficou pequeno
+            demais (cada chip com sigla colorida + número grande) pra ganhar uma coluna própria de
+            verdade; empilhado abaixo do Status sobra bem mais espaço horizontal pro bloco de
+            Contrato ao lado (pedido do Mateus em 2026-09-10, depois de ver os 9 chips ocupando
+            uma coluna inteira). */}
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="mb-1.5 flex items-baseline justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+                Status · clique para filtrar
               </p>
+              {estatisticaExtra ? (
+                <p className="whitespace-nowrap text-xs text-neutral-500">
+                  {estatisticaExtra.label}: <strong className="text-neutral-700">{estatisticaExtra.valor}</strong>
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setStatusSel(new Set())}
+                className={filtroChipClasse(statusSel.size === 0)}
+              >
+                <span className="font-bold tabular-nums">{totalPadrao}</span> Total
+              </button>
+              {statusOptions.map((opcao) => (
+                <button
+                  key={opcao.value}
+                  type="button"
+                  onClick={() => setStatusSel((atual) => alternarNoConjunto(atual, opcao.value))}
+                  className={filtroChipClasse(statusSel.has(opcao.value))}
+                >
+                  <span className="font-bold tabular-nums">{contagensStatus.get(opcao.value) ?? 0}</span>{" "}
+                  {opcao.label}
+                </button>
+              ))}
+            </div>
+            {statusOcultoPorPadrao ? (
+              <label className="mt-2 flex w-fit items-center gap-1.5 text-xs font-medium text-neutral-500">
+                <input
+                  type="checkbox"
+                  checked={mostrarInativos}
+                  onChange={(e) => setMostrarInativos(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-neutral-300 text-grena focus:ring-grena"
+                />
+                Mostrar inativos ({contagensStatus.get(statusOcultoPorPadrao) ?? 0} dispensados)
+              </label>
             ) : null}
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => setStatusSel(new Set())}
-              className={filtroChipClasse(statusSel.size === 0)}
-            >
-              <span className="font-bold tabular-nums">{totalPadrao}</span> Total
-            </button>
-            {statusOptions.map((opcao) => (
-              <button
-                key={opcao.value}
-                type="button"
-                onClick={() => setStatusSel((atual) => alternarNoConjunto(atual, opcao.value))}
-                className={filtroChipClasse(statusSel.has(opcao.value))}
-              >
-                <span className="font-bold tabular-nums">{contagensStatus.get(opcao.value) ?? 0}</span>{" "}
-                {opcao.label}
-              </button>
-            ))}
-          </div>
-          {statusOcultoPorPadrao ? (
-            <label className="mt-2 flex w-fit items-center gap-1.5 text-xs font-medium text-neutral-500">
-              <input
-                type="checkbox"
-                checked={mostrarInativos}
-                onChange={(e) => setMostrarInativos(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-neutral-300 text-grena focus:ring-grena"
-              />
-              Mostrar inativos ({contagensStatus.get(statusOcultoPorPadrao) ?? 0} dispensados)
-            </label>
-          ) : null}
-        </div>
 
-        <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-            Posições · clique para filtrar
-          </p>
-          <div className="grid grid-cols-3 gap-1.5">
-            {ATLETA_POSICAO_OPTIONS.map((posicao) => {
-              const categoria = categoriaDaPosicao(posicao);
-              const detalhe = contagensPosicao.get(posicao);
-              const total = detalhe?.total ?? 0;
-              return (
-                <button
-                  key={posicao}
-                  type="button"
-                  onClick={() => setPosicaoSel((atual) => alternarNoConjunto(atual, posicao))}
-                  className={filtroChipClasse(posicaoSel.has(posicao))}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span
-                      className={`inline-block rounded px-1 text-[10px] font-bold ${
-                        categoria ? CATEGORIA_POSICAO_COR[categoria] : "bg-neutral-100 text-neutral-500"
-                      }`}
-                    >
-                      {categoria ? CATEGORIA_POSICAO_SIGLA[categoria] : "—"}
-                    </span>
-                    <span className="font-bold tabular-nums">{total}</span>
-                  </div>
-                  <p className="mt-1 truncate text-[10px] font-normal leading-tight text-neutral-500">{posicao}</p>
-                  {total > 0 ? (
-                    <p className="mt-0.5 whitespace-nowrap text-[9px] font-medium leading-tight">
-                      <span className="text-emerald-600">{detalhe?.apto ?? 0} apto</span>
-                      {" · "}
-                      <span className="text-red-500">{detalhe?.naoApto ?? 0} não apto</span>
-                    </p>
-                  ) : null}
-                </button>
-              );
-            })}
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+              Posições · clique para filtrar (uma ou mais)
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {ATLETA_POSICAO_OPTIONS.map((posicao) => {
+                const detalhe = contagensPosicao.get(posicao);
+                const apto = detalhe?.apto ?? 0;
+                const naoApto = detalhe?.naoApto ?? 0;
+                return (
+                  <button
+                    key={posicao}
+                    type="button"
+                    onClick={() => setPosicaoSel((atual) => alternarNoConjunto(atual, posicao))}
+                    className={filtroChipClasse(posicaoSel.has(posicao))}
+                  >
+                    <p className="text-[11px] font-bold text-neutral-800">{posicao}</p>
+                    {detalhe ? (
+                      <p className="mt-0.5 whitespace-nowrap text-[10px] font-medium">
+                        <span className="text-emerald-600">
+                          {apto} apto{apto === 1 ? "" : "s"}
+                        </span>
+                        <span className="text-neutral-400"> · </span>
+                        <span className="text-red-500">
+                          {naoApto} não apto{naoApto === 1 ? "" : "s"}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-[10px] text-neutral-400">sem cadastro</p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
