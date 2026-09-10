@@ -68,7 +68,9 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
       <div className="mt-6 space-y-6">
         {/* Endereço e "Possui alergia a algum medicamento" viraram parte deste card em vez de seção
             própria em 2026-09-10 (pedido do Mateus: "Endereço... fazem parte dos dados pessoais do
-            atleta"; alergia já era assim no formulário de edição, só faltava aparecer aqui também). */}
+            atleta"; alergia já era assim no formulário de edição, só faltava aparecer aqui também).
+            Endereço passou a ser estruturado (CEP/logradouro/etc., mesmo padrão da Base) no mesmo
+            dia (pedido do Mateus: "no profissional, deva ter todos os dados do endereço"). */}
         <FormSection title="Dados pessoais">
           <FieldGroup>
             <DetailField label="Nome completo" value={atleta.nome_completo} />
@@ -86,9 +88,23 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             ) : null}
             <DetailField label="Naturalidade" value={atleta.cidade_natal} />
             <DetailField label="UF natal" value={atleta.uf_natal} />
-            <div className="sm:col-span-2">
-              <DetailField label="Endereço atual" value={atleta.endereco_atual} />
-            </div>
+            {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
+                formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
+                de cadastros antigos que só têm esse texto livre preenchido (ver
+                `AtletaRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio, que é
+                o caso normal pra qualquer cadastro feito ou editado depois de 2026-09-10. */}
+            {atleta.endereco_atual ? (
+              <div className="sm:col-span-2">
+                <DetailField label="Endereço atual (cadastro antigo)" value={atleta.endereco_atual} />
+              </div>
+            ) : null}
+            <DetailField label="Logradouro" value={atleta.logradouro} />
+            <DetailField label="Número" value={atleta.numero} />
+            <DetailField label="Complemento" value={atleta.complemento} />
+            <DetailField label="Bairro" value={atleta.bairro} />
+            <DetailField label="Cidade" value={atleta.cidade} />
+            <DetailField label="UF" value={atleta.uf} />
+            <DetailField label="CEP" value={atleta.cep} />
           </FieldGroup>
         </FormSection>
 

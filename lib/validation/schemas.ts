@@ -139,6 +139,11 @@ const atletaCamposBase = z.object({
   cidadeNatal: z.string().optional().or(z.literal("")),
   ufNatal: z.string().length(2).optional().or(z.literal("")),
   enderecoAtual: z.string().optional().or(z.literal("")),
+  // Endereço estruturado (CEP/logradouro/número/complemento/bairro/cidade/UF), compartilhado com o
+  // Futebol de Base desde sempre — estendido pro Profissional em 2026-09-10 (pedido do Mateus: "no
+  // profissional, deva ter todos os dados do endereço"). Fica em `atletaCamposBase` (em vez de só
+  // em `atletaBaseSchema`) porque agora os dois formulários usam.
+  ...enderecoFields,
   dataInicioClube: z.string().optional().or(z.literal("")),
   // Distinto de `dataInicioClube` (quando o atleta entrou no clube) — restrito ao cadastro
   // interno, nunca aparece na Ficha de Cadastro pública (`fichaCadastroAtletaBaseSchema`), mesmo
@@ -185,8 +190,9 @@ export const atletaBaseSchema = atletaCamposBase
     status: z
       .enum(["liberado", "suspenso", "departamento_medico", "dispensado"])
       .default("liberado"),
-    // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis,
-    // empresário e endereço estruturado (autopreenchido por CEP — ver EnderecoFields). Todos
+    // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis e
+    // empresário (endereço estruturado, autopreenchido por CEP — ver EnderecoFields — mora em
+    // `atletaCamposBase` acima, compartilhado com o Profissional desde 2026-09-10). Todos
     // opcionais: a maioria chega aos poucos, não de uma vez.
     alojado: z.boolean().default(false),
     valorAjudaCusto: z.coerce.number().nonnegative().optional().nullable(),
@@ -197,7 +203,6 @@ export const atletaBaseSchema = atletaCamposBase
     paiNome: z.string().optional().or(z.literal("")),
     paiTelefone: telefoneFieldValidado,
     escola: z.string().optional().or(z.literal("")),
-    ...enderecoFields,
   })
   .refine(refinoAlergia.check, refinoAlergia.options);
 export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;

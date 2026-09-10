@@ -49,7 +49,21 @@ export interface AtletaRow {
   telefone: string | null;
   cidade_natal: string | null;
   uf_natal: string | null;
+  /** Texto livre antigo — o formulário de editar não grava mais nele desde a migração pro endereço
+   * estruturado abaixo (ver 0099_atleta_endereco_estruturado.sql); continua só pra não sumir com
+   * dados de cadastros antigos que só têm esse texto livre preenchido. */
   endereco_atual: string | null;
+  /** Endereço estruturado, autopreenchido por CEP no formulário (ver `EnderecoFields`) — mesmo
+   * padrão que `AtletaBaseRow` já tinha desde 0076_captacao_alojamento_base.sql, estendido pro
+   * Futebol Profissional em 2026-09-10 (pedido do Mateus: "no profissional, deva ter todos os
+   * dados do endereço"). */
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
   data_inicio_clube: string | null;
   /** Distinto de `data_inicio_clube` — quando o vínculo de contrato começou, não quando o atleta
    * entrou no clube. Só cadastro interno, nunca vem do link público. */
