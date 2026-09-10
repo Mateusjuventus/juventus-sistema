@@ -58,12 +58,14 @@ export function AtletaCard({
   return (
     <Link
       href={href}
-      // `self-start`: o nome completo dentro do bloco escuro não corta mais (ver abaixo), então a
-      // altura do card varia com o comprimento do nome — sem isso, o grid (`align-items: stretch`
-      // por padrão) esticaria os cards mais curtos até a altura do maior vizinho na mesma linha,
-      // expondo o fundo branco do Link como uma faixa vazia embaixo (mesmo bug de "faixa branca" já
-      // corrigido antes, ver histórico deste componente).
-      className={`block self-start overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${anelClassificacaoAtleta(
+      // `flex flex-col`: o nome completo lá embaixo não corta mais (ver bloco escuro), então a
+      // altura "natural" do card varia com o comprimento do nome — o grid (`align-items: stretch`
+      // por padrão) ainda estica todo card até a altura do maior vizinho na mesma linha, só que
+      // agora quem absorve esse espaço extra é o bloco escuro (`flex-1` nele, mais abaixo), que
+      // continua com o fundo grená até o fim do card. Sem isso, o espaço esticado sobrava como uma
+      // faixa branca vazia (fundo do próprio `Link`) embaixo dos cards mais curtos da linha — bug já
+      // visto antes com o mesmo sintoma (nomes/textos de tamanho variável entre atletas).
+      className={`flex flex-col overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${anelClassificacaoAtleta(
         atleta.classificacao,
       )}`}
     >
@@ -119,23 +121,33 @@ export function AtletaCard({
         </span>
       </div>
 
-      <div className="bg-grena-escuro px-2 py-2">
+      {/* `flex-1`: cresce pra absorver a altura extra quando o grid estica este card até o tamanho
+          do maior vizinho na linha (ver comentário no `Link` acima) — `flex flex-col justify-center`
+          centraliza as 4 linhas verticalmente nesse espaço sobrando, em vez de deixá-las coladas no
+          topo com um vão vazio (mas ainda grená) embaixo. */}
+      <div className="flex flex-1 flex-col justify-center bg-grena-escuro px-2 py-2">
         {/* Nome completo — fica junto do CPF por ser o par que documento pede (mesmo raciocínio de
             `lib/futebol/nome-atleta.ts`: apelido é pra reconhecer rápido, nome completo é pro
             registro formal). Sem `line-clamp`/`truncate`: o nome precisa sair inteiro, mesmo que
-            quebre em mais de uma linha (por isso o card não tem mais altura fixa, ver `self-start`
-            acima). Repete o texto da faixa de cima quando o atleta não tem apelido, o que é esperado
-            (não há apelido, então "quem é" e "nome completo" são o mesmo texto mesmo). */}
+            quebre em mais de uma linha. Repete o texto da faixa de cima quando o atleta não tem
+            apelido, o que é esperado (não há apelido, então "quem é" e "nome completo" são o mesmo
+            texto mesmo). */}
         <p className="break-words text-center text-[9px] font-semibold leading-tight text-white/90">
           {atleta.nome}
         </p>
         <p className="mt-1 text-center text-xs font-bold leading-tight text-white">{formatDataBR(atleta.dataNascimento)}</p>
-        {/* Sem `min-h` aqui: CPF e Contrato são sempre uma linha só (`whitespace-nowrap`), então
-            reservar uma altura mínima só sobrava espaço vazio entre as duas linhas. */}
-        <p className="mt-1 whitespace-nowrap text-center text-[10px] leading-tight text-white/75">
+        {/* Sem `min-h` aqui (ver comentário acima do bloco): reservar uma altura mínima só sobrava
+            espaço vazio entre as duas linhas. Fonte um pouco menor que antes (9px, igual ao nome
+            completo) porque "CPF 000.000.000-00" numa linha só (`whitespace-nowrap`, pedido
+            explícito) e "Contrato até DD/MM/AAAA" são texto comprido demais pro card estreito a
+            10px — sem a redução, o texto ficava mais largo que o card e o canto arredondado
+            (`overflow-hidden` no `Link`) cortava o fim da data. "Contrato até"/"Encerrado em" não
+            tem `whitespace-nowrap`: se ainda assim não couber (nome de tipo de contrato + data),
+            quebra em duas linhas em vez de cortar. */}
+        <p className="mt-1 whitespace-nowrap text-center text-[9px] leading-tight text-white/75">
           CPF {atleta.cpf ? formatCPF(atleta.cpf) : "—"}
         </p>
-        <p className="mt-0.5 whitespace-nowrap text-center text-[10px] leading-tight text-white/75">
+        <p className="mt-0.5 break-words text-center text-[9px] leading-tight text-white/75">
           {atleta.dispensado ? "Encerrado em " : "Contrato até "}
           {formatDataBR(atleta.dataFimContrato)}
         </p>
