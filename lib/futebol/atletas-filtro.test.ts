@@ -3,11 +3,11 @@ import {
   atletaPassaFiltro,
   filtrosDaQueryString,
   filtrosParaQueryString,
+  mostrarInativosDaQueryString,
   nenhumFiltroAtivo,
   type AtletaFiltravel,
   type FiltrosAtletas,
 } from "./atletas-filtro";
-import type { CategoriaPosicao } from "@/lib/supabase/types";
 
 function filtrosVazios(): FiltrosAtletas {
   return { status: new Set(), posicoes: new Set(), contratos: new Set(), buscaNormalizada: "" };
@@ -41,8 +41,8 @@ describe("atletaPassaFiltro", () => {
     expect(atletaPassaFiltro(BRUNO, filtros)).toBe(true);
   });
 
-  it("filtra por grupo de posição (Goleiro -> categoria 'goleiro')", () => {
-    const filtros = { ...filtrosVazios(), posicoes: new Set<CategoriaPosicao>(["goleiro"]) };
+  it("filtra por posição real (valor exato de AtletaPosicao, não mais grupo)", () => {
+    const filtros = { ...filtrosVazios(), posicoes: new Set<string>(["Goleiro"]) };
     expect(atletaPassaFiltro(RAFAEL, filtros)).toBe(true);
     expect(atletaPassaFiltro(BRUNO, filtros)).toBe(false);
   });
@@ -63,7 +63,7 @@ describe("atletaPassaFiltro", () => {
   it("combina os quatro filtros com E lógico entre blocos", () => {
     const filtros: FiltrosAtletas = {
       status: new Set(["liberado"]),
-      posicoes: new Set(["goleiro"]),
+      posicoes: new Set(["Goleiro"]),
       contratos: new Set(["definitivo"]),
       buscaNormalizada: "rafael",
     };
@@ -109,18 +109,23 @@ describe("filtrosParaQueryString / filtrosDaQueryString (link de Exportar para E
   it("serializa cada bloco combinado no formato esperado pela rota de export", () => {
     const filtros: FiltrosAtletas = {
       status: new Set(["liberado", "suspenso"]),
-      posicoes: new Set<CategoriaPosicao>(["goleiro"]),
+      posicoes: new Set(["Goleiro"]),
       contratos: new Set(["definitivo", "amador"]),
       buscaNormalizada: "rafael",
     };
     const query = filtrosParaQueryString(filtros);
-    expect(query).toBe("status=liberado%2Csuspenso&posicao=goleiro&contrato=definitivo%2Camador&q=rafael");
+    expect(query).toBe("status=liberado%2Csuspenso&posicao=Goleiro&contrato=definitivo%2Camador&q=rafael");
+  });
+
+  it("acrescenta inativos=1 quando mostrarInativos está ligado", () => {
+    expect(filtrosParaQueryString(filtrosVazios(), { mostrarInativos: true })).toBe("inativos=1");
+    expect(filtrosParaQueryString(filtrosVazios(), { mostrarInativos: false })).toBe("");
   });
 
   it("é reversível: reconstrói os mesmos conjuntos a partir da query string gerada", () => {
     const original: FiltrosAtletas = {
       status: new Set(["liberado"]),
-      posicoes: new Set<CategoriaPosicao>(["goleiro", "zagueiro"]),
+      posicoes: new Set(["Goleiro", "Zagueiro"]),
       contratos: new Set(["amador"]),
       buscaNormalizada: "kaminski",
     };
@@ -130,5 +135,13 @@ describe("filtrosParaQueryString / filtrosDaQueryString (link de Exportar para E
 
   it("query string sem nenhum parâmetro reconstrói filtros vazios", () => {
     expect(filtrosDaQueryString(new URLSearchParams(""))).toEqual(filtrosVazios());
+  });
+});
+
+describe("mostrarInativosDaQueryString", () => {
+  it("true só quando inativos=1 exatamente", () => {
+    expect(mostrarInativosDaQueryString(new URLSearchParams("inativos=1"))).toBe(true);
+    expect(mostrarInativosDaQueryString(new URLSearchParams(""))).toBe(false);
+    expect(mostrarInativosDaQueryString(new URLSearchParams("inativos=true"))).toBe(false);
   });
 });

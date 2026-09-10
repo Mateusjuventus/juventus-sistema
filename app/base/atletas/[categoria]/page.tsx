@@ -7,10 +7,15 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
+// Rótulos "Apto"/"Não apto"/"Depto. Médico" (em vez de Liberado/Suspenso/Departamento Médico) —
+// pedido do Mateus pra bater com o layout antigo de antes do redesign (ver item 7 do ajuste de
+// 2026-09-10). "Dispensado" continua com esse nome mesmo (é ele que o checkbox "Mostrar inativos"
+// controla). O valor gravado no banco continua "liberado"/"suspenso"/"departamento_medico"; só o
+// rótulo exibido nos chips de Status muda.
 const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
-  liberado: "Liberado",
-  suspenso: "Suspenso",
-  departamento_medico: "Departamento Médico",
+  liberado: "Apto",
+  suspenso: "Não apto",
+  departamento_medico: "Depto. Médico",
   dispensado: "Dispensado",
 };
 
@@ -103,6 +108,7 @@ export default async function AtletasBaseCategoriaPage({
           statusOcultoPorPadrao="dispensado"
           exportar={{
             excelHref: `/base/atletas/${categoria}/export`,
+            pdfHref: `/base/atletas/${categoria}/export/pdf`,
             extras: [{ label: "Exportar relação", href: `/base/atletas/relacao?categoria=${categoria}` }],
           }}
         />

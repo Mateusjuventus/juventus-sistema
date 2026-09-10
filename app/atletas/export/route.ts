@@ -4,6 +4,7 @@ import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { atletaPassaFiltro, filtrosDaQueryString } from "@/lib/futebol/atletas-filtro";
+import { filtrarLinhaPorGrupos, gruposCampoExportDaQueryString } from "@/lib/futebol/export-colunas";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,29 @@ const PE_LABEL: Record<string, string> = {
   ambidestro: "Ambidestro",
 };
 
+// Nome completo/CPF/Status sempre saem na planilha, ligado ou não ao modal de escolha de colunas
+// (ver `ExportColunasModal`) — o resto entra por bloco (`GRUPOS_CAMPO_EXPORT_ATLETA`).
+const CAMPOS_SEMPRE = ["Nome completo", "CPF", "Status"] as const;
+
+const CAMPO_GRUPO: Record<string, string> = {
+  "Data de nascimento": "documentos",
+  RG: "documentos",
+  Empresário: "documentos",
+  Posição: "esportivos",
+  "Número da camisa": "esportivos",
+  "Número CBF": "esportivos",
+  "Número FPF": "esportivos",
+  "Pé dominante": "esportivos",
+  Telefone: "contato",
+  "Cidade natal": "contato",
+  "UF natal": "contato",
+  "Endereço atual": "contato",
+  "Início no clube": "contrato",
+  "Fim do contrato": "contrato",
+  "Tipo de contrato": "contrato",
+  "Contrato de formação": "contrato",
+};
+
 function formatData(data: string | null): string {
   if (!data) return "";
   const [ano, mes, dia] = data.split("-");
@@ -38,6 +62,7 @@ function formatData(data: string | null): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const filtros = filtrosDaQueryString(searchParams);
+  const gruposSelecionados = gruposCampoExportDaQueryString(searchParams);
   const supabase = createClient();
 
   const { data } = await supabase.from("atletas").select("*").order("nome_completo", { ascending: true });
@@ -48,27 +73,34 @@ export async function GET(request: NextRequest) {
     ),
   );
 
-  const linhas = atletas.map((a) => ({
-    "Nome completo": a.nome_completo,
-    RG: a.rg,
-    CPF: formatCPF(a.cpf),
-    "Data de nascimento": formatData(a.data_nascimento),
-    Posição: a.posicao,
-    "Número da camisa": a.numero_camisa ?? "",
-    "Número CBF": a.numero_cbf ?? "",
-    "Número FPF": a.numero_fpf ?? "",
-    "Pé dominante": a.pe_dominante ? PE_LABEL[a.pe_dominante] ?? a.pe_dominante : "",
-    Telefone: a.telefone ?? "",
-    "Cidade natal": a.cidade_natal ?? "",
-    "UF natal": a.uf_natal ?? "",
-    "Endereço atual": a.endereco_atual ?? "",
-    "Início no clube": formatData(a.data_inicio_clube),
-    Empresário: a.empresario_nome ?? "",
-    Status: STATUS_LABEL[a.status],
-    "Fim do contrato": formatData(a.data_fim_contrato),
-    "Tipo de contrato": a.tipo_contrato ? TIPO_CONTRATO_LABEL[a.tipo_contrato] ?? a.tipo_contrato : "",
-    "Contrato de formação": a.tipo_contrato === "amador" ? (a.possui_contrato_formacao ? "Sim" : "Não") : "",
-  }));
+  const linhas = atletas.map((a) =>
+    filtrarLinhaPorGrupos(
+      {
+        "Nome completo": a.nome_completo,
+        RG: a.rg,
+        CPF: formatCPF(a.cpf),
+        "Data de nascimento": formatData(a.data_nascimento),
+        Posição: a.posicao,
+        "Número da camisa": a.numero_camisa ?? "",
+        "Número CBF": a.numero_cbf ?? "",
+        "Número FPF": a.numero_fpf ?? "",
+        "Pé dominante": a.pe_dominante ? PE_LABEL[a.pe_dominante] ?? a.pe_dominante : "",
+        Telefone: a.telefone ?? "",
+        "Cidade natal": a.cidade_natal ?? "",
+        "UF natal": a.uf_natal ?? "",
+        "Endereço atual": a.endereco_atual ?? "",
+        "Início no clube": formatData(a.data_inicio_clube),
+        Empresário: a.empresario_nome ?? "",
+        Status: STATUS_LABEL[a.status],
+        "Fim do contrato": formatData(a.data_fim_contrato),
+        "Tipo de contrato": a.tipo_contrato ? TIPO_CONTRATO_LABEL[a.tipo_contrato] ?? a.tipo_contrato : "",
+        "Contrato de formação": a.tipo_contrato === "amador" ? (a.possui_contrato_formacao ? "Sim" : "Não") : "",
+      },
+      CAMPOS_SEMPRE,
+      CAMPO_GRUPO,
+      gruposSelecionados,
+    ),
+  );
 
   return buildXlsxResponse("atletas.xlsx", [{ nome: "Atletas", linhas }]);
 }

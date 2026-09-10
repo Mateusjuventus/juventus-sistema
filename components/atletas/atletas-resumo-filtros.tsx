@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AtletaCard, type AtletaCardDados } from "@/components/atletas/atleta-card";
+import { ExportColunasModal } from "@/components/atletas/export-colunas-modal";
 import { ExportDropdown, type ExportOpcao } from "@/components/atletas/export-dropdown";
 import {
   CATEGORIA_POSICAO_COR,
@@ -9,10 +10,18 @@ import {
   categoriaDaPosicao,
 } from "@/lib/futebol/categoria-posicao";
 import { CONTRATO_ATLETA_COR, CONTRATO_ATLETA_LABEL } from "@/lib/futebol/contrato-atleta";
+import { fatiasPizza } from "@/lib/futebol/grafico-pizza";
 import { atletaPassaFiltro, filtrosParaQueryString, nenhumFiltroAtivo } from "@/lib/futebol/atletas-filtro";
-import type { AtletaBaseTipoContrato, CategoriaPosicao } from "@/lib/supabase/types";
+import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
+import type { AtletaBaseTipoContrato } from "@/lib/supabase/types";
 
-const GRUPOS_POSICAO: CategoriaPosicao[] = ["goleiro", "zagueiro", "lateral", "meia", "atacante"];
+/** "Apto" aqui é uma leitura simples do status pra dar uma noção rápida de saúde do elenco por
+ * posição (bloco de Posições) — não é o filtro de Status em si (esse continua com os rótulos reais:
+ * Liberado/Suspenso/Departamento Médico/Dispensado). Só "liberado" conta como apto; qualquer outro
+ * status (incluindo dispensado, quando "Mostrar inativos" está ligado) conta como não apto. */
+function ehStatusApto(status: string): boolean {
+  return status === "liberado";
+}
 
 export interface AtletaResumoItem extends AtletaCardDados {
   href: string;
@@ -66,19 +75,28 @@ export function AtletasResumoFiltros({
    * chip dele explicitamente (ver `atletaPassaFiltro`). Sem valor no Profissional (não existe esse
    * status lá). */
   statusOcultoPorPadrao?: string;
-  /** "Exportar para Excel" mora aqui (e não no cabeçalho da página) porque, desde que o filtro virou
-   * inteiramente client-side, só quem guarda o estado do filtro (este componente) consegue montar o
-   * link já com `?status=...&posicao=...&contrato=...&q=...` embutido (`filtrosParaQueryString`) —
-   * a exportação sai com exatamente o que está na tela, e não a lista inteira sem filtro nenhum.
-   * `extras` são outras opções de exportação que NÃO dependem do filtro atual (ex.: "Exportar
-   * relação" da Base, que tem seu próprio formulário de categoria/status/colunas) — viram itens fixos
-   * no mesmo dropdown. */
-  exportar?: { excelHref: string; extras?: ExportOpcao[] };
+  /** "Exportar para Excel"/"Exportar PDF" moram aqui (e não no cabeçalho da página) porque, desde
+   * que o filtro virou inteiramente client-side, só quem guarda o estado do filtro (este componente)
+   * consegue montar o link já com `?status=...&posicao=...&contrato=...&q=...` embutido
+   * (`filtrosParaQueryString`) — a exportação sai com exatamente o que está na tela, e não a lista
+   * inteira sem filtro nenhum. `pdfHref` é opcional só por retrocompatibilidade de teste; as duas
+   * páginas reais sempre passam os dois. `extras` são outras opções de exportação que NÃO dependem
+   * do filtro atual (ex.: "Exportar relação" da Base, que tem seu próprio formulário de categoria/
+   * status/colunas) — viram itens fixos no mesmo dropdown. */
+  exportar?: { excelHref: string; pdfHref?: string; extras?: ExportOpcao[] };
 }) {
   const [busca, setBusca] = useState("");
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
-  const [posicaoSel, setPosicaoSel] = useState<Set<CategoriaPosicao>>(new Set());
+  const [posicaoSel, setPosicaoSel] = useState<Set<string>>(new Set());
   const [contratoSel, setContratoSel] = useState<Set<AtletaBaseTipoContrato>>(new Set());
+  // Só tem efeito quando `statusOcultoPorPadrao` existe (Base) — ver checkbox "Mostrar inativos"
+  // mais abaixo. Ligado, desliga o "esconder por padrão" sem precisar marcar o chip de Status.
+  const [mostrarInativos, setMostrarInativos] = useState(false);
+  // Abre o modal de escolha de colunas (ver `ExportColunasModal`) ao clicar em "Exportar para
+  // Excel" — a exportação em si só acontece quando a pessoa confirma no modal.
+  const [exportModalAberto, setExportModalAberto] = useState(false);
+
+  const statusOcultoEfetivo = mostrarInativos ? undefined : statusOcultoPorPadrao;
 
   const contagensStatus = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -86,14 +104,22 @@ export function AtletasResumoFiltros({
     return mapa;
   }, [atletas]);
 
+  // Detalhe por posição real (uma das 9 de `ATLETA_POSICAO_OPTIONS`), incluindo a leitura simples
+  // de apto/não apto pedida pelo Mateus — sempre sobre o "elenco de vitrine" (mesma regra de
+  // `statusOcultoPorPadrao`/`totalPadrao`: dispensado não entra aqui, ligado ou não o "Mostrar
+  // inativos", porque esse número é sobre quem está de fato disponível, não sobre a listagem atual).
   const contagensPosicao = useMemo(() => {
-    const mapa = new Map<CategoriaPosicao, number>();
+    const mapa = new Map<string, { total: number; apto: number; naoApto: number }>();
     for (const a of atletas) {
-      const categoria = categoriaDaPosicao(a.posicao);
-      if (categoria) mapa.set(categoria, (mapa.get(categoria) ?? 0) + 1);
+      if (statusOcultoPorPadrao && a.status === statusOcultoPorPadrao) continue;
+      const atual = mapa.get(a.posicao) ?? { total: 0, apto: 0, naoApto: 0 };
+      atual.total += 1;
+      if (ehStatusApto(a.status)) atual.apto += 1;
+      else atual.naoApto += 1;
+      mapa.set(a.posicao, atual);
     }
     return mapa;
-  }, [atletas]);
+  }, [atletas, statusOcultoPorPadrao]);
 
   const contagensContrato = useMemo(() => {
     const mapa = new Map<AtletaBaseTipoContrato, number>();
@@ -105,11 +131,12 @@ export function AtletasResumoFiltros({
 
   const totalComContrato = useMemo(() => atletas.filter((a) => a.tipoContrato).length, [atletas]);
 
-  // Conta como se nenhum status estivesse marcado — mesma regra de `statusOcultoPorPadrao` (o
-  // "Dispensado" da Base não entra no total "de vitrine", só quando a pessoa marca o chip dele).
+  // Conta como se nenhum status estivesse marcado — mesma regra de `statusOcultoEfetivo` (o
+  // "Dispensado" da Base não entra no total "de vitrine", a não ser que a pessoa marque o chip dele
+  // ou ligue "Mostrar inativos").
   const totalPadrao = useMemo(
-    () => atletas.filter((a) => !(statusOcultoPorPadrao && a.status === statusOcultoPorPadrao)).length,
-    [atletas, statusOcultoPorPadrao],
+    () => atletas.filter((a) => !(statusOcultoEfetivo && a.status === statusOcultoEfetivo)).length,
+    [atletas, statusOcultoEfetivo],
   );
 
   const buscaNormalizada = busca.trim().toLowerCase();
@@ -119,23 +146,30 @@ export function AtletasResumoFiltros({
   );
 
   const filtrados = useMemo(
-    () => atletas.filter((a) => atletaPassaFiltro(a, filtros, statusOcultoPorPadrao)),
-    [atletas, filtros, statusOcultoPorPadrao],
+    () => atletas.filter((a) => atletaPassaFiltro(a, filtros, statusOcultoEfetivo)),
+    [atletas, filtros, statusOcultoEfetivo],
   );
 
-  const algumFiltroAtivo = !nenhumFiltroAtivo(filtros);
+  const algumFiltroAtivo = !nenhumFiltroAtivo(filtros) || mostrarInativos;
 
   const excelHrefComFiltros = useMemo(() => {
     if (!exportar) return undefined;
-    const query = filtrosParaQueryString(filtros);
+    const query = filtrosParaQueryString(filtros, { mostrarInativos });
     return query ? `${exportar.excelHref}?${query}` : exportar.excelHref;
-  }, [exportar, filtros]);
+  }, [exportar, filtros, mostrarInativos]);
+
+  const pdfHrefComFiltros = useMemo(() => {
+    if (!exportar?.pdfHref) return undefined;
+    const query = filtrosParaQueryString(filtros, { mostrarInativos });
+    return query ? `${exportar.pdfHref}?${query}` : exportar.pdfHref;
+  }, [exportar, filtros, mostrarInativos]);
 
   function limparFiltros() {
     setStatusSel(new Set());
     setPosicaoSel(new Set());
     setContratoSel(new Set());
     setBusca("");
+    setMostrarInativos(false);
   }
 
   return (
@@ -172,26 +206,56 @@ export function AtletasResumoFiltros({
               </button>
             ))}
           </div>
+          {statusOcultoPorPadrao ? (
+            <label className="mt-2 flex w-fit items-center gap-1.5 text-xs font-medium text-neutral-500">
+              <input
+                type="checkbox"
+                checked={mostrarInativos}
+                onChange={(e) => setMostrarInativos(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              Mostrar inativos ({contagensStatus.get(statusOcultoPorPadrao) ?? 0} dispensados)
+            </label>
+          ) : null}
         </div>
 
         <div>
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
             Posições · clique para filtrar
           </p>
-          <div className="grid grid-cols-5 gap-1.5">
-            {GRUPOS_POSICAO.map((grupo) => (
-              <button
-                key={grupo}
-                type="button"
-                onClick={() => setPosicaoSel((atual) => alternarNoConjunto(atual, grupo))}
-                className={filtroChipClasse(posicaoSel.has(grupo))}
-              >
-                <span className={`inline-block rounded px-1 text-[10px] font-bold ${CATEGORIA_POSICAO_COR[grupo]}`}>
-                  {CATEGORIA_POSICAO_SIGLA[grupo]}
-                </span>
-                <p className="mt-1 font-bold tabular-nums">{contagensPosicao.get(grupo) ?? 0}</p>
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-1.5">
+            {ATLETA_POSICAO_OPTIONS.map((posicao) => {
+              const categoria = categoriaDaPosicao(posicao);
+              const detalhe = contagensPosicao.get(posicao);
+              const total = detalhe?.total ?? 0;
+              return (
+                <button
+                  key={posicao}
+                  type="button"
+                  onClick={() => setPosicaoSel((atual) => alternarNoConjunto(atual, posicao))}
+                  className={filtroChipClasse(posicaoSel.has(posicao))}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      className={`inline-block rounded px-1 text-[10px] font-bold ${
+                        categoria ? CATEGORIA_POSICAO_COR[categoria] : "bg-neutral-100 text-neutral-500"
+                      }`}
+                    >
+                      {categoria ? CATEGORIA_POSICAO_SIGLA[categoria] : "—"}
+                    </span>
+                    <span className="font-bold tabular-nums">{total}</span>
+                  </div>
+                  <p className="mt-1 truncate text-[10px] font-normal leading-tight text-neutral-500">{posicao}</p>
+                  {total > 0 ? (
+                    <p className="mt-0.5 whitespace-nowrap text-[9px] font-medium leading-tight">
+                      <span className="text-emerald-600">{detalhe?.apto ?? 0} apto</span>
+                      {" · "}
+                      <span className="text-red-500">{detalhe?.naoApto ?? 0} não apto</span>
+                    </p>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -200,7 +264,7 @@ export function AtletasResumoFiltros({
             Contrato · clique para filtrar
           </p>
           <div className="flex items-center gap-3">
-            <DonutContrato
+            <PizzaContrato
               contratoOptions={contratoOptions}
               contagens={contagensContrato}
               total={totalComContrato}
@@ -248,15 +312,13 @@ export function AtletasResumoFiltros({
           className="field-input min-w-0 flex-1"
         />
         {excelHrefComFiltros ? (
-          exportar?.extras && exportar.extras.length > 0 ? (
-            <ExportDropdown
-              opcoes={[{ label: "Exportar para Excel", href: excelHrefComFiltros }, ...exportar.extras]}
-            />
-          ) : (
-            <a href={excelHrefComFiltros} className="btn-secondary">
-              Exportar para Excel
-            </a>
-          )
+          <ExportDropdown
+            opcoes={[
+              { label: "Exportar para Excel", onClick: () => setExportModalAberto(true) },
+              ...(pdfHrefComFiltros ? [{ label: "Exportar PDF", href: pdfHrefComFiltros }] : []),
+              ...(exportar?.extras ?? []),
+            ]}
+          />
         ) : null}
         <button
           type="button"
@@ -284,16 +346,21 @@ export function AtletasResumoFiltros({
           ))}
         </div>
       )}
+
+      {exportModalAberto && excelHrefComFiltros ? (
+        <ExportColunasModal hrefBase={excelHrefComFiltros} onClose={() => setExportModalAberto(false)} />
+      ) : null}
     </div>
   );
 }
 
-/** Donut simples via `stroke-dasharray` (raio 15.915 => circunferência ≈ 100, então a porcentagem
- * de cada tipo vira o valor do dasharray direto, sem calcular circunferência de verdade — truque
- * clássico de gráfico de rosca em SVG puro). Cada fatia também é clicável (mesmo filtro da
- * legenda ao lado) — a legenda em botões de verdade continua sendo o jeito acessível por teclado de
- * fazer a mesma coisa. */
-function DonutContrato({
+/** Pizza cheia de verdade (sem buraco no meio) via `fatiasPizza` — igual ao artefato original que o
+ * Mateus mandou como referência, no lugar do donut anterior (`stroke-dasharray` num círculo vazado).
+ * Cada fatia é um `<path>` clicável (mesmo filtro da legenda ao lado) com uma fina borda na cor de
+ * fundo da página separando as fatias, pra não parecerem uma peça só quando duas cores são
+ * parecidas — a legenda em botões de verdade continua sendo o jeito acessível por teclado de fazer a
+ * mesma coisa. */
+function PizzaContrato({
   contratoOptions,
   contagens,
   total,
@@ -314,34 +381,25 @@ function DonutContrato({
     );
   }
 
-  let acumulado = 0;
+  const fatias = fatiasPizza(contratoOptions.map((tipo) => ({ chave: tipo, valor: contagens.get(tipo) ?? 0 })));
+
   return (
-    <svg viewBox="0 0 36 36" className="h-20 w-20 shrink-0 -rotate-90">
-      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#EEF0F2" strokeWidth="6" />
-      {contratoOptions.map((tipo) => {
-        const count = contagens.get(tipo) ?? 0;
-        if (count === 0) return null;
-        const pct = (count / total) * 100;
-        const offsetInicial = acumulado;
-        acumulado += pct;
-        const dimmed = selecionados.size > 0 && !selecionados.has(tipo);
+    <svg viewBox="0 0 36 36" className="h-20 w-20 shrink-0">
+      {fatias.map((fatia) => {
+        const dimmed = selecionados.size > 0 && !selecionados.has(fatia.chave);
         return (
-          <circle
-            key={tipo}
-            cx="18"
-            cy="18"
-            r="15.915"
-            fill="none"
-            stroke={CONTRATO_ATLETA_COR[tipo]}
-            strokeWidth="6"
-            strokeDasharray={`${pct} ${100 - pct}`}
-            strokeDashoffset={-offsetInicial}
+          <path
+            key={fatia.chave}
+            d={fatia.path}
+            fill={CONTRATO_ATLETA_COR[fatia.chave]}
+            stroke="#EEF0F2"
+            strokeWidth="0.5"
             opacity={dimmed ? 0.35 : 1}
             className="cursor-pointer transition-opacity"
-            onClick={() => aoClicar(tipo)}
+            onClick={() => aoClicar(fatia.chave)}
           >
-            <title>{`${CONTRATO_ATLETA_LABEL[tipo]}: ${count}`}</title>
-          </circle>
+            <title>{`${CONTRATO_ATLETA_LABEL[fatia.chave]}: ${contagens.get(fatia.chave) ?? 0} (${fatia.percentual}%)`}</title>
+          </path>
         );
       })}
     </svg>

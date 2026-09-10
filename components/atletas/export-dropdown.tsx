@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 export interface ExportOpcao {
   label: string;
-  href: string;
+  /** Um dos dois: link direto (navega/baixa na hora) ou `onClick` (ex.: abrir o modal de escolha de
+   * colunas antes de exportar — ver `ExportColunasModal`). */
+  href?: string;
+  onClick?: () => void;
 }
 
 /**
@@ -52,16 +55,30 @@ export function ExportDropdown({ opcoes }: { opcoes: ExportOpcao[] }) {
 
       {aberto ? (
         <div className="absolute left-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-md border border-neutral-200 bg-white text-left shadow-lg">
-          {opcoes.map((opcao) => (
-            <a
-              key={opcao.href}
-              href={opcao.href}
-              onClick={() => setAberto(false)}
-              className="block px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
-            >
-              {opcao.label}
-            </a>
-          ))}
+          {opcoes.map((opcao) =>
+            opcao.onClick ? (
+              <button
+                key={opcao.label}
+                type="button"
+                onClick={() => {
+                  setAberto(false);
+                  opcao.onClick?.();
+                }}
+                className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
+              >
+                {opcao.label}
+              </button>
+            ) : (
+              <a
+                key={opcao.label}
+                href={opcao.href}
+                onClick={() => setAberto(false)}
+                className="block px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+              >
+                {opcao.label}
+              </a>
+            ),
+          )}
         </div>
       ) : null}
     </div>

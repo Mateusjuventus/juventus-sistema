@@ -5,10 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
+// Rótulos "Apto"/"Não apto"/"Depto. Médico" (em vez de Liberado/Suspenso/Departamento Médico) —
+// pedido do Mateus pra bater com o layout antigo de antes do redesign (ver item 7 do ajuste de
+// 2026-09-10). O valor gravado no banco continua "liberado"/"suspenso"/"departamento_medico"; só o
+// rótulo exibido nos chips de Status muda.
 const STATUS_LABEL: Record<AtletaStatus, string> = {
-  liberado: "Liberado",
-  suspenso: "Suspenso",
-  departamento_medico: "Departamento Médico",
+  liberado: "Apto",
+  suspenso: "Não apto",
+  departamento_medico: "Depto. Médico",
 };
 
 const STATUS_OPTIONS: StatusFiltroOpcao[] = [
@@ -94,7 +98,7 @@ export default async function AtletasPage() {
           estatisticaExtra={
             mediaIdade > 0 ? { label: "Média de idade", valor: mediaIdade.toFixed(1) } : undefined
           }
-          exportar={{ excelHref: "/atletas/export" }}
+          exportar={{ excelHref: "/atletas/export", pdfHref: "/atletas/export/pdf" }}
         />
       </div>
     </AppShell>

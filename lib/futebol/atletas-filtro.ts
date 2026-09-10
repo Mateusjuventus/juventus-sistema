@@ -1,6 +1,3 @@
-import { categoriaDaPosicao } from "@/lib/futebol/categoria-posicao";
-import type { CategoriaPosicao } from "@/lib/supabase/types";
-
 /**
  * Filtragem combinada de `AtletasResumoFiltros` (ver docs/superpowers/specs/
  * 2026-09-09-atletas-resumo-filtros-design.md, item 5): E lógico entre Status/Posição/Contrato, OU
@@ -16,7 +13,10 @@ export interface AtletaFiltravel {
 
 export interface FiltrosAtletas {
   status: Set<string>;
-  posicoes: Set<CategoriaPosicao>;
+  /** Valor cru de `AtletaPosicao` (ex.: "Volante", "Ponta Direita") — desde 2026-09-10 o filtro
+   * mostra as 9 posições reais em vez dos 5 grupos (GOL/ZAG/LAT/MEI/ATA), que continuam existindo
+   * só como tag colorida dentro de cada chip (ver `categoriaDaPosicao`). */
+  posicoes: Set<string>;
   contratos: Set<string>;
   /** Já em minúsculas/trim — quem chama normaliza uma vez só, não a cada atleta. */
   buscaNormalizada: string;
@@ -37,7 +37,9 @@ export function nenhumFiltroAtivo(filtros: FiltrosAtletas): boolean {
  * com o filtro de Status agora sendo um conjunto de chips que a pessoa liga/desliga: com NENHUM
  * status marcado (== "mostrar tudo"), esse valor ainda fica de fora — só aparece quando a pessoa
  * marca o chip dele explicitamente. Só a Base usa isso ("dispensado"); o Profissional não passa
- * nada, porque esse status nem existe lá.
+ * nada, porque esse status nem existe lá. Quem chama também pode passar `undefined` aqui de
+ * propósito (em vez do valor de sempre) pra representar "Mostrar inativos" ligado — ver
+ * `AtletasResumoFiltros`.
  */
 export function atletaPassaFiltro(
   atleta: AtletaFiltravel,
@@ -51,8 +53,7 @@ export function atletaPassaFiltro(
   }
 
   if (filtros.posicoes.size > 0) {
-    const categoria = categoriaDaPosicao(atleta.posicao);
-    if (!categoria || !filtros.posicoes.has(categoria)) return false;
+    if (!filtros.posicoes.has(atleta.posicao)) return false;
   }
 
   if (filtros.contratos.size > 0) {
@@ -74,13 +75,18 @@ export function atletaPassaFiltro(
  * export/route.ts`) fazem o caminho inverso: leem esses mesmos parâmetros e chamam `atletaPassaFiltro`
  * de novo no server, pra exportar exatamente o que está na tela. Filtros vazios viram string vazia
  * (sem "?" nenhum a mais no link).
+ *
+ * `mostrarInativos` vira `inativos=1` na query — só faz sentido na Base (ver checkbox "Mostrar
+ * inativos" em `AtletasResumoFiltros`); a rota de export da Base lê esse parâmetro pra decidir se
+ * passa `statusOcultoPorPadrao` ou não, mantendo a exportação igual ao que está na tela.
  */
-export function filtrosParaQueryString(filtros: FiltrosAtletas): string {
+export function filtrosParaQueryString(filtros: FiltrosAtletas, opts?: { mostrarInativos?: boolean }): string {
   const params = new URLSearchParams();
   if (filtros.status.size > 0) params.set("status", [...filtros.status].join(","));
   if (filtros.posicoes.size > 0) params.set("posicao", [...filtros.posicoes].join(","));
   if (filtros.contratos.size > 0) params.set("contrato", [...filtros.contratos].join(","));
   if (filtros.buscaNormalizada) params.set("q", filtros.buscaNormalizada);
+  if (opts?.mostrarInativos) params.set("inativos", "1");
   return params.toString();
 }
 
@@ -94,8 +100,14 @@ export function filtrosDaQueryString(searchParams: URLSearchParams): FiltrosAtle
   }
   return {
     status: paraConjunto("status"),
-    posicoes: paraConjunto("posicao") as Set<CategoriaPosicao>,
+    posicoes: paraConjunto("posicao"),
     contratos: paraConjunto("contrato"),
     buscaNormalizada: (searchParams.get("q") ?? "").trim().toLowerCase(),
   };
+}
+
+/** Lê o `inativos=1` da query string (ver `filtrosParaQueryString`) — `true` significa "não esconder
+ * o status default (dispensado)", igual ao checkbox "Mostrar inativos" marcado na tela. */
+export function mostrarInativosDaQueryString(searchParams: URLSearchParams): boolean {
+  return searchParams.get("inativos") === "1";
 }
