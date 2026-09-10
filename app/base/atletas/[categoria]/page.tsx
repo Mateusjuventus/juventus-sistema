@@ -59,6 +59,7 @@ export default async function AtletasBaseCategoriaPage({
   const itens: AtletaResumoItem[] = atletas.map((atleta, i) => ({
     id: atleta.id,
     nome: atleta.nome_completo,
+    apelido: atleta.apelido,
     cpf: atleta.cpf,
     fotoUrl: fotoUrls[i],
     dataNascimento: atleta.data_nascimento,
