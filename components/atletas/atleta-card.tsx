@@ -31,6 +31,11 @@ export interface AtletaCardDados {
   /** G1/G2/G3/Dispensa (pendente) — só existe na Base; `undefined`/`null` no Profissional, sem
    * nenhuma borda extra no card. */
   classificacao?: AtletaClassificacao | null;
+  /** Ativo/inativo (ver 0098_atleta_ativo.sql) — independente do status esportivo. `undefined`
+   * conta como ativo (retrocompatibilidade de quem ainda não passa essa prop, ex.: testes). Quando
+   * inativo, o card fica acinzentado/apagado e o selo "a vencer" dá lugar a um selo "Inativo" (não
+   * faz sentido alertar vencimento de contrato de quem já está inativo). */
+  ativo?: boolean;
 }
 
 /**
@@ -59,7 +64,10 @@ export function AtletaCard({
   mostrarContrato?: boolean;
 }) {
   const sigla = siglaCategoriaPosicao(categoriaDaPosicao(atleta.posicao));
-  const vencendo = contratoEstaVencendo(atleta.dataFimContrato, atleta.dispensado, hoje);
+  const inativo = atleta.ativo === false;
+  // Contrato "a vencer" não importa mais pra quem já está inativo — o selo dá lugar ao "Inativo"
+  // no mesmo canto (ver mais abaixo).
+  const vencendo = !inativo && contratoEstaVencendo(atleta.dataFimContrato, atleta.dispensado, hoje);
   const diasParaVencer = diasParaVencerContrato(atleta.dataFimContrato, hoje);
   const apelidoOuNome = nomeExibido({ apelido: atleta.apelido, nome_completo: atleta.nome });
 
@@ -73,9 +81,12 @@ export function AtletaCard({
       // continua com o fundo grená até o fim do card. Sem isso, o espaço esticado sobrava como uma
       // faixa branca vazia (fundo do próprio `Link`) embaixo dos cards mais curtos da linha — bug já
       // visto antes com o mesmo sintoma (nomes/textos de tamanho variável entre atletas).
-      className={`flex flex-col overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${anelClassificacaoAtleta(
-        atleta.classificacao,
-      )}`}
+      // `grayscale opacity-70`: mesmo tratamento visual do atleta inativo (ver 0098_atleta_ativo.sql)
+      // — só aparece quando "Mostrar inativos" está marcado em `AtletasResumoFiltros`, então já dá
+      // pra ver de longe quem está de fora da operação normal.
+      className={`flex flex-col overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+        inativo ? "grayscale opacity-70" : ""
+      } ${anelClassificacaoAtleta(atleta.classificacao)}`}
     >
       <div className="relative">
         <AtletaAvatarBloco
@@ -102,7 +113,11 @@ export function AtletaCard({
             {inicialContratoAtleta(atleta.tipoContrato)}
           </span>
         ) : null}
-        {vencendo ? (
+        {inativo ? (
+          <span className="absolute bottom-1.5 right-1.5 whitespace-nowrap rounded-full bg-neutral-700 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+            Inativo
+          </span>
+        ) : vencendo ? (
           <span
             className="absolute bottom-1.5 right-1.5 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-[8px] font-bold text-amber-800 shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
             title={

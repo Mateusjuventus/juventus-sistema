@@ -307,3 +307,25 @@ export async function alternarFichaCadastroAtletaBase(formData: FormData): Promi
   revalidatePath("/base/atletas");
   revalidatePath("/cadastro-atleta-base");
 }
+
+/** Ativa/desativa um atleta da Base (ver 0098_atleta_ativo.sql) — independente do status esportivo
+ * e diferente de "dispensado" (que é ligado ao Relatório de Dispensa formal, com motivo/notas/data
+ * próprios). Mesmo padrão de `alternarAtletaAtivo` (Profissional)/`alternarStaffAtivo`: em vez de
+ * excluir, o cadastro fica marcado como inativo e some da listagem por padrão. `categoria` chega
+ * como campo escondido do formulário (ver `AtletaAtivoButton`/`camposExtras`) só pra saber qual
+ * listagem revalidar — não muda de departamento nem nada assim. */
+export async function alternarAtletaBaseAtivo(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const categoria = String(formData.get("categoria") ?? "");
+  const novoValor = String(formData.get("novoValor") ?? "") === "true";
+  if (!id) return;
+
+  const supabase = createClient();
+  await supabase.from("atletas_base").update({ ativo: novoValor }).eq("id", id);
+
+  revalidatePath("/base/atletas");
+  if (categoria) {
+    revalidatePath(`/base/atletas/${categoria}`);
+    revalidatePath(`/base/atletas/${categoria}/${id}/ver`);
+  }
+}

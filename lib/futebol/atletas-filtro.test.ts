@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   atletaPassaFiltro,
+  atletaVisivelPorAtivo,
   camposOcultosDaQueryString,
   filtrosDaQueryString,
   filtrosParaQueryString,
@@ -186,6 +187,18 @@ describe("mostrarInativosDaQueryString", () => {
     expect(mostrarInativosDaQueryString(new URLSearchParams("inativos=1"))).toBe(true);
     expect(mostrarInativosDaQueryString(new URLSearchParams(""))).toBe(false);
     expect(mostrarInativosDaQueryString(new URLSearchParams("inativos=true"))).toBe(false);
+  });
+});
+
+describe("atletaVisivelPorAtivo (opção de Inativar atleta)", () => {
+  it("atleta ativo sempre aparece, com ou sem 'Mostrar inativos'", () => {
+    expect(atletaVisivelPorAtivo(true, false)).toBe(true);
+    expect(atletaVisivelPorAtivo(true, true)).toBe(true);
+  });
+
+  it("atleta inativo só aparece com 'Mostrar inativos' ligado", () => {
+    expect(atletaVisivelPorAtivo(false, false)).toBe(false);
+    expect(atletaVisivelPorAtivo(false, true)).toBe(true);
   });
 });
 

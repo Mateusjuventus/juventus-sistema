@@ -71,6 +71,12 @@ export interface AtletaRow {
    * o número de registro/contrato (usado como sinal de sugestão automática de vínculo). Só
    * Futebol Profissional — `AtletaBaseRow` não tem esse campo. */
   fpf_id_atleta: number | null;
+  /** Ativo/inativo (ver 0098_atleta_ativo.sql) — independente do `status` esportivo (Liberado/
+   * Suspenso/Departamento Médico). Mesmo padrão de Staff Operacional/Veículos/Hotéis: em vez de
+   * excluir o cadastro, ele fica marcado como inativo e some das listas/exportações por padrão
+   * (`ativo` sempre `true` até alguém desativar manualmente pelo botão "Desativar" na página do
+   * atleta). */
+  ativo: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -182,6 +188,11 @@ export interface AtletaBaseRow {
    * quando `possui_alergia_medicamento` é `true`. */
   possui_alergia_medicamento: boolean;
   alergia_medicamento_qual: string | null;
+  /** Ativo/inativo (ver 0098_atleta_ativo.sql) — independente do `status` esportivo, e diferente de
+   * "dispensado" (que é ligado ao Relatório de Dispensa formal). Mesmo padrão de Staff Operacional/
+   * Veículos/Hotéis: em vez de excluir o cadastro, ele fica marcado como inativo e some das listas/
+   * exportações por padrão. */
+  ativo: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;

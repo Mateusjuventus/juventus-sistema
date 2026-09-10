@@ -70,6 +70,7 @@ export default async function AtletasBaseCategoriaPage({
     dispensado: atleta.status === "dispensado",
     classificacao: atleta.classificacao,
     status: atleta.status,
+    ativo: atleta.ativo,
     href: `/base/atletas/${categoria}/${atleta.id}/ver`,
   }));
 

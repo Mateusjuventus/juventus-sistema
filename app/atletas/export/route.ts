@@ -3,7 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import { atletaPassaFiltro, filtrosDaQueryString } from "@/lib/futebol/atletas-filtro";
+import {
+  atletaPassaFiltro,
+  atletaVisivelPorAtivo,
+  filtrosDaQueryString,
+  mostrarInativosDaQueryString,
+} from "@/lib/futebol/atletas-filtro";
 import { filtrarLinhaPorGrupos, gruposCampoExportDaQueryString } from "@/lib/futebol/export-colunas";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
@@ -58,25 +63,29 @@ function formatData(data: string | null): string {
  * e a busca por nome que estiverem ativos na tela (`AtletasResumoFiltros` monta esses mesmos
  * parâmetros no link com `filtrosParaQueryString` — ver docs/superpowers/specs/2026-09-09-atletas-
  * resumo-filtros-design.md). Sem parâmetro nenhum, exporta a lista inteira, igual à tela sem
- * nenhum filtro marcado. */
+ * nenhum filtro marcado. Atleta com `ativo === false` (ver 0098_atleta_ativo.sql) só entra se
+ * "Mostrar inativos" estiver marcado na tela (`mostrarInativos=1` na query). */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const filtros = filtrosDaQueryString(searchParams);
+  const mostrarInativos = mostrarInativosDaQueryString(searchParams);
   const gruposSelecionados = gruposCampoExportDaQueryString(searchParams);
   const supabase = createClient();
 
   const { data } = await supabase.from("atletas").select("*").order("nome_completo", { ascending: true });
-  const atletas = ((data ?? []) as AtletaRow[]).filter((a) =>
-    atletaPassaFiltro(
-      {
-        status: a.status,
-        posicao: a.posicao,
-        tipoContrato: a.tipo_contrato,
-        nome: a.nome_completo,
-        dataNascimento: a.data_nascimento,
-      },
-      filtros,
-    ),
+  const atletas = ((data ?? []) as AtletaRow[]).filter(
+    (a) =>
+      atletaVisivelPorAtivo(a.ativo, mostrarInativos) &&
+      atletaPassaFiltro(
+        {
+          status: a.status,
+          posicao: a.posicao,
+          tipoContrato: a.tipo_contrato,
+          nome: a.nome_completo,
+          dataNascimento: a.data_nascimento,
+        },
+        filtros,
+      ),
   );
 
   const linhas = atletas.map((a) =>

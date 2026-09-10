@@ -7,7 +7,13 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
-import { atletaPassaFiltro, camposOcultosDaQueryString, filtrosDaQueryString } from "@/lib/futebol/atletas-filtro";
+import {
+  atletaPassaFiltro,
+  atletaVisivelPorAtivo,
+  camposOcultosDaQueryString,
+  filtrosDaQueryString,
+  mostrarInativosDaQueryString,
+} from "@/lib/futebol/atletas-filtro";
 import { AtletasResumoDocument, type AtletaResumoPdfItem } from "@/lib/pdf/atletas-resumo-document";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
@@ -32,27 +38,31 @@ const CONTRATO_OPTIONS_PROFISSIONAL = ["definitivo", "emprestimo", "amador", "fo
 /**
  * PDF "Resumo de Atletas" do Profissional — resumo (Status/Posições/Contrato) + os cards dos
  * atletas, tudo numa folha só (ver `lib/pdf/atletas-resumo-document.tsx`), respeitando os mesmos
- * filtros de Status/Posição/Contrato e busca por nome ativos na tela (mesmo princípio do "Exportar
- * para Excel": o PDF sai com exatamente o que está filtrado na tela).
+ * filtros de Status/Posição/Contrato, busca por nome e "Mostrar inativos" ativos na tela (mesmo
+ * princípio do "Exportar para Excel": o PDF sai com exatamente o que está filtrado na tela). Atleta
+ * com `ativo === false` (ver 0098_atleta_ativo.sql) só entra se "Mostrar inativos" estiver marcado.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const filtros = filtrosDaQueryString(searchParams);
+  const mostrarInativos = mostrarInativosDaQueryString(searchParams);
   const camposOcultos = camposOcultosDaQueryString(searchParams);
   const supabase = createClient();
 
   const { data } = await supabase.from("atletas").select("*").order("nome_completo", { ascending: true });
-  const atletas = ((data ?? []) as AtletaRow[]).filter((a) =>
-    atletaPassaFiltro(
-      {
-        status: a.status,
-        posicao: a.posicao,
-        tipoContrato: a.tipo_contrato,
-        nome: a.nome_completo,
-        dataNascimento: a.data_nascimento,
-      },
-      filtros,
-    ),
+  const atletas = ((data ?? []) as AtletaRow[]).filter(
+    (a) =>
+      atletaVisivelPorAtivo(a.ativo, mostrarInativos) &&
+      atletaPassaFiltro(
+        {
+          status: a.status,
+          posicao: a.posicao,
+          tipoContrato: a.tipo_contrato,
+          nome: a.nome_completo,
+          dataNascimento: a.data_nascimento,
+        },
+        filtros,
+      ),
   );
 
   const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));

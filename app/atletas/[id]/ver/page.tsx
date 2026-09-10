@@ -2,12 +2,14 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { AtletaTabs } from "@/components/atleta-tabs";
 import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
+import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { alternarAtletaAtivo } from "../../actions";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
 const STATUS_LABEL: Record<AtletaStatus, string> = {
@@ -34,9 +36,10 @@ function formatData(data: string | null): string {
 
 /**
  * Aba "Dados Pessoais" do perfil do atleta — visualização somente leitura do cadastro (dados
- * pessoais, esportivos, naturalidade/endereço), pra consultar rápido sem abrir o formulário de
- * edição. Ver `/atletas/[id]` para editar, e `AtletaTabs` para as outras abas (Documentação,
- * Dados de Jogo).
+ * pessoais incluindo endereço/alergia, e dados esportivos), pra consultar rápido sem abrir o
+ * formulário de edição. Ver `/atletas/[id]` para editar, e `AtletaTabs` para as outras abas
+ * (Documentação, Dados de Jogo). O botão Ativar/Desativar (ver 0098_atleta_ativo.sql) mora aqui,
+ * no cabeçalho compartilhado (`AtletaPerfilHeader`).
  */
 export default async function VerAtletaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -58,9 +61,14 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
         subtitulo={subtitulo}
         fotoUrl={fotoUrl}
         editarHref={`/atletas/${atleta.id}`}
+        ativo={atleta.ativo}
+        acoesExtra={<AtletaAtivoButton action={alternarAtletaAtivo} id={atleta.id} ativo={atleta.ativo} />}
       />
 
       <div className="mt-6 space-y-6">
+        {/* Endereço e "Possui alergia a algum medicamento" viraram parte deste card em vez de seção
+            própria em 2026-09-10 (pedido do Mateus: "Endereço... fazem parte dos dados pessoais do
+            atleta"; alergia já era assim no formulário de edição, só faltava aparecer aqui também). */}
         <FormSection title="Dados pessoais">
           <FieldGroup>
             <DetailField label="Nome completo" value={atleta.nome_completo} />
@@ -69,6 +77,18 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             <DetailField label="CPF" value={formatCPF(atleta.cpf)} />
             <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
             <DetailField label="Telefone" value={atleta.telefone} />
+            <DetailField
+              label="Possui alergia a algum medicamento"
+              value={atleta.possui_alergia_medicamento ? "Sim" : "Não"}
+            />
+            {atleta.possui_alergia_medicamento ? (
+              <DetailField label="Qual" value={atleta.alergia_medicamento_qual} />
+            ) : null}
+            <DetailField label="Cidade natal" value={atleta.cidade_natal} />
+            <DetailField label="UF natal" value={atleta.uf_natal} />
+            <div className="sm:col-span-2">
+              <DetailField label="Endereço atual" value={atleta.endereco_atual} />
+            </div>
           </FieldGroup>
         </FormSection>
 
@@ -96,16 +116,6 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             <DetailField label="Data de início no clube" value={formatData(atleta.data_inicio_clube)} />
             <DetailField label="Data de término do contrato" value={formatData(atleta.data_fim_contrato)} />
             <DetailField label="Empresário/representante" value={atleta.empresario_nome} />
-          </FieldGroup>
-        </FormSection>
-
-        <FormSection title="Naturalidade e endereço">
-          <FieldGroup>
-            <DetailField label="Cidade natal" value={atleta.cidade_natal} />
-            <DetailField label="UF natal" value={atleta.uf_natal} />
-            <div className="sm:col-span-2">
-              <DetailField label="Endereço atual" value={atleta.endereco_atual} />
-            </div>
           </FieldGroup>
         </FormSection>
       </div>

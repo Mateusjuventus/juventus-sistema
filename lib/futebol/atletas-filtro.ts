@@ -83,6 +83,19 @@ export function atletaPassaFiltro(
   return true;
 }
 
+/**
+ * Gate independente de status/posição/contrato/ano — um atleta inativo (`ativo === false`, ver
+ * 0098_atleta_ativo.sql) nunca aparece nas listas/exportações, a menos que "Mostrar inativos"
+ * esteja marcado. É o mesmo checkbox que já existia só pra "Dispensado" na Base (ver
+ * `mostrarInativosDaQueryString` abaixo) — generalizado em 2026-09-10 pra também cobrir o novo
+ * campo `ativo`, que existe tanto no Profissional quanto na Base. Extraído puro porque tanto
+ * `AtletasResumoFiltros` (na tela) quanto as rotas de export (no server) precisam aplicar essa
+ * mesma regra antes de `atletaPassaFiltro` entrar em cena.
+ */
+export function atletaVisivelPorAtivo(ativo: boolean, mostrarInativos: boolean): boolean {
+  return ativo || mostrarInativos;
+}
+
 /** Campo do card que dá pra esconder — ver checkbox "Mostrar no card" em `AtletasResumoFiltros`
  * (pedido do Mateus em 2026-09-10). Apelido/nome completo e nascimento continuam sempre visíveis;
  * só esses dois têm informação sensível/dispensável dependendo de quem vai ver o card ou o PDF. */
@@ -97,9 +110,11 @@ export type CampoCardOpcional = "cpf" | "contrato";
  * de novo no server, pra exportar exatamente o que está na tela. Filtros vazios viram string vazia
  * (sem "?" nenhum a mais no link).
  *
- * `mostrarInativos` vira `inativos=1` na query — só faz sentido na Base (ver checkbox "Mostrar
- * inativos" em `AtletasResumoFiltros`); a rota de export da Base lê esse parâmetro pra decidir se
- * passa `statusOcultoPorPadrao` ou não, mantendo a exportação igual ao que está na tela.
+ * `mostrarInativos` vira `inativos=1` na query — ver checkbox "Mostrar inativos" em
+ * `AtletasResumoFiltros`. Controla duas coisas ao mesmo tempo: se a rota de export da Base passa
+ * `statusOcultoPorPadrao` ou não (esconder "Dispensado" por padrão), e se as rotas de export das
+ * duas telas aplicam `atletaVisivelPorAtivo` (esconder atleta com `ativo === false` por padrão) —
+ * mantendo a exportação igual ao que está na tela.
  *
  * `camposOcultos` vira `camposOcultos=cpf,contrato` — só afeta o PDF (`?campos...` chega em
  * `app/atletas/export/pdf/route.tsx`/`app/base/atletas/[categoria]/export/pdf/route.tsx`), não a
@@ -149,7 +164,8 @@ export function filtrosDaQueryString(searchParams: URLSearchParams): FiltrosAtle
 }
 
 /** Lê o `inativos=1` da query string (ver `filtrosParaQueryString`) — `true` significa "não esconder
- * o status default (dispensado)", igual ao checkbox "Mostrar inativos" marcado na tela. */
+ * o status default (dispensado, só Base) nem os atletas com `ativo === false` (Profissional e
+ * Base)", igual ao checkbox "Mostrar inativos" marcado na tela. */
 export function mostrarInativosDaQueryString(searchParams: URLSearchParams): boolean {
   return searchParams.get("inativos") === "1";
 }

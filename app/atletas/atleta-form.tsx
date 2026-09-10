@@ -67,7 +67,7 @@ export function AtletaForm({
             error={errors.telefone}
           />
           <div className="sm:col-span-2">
-            <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} />
+            <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} showDownload />
           </div>
           <div className="sm:col-span-2">
             <div className="flex items-center gap-2">
@@ -93,6 +93,28 @@ export function AtletaForm({
                 />
               </div>
             ) : null}
+          </div>
+          <TextField
+            label="Cidade natal"
+            name="cidadeNatal"
+            defaultValue={values.cidadeNatal}
+            error={errors.cidadeNatal}
+          />
+          <TextField
+            label="UF natal"
+            name="ufNatal"
+            maxLength={2}
+            defaultValue={values.ufNatal}
+            error={errors.ufNatal}
+            placeholder="Ex: SP"
+          />
+          <div className="sm:col-span-2">
+            <TextField
+              label="Endereço atual"
+              name="enderecoAtual"
+              defaultValue={values.enderecoAtual}
+              error={errors.enderecoAtual}
+            />
           </div>
         </FieldGroup>
       </FormSection>
@@ -213,33 +235,6 @@ export function AtletaForm({
             defaultValue={values.empresarioNome}
             error={errors.empresarioNome}
           />
-        </FieldGroup>
-      </FormSection>
-
-      <FormSection title="Naturalidade e endereço">
-        <FieldGroup>
-          <TextField
-            label="Cidade natal"
-            name="cidadeNatal"
-            defaultValue={values.cidadeNatal}
-            error={errors.cidadeNatal}
-          />
-          <TextField
-            label="UF natal"
-            name="ufNatal"
-            maxLength={2}
-            defaultValue={values.ufNatal}
-            error={errors.ufNatal}
-            placeholder="Ex: SP"
-          />
-          <div className="sm:col-span-2">
-            <TextField
-              label="Endereço atual"
-              name="enderecoAtual"
-              defaultValue={values.enderecoAtual}
-              error={errors.enderecoAtual}
-            />
-          </div>
         </FieldGroup>
       </FormSection>
 

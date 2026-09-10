@@ -218,3 +218,20 @@ export async function deleteAtleta(
   // pessoa ficava numa tela de um atleta que acabou de apagar.
   redirect("/atletas");
 }
+
+/** Ativa/desativa um atleta (ver 0098_atleta_ativo.sql) — independente do status esportivo
+ * (Liberado/Suspenso/Departamento Médico). Mesmo padrão de `alternarStaffAtivo`
+ * (app/staff-operacional/actions.ts): em vez de excluir, o cadastro fica marcado como inativo e
+ * some da listagem por padrão (checkbox "Mostrar inativos"). Botão fica na página "Ver atleta"
+ * (`AtletaPerfilHeader`/`AtletaAtivoButton`). */
+export async function alternarAtletaAtivo(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const novoValor = String(formData.get("novoValor") ?? "") === "true";
+  if (!id) return;
+
+  const supabase = createClient();
+  await supabase.from("atletas").update({ ativo: novoValor }).eq("id", id);
+
+  revalidatePath("/atletas");
+  revalidatePath(`/atletas/${id}/ver`);
+}

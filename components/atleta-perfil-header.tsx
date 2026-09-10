@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 /**
@@ -12,20 +13,38 @@ export function AtletaPerfilHeader({
   subtitulo,
   fotoUrl,
   editarHref,
+  ativo = true,
+  acoesExtra,
 }: {
   nome: string;
   apelido: string | null;
   subtitulo: string;
   fotoUrl: string | null;
   editarHref: string;
+  /** `false` mostra o selo "Inativo" ao lado do nome (ver 0098_atleta_ativo.sql) — `true` por
+   * padrão pra não quebrar quem ainda não passa essa prop. */
+  ativo?: boolean;
+  /** Botão(ões) extra(s) entre o nome e "Editar" — hoje só o Ativar/Desativar
+   * (`AtletaAtivoButton`), mas fica genérico pra não precisar mudar a assinatura de novo. */
+  acoesExtra?: ReactNode;
 }) {
   return (
     <>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-grena-escuro">{nome}</h1>
-        <Link href={editarHref} className="btn-primary">
-          Editar
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-bold text-grena-escuro">{nome}</h1>
+          {!ativo ? (
+            <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-semibold text-neutral-600">
+              Inativo
+            </span>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {acoesExtra}
+          <Link href={editarHref} className="btn-primary">
+            Editar
+          </Link>
+        </div>
       </div>
 
       <div className="card mt-4 flex items-center gap-4 p-5">

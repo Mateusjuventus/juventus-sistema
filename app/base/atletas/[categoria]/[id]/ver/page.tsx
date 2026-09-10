@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { AtletaTabsBase } from "@/components/atleta-tabs-base";
 import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
+import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +12,7 @@ import { formatCPF } from "@/lib/validation/cpf";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
+import { alternarAtletaBaseAtivo } from "../../../actions";
 import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
 const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
@@ -71,6 +73,15 @@ export default async function VerAtletaBasePage({
         subtitulo={subtitulo}
         fotoUrl={fotoUrl}
         editarHref={`/base/atletas/${params.categoria}/${atleta.id}`}
+        ativo={atleta.ativo}
+        acoesExtra={
+          <AtletaAtivoButton
+            action={alternarAtletaBaseAtivo}
+            id={atleta.id}
+            ativo={atleta.ativo}
+            camposExtras={{ categoria: params.categoria }}
+          />
+        }
       />
 
       <div className="card mt-4 flex flex-wrap items-center justify-between gap-3 p-5">
@@ -104,6 +115,9 @@ export default async function VerAtletaBasePage({
       </div>
 
       <div className="mt-6 space-y-6">
+        {/* Endereço, Responsáveis e "Possui alergia a algum medicamento" viraram parte deste card em
+            vez de seções próprias em 2026-09-10 (pedido do Mateus: "Endereço e os Dados dos
+            responsáveis fazem parte dos dados pessoais do atleta"). */}
         <FormSection title="Dados pessoais">
           <FieldGroup>
             <DetailField label="Nome completo" value={atleta.nome_completo} />
@@ -112,6 +126,36 @@ export default async function VerAtletaBasePage({
             <DetailField label="CPF" value={atleta.cpf ? formatCPF(atleta.cpf) : null} />
             <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
             <DetailField label="Telefone" value={atleta.telefone} />
+            <DetailField
+              label="Possui alergia a algum medicamento"
+              value={atleta.possui_alergia_medicamento ? "Sim" : "Não"}
+            />
+            {atleta.possui_alergia_medicamento ? (
+              <DetailField label="Qual" value={atleta.alergia_medicamento_qual} />
+            ) : null}
+            <DetailField label="Cidade natal" value={atleta.cidade_natal} />
+            <DetailField label="UF natal" value={atleta.uf_natal} />
+            {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
+                formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
+                de cadastros antigos que só têm esse texto livre preenchido (ver
+                `AtletaBaseRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio,
+                que é o caso normal pra qualquer cadastro feito depois do endereço estruturado. */}
+            {atleta.endereco_atual ? (
+              <div className="sm:col-span-2">
+                <DetailField label="Endereço atual (cadastro antigo)" value={atleta.endereco_atual} />
+              </div>
+            ) : null}
+            <DetailField label="Logradouro" value={atleta.logradouro} />
+            <DetailField label="Número" value={atleta.numero} />
+            <DetailField label="Complemento" value={atleta.complemento} />
+            <DetailField label="Bairro" value={atleta.bairro} />
+            <DetailField label="Cidade" value={atleta.cidade} />
+            <DetailField label="UF" value={atleta.uf} />
+            <DetailField label="CEP" value={atleta.cep} />
+            <DetailField label="Nome da mãe" value={atleta.mae_nome} />
+            <DetailField label="Telefone da mãe" value={atleta.mae_telefone} />
+            <DetailField label="Nome do pai" value={atleta.pai_nome} />
+            <DetailField label="Telefone do pai" value={atleta.pai_telefone} />
           </FieldGroup>
         </FormSection>
 
@@ -141,6 +185,7 @@ export default async function VerAtletaBasePage({
             <DetailField label="Data de término do contrato" value={formatData(atleta.data_fim_contrato)} />
             <DetailField label="Empresário/representante" value={atleta.empresario_nome} />
             <DetailField label="Telefone do empresário" value={atleta.empresario_telefone} />
+            <DetailField label="Agência" value={atleta.agencia} />
           </FieldGroup>
         </FormSection>
 
@@ -152,39 +197,6 @@ export default async function VerAtletaBasePage({
               value={atleta.valor_ajuda_custo != null ? `R$ ${atleta.valor_ajuda_custo.toFixed(2)}` : null}
             />
             <DetailField label="Escola" value={atleta.escola} />
-          </FieldGroup>
-        </FormSection>
-
-        <FormSection title="Responsáveis">
-          <FieldGroup>
-            <DetailField label="Nome da mãe" value={atleta.mae_nome} />
-            <DetailField label="Telefone da mãe" value={atleta.mae_telefone} />
-            <DetailField label="Nome do pai" value={atleta.pai_nome} />
-            <DetailField label="Telefone do pai" value={atleta.pai_telefone} />
-          </FieldGroup>
-        </FormSection>
-
-        <FormSection title="Naturalidade e endereço">
-          <FieldGroup>
-            <DetailField label="Cidade natal" value={atleta.cidade_natal} />
-            <DetailField label="UF natal" value={atleta.uf_natal} />
-            {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
-                formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
-                de cadastros antigos que só têm esse texto livre preenchido (ver
-                `AtletaBaseRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio,
-                que é o caso normal pra qualquer cadastro feito depois do endereço estruturado. */}
-            {atleta.endereco_atual ? (
-              <div className="sm:col-span-2">
-                <DetailField label="Endereço atual (cadastro antigo)" value={atleta.endereco_atual} />
-              </div>
-            ) : null}
-            <DetailField label="Logradouro" value={atleta.logradouro} />
-            <DetailField label="Número" value={atleta.numero} />
-            <DetailField label="Complemento" value={atleta.complemento} />
-            <DetailField label="Bairro" value={atleta.bairro} />
-            <DetailField label="Cidade" value={atleta.cidade} />
-            <DetailField label="UF" value={atleta.uf} />
-            <DetailField label="CEP" value={atleta.cep} />
           </FieldGroup>
         </FormSection>
       </div>

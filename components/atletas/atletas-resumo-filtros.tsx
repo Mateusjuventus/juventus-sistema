@@ -9,6 +9,7 @@ import { fatiasPizza } from "@/lib/futebol/grafico-pizza";
 import { anoNascimento } from "@/lib/futebol/atleta-card";
 import {
   atletaPassaFiltro,
+  atletaVisivelPorAtivo,
   filtrosParaQueryString,
   nenhumFiltroAtivo,
   type CampoCardOpcional,
@@ -55,6 +56,10 @@ function filtroChipClasse(ativo: boolean): string {
  * de atletas (sem filtro nenhum aplicado no server) e faz toda a filtragem/contagem no client — as
  * contagens dos três blocos usam sempre a lista completa (não a filtrada), pra os números do resumo
  * não mudarem conforme a pessoa vai clicando filtros.
+ *
+ * Atleta com `ativo === false` (ver 0098_atleta_ativo.sql) some de tudo isso por padrão — contagens,
+ * grade, exportação — igual já acontecia só com "Dispensado" na Base; o checkbox "Mostrar inativos"
+ * agora revela os dois casos ao mesmo tempo (`atletaVisivelPorAtivo`).
  */
 export function AtletasResumoFiltros({
   atletas,
@@ -93,8 +98,10 @@ export function AtletasResumoFiltros({
   // Lista com checkbox em vez de chips (pedido do Mateus em 2026-09-10: chips ocupariam muito
   // espaço e "poluiriam a tela" com um ano por atleta do elenco) — ver `AnoNascimentoFiltro`.
   const [anoSel, setAnoSel] = useState<Set<number>>(new Set());
-  // Só tem efeito quando `statusOcultoPorPadrao` existe (Base) — ver checkbox "Mostrar inativos"
-  // mais abaixo. Ligado, desliga o "esconder por padrão" sem precisar marcar o chip de Status.
+  // Controla duas coisas ao mesmo tempo (ver checkbox "Mostrar inativos" mais abaixo): o "Dispensado
+  // esconde por padrão" que só existe na Base (`statusOcultoPorPadrao`), e o novo `ativo === false`
+  // (ver 0098_atleta_ativo.sql), que existe nas duas telas — ligado, revela os dois sem precisar
+  // marcar o chip "Dispensado" explicitamente.
   const [mostrarInativos, setMostrarInativos] = useState(false);
   // "Mostrar no card": CPF e Contrato têm checkbox pra esconder (pedido do Mateus em 2026-09-10) —
   // apelido/nome completo e nascimento continuam sempre visíveis. Guarda o que está ESCONDIDO (não
@@ -109,11 +116,29 @@ export function AtletasResumoFiltros({
 
   const statusOcultoEfetivo = mostrarInativos ? undefined : statusOcultoPorPadrao;
 
+  // Gate do novo `ativo === false` (ver 0098_atleta_ativo.sql) — aplicado ANTES de tudo abaixo
+  // (contagens, filtro, grade), igual ao já feito com "Dispensado" pra `statusOcultoEfetivo`: um
+  // atleta inativo é tratado como se nem existisse na tela, a não ser que "Mostrar inativos" esteja
+  // marcado. `a.ativo` é opcional só por retrocompatibilidade de teste — ausente conta como ativo.
+  const atletasVisiveis = useMemo(
+    () => atletas.filter((a) => atletaVisivelPorAtivo(a.ativo !== false, mostrarInativos)),
+    [atletas, mostrarInativos],
+  );
+
+  // Contagem de quanto tem pra revelar (pro rótulo do checkbox "Mostrar inativos" mais abaixo) —
+  // sempre sobre a lista completa, sem gate nenhum, senão o número some assim que a pessoa marca o
+  // checkbox.
+  const totalDispensados = useMemo(
+    () => (statusOcultoPorPadrao ? atletas.filter((a) => a.status === statusOcultoPorPadrao).length : 0),
+    [atletas, statusOcultoPorPadrao],
+  );
+  const totalInativos = useMemo(() => atletas.filter((a) => a.ativo === false).length, [atletas]);
+
   const contagensStatus = useMemo(() => {
     const mapa = new Map<string, number>();
-    for (const a of atletas) mapa.set(a.status, (mapa.get(a.status) ?? 0) + 1);
+    for (const a of atletasVisiveis) mapa.set(a.status, (mapa.get(a.status) ?? 0) + 1);
     return mapa;
-  }, [atletas]);
+  }, [atletasVisiveis]);
 
   // Detalhe por posição real (uma das 9 de `ATLETA_POSICAO_OPTIONS`), incluindo a leitura simples
   // de apto/não apto pedida pelo Mateus — sempre sobre o "elenco de vitrine" (mesma regra de
@@ -121,7 +146,7 @@ export function AtletasResumoFiltros({
   // inativos", porque esse número é sobre quem está de fato disponível, não sobre a listagem atual).
   const contagensPosicao = useMemo(() => {
     const mapa = new Map<string, { total: number; apto: number; naoApto: number }>();
-    for (const a of atletas) {
+    for (const a of atletasVisiveis) {
       if (statusOcultoPorPadrao && a.status === statusOcultoPorPadrao) continue;
       const atual = mapa.get(a.posicao) ?? { total: 0, apto: 0, naoApto: 0 };
       atual.total += 1;
@@ -130,36 +155,36 @@ export function AtletasResumoFiltros({
       mapa.set(a.posicao, atual);
     }
     return mapa;
-  }, [atletas, statusOcultoPorPadrao]);
+  }, [atletasVisiveis, statusOcultoPorPadrao]);
 
   const contagensContrato = useMemo(() => {
     const mapa = new Map<AtletaBaseTipoContrato, number>();
-    for (const a of atletas) {
+    for (const a of atletasVisiveis) {
       if (a.tipoContrato) mapa.set(a.tipoContrato, (mapa.get(a.tipoContrato) ?? 0) + 1);
     }
     return mapa;
-  }, [atletas]);
+  }, [atletasVisiveis]);
 
-  const totalComContrato = useMemo(() => atletas.filter((a) => a.tipoContrato).length, [atletas]);
+  const totalComContrato = useMemo(() => atletasVisiveis.filter((a) => a.tipoContrato).length, [atletasVisiveis]);
 
   // Anos presentes no elenco, do mais antigo pro mais novo, com quantos atletas em cada um — quem
   // não tem data de nascimento cadastrada simplesmente não entra na lista (não faz sentido um chip
   // "sem data" numa lista de anos). Filtro pedido pelo Mateus em 2026-09-10.
   const anosComContagem = useMemo(() => {
     const mapa = new Map<number, number>();
-    for (const a of atletas) {
+    for (const a of atletasVisiveis) {
       const ano = anoNascimento(a.dataNascimento);
       if (ano !== null) mapa.set(ano, (mapa.get(ano) ?? 0) + 1);
     }
     return [...mapa.entries()].sort(([a], [b]) => a - b).map(([ano, total]) => ({ ano, total }));
-  }, [atletas]);
+  }, [atletasVisiveis]);
 
   // Conta como se nenhum status estivesse marcado — mesma regra de `statusOcultoEfetivo` (o
   // "Dispensado" da Base não entra no total "de vitrine", a não ser que a pessoa marque o chip dele
   // ou ligue "Mostrar inativos").
   const totalPadrao = useMemo(
-    () => atletas.filter((a) => !(statusOcultoEfetivo && a.status === statusOcultoEfetivo)).length,
-    [atletas, statusOcultoEfetivo],
+    () => atletasVisiveis.filter((a) => !(statusOcultoEfetivo && a.status === statusOcultoEfetivo)).length,
+    [atletasVisiveis, statusOcultoEfetivo],
   );
 
   const buscaNormalizada = busca.trim().toLowerCase();
@@ -169,8 +194,8 @@ export function AtletasResumoFiltros({
   );
 
   const filtrados = useMemo(
-    () => atletas.filter((a) => atletaPassaFiltro(a, filtros, statusOcultoEfetivo)),
-    [atletas, filtros, statusOcultoEfetivo],
+    () => atletasVisiveis.filter((a) => atletaPassaFiltro(a, filtros, statusOcultoEfetivo)),
+    [atletasVisiveis, filtros, statusOcultoEfetivo],
   );
 
   const algumFiltroAtivo = !nenhumFiltroAtivo(filtros) || mostrarInativos;
@@ -240,7 +265,7 @@ export function AtletasResumoFiltros({
                 </button>
               ))}
             </div>
-            {statusOcultoPorPadrao ? (
+            {totalDispensados > 0 || totalInativos > 0 ? (
               <label className="mt-2 flex w-fit items-center gap-1.5 text-xs font-medium text-neutral-500">
                 <input
                   type="checkbox"
@@ -248,7 +273,14 @@ export function AtletasResumoFiltros({
                   onChange={(e) => setMostrarInativos(e.target.checked)}
                   className="h-3.5 w-3.5 rounded border-neutral-300 text-grena focus:ring-grena"
                 />
-                Mostrar inativos ({contagensStatus.get(statusOcultoPorPadrao) ?? 0} dispensados)
+                Mostrar inativos (
+                {[
+                  totalDispensados > 0 ? `${totalDispensados} dispensado${totalDispensados === 1 ? "" : "s"}` : null,
+                  totalInativos > 0 ? `${totalInativos} inativo${totalInativos === 1 ? "" : "s"}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+                )
               </label>
             ) : null}
           </div>

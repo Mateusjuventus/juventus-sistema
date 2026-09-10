@@ -67,6 +67,7 @@ export default async function AtletasPage() {
     numeroCamisa: atleta.numero_camisa,
     dispensado: false,
     status: atleta.status,
+    ativo: atleta.ativo,
     href: `/atletas/${atleta.id}/ver`,
   }));
 

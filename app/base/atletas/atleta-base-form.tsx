@@ -16,8 +16,14 @@ import type { AtletaBaseFormState } from "./actions";
 const initialState: AtletaBaseFormState = {};
 
 /**
- * Espelha `app/atletas/atleta-form.tsx`, com um campo a mais (Categoria) na seção "Dados
- * esportivos" — obrigatório, e editável mesmo depois de criado (o atleta pode subir de categoria).
+ * Espelha `app/atletas/atleta-form.tsx`, com campos a mais: Categoria (Dados esportivos, obrigatório
+ * e editável mesmo depois de criado — o atleta pode subir de categoria), Telefone do empresário e
+ * Agência (Dados esportivos) e o bloco "Responsáveis" (mãe/pai) dentro de Dados pessoais — só faz
+ * sentido pra atleta menor de idade da Base.
+ *
+ * Endereço (com busca por CEP) e Responsáveis viraram parte do card "Dados pessoais" em vez de
+ * seções próprias em 2026-09-10 (pedido do Mateus: "Endereço e os Dados dos responsáveis fazem
+ * parte dos dados pessoais do atleta").
  */
 export function AtletaBaseForm({
   action,
@@ -74,7 +80,7 @@ export function AtletaBaseForm({
             error={errors.telefone}
           />
           <div className="sm:col-span-2">
-            <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} />
+            <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} showDownload />
           </div>
           <div className="sm:col-span-2">
             <div className="flex items-center gap-2">
@@ -101,7 +107,63 @@ export function AtletaBaseForm({
               </div>
             ) : null}
           </div>
+          <TextField
+            label="Cidade natal"
+            name="cidadeNatal"
+            defaultValue={values.cidadeNatal}
+            error={errors.cidadeNatal}
+          />
+          <TextField
+            label="UF natal"
+            name="ufNatal"
+            maxLength={2}
+            defaultValue={values.ufNatal}
+            error={errors.ufNatal}
+            placeholder="Ex: SP"
+          />
         </FieldGroup>
+        <div className="mt-4">
+          <p className="field-label">Endereço atual (com busca por CEP)</p>
+          <EnderecoFields
+            defaultValues={{
+              cep: values.cep,
+              logradouro: values.logradouro,
+              numero: values.numero,
+              complemento: values.complemento,
+              bairro: values.bairro,
+              cidade: values.cidade,
+              uf: values.uf,
+            }}
+            errors={{
+              cep: errors.cep,
+              logradouro: errors.logradouro,
+              numero: errors.numero,
+              complemento: errors.complemento,
+              bairro: errors.bairro,
+              cidade: errors.cidade,
+              uf: errors.uf,
+            }}
+          />
+        </div>
+        <div className="mt-4">
+          <p className="field-label">Responsáveis</p>
+          <FieldGroup>
+            <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
+            <TelefoneField
+              label="Telefone da mãe"
+              name="maeTelefone"
+              defaultValue={values.maeTelefone}
+              error={errors.maeTelefone}
+            />
+            <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
+            <TelefoneField
+              label="Telefone do pai"
+              name="paiTelefone"
+              defaultValue={values.paiTelefone}
+              error={errors.paiTelefone}
+            />
+          </FieldGroup>
+        </div>
       </FormSection>
 
       <FormSection title="Dados esportivos">
@@ -257,6 +319,7 @@ export function AtletaBaseForm({
             defaultValue={values.empresarioTelefone}
             error={errors.empresarioTelefone}
           />
+          <TextField label="Agência" name="agencia" defaultValue={values.agencia} error={errors.agencia} />
         </FieldGroup>
       </FormSection>
 
@@ -285,67 +348,6 @@ export function AtletaBaseForm({
           />
           <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
         </FieldGroup>
-      </FormSection>
-
-      <FormSection title="Responsáveis">
-        <FieldGroup>
-          <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
-          <TelefoneField
-            label="Telefone da mãe"
-            name="maeTelefone"
-            defaultValue={values.maeTelefone}
-            error={errors.maeTelefone}
-          />
-          <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
-          <TelefoneField
-            label="Telefone do pai"
-            name="paiTelefone"
-            defaultValue={values.paiTelefone}
-            error={errors.paiTelefone}
-          />
-        </FieldGroup>
-      </FormSection>
-
-      <FormSection title="Naturalidade e endereço">
-        <FieldGroup>
-          <TextField
-            label="Cidade natal"
-            name="cidadeNatal"
-            defaultValue={values.cidadeNatal}
-            error={errors.cidadeNatal}
-          />
-          <TextField
-            label="UF natal"
-            name="ufNatal"
-            maxLength={2}
-            defaultValue={values.ufNatal}
-            error={errors.ufNatal}
-            placeholder="Ex: SP"
-          />
-        </FieldGroup>
-        <div className="mt-4">
-          <p className="field-label">Endereço atual (com busca por CEP)</p>
-          <EnderecoFields
-            defaultValues={{
-              cep: values.cep,
-              logradouro: values.logradouro,
-              numero: values.numero,
-              complemento: values.complemento,
-              bairro: values.bairro,
-              cidade: values.cidade,
-              uf: values.uf,
-            }}
-            errors={{
-              cep: errors.cep,
-              logradouro: errors.logradouro,
-              numero: errors.numero,
-              complemento: errors.complemento,
-              bairro: errors.bairro,
-              cidade: errors.cidade,
-              uf: errors.uf,
-            }}
-          />
-        </div>
       </FormSection>
 
       {state.error ? (

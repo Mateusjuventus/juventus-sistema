@@ -5,7 +5,12 @@ import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import { atletaPassaFiltro, filtrosDaQueryString, mostrarInativosDaQueryString } from "@/lib/futebol/atletas-filtro";
+import {
+  atletaPassaFiltro,
+  atletaVisivelPorAtivo,
+  filtrosDaQueryString,
+  mostrarInativosDaQueryString,
+} from "@/lib/futebol/atletas-filtro";
 import { filtrarLinhaPorGrupos, gruposCampoExportDaQueryString } from "@/lib/futebol/export-colunas";
 import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
@@ -78,18 +83,20 @@ export async function GET(request: NextRequest, { params }: { params: { categori
     .select("*")
     .eq("categoria", categoria)
     .order("nome_completo", { ascending: true });
-  const atletas = ((data ?? []) as AtletaBaseRow[]).filter((a) =>
-    atletaPassaFiltro(
-      {
-        status: a.status,
-        posicao: a.posicao,
-        tipoContrato: a.tipo_contrato,
-        nome: a.nome_completo,
-        dataNascimento: a.data_nascimento,
-      },
-      filtros,
-      mostrarInativos ? undefined : "dispensado",
-    ),
+  const atletas = ((data ?? []) as AtletaBaseRow[]).filter(
+    (a) =>
+      atletaVisivelPorAtivo(a.ativo, mostrarInativos) &&
+      atletaPassaFiltro(
+        {
+          status: a.status,
+          posicao: a.posicao,
+          tipoContrato: a.tipo_contrato,
+          nome: a.nome_completo,
+          dataNascimento: a.data_nascimento,
+        },
+        filtros,
+        mostrarInativos ? undefined : "dispensado",
+      ),
   );
 
   const linhas = atletas.map((a) =>

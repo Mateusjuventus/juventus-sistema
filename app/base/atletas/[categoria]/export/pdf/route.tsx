@@ -11,6 +11,7 @@ import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import {
   atletaPassaFiltro,
+  atletaVisivelPorAtivo,
   camposOcultosDaQueryString,
   filtrosDaQueryString,
   mostrarInativosDaQueryString,
@@ -57,18 +58,20 @@ export async function GET(request: NextRequest, { params }: { params: { categori
     .select("*")
     .eq("categoria", categoria)
     .order("nome_completo", { ascending: true });
-  const atletas = ((data ?? []) as AtletaBaseRow[]).filter((a) =>
-    atletaPassaFiltro(
-      {
-        status: a.status,
-        posicao: a.posicao,
-        tipoContrato: a.tipo_contrato,
-        nome: a.nome_completo,
-        dataNascimento: a.data_nascimento,
-      },
-      filtros,
-      mostrarInativos ? undefined : "dispensado",
-    ),
+  const atletas = ((data ?? []) as AtletaBaseRow[]).filter(
+    (a) =>
+      atletaVisivelPorAtivo(a.ativo, mostrarInativos) &&
+      atletaPassaFiltro(
+        {
+          status: a.status,
+          posicao: a.posicao,
+          tipoContrato: a.tipo_contrato,
+          nome: a.nome_completo,
+          dataNascimento: a.data_nascimento,
+        },
+        filtros,
+        mostrarInativos ? undefined : "dispensado",
+      ),
   );
 
   const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));
