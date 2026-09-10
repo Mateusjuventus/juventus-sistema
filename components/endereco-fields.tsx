@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface EnderecoValues {
   cep?: string;
@@ -33,6 +33,11 @@ interface EnderecoErrors {
  * nos cadastros que já usam este componente). A inscrição pública de Captação
  * (`/inscricao-captacao-base`) passa `required`, já que lá TODOS os campos são obrigatórios (ver
  * `captacaoInscricaoSchema`) — os outros usos deste componente continuam sem mexer.
+ *
+ * Se o cadastro já chega com CEP preenchido mas o resto do endereço vazio (caso dos atletas do
+ * Profissional migrados do texto livre antigo — ver 0100_atleta_cep_do_endereco_legado.sql —, cujo
+ * texto tinha o CEP mas não dava pra separar rua/número/bairro/cidade/UF com segurança), a busca no
+ * ViaCEP dispara sozinha ao abrir o formulário, sem precisar clicar no campo CEP e sair dele.
  */
 export function EnderecoFields({
   defaultValues,
@@ -76,6 +81,18 @@ export function EnderecoFields({
       setBuscando(false);
     }
   }
+
+  useEffect(() => {
+    const digitos = (defaultValues?.cep ?? "").replace(/\D/g, "");
+    const restoJaPreenchido =
+      defaultValues?.logradouro || defaultValues?.bairro || defaultValues?.cidade || defaultValues?.uf;
+    if (digitos.length === 8 && !restoJaPreenchido) {
+      buscarCep(digitos);
+    }
+    // Só ao montar — não queremos refazer a busca a cada tecla digitada (isso já acontece no
+    // onBlur do campo CEP).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
