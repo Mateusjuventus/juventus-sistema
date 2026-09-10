@@ -58,7 +58,12 @@ export function AtletaCard({
   return (
     <Link
       href={href}
-      className={`block overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${anelClassificacaoAtleta(
+      // `self-start`: o nome completo dentro do bloco escuro não corta mais (ver abaixo), então a
+      // altura do card varia com o comprimento do nome — sem isso, o grid (`align-items: stretch`
+      // por padrão) esticaria os cards mais curtos até a altura do maior vizinho na mesma linha,
+      // expondo o fundo branco do Link como uma faixa vazia embaixo (mesmo bug de "faixa branca" já
+      // corrigido antes, ver histórico deste componente).
+      className={`block self-start overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${anelClassificacaoAtleta(
         atleta.classificacao,
       )}`}
     >
@@ -104,24 +109,33 @@ export function AtletaCard({
       {/* Faixa com o apelido (como o atleta é chamado no dia a dia) — cai pro nome completo quando
           não há apelido cadastrado (`nomeExibido`). Fundo cinza claro (voltou a ser assim, era a cor
           original da faixa antes do redesign — pedido do Mateus em 2026-09-10) em vez do tom
-          grená translúcido usado no meio do caminho. */}
-      <div className="line-clamp-2 min-h-[1.5rem] break-words bg-neutral-100 px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight text-grena-escuro">
-        {apelidoOuNome}
+          grená translúcido usado no meio do caminho. `flex items-center justify-center` centraliza
+          o texto tanto na horizontal quanto na vertical do espaço reservado (`min-h`) — um `<div>`
+          simples com `text-center` só centralizava na horizontal, sobrando um vão embaixo de nomes
+          de uma linha só. */}
+      <div className="flex min-h-[1.5rem] items-center justify-center bg-neutral-100 px-1.5 py-0.5">
+        <span className="line-clamp-2 break-words text-center text-[10px] font-bold leading-tight text-grena-escuro">
+          {apelidoOuNome}
+        </span>
       </div>
 
       <div className="bg-grena-escuro px-2 py-2">
         {/* Nome completo — fica junto do CPF por ser o par que documento pede (mesmo raciocínio de
             `lib/futebol/nome-atleta.ts`: apelido é pra reconhecer rápido, nome completo é pro
-            registro formal). Repete o texto da faixa de cima quando o atleta não tem apelido, o que
-            é esperado (não há apelido, então "quem é" e "nome completo" são o mesmo texto mesmo). */}
-        <p className="line-clamp-1 break-words text-center text-[9px] font-semibold leading-tight text-white/90">
+            registro formal). Sem `line-clamp`/`truncate`: o nome precisa sair inteiro, mesmo que
+            quebre em mais de uma linha (por isso o card não tem mais altura fixa, ver `self-start`
+            acima). Repete o texto da faixa de cima quando o atleta não tem apelido, o que é esperado
+            (não há apelido, então "quem é" e "nome completo" são o mesmo texto mesmo). */}
+        <p className="break-words text-center text-[9px] font-semibold leading-tight text-white/90">
           {atleta.nome}
         </p>
         <p className="mt-1 text-center text-xs font-bold leading-tight text-white">{formatDataBR(atleta.dataNascimento)}</p>
-        <p className="mt-0.5 min-h-[1.4rem] whitespace-nowrap text-center text-[10px] leading-tight text-white/75">
+        {/* Sem `min-h` aqui: CPF e Contrato são sempre uma linha só (`whitespace-nowrap`), então
+            reservar uma altura mínima só sobrava espaço vazio entre as duas linhas. */}
+        <p className="mt-1 whitespace-nowrap text-center text-[10px] leading-tight text-white/75">
           CPF {atleta.cpf ? formatCPF(atleta.cpf) : "—"}
         </p>
-        <p className="min-h-[1.4rem] text-center text-[10px] leading-tight text-white/75">
+        <p className="mt-0.5 whitespace-nowrap text-center text-[10px] leading-tight text-white/75">
           {atleta.dispensado ? "Encerrado em " : "Contrato até "}
           {formatDataBR(atleta.dataFimContrato)}
         </p>

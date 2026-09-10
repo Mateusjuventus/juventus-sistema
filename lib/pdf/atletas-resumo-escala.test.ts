@@ -4,11 +4,11 @@ import { calcularEscalaCardsAtletas } from "./atletas-resumo-escala";
 describe("calcularEscalaCardsAtletas", () => {
   it("até o tamanho de referência, escala 1 (tamanho normal)", () => {
     expect(calcularEscalaCardsAtletas(10)).toBe(1);
-    expect(calcularEscalaCardsAtletas(24)).toBe(1);
+    expect(calcularEscalaCardsAtletas(16)).toBe(1);
   });
 
   it("acima da referência, encolhe proporcionalmente", () => {
-    expect(calcularEscalaCardsAtletas(48)).toBeCloseTo(0.5, 5);
+    expect(calcularEscalaCardsAtletas(32)).toBeCloseTo(0.5, 5);
   });
 
   it("nunca encolhe abaixo do piso de legibilidade, mesmo com elenco enorme", () => {

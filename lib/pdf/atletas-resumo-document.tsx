@@ -44,13 +44,20 @@ export interface StatusOpcaoPdf {
   label: string;
 }
 
-const CARD_LARGURA_BASE = 58;
-const FOTO_ALTURA_BASE = 62;
-const NOME_FONTE_BASE = 6;
-const INFO_FONTE_BASE = 5;
-const SELO_TAMANHO_BASE = 10;
-const SELO_FONTE_BASE = 5;
-const SIGLA_FONTE_BASE = 5.5;
+// Cards maiores (pedido do Mateus em 2026-09-10: "aumentar os cards", tamanho antigo ficava
+// pequeno demais mesmo pra elencos enxutos) — a referência de encolhimento
+// (`calcularEscalaCardsAtletas`) foi ajustada junto (ver `atletas-resumo-escala.ts`) pra ainda
+// caber numa folha só com elencos cheios; só quem exporta um elenco pequeno ou uma lista já
+// filtrada na tela (ex.: só uma posição) é que vê o card no tamanho de referência cheio.
+const CARD_LARGURA_BASE = 90;
+// Foto na mesma proporção 3:4 do card da tela (`AtletaCard`, `aspect-[3/4]`) em vez de um valor
+// fixo solto — mantém a mesma moldura em vez de aparecer mais "quadrada" no PDF do que na tela.
+const FOTO_RAZAO_ALTURA = 4 / 3;
+const NOME_FONTE_BASE = 9;
+const INFO_FONTE_BASE = 7.5;
+const SELO_TAMANHO_BASE = 15;
+const SELO_FONTE_BASE = 7.5;
+const SIGLA_FONTE_BASE = 8.5;
 
 const styles = StyleSheet.create({
   page: { padding: 26, paddingBottom: 46, fontFamily: "Helvetica", fontSize: 8, color: "#262626" },
@@ -227,7 +234,7 @@ function CardAtletaPdf({ atleta, escala }: { atleta: AtletaResumoPdfItem; escala
   const categoria = categoriaDaPosicao(atleta.posicao);
   const sigla = categoria ? CATEGORIA_POSICAO_SIGLA[categoria] : "—";
   const largura = CARD_LARGURA_BASE * escala;
-  const alturaFoto = FOTO_ALTURA_BASE * escala;
+  const alturaFoto = largura * FOTO_RAZAO_ALTURA;
   const seloTamanho = SELO_TAMANHO_BASE * escala;
   const apelidoOuNome = nomeExibido({ apelido: atleta.apelido, nome_completo: atleta.nome });
 
@@ -235,8 +242,14 @@ function CardAtletaPdf({ atleta, escala }: { atleta: AtletaResumoPdfItem; escala
     <View style={[styles.card, { width: largura, margin: 2 * escala }]} wrap={false}>
       <View style={[styles.fotoWrap, { height: alturaFoto }]}>
         {atleta.fotoUrl ? (
+          // `objectPosition: "center top"` ancora o corte no topo da foto (mesmo ajuste já feito na
+          // tela, ver `AtletaAvatarBloco`/`object-top`) — sem isso, o padrão é cortar pelo centro e
+          // acaba tirando testa/cabelo de fotos mais altas que a caixa 3:4 do card.
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={{ width: "100%", height: "100%", objectFit: "cover" }} src={atleta.fotoUrl} />
+          <Image
+            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
+            src={atleta.fotoUrl}
+          />
         ) : (
           <View style={styles.fotoPlaceholder}>
             <Text style={[styles.fotoPlaceholderTexto, { fontSize: 12 * escala }]}>
