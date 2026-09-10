@@ -1,14 +1,21 @@
+import { anoNascimento } from "./atleta-card";
+
 /**
  * Filtragem combinada de `AtletasResumoFiltros` (ver docs/superpowers/specs/
- * 2026-09-09-atletas-resumo-filtros-design.md, item 5): E lógico entre Status/Posição/Contrato, OU
- * dentro de cada bloco, mais busca por nome — extraída num módulo próprio, puro, pra poder testar
- * sem montar o componente (o componente em si só chama `atletaPassaFiltro` dentro do `useMemo`).
+ * 2026-09-09-atletas-resumo-filtros-design.md, item 5): E lógico entre Status/Posição/Contrato/Ano
+ * de nascimento, OU dentro de cada bloco, mais busca por nome — extraída num módulo próprio, puro,
+ * pra poder testar sem montar o componente (o componente em si só chama `atletaPassaFiltro` dentro
+ * do `useMemo`).
  */
 export interface AtletaFiltravel {
   status: string;
   posicao: string;
   tipoContrato: string | null;
   nome: string;
+  /** "AAAA-MM-DD" (ou `null`) — mesmo formato de `AtletaCardDados.dataNascimento`, só o ano importa
+   * pro filtro (ver `anoNascimento`/checkbox "Ano de nascimento" em `AtletasResumoFiltros`, pedido
+   * do Mateus em 2026-09-10). */
+  dataNascimento: string | null;
 }
 
 export interface FiltrosAtletas {
@@ -18,6 +25,9 @@ export interface FiltrosAtletas {
    * só como tag colorida dentro de cada chip (ver `categoriaDaPosicao`). */
   posicoes: Set<string>;
   contratos: Set<string>;
+  /** Anos presentes no elenco (ex.: 2004, 2005) — atleta sem data de nascimento cadastrada nunca
+   * bate com esse filtro quando ele está ativo (mesma regra de `contratos`/quem não tem contrato). */
+  anos: Set<number>;
   /** Já em minúsculas/trim — quem chama normaliza uma vez só, não a cada atleta. */
   buscaNormalizada: string;
 }
@@ -27,6 +37,7 @@ export function nenhumFiltroAtivo(filtros: FiltrosAtletas): boolean {
     filtros.status.size === 0 &&
     filtros.posicoes.size === 0 &&
     filtros.contratos.size === 0 &&
+    filtros.anos.size === 0 &&
     filtros.buscaNormalizada.length === 0
   );
 }
@@ -58,6 +69,11 @@ export function atletaPassaFiltro(
 
   if (filtros.contratos.size > 0) {
     if (!atleta.tipoContrato || !filtros.contratos.has(atleta.tipoContrato)) return false;
+  }
+
+  if (filtros.anos.size > 0) {
+    const ano = anoNascimento(atleta.dataNascimento);
+    if (ano === null || !filtros.anos.has(ano)) return false;
   }
 
   if (filtros.buscaNormalizada && !atleta.nome.toLowerCase().includes(filtros.buscaNormalizada)) {
@@ -97,6 +113,7 @@ export function filtrosParaQueryString(
   if (filtros.status.size > 0) params.set("status", [...filtros.status].join(","));
   if (filtros.posicoes.size > 0) params.set("posicao", [...filtros.posicoes].join(","));
   if (filtros.contratos.size > 0) params.set("contrato", [...filtros.contratos].join(","));
+  if (filtros.anos.size > 0) params.set("ano", [...filtros.anos].join(","));
   if (filtros.buscaNormalizada) params.set("q", filtros.buscaNormalizada);
   if (opts?.mostrarInativos) params.set("inativos", "1");
   if (opts?.camposOcultos && opts.camposOcultos.size > 0) {
@@ -113,10 +130,20 @@ export function filtrosDaQueryString(searchParams: URLSearchParams): FiltrosAtle
     const valor = searchParams.get(nome);
     return valor ? new Set(valor.split(",").filter(Boolean)) : new Set();
   }
+  const anoBruto = searchParams.get("ano");
+  const anos = anoBruto
+    ? new Set(
+        anoBruto
+          .split(",")
+          .map((v) => Number(v))
+          .filter((n) => Number.isInteger(n)),
+      )
+    : new Set<number>();
   return {
     status: paraConjunto("status"),
     posicoes: paraConjunto("posicao"),
     contratos: paraConjunto("contrato"),
+    anos,
     buscaNormalizada: (searchParams.get("q") ?? "").trim().toLowerCase(),
   };
 }

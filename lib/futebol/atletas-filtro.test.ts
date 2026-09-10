@@ -11,12 +11,30 @@ import {
 } from "./atletas-filtro";
 
 function filtrosVazios(): FiltrosAtletas {
-  return { status: new Set(), posicoes: new Set(), contratos: new Set(), buscaNormalizada: "" };
+  return { status: new Set(), posicoes: new Set(), contratos: new Set(), anos: new Set(), buscaNormalizada: "" };
 }
 
-const RAFAEL: AtletaFiltravel = { status: "liberado", posicao: "Goleiro", tipoContrato: "definitivo", nome: "Rafael Torres" };
-const BRUNO: AtletaFiltravel = { status: "suspenso", posicao: "Zagueiro", tipoContrato: "amador", nome: "Bruno Kaminski" };
-const SEM_CONTRATO: AtletaFiltravel = { status: "liberado", posicao: "Meia", tipoContrato: null, nome: "Sem Contrato" };
+const RAFAEL: AtletaFiltravel = {
+  status: "liberado",
+  posicao: "Goleiro",
+  tipoContrato: "definitivo",
+  nome: "Rafael Torres",
+  dataNascimento: "2004-05-10",
+};
+const BRUNO: AtletaFiltravel = {
+  status: "suspenso",
+  posicao: "Zagueiro",
+  tipoContrato: "amador",
+  nome: "Bruno Kaminski",
+  dataNascimento: "2006-01-20",
+};
+const SEM_CONTRATO: AtletaFiltravel = {
+  status: "liberado",
+  posicao: "Meia",
+  tipoContrato: null,
+  nome: "Sem Contrato",
+  dataNascimento: null,
+};
 
 describe("nenhumFiltroAtivo", () => {
   it("true quando os quatro filtros estão vazios", () => {
@@ -61,15 +79,29 @@ describe("atletaPassaFiltro", () => {
     expect(atletaPassaFiltro(RAFAEL, filtros)).toBe(false);
   });
 
-  it("combina os quatro filtros com E lógico entre blocos", () => {
+  it("filtra por ano de nascimento, e exclui quem não tem data cadastrada", () => {
+    const filtros = { ...filtrosVazios(), anos: new Set([2004]) };
+    expect(atletaPassaFiltro(RAFAEL, filtros)).toBe(true);
+    expect(atletaPassaFiltro(BRUNO, filtros)).toBe(false);
+    expect(atletaPassaFiltro(SEM_CONTRATO, filtros)).toBe(false);
+  });
+
+  it("ano de nascimento aceita mais de um ano marcado (OU dentro do bloco)", () => {
+    const filtros = { ...filtrosVazios(), anos: new Set([2004, 2006]) };
+    expect(atletaPassaFiltro(RAFAEL, filtros)).toBe(true);
+    expect(atletaPassaFiltro(BRUNO, filtros)).toBe(true);
+  });
+
+  it("combina os cinco filtros com E lógico entre blocos", () => {
     const filtros: FiltrosAtletas = {
       status: new Set(["liberado"]),
       posicoes: new Set(["Goleiro"]),
       contratos: new Set(["definitivo"]),
+      anos: new Set([2004]),
       buscaNormalizada: "rafael",
     };
     expect(atletaPassaFiltro(RAFAEL, filtros)).toBe(true);
-    // Bruno bate com nenhum dos quatro filtros.
+    // Bruno bate com nenhum dos cinco filtros.
     expect(atletaPassaFiltro(BRUNO, filtros)).toBe(false);
   });
 
@@ -81,7 +113,13 @@ describe("atletaPassaFiltro", () => {
 });
 
 describe("atletaPassaFiltro com statusOcultoPorPadrao (regra do Dispensado na Base)", () => {
-  const DISPENSADO: AtletaFiltravel = { status: "dispensado", posicao: "Atacante", tipoContrato: "amador", nome: "Cauã Ribamar" };
+  const DISPENSADO: AtletaFiltravel = {
+    status: "dispensado",
+    posicao: "Atacante",
+    tipoContrato: "amador",
+    nome: "Cauã Ribamar",
+    dataNascimento: "2005-03-02",
+  };
 
   it("some da lista quando nenhum status está marcado", () => {
     const filtros = filtrosVazios();
@@ -112,10 +150,13 @@ describe("filtrosParaQueryString / filtrosDaQueryString (link de Exportar para E
       status: new Set(["liberado", "suspenso"]),
       posicoes: new Set(["Goleiro"]),
       contratos: new Set(["definitivo", "amador"]),
+      anos: new Set([2004, 2006]),
       buscaNormalizada: "rafael",
     };
     const query = filtrosParaQueryString(filtros);
-    expect(query).toBe("status=liberado%2Csuspenso&posicao=Goleiro&contrato=definitivo%2Camador&q=rafael");
+    expect(query).toBe(
+      "status=liberado%2Csuspenso&posicao=Goleiro&contrato=definitivo%2Camador&ano=2004%2C2006&q=rafael",
+    );
   });
 
   it("acrescenta inativos=1 quando mostrarInativos está ligado", () => {
@@ -128,6 +169,7 @@ describe("filtrosParaQueryString / filtrosDaQueryString (link de Exportar para E
       status: new Set(["liberado"]),
       posicoes: new Set(["Goleiro", "Zagueiro"]),
       contratos: new Set(["amador"]),
+      anos: new Set([2004, 2005]),
       buscaNormalizada: "kaminski",
     };
     const reconstruido = filtrosDaQueryString(new URLSearchParams(filtrosParaQueryString(original)));

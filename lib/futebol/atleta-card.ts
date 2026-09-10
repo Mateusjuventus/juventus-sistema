@@ -25,6 +25,15 @@ export function formatDataBR(data: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+/** "AAAA-MM-DD" (ou `null`) -> `2004` (ou `null`) — usado pelo filtro "Ano de nascimento" de
+ * `AtletasResumoFiltros`/`atletas-filtro.ts`. Lê os 4 primeiros caracteres da string em vez de
+ * `new Date(data).getFullYear()` de propósito, mesmo raciocínio de `formatDataBR`: evita o "atleta
+ * nasceu um dia antes/depois" que o fuso horário do `Date` pode causar numa data sem horário. */
+export function anoNascimento(data: string | null): number | null {
+  if (!data) return null;
+  return Number(data.split("-")[0]);
+}
+
 /** `null` quando não há data de fim de contrato cadastrada (nada a alertar). Dispensado nunca
  * "vence" — o contrato já acabou, não faz sentido avisar que está "a vencer". */
 export function diasParaVencerContrato(dataFimContrato: string | null, hoje: Date): number | null {

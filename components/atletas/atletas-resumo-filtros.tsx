@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AtletaCard, type AtletaCardDados } from "@/components/atletas/atleta-card";
 import { ExportColunasModal } from "@/components/atletas/export-colunas-modal";
 import { ExportDropdown, type ExportOpcao } from "@/components/atletas/export-dropdown";
 import { CONTRATO_ATLETA_COR, CONTRATO_ATLETA_LABEL } from "@/lib/futebol/contrato-atleta";
 import { fatiasPizza } from "@/lib/futebol/grafico-pizza";
+import { anoNascimento } from "@/lib/futebol/atleta-card";
 import {
   atletaPassaFiltro,
   filtrosParaQueryString,
@@ -89,6 +90,9 @@ export function AtletasResumoFiltros({
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
   const [posicaoSel, setPosicaoSel] = useState<Set<string>>(new Set());
   const [contratoSel, setContratoSel] = useState<Set<AtletaBaseTipoContrato>>(new Set());
+  // Lista com checkbox em vez de chips (pedido do Mateus em 2026-09-10: chips ocupariam muito
+  // espaço e "poluiriam a tela" com um ano por atleta do elenco) — ver `AnoNascimentoFiltro`.
+  const [anoSel, setAnoSel] = useState<Set<number>>(new Set());
   // Só tem efeito quando `statusOcultoPorPadrao` existe (Base) — ver checkbox "Mostrar inativos"
   // mais abaixo. Ligado, desliga o "esconder por padrão" sem precisar marcar o chip de Status.
   const [mostrarInativos, setMostrarInativos] = useState(false);
@@ -138,6 +142,18 @@ export function AtletasResumoFiltros({
 
   const totalComContrato = useMemo(() => atletas.filter((a) => a.tipoContrato).length, [atletas]);
 
+  // Anos presentes no elenco, do mais antigo pro mais novo, com quantos atletas em cada um — quem
+  // não tem data de nascimento cadastrada simplesmente não entra na lista (não faz sentido um chip
+  // "sem data" numa lista de anos). Filtro pedido pelo Mateus em 2026-09-10.
+  const anosComContagem = useMemo(() => {
+    const mapa = new Map<number, number>();
+    for (const a of atletas) {
+      const ano = anoNascimento(a.dataNascimento);
+      if (ano !== null) mapa.set(ano, (mapa.get(ano) ?? 0) + 1);
+    }
+    return [...mapa.entries()].sort(([a], [b]) => a - b).map(([ano, total]) => ({ ano, total }));
+  }, [atletas]);
+
   // Conta como se nenhum status estivesse marcado — mesma regra de `statusOcultoEfetivo` (o
   // "Dispensado" da Base não entra no total "de vitrine", a não ser que a pessoa marque o chip dele
   // ou ligue "Mostrar inativos").
@@ -148,8 +164,8 @@ export function AtletasResumoFiltros({
 
   const buscaNormalizada = busca.trim().toLowerCase();
   const filtros = useMemo(
-    () => ({ status: statusSel, posicoes: posicaoSel, contratos: contratoSel, buscaNormalizada }),
-    [statusSel, posicaoSel, contratoSel, buscaNormalizada],
+    () => ({ status: statusSel, posicoes: posicaoSel, contratos: contratoSel, anos: anoSel, buscaNormalizada }),
+    [statusSel, posicaoSel, contratoSel, anoSel, buscaNormalizada],
   );
 
   const filtrados = useMemo(
@@ -175,6 +191,7 @@ export function AtletasResumoFiltros({
     setStatusSel(new Set());
     setPosicaoSel(new Set());
     setContratoSel(new Set());
+    setAnoSel(new Set());
     setBusca("");
     setMostrarInativos(false);
   }
@@ -274,7 +291,11 @@ export function AtletasResumoFiltros({
         </div>
 
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+          {/* `text-right`: o rótulo acompanha a mesma borda direita do grupo pizza+legenda logo
+              abaixo (`justify-end`) — sem isso ficava solto no canto esquerdo, com um vão vazio
+              enorme até o gráfico (pedido do Mateus em 2026-09-10: "ajuste... coloque ali junto com
+              o gráfico"). */}
+          <p className="mb-1.5 text-right text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
             Contrato · clique para filtrar
           </p>
           {/* Pizza continua vindo primeiro (à esquerda da legenda) — mas o grupo inteiro
@@ -330,6 +351,7 @@ export function AtletasResumoFiltros({
           placeholder="Buscar atleta por nome..."
           className="field-input min-w-0 flex-1"
         />
+        <AnoNascimentoFiltro anos={anosComContagem} selecionados={anoSel} aoAlternar={(ano) => setAnoSel((atual) => alternarNoConjunto(atual, ano))} />
         {/* "Mostrar no card": esconde CPF/Contrato dos cards aqui na tela e do PDF exportado (pedido
             do Mateus em 2026-09-10) — não afeta a exportação em Excel, que já tem sua própria
             escolha de colunas (`ExportColunasModal`). Marcado = mostra (estado guardado é o
@@ -399,6 +421,88 @@ export function AtletasResumoFiltros({
 
       {exportModalAberto && excelHrefComFiltros ? (
         <ExportColunasModal hrefBase={excelHrefComFiltros} onClose={() => setExportModalAberto(false)} />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Filtro de "Ano de nascimento" — dropdown com lista de checkbox (não chips: o Mateus pediu pra não
+ * "poluir a tela", já que um elenco cheio pode ter 10+ anos diferentes). Mesmo padrão de
+ * clique-fora-fecha do `ExportDropdown`. Não aparece se ninguém no elenco tem data de nascimento
+ * cadastrada (lista vazia).
+ */
+function AnoNascimentoFiltro({
+  anos,
+  selecionados,
+  aoAlternar,
+}: {
+  anos: { ano: number; total: number }[];
+  selecionados: Set<number>;
+  aoAlternar: (ano: number) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    function aoClicarFora(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setAberto(false);
+    }
+    document.addEventListener("mousedown", aoClicarFora);
+    return () => document.removeEventListener("mousedown", aoClicarFora);
+  }, [aberto]);
+
+  if (anos.length === 0) return null;
+
+  const rotulo =
+    selecionados.size === 0
+      ? "Ano de nascimento"
+      : selecionados.size === 1
+        ? `Ano: ${[...selecionados][0]}`
+        : `Ano: ${selecionados.size} selecionados`;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        className={`inline-flex items-center gap-1.5 whitespace-nowrap ${filtroChipClasse(selecionados.size > 0)}`}
+      >
+        {rotulo}
+        <svg
+          viewBox="0 0 12 12"
+          className={`h-3 w-3 shrink-0 transition-transform ${aberto ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M2.5 4.5 6 8l3.5-3.5" />
+        </svg>
+      </button>
+
+      {aberto ? (
+        <div className="absolute left-0 top-full z-20 mt-1 max-h-56 w-40 overflow-y-auto rounded-md border border-neutral-200 bg-white p-1 shadow-lg">
+          {anos.map(({ ano, total }) => (
+            <label
+              key={ano}
+              className="flex cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs hover:bg-neutral-50"
+            >
+              <input
+                type="checkbox"
+                checked={selecionados.has(ano)}
+                onChange={() => aoAlternar(ano)}
+                className="h-3.5 w-3.5 shrink-0 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              <span className="min-w-0 flex-1 font-medium text-neutral-700">{ano}</span>
+              <span className="tabular-nums text-neutral-400">{total}</span>
+            </label>
+          ))}
+        </div>
       ) : null}
     </div>
   );

@@ -68,7 +68,13 @@ export async function GET(request: NextRequest) {
   const { data } = await supabase.from("atletas").select("*").order("nome_completo", { ascending: true });
   const atletas = ((data ?? []) as AtletaRow[]).filter((a) =>
     atletaPassaFiltro(
-      { status: a.status, posicao: a.posicao, tipoContrato: a.tipo_contrato, nome: a.nome_completo },
+      {
+        status: a.status,
+        posicao: a.posicao,
+        tipoContrato: a.tipo_contrato,
+        nome: a.nome_completo,
+        dataNascimento: a.data_nascimento,
+      },
       filtros,
     ),
   );

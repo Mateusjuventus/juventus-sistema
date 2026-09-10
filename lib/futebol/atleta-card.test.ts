@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTRATO_A_VENCER_DIAS,
+  anoNascimento,
   contratoEstaVencendo,
   diasParaVencerContrato,
   formatDataBR,
@@ -24,6 +25,22 @@ describe("formatDataBR", () => {
 
   it("usa travessão quando não há data (cadastro incompleto da Base)", () => {
     expect(formatDataBR(null)).toBe("—");
+  });
+});
+
+describe("anoNascimento", () => {
+  it("extrai o ano de uma data AAAA-MM-DD", () => {
+    expect(anoNascimento("2004-05-10")).toBe(2004);
+  });
+
+  it("null quando não há data de nascimento cadastrada", () => {
+    expect(anoNascimento(null)).toBeNull();
+  });
+
+  it("lê os 4 primeiros caracteres em vez de usar Date, pra não sofrer efeito de fuso horário", () => {
+    // "2006-01-01" vira meia-noite UTC — em fusos negativos, `new Date(data).getFullYear()`
+    // devolveria 2005 (31/12/2005 no horário local). Ler a string direto evita esse problema.
+    expect(anoNascimento("2006-01-01")).toBe(2006);
   });
 });
 
