@@ -3,6 +3,7 @@
 // Next.js resolve — ver tsconfig.json). Os outros imports deste arquivo são só `import type`, que o
 // esbuild elimina antes de precisar resolver o caminho, por isso nunca deu problema até agora.
 import { TODAS_CATEGORIAS_BASE, type CategoriaBase } from "../auth/categorias-base";
+import { normalizeCPF } from "@/lib/validation/cpf";
 import type { CaptacaoBaseRow, CaptacaoDocumentoTipo, CaptacaoStatus } from "@/lib/supabase/types";
 
 /**
@@ -149,4 +150,116 @@ export function payloadMudancaStatusCaptacao(
 ): { status: CaptacaoStatusDecidido; data_termino: string | null } {
   if (novoStatus === "avaliacao") return { status: novoStatus, data_termino: null };
   return { status: novoStatus, data_termino: dataTerminoAtual ?? hoje };
+}
+
+/** Um candidato "elegível pra completar" precisa só destes 4 campos — genérico o bastante pra
+ * `encontrarCandidatoParaCompletar` funcionar tanto com `CaptacaoBaseRow` completo (uso real) quanto
+ * com objetos simples nos testes. */
+interface CandidatoElegivel {
+  id: string;
+  cpf: string | null;
+  data_nascimento: string | null;
+  status: CaptacaoStatus;
+  numero: number;
+}
+
+/**
+ * Acha, entre candidatos "Em avaliação" (sem decisão ainda) com CPF preenchido, aquele cujo CPF
+ * normalizado bate com o informado E cuja data de nascimento também bate — usado pela etapa de
+ * "completar cadastro existente" do link público de inscrição (ver spec 2026-09-11-captacao-
+ * completar-cadastro-cpf-design.md, decisões 2 e 3).
+ *
+ * Compara CPF **normalizado** dos dois lados porque o formulário interno (`app/base/captacao/
+ * actions.ts`) só passou a normalizar o CPF ao salvar a partir desta mesma mudança — pode haver
+ * registro anterior com pontuação.
+ *
+ * Devolve só `string | null` de propósito — nunca diferencia "não achou nenhum" de "achou mas a
+ * data de nascimento não bate" nem de "achou mas já foi decidido" pro chamador. Quem decide o que
+ * fazer com `null` é a Server Action, sempre com a mesma resposta genérica pro cliente
+ * (anti-enumeração, decisão 4 da spec — evita que alguém use o formulário pra descobrir se um CPF
+ * está cadastrado). Se mais de um candidato bater (caso raro), fica com o de maior `numero` (o mais
+ * recente).
+ */
+export function encontrarCandidatoParaCompletar<T extends CandidatoElegivel>(
+  candidatos: T[],
+  cpfInformado: string,
+  dataNascimentoInformada: string,
+): string | null {
+  const cpfNormalizado = normalizeCPF(cpfInformado);
+  const elegiveis = candidatos.filter(
+    (c) =>
+      c.status === "avaliacao" &&
+      !!c.cpf &&
+      normalizeCPF(c.cpf) === cpfNormalizado &&
+      c.data_nascimento === dataNascimentoInformada,
+  );
+  if (elegiveis.length === 0) return null;
+  return elegiveis.reduce((maisRecente, atual) => (atual.numero > maisRecente.numero ? atual : maisRecente)).id;
+}
+
+/**
+ * Outros períodos do mesmo atleta no clube — mesmo CPF normalizado, qualquer status, exceto o
+ * próprio registro — do mais recente pro mais antigo (por `numero`). Alimenta a seção "Histórico"
+ * da tela do candidato (ver spec 2026-09-11-captacao-completar-cadastro-cpf-design.md, seção 5):
+ * um atleta que já passou pelo clube antes (Aprovado/Dispensado/Não compareceu) e volta pra uma
+ * nova avaliação ganha um cadastro novo (não reabre o antigo — decisão 3), então isso é só
+ * informativo, sem nenhum vínculo formal no banco. Lista vazia quando o candidato não tem CPF
+ * preenchido (não dá pra comparar) ou ninguém mais bate.
+ */
+export function historicoPorCpf<T extends { id: string; cpf: string | null; numero: number }>(
+  candidatos: T[],
+  candidatoAtual: Pick<T, "id" | "cpf">,
+): T[] {
+  if (!candidatoAtual.cpf) return [];
+  const cpfNormalizado = normalizeCPF(candidatoAtual.cpf);
+  return candidatos
+    .filter((c) => c.id !== candidatoAtual.id && !!c.cpf && normalizeCPF(c.cpf) === cpfNormalizado)
+    .sort((a, b) => b.numero - a.numero);
+}
+
+/**
+ * Campos em comum entre a Ficha de Avaliação pública (`captacaoInscricaoSchema`) e o cadastro
+ * interno (`captacaoBaseSchema`) — tudo, exceto os dois campos onde os dois formulários usam
+ * representações diferentes pro mesmo booleano ("Possui plano de saúde" e "É federado": o
+ * formulário interno usa checkbox, "on"/"", o público usa `<select>`, "sim"/"nao") — cada chamador
+ * decide o formato desses dois.
+ *
+ * Usado tanto pra reidratar o formulário interno na edição (`/base/captacao/[id]`) quanto pra
+ * pré-preencher o formulário público quando alguém completa um cadastro existente pelo CPF (ver
+ * spec 2026-09-11-captacao-completar-cadastro-cpf-design.md, seção 3) — assim os ~30 campos em
+ * comum só têm um lugar pra manter, em vez de reescritos em cada tela.
+ */
+export function camposComunsCaptacao(candidato: CaptacaoBaseRow): Record<string, string> {
+  return {
+    nomeCompleto: candidato.nome_completo,
+    dataNascimento: candidato.data_nascimento ?? "",
+    posicao: candidato.posicao ?? "",
+    categoria: candidato.categoria ?? "",
+    indicacao: candidato.indicacao ?? "",
+    clubeAnterior: candidato.clube_anterior ?? "",
+    telefone: candidato.telefone ?? "",
+    maeNome: candidato.mae_nome ?? "",
+    maeTelefone: candidato.mae_telefone ?? "",
+    paiNome: candidato.pai_nome ?? "",
+    paiTelefone: candidato.pai_telefone ?? "",
+    escola: candidato.escola ?? "",
+    cep: candidato.cep ?? "",
+    logradouro: candidato.logradouro ?? "",
+    numero: candidato.numero_endereco ?? "",
+    complemento: candidato.complemento ?? "",
+    bairro: candidato.bairro ?? "",
+    cidade: candidato.cidade ?? "",
+    uf: candidato.uf ?? "",
+    rg: candidato.rg ?? "",
+    cpf: candidato.cpf ?? "",
+    segundaPosicao: candidato.segunda_posicao ?? "",
+    peDominante: candidato.pe_dominante ?? "",
+    altura: candidato.altura?.toString() ?? "",
+    peso: candidato.peso?.toString() ?? "",
+    email: candidato.email ?? "",
+    planoSaudeQual: candidato.plano_saude_qual ?? "",
+    escolaridade: candidato.escolaridade ?? "",
+    periodoEscolar: candidato.periodo_escolar ?? "",
+    federadoClube: candidato.federado_clube ?? "",
+  };
 }

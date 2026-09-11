@@ -5,7 +5,13 @@ import { PageHeader } from "@/components/page-header";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedCaptacaoDocumentoUrl, getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { CAPTACAO_DOCUMENTO_LABEL, captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
+import {
+  CAPTACAO_DOCUMENTO_LABEL,
+  camposComunsCaptacao,
+  captacaoStatusLabel,
+  corCaptacaoStatus,
+  historicoPorCpf,
+} from "@/lib/futebol/captacao";
 import { isMaster } from "@/lib/auth/role";
 import { papeisAssinaturaParecer, podeAssinarPapel } from "@/lib/assinaturas/config";
 import { buscarAssinaturas } from "@/lib/assinaturas/actions";
@@ -51,6 +57,18 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
     }),
   );
 
+  // Outros períodos do mesmo atleta no clube (mesmo CPF, qualquer status) — seção "Histórico" (ver
+  // spec 2026-09-11-captacao-completar-cadastro-cpf-design.md, seção 5). Só busca quando o
+  // candidato tem CPF preenchido; sem CPF não tem como comparar (e `historicoPorCpf` devolveria
+  // lista vazia de qualquer jeito).
+  const { data: candidatosComCpfData } = candidato.cpf
+    ? await supabase.from("captacao_base").select("id, numero, cpf, data_inicio, data_termino, status").not("cpf", "is", null)
+    : { data: null };
+  const historico = historicoPorCpf(
+    (candidatosComCpfData ?? []) as Pick<CaptacaoBaseRow, "id" | "numero" | "cpf" | "data_inicio" | "data_termino" | "status">[],
+    candidato,
+  );
+
   const [
     {
       data: { user },
@@ -93,43 +111,14 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
     candidato.nota_comportamental !== null;
 
   const defaultValues: Record<string, string> = {
-    nomeCompleto: candidato.nome_completo,
+    ...camposComunsCaptacao(candidato),
     dataInicio: candidato.data_inicio ?? "",
     dataTermino: candidato.data_termino ?? "",
-    dataNascimento: candidato.data_nascimento ?? "",
-    posicao: candidato.posicao ?? "",
-    categoria: candidato.categoria ?? "",
-    indicacao: candidato.indicacao ?? "",
-    clubeAnterior: candidato.clube_anterior ?? "",
     desejaAlojamento: candidato.deseja_alojamento ? "on" : "",
     status: candidato.status,
     observacoes: candidato.observacoes ?? "",
-    telefone: candidato.telefone ?? "",
-    maeNome: candidato.mae_nome ?? "",
-    maeTelefone: candidato.mae_telefone ?? "",
-    paiNome: candidato.pai_nome ?? "",
-    paiTelefone: candidato.pai_telefone ?? "",
-    escola: candidato.escola ?? "",
-    cep: candidato.cep ?? "",
-    logradouro: candidato.logradouro ?? "",
-    numero: candidato.numero_endereco ?? "",
-    complemento: candidato.complemento ?? "",
-    bairro: candidato.bairro ?? "",
-    cidade: candidato.cidade ?? "",
-    uf: candidato.uf ?? "",
-    rg: candidato.rg ?? "",
-    cpf: candidato.cpf ?? "",
-    segundaPosicao: candidato.segunda_posicao ?? "",
-    peDominante: candidato.pe_dominante ?? "",
-    altura: candidato.altura?.toString() ?? "",
-    peso: candidato.peso?.toString() ?? "",
-    email: candidato.email ?? "",
     possuiPlanoSaude: candidato.possui_plano_saude ? "on" : "",
-    planoSaudeQual: candidato.plano_saude_qual ?? "",
-    escolaridade: candidato.escolaridade ?? "",
-    periodoEscolar: candidato.periodo_escolar ?? "",
     federado: candidato.federado ? "on" : "",
-    federadoClube: candidato.federado_clube ?? "",
   };
 
   const atualizarAction = atualizarCaptacao.bind(null, candidato.id);
@@ -157,6 +146,33 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
           </p>
         ) : null}
       </div>
+
+      {historico.length > 0 ? (
+        <section className="card mt-6 space-y-3 p-5">
+          <h2 className="font-display text-lg font-semibold text-neutral-900">Histórico</h2>
+          <p className="text-sm text-neutral-600">
+            Esse CPF já apareceu em outro{historico.length > 1 ? "s" : ""} período{historico.length > 1 ? "s" : ""}
+            {" "}no clube:
+          </p>
+          <div className="space-y-2">
+            {historico.map((periodo) => (
+              <Link
+                key={periodo.id}
+                href={`/base/captacao/${periodo.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-neutral-50 px-3 py-2 text-sm hover:bg-neutral-100"
+              >
+                <span className="font-medium text-neutral-800">Nº {periodo.numero}</span>
+                <span className="text-neutral-500">
+                  {formatDataBr(periodo.data_inicio)} – {formatDataBr(periodo.data_termino)}
+                </span>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${corCaptacaoStatus(periodo.status)}`}>
+                  {captacaoStatusLabel(periodo.status)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {candidato.atleta_gerado_id ? (
         <section className="card mt-6 flex flex-wrap items-center justify-between gap-3 border-l-4 border-green-600 p-5">

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { captacaoBaseSchema } from "@/lib/validation/schemas";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { payloadMudancaStatusCaptacao, type CaptacaoStatusDecidido } from "@/lib/futebol/captacao";
+import { normalizeCPF } from "@/lib/validation/cpf";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import type { CaptacaoStatus } from "@/lib/supabase/types";
 
@@ -111,7 +112,11 @@ function dadosParaSalvar(data: ReturnType<typeof captacaoBaseSchema.parse>) {
     cidade: data.cidade || null,
     uf: data.uf ? data.uf.toUpperCase() : null,
     rg: data.rg || null,
-    cpf: data.cpf || null,
+    // Normalizado (só dígitos) desde 2026-09-11 — mesmo formato que a inscrição pública já grava
+    // (`cpfField`, ver lib/validation/schemas.ts), necessário pra comparação de CPF na etapa de
+    // "completar cadastro existente" (ver spec 2026-09-11-captacao-completar-cadastro-cpf-design.md
+    // e `encontrarCandidatoParaCompletar`/`historicoPorCpf` em lib/futebol/captacao.ts).
+    cpf: data.cpf ? normalizeCPF(data.cpf) : null,
     segunda_posicao: data.segundaPosicao || null,
     pe_dominante: data.peDominante || null,
     altura: data.altura ?? null,

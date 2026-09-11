@@ -2,7 +2,7 @@ import { JuventusCrest } from "@/components/juventus-crest";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ConfiguracaoInscricaoCaptacaoBaseRow } from "@/lib/supabase/types";
 import { InscricaoCaptacaoForm } from "./inscricao-form";
-import { inscreverCaptacao } from "./actions";
+import { inscreverCaptacao, verificarCandidatoExistente } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,7 @@ export default async function InscricaoCaptacaoBasePage() {
 
         <div className="card p-6 sm:p-8">
           {ativo ? (
-            <InscricaoCaptacaoForm action={inscreverCaptacao} />
+            <InscricaoCaptacaoForm action={inscreverCaptacao} verificarAction={verificarCandidatoExistente} />
           ) : (
             <div className="py-8 text-center">
               <p className="text-lg font-semibold text-grena-escuro">Inscrições temporariamente fechadas</p>

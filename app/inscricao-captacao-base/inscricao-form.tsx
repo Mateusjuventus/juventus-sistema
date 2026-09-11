@@ -8,9 +8,56 @@ import { FotoAtletaCaptacaoField } from "@/components/foto-atleta-captacao-field
 import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
-import type { InscricaoCaptacaoState } from "./actions";
+import type { InscricaoCaptacaoState, VerificacaoCaptacaoState } from "./actions";
 
 const initialState: InscricaoCaptacaoState = {};
+const initialVerificacaoState: VerificacaoCaptacaoState = { verificado: false };
+
+/**
+ * Etapa inicial, antes de qualquer campo da ficha (ver spec 2026-09-11-captacao-completar-
+ * cadastro-cpf-design.md): CPF + data de nascimento, pra descobrir se já existe um cadastro "Em
+ * avaliação" feito pela equipe (formulário interno) esperando ser completado. Achando, o resto do
+ * formulário aparece pré-preenchido; não achando (CPF novo, ou não bate com nada elegível), segue
+ * como uma inscrição do zero — sem indicar qual desses dois motivos aconteceu.
+ */
+function VerificacaoCpfStep({
+  verificarAction,
+  onVerificado,
+}: {
+  verificarAction: (prevState: VerificacaoCaptacaoState, formData: FormData) => Promise<VerificacaoCaptacaoState>;
+  onVerificado: (estado: VerificacaoCaptacaoState) => void;
+}) {
+  const [estado, formAction] = useFormState(verificarAction, initialVerificacaoState);
+
+  useEffect(() => {
+    if (estado.verificado) onVerificado(estado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estado]);
+
+  return (
+    <form action={formAction} className="space-y-5">
+      <div>
+        <p className="text-sm font-semibold text-grena-escuro">Antes de começar</p>
+        <p className="mt-1 text-sm text-neutral-500">
+          Informe o CPF e a data de nascimento do atleta. Se a equipe já começou um cadastro dele,
+          você só vai precisar completar o que falta.
+        </p>
+      </div>
+      <FieldGroup>
+        <CpfField label="CPF do atleta" name="cpf" required defaultValue={estado.valuesTexto?.cpf} />
+        <TextField
+          label="Data de nascimento"
+          name="dataNascimento"
+          type="date"
+          required
+          defaultValue={estado.valuesTexto?.dataNascimento}
+        />
+      </FieldGroup>
+      {estado.erro ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{estado.erro}</p> : null}
+      <SubmitButton label="Continuar" pendingLabel="Verificando..." />
+    </form>
+  );
+}
 
 /** Campo de upload de um documento obrigatório (RG, declaração escolar etc.) — sem preview (não é
  * foto), aceita PDF ou imagem porque a maioria das famílias vai fotografar com o celular em vez de
@@ -41,11 +88,17 @@ function DocumentoField({ label, name, error }: { label: string; name: string; e
  */
 export function InscricaoCaptacaoForm({
   action,
+  verificarAction,
 }: {
   action: (prevState: InscricaoCaptacaoState, formData: FormData) => Promise<InscricaoCaptacaoState>;
+  verificarAction: (prevState: VerificacaoCaptacaoState, formData: FormData) => Promise<VerificacaoCaptacaoState>;
 }) {
+  const [verificacao, setVerificacao] = useState<VerificacaoCaptacaoState>(initialVerificacaoState);
   const [state, formAction] = useFormState(action, initialState);
-  const values = state.values ?? {};
+  // Prioriza `state.values` (o que a pessoa editou antes de um envio com erro) sobre o
+  // pré-preenchimento da verificação — só cai no pré-preenchimento antes da primeira tentativa de
+  // envio da ficha completa.
+  const values = state.values ?? verificacao.valuesTexto ?? {};
   const errors = state.fieldErrors ?? {};
   const [possuiPlanoSaude, setPossuiPlanoSaude] = useState(values.possuiPlanoSaude === "sim");
   const [federado, setFederado] = useState(values.federado === "sim");
@@ -60,6 +113,21 @@ export function InscricaoCaptacaoForm({
     primeiroErro?.scrollIntoView({ behavior: "smooth", block: "center" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.fieldErrors]);
+
+  // `possuiPlanoSaude`/`federado` são estado local (pra reagir ao <select> em tempo real) — sem
+  // isso, o pré-preenchimento vindo da verificação (que só chega depois da montagem inicial do
+  // componente) nunca apareceria refletido nos campos condicionais ("Qual plano de saúde"/
+  // "Federado por qual clube"), já que `useState` só lê seu valor inicial uma vez.
+  useEffect(() => {
+    if (!verificacao.valuesTexto) return;
+    setPossuiPlanoSaude(verificacao.valuesTexto.possuiPlanoSaude === "sim");
+    setFederado(verificacao.valuesTexto.federado === "sim");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verificacao]);
+
+  if (!verificacao.verificado) {
+    return <VerificacaoCpfStep verificarAction={verificarAction} onVerificado={setVerificacao} />;
+  }
 
   if (state.success) {
     return (
@@ -100,8 +168,28 @@ export function InscricaoCaptacaoForm({
 
   return (
     <form ref={formRef} action={formAction} className="space-y-6" encType="multipart/form-data">
+      {verificacao.candidatoId ? (
+        <>
+          <input type="hidden" name="captacaoIdExistente" value={verificacao.candidatoId} />
+          <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            Encontramos um cadastro em andamento com esse CPF — os dados abaixo já vieram
+            preenchidos, revise e complete o que faltar.
+          </p>
+        </>
+      ) : (
+        <p className="rounded-md bg-cinzaPagina px-3 py-2 text-sm text-neutral-600">
+          Não encontramos um cadastro em andamento com esses dados — vamos criar uma inscrição nova.
+        </p>
+      )}
+
       <FormSection title="Foto do atleta">
-        <FotoAtletaCaptacaoField label="Foto (fundo neutro)" name="foto" required error={errors.foto} />
+        <FotoAtletaCaptacaoField
+          label="Foto (fundo neutro)"
+          name="foto"
+          required={!verificacao.fotoUrl}
+          currentUrl={verificacao.fotoUrl}
+          error={errors.foto}
+        />
       </FormSection>
 
       <FormSection title="Dados do atleta">

@@ -6,11 +6,13 @@ import { captacaoInscricaoSchema } from "@/lib/validation/schemas";
 import {
   uploadFotoRedimensionada,
   uploadCaptacaoDocumento,
+  getSignedPhotoUrl,
   ENTITY_PHOTOS_BUCKET,
   CAPTACAO_DOCUMENTOS_BUCKET,
 } from "@/lib/supabase/storage";
-import { CAPTACAO_DOCUMENTO_LABEL } from "@/lib/futebol/captacao";
-import type { CaptacaoDocumentoTipo } from "@/lib/supabase/types";
+import { CAPTACAO_DOCUMENTO_LABEL, camposComunsCaptacao, encontrarCandidatoParaCompletar } from "@/lib/futebol/captacao";
+import { isValidCPF } from "@/lib/validation/cpf";
+import type { CaptacaoBaseRow, CaptacaoDocumentoTipo } from "@/lib/supabase/types";
 
 /**
  * Inscrição pública pro teste/avaliação do Futebol de Base (link sem login, ver
@@ -100,6 +102,67 @@ function arquivoValido(value: FormDataEntryValue | null): value is File {
   return value instanceof File && value.size > 0;
 }
 
+/**
+ * Etapa inicial do formulário público (ver spec 2026-09-11-captacao-completar-cadastro-cpf-
+ * design.md) — antes de mostrar o resto da ficha, pede CPF + data de nascimento e confere se já
+ * existe um candidato "Em avaliação" com isso (criado pelo Mateus/equipe pelo formulário interno,
+ * sem documentos/termo ainda). `verificado` vira `true` depois da primeira tentativa (achando ou
+ * não), momento em que o restante do formulário passa a aparecer.
+ *
+ * `candidatoId`/`valuesTexto`/`fotoUrl` só vêm preenchidos quando ACHA um candidato — os campos já
+ * preenchidos pré-populam o resto da ficha (editável) e o `id` vai num campo oculto pro envio saber
+ * que é pra completar esse cadastro em vez de criar um novo. Não achando (CPF novo, CPF existe mas
+ * data de nascimento não bate, ou o candidato já foi decidido), `valuesTexto` só carrega de volta o
+ * que a pessoa acabou de digitar (CPF/data de nascimento), pra não digitar de novo — e a resposta é
+ * SEMPRE esse mesmo formato, sem `candidatoId`, pra ninguém conseguir usar essa etapa pra descobrir
+ * se um CPF está cadastrado (decisão 4 da spec).
+ */
+export interface VerificacaoCaptacaoState {
+  verificado: boolean;
+  erro?: string;
+  candidatoId?: string;
+  valuesTexto?: Record<string, string>;
+  fotoUrl?: string | null;
+}
+
+export async function verificarCandidatoExistente(
+  _prevState: VerificacaoCaptacaoState,
+  formData: FormData,
+): Promise<VerificacaoCaptacaoState> {
+  const cpf = String(formData.get("cpf") ?? "");
+  const dataNascimento = String(formData.get("dataNascimento") ?? "");
+
+  if (!isValidCPF(cpf)) {
+    return { verificado: false, erro: "CPF inválido.", valuesTexto: { cpf, dataNascimento } };
+  }
+  if (!dataNascimento) {
+    return { verificado: false, erro: "Informe a data de nascimento.", valuesTexto: { cpf, dataNascimento } };
+  }
+
+  const admin = createAdminClient();
+  const { data } = await admin.from("captacao_base").select("*").eq("status", "avaliacao").not("cpf", "is", null);
+  const candidatos = (data ?? []) as CaptacaoBaseRow[];
+  const candidatoId = encontrarCandidatoParaCompletar(candidatos, cpf, dataNascimento);
+
+  if (!candidatoId) {
+    return { verificado: true, valuesTexto: { cpf, dataNascimento } };
+  }
+
+  const candidato = candidatos.find((c) => c.id === candidatoId) as CaptacaoBaseRow;
+  const fotoUrl = await getSignedPhotoUrl(admin, candidato.foto_path);
+
+  return {
+    verificado: true,
+    candidatoId,
+    fotoUrl,
+    valuesTexto: {
+      ...camposComunsCaptacao(candidato),
+      possuiPlanoSaude: candidato.possui_plano_saude ? "sim" : "nao",
+      federado: candidato.federado ? "sim" : "nao",
+    },
+  };
+}
+
 export async function inscreverCaptacao(
   _prevState: InscricaoCaptacaoState,
   formData: FormData,
@@ -115,13 +178,44 @@ export async function inscreverCaptacao(
     };
   }
 
+  const admin = createAdminClient();
+
+  // Campo oculto preenchido pela etapa de verificação de CPF quando ela acha um candidato "Em
+  // avaliação" já existente (ver `verificarCandidatoExistente` acima e spec 2026-09-11-captacao-
+  // completar-cadastro-cpf-design.md) — presente só nesse caso; do contrário é uma inscrição nova.
+  const captacaoIdExistente = String(formData.get("captacaoIdExistente") ?? "") || null;
+  let candidatoExistente: CaptacaoBaseRow | null = null;
+  if (captacaoIdExistente) {
+    const { data: existente } = await admin
+      .from("captacao_base")
+      .select("*")
+      .eq("id", captacaoIdExistente)
+      .eq("status", "avaliacao")
+      .maybeSingle();
+    // Não achou mais (alguém decidiu esse candidato entre a verificação e o envio, ou o id foi
+    // adulterado) — não dá mais pra completar esse cadastro por aqui. Pede pra recarregar em vez de
+    // silenciosamente virar uma inscrição nova (evitaria duplicar sem a pessoa perceber).
+    if (!existente) {
+      return {
+        error:
+          "Não foi possível confirmar esse cadastro (pode ter sido decidido nesse meio tempo). Recarregue a página e tente novamente.",
+        values: valuesTexto,
+      };
+    }
+    candidatoExistente = existente as CaptacaoBaseRow;
+  }
+  // Só dispensa a foto quando está completando um cadastro que já tem uma (o formulário interno
+  // às vezes já anexa) — inscrição nova continua sempre exigindo.
+  const fotoJaExistente = !!candidatoExistente?.foto_path;
+
   // Arquivos não passam pelo Zod (`captacaoInscricaoSchema` só cobre texto) — conferidos aqui, num
   // segundo passo, juntando todos num só aviso pra pessoa ver de uma vez tudo que falta anexar.
   // Mesmo padrão de `cadastrarAtletaBasePublico` (foto obrigatória), estendido aos 5 documentos.
   const foto = formData.get("foto");
+  const fotoValida = arquivoValido(foto);
   const documentosEnviados: Partial<Record<CaptacaoDocumentoTipo, File>> = {};
   const fieldErrorsArquivos: Record<string, string> = {};
-  if (!arquivoValido(foto)) fieldErrorsArquivos.foto = "A foto do atleta é obrigatória.";
+  if (!fotoValida && !fotoJaExistente) fieldErrorsArquivos.foto = "A foto do atleta é obrigatória.";
   for (const tipo of Object.keys(DOCUMENTOS_OBRIGATORIOS) as CaptacaoDocumentoTipo[]) {
     const arquivo = formData.get(tipo);
     if (!arquivoValido(arquivo)) {
@@ -138,8 +232,6 @@ export async function inscreverCaptacao(
     };
   }
 
-  const admin = createAdminClient();
-
   const { data: configData } = await admin
     .from("configuracoes_inscricao_captacao_base")
     .select("cadastro_publico_ativo")
@@ -150,94 +242,132 @@ export async function inscreverCaptacao(
   }
 
   const data = result.data;
-  const { data: inserted, error } = await admin
-    .from("captacao_base")
-    .insert({
-      nome_completo: data.nomeCompleto,
-      rg: data.rg,
-      cpf: data.cpf,
-      data_nascimento: data.dataNascimento,
-      posicao: data.posicao,
-      segunda_posicao: data.segundaPosicao || null,
-      pe_dominante: data.peDominante,
-      altura: data.altura,
-      peso: data.peso,
-      categoria: data.categoria,
-      telefone: data.telefone || null,
-      email: data.email,
-      indicacao: data.indicacao || null,
-      clube_anterior: data.clubeAnterior || null,
-      mae_nome: data.maeNome || null,
-      mae_telefone: data.maeTelefone || null,
-      pai_nome: data.paiNome || null,
-      pai_telefone: data.paiTelefone || null,
-      escola: data.escola || null,
-      escolaridade: data.escolaridade || null,
-      periodo_escolar: data.periodoEscolar,
-      possui_plano_saude: data.possuiPlanoSaude === "sim",
-      plano_saude_qual: data.possuiPlanoSaude === "sim" ? data.planoSaudeQual || null : null,
-      federado: data.federado === "sim",
-      federado_clube: data.federado === "sim" ? data.federadoClube || null : null,
-      cep: data.cep || null,
-      logradouro: data.logradouro || null,
-      numero_endereco: data.numero || null,
-      complemento: data.complemento || null,
-      bairro: data.bairro || null,
-      cidade: data.cidade || null,
-      uf: data.uf ? data.uf.toUpperCase() : null,
-      responsavel_legal_nome: data.responsavelLegalNome,
-      responsavel_legal_cpf: data.responsavelLegalCpf,
-      termo_aceite_atleta: data.concordoAtleta,
-      termo_aceite_responsavel: data.concordoResponsavel,
-      termo_aceito_em: new Date().toISOString(),
-      status: "inscricao",
-      data_inicio: null,
-      origem: "publico",
-    })
-    .select("id")
-    .single();
+  // Campos em comum entre criar uma inscrição nova e completar uma já existente — o que muda entre
+  // os dois é status/data_inicio/origem (preservados no caminho de completar, ver abaixo) e o
+  // próprio id (gerado num INSERT, já conhecido num UPDATE).
+  const camposComuns = {
+    nome_completo: data.nomeCompleto,
+    rg: data.rg,
+    cpf: data.cpf,
+    data_nascimento: data.dataNascimento,
+    posicao: data.posicao,
+    segunda_posicao: data.segundaPosicao || null,
+    pe_dominante: data.peDominante,
+    altura: data.altura,
+    peso: data.peso,
+    categoria: data.categoria,
+    telefone: data.telefone || null,
+    email: data.email,
+    indicacao: data.indicacao || null,
+    clube_anterior: data.clubeAnterior || null,
+    mae_nome: data.maeNome || null,
+    mae_telefone: data.maeTelefone || null,
+    pai_nome: data.paiNome || null,
+    pai_telefone: data.paiTelefone || null,
+    escola: data.escola || null,
+    escolaridade: data.escolaridade || null,
+    periodo_escolar: data.periodoEscolar,
+    possui_plano_saude: data.possuiPlanoSaude === "sim",
+    plano_saude_qual: data.possuiPlanoSaude === "sim" ? data.planoSaudeQual || null : null,
+    federado: data.federado === "sim",
+    federado_clube: data.federado === "sim" ? data.federadoClube || null : null,
+    cep: data.cep || null,
+    logradouro: data.logradouro || null,
+    numero_endereco: data.numero || null,
+    complemento: data.complemento || null,
+    bairro: data.bairro || null,
+    cidade: data.cidade || null,
+    uf: data.uf ? data.uf.toUpperCase() : null,
+    responsavel_legal_nome: data.responsavelLegalNome,
+    responsavel_legal_cpf: data.responsavelLegalCpf,
+    termo_aceite_atleta: data.concordoAtleta,
+    termo_aceite_responsavel: data.concordoResponsavel,
+    termo_aceito_em: new Date().toISOString(),
+  };
 
-  if (error || !inserted) return { error: `Não foi possível enviar a inscrição: ${error?.message}`, values: valuesTexto };
+  let candidatoId: string;
+  if (candidatoExistente) {
+    // Completar cadastro existente: UPDATE, preservando id/numero/status/origem/data_inicio/
+    // atleta_gerado_id — o candidato já está "Em avaliação", não deve voltar pra fila de Aprovações
+    // nem trocar de origem (ver spec, seção 4). Confere de novo o status na cláusula WHERE (defesa
+    // contra corrida com o SELECT acima).
+    const { data: atualizado, error } = await admin
+      .from("captacao_base")
+      .update(camposComuns)
+      .eq("id", candidatoExistente.id)
+      .eq("status", "avaliacao")
+      .select("id")
+      .single();
+    if (error || !atualizado) {
+      return {
+        error: "Não foi possível completar esse cadastro (ele pode ter sido decidido nesse meio tempo). Recarregue a página e tente novamente.",
+        values: valuesTexto,
+      };
+    }
+    candidatoId = atualizado.id as string;
+  } else {
+    const { data: inserted, error } = await admin
+      .from("captacao_base")
+      .insert({ ...camposComuns, status: "inscricao", data_inicio: null, origem: "publico" })
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      return { error: `Não foi possível enviar a inscrição: ${error?.message}`, values: valuesTexto };
+    }
+    candidatoId = inserted.id as string;
+  }
 
-  const candidatoId = inserted.id as string;
   const caminhosDocumentosEnviados: string[] = [];
+  let fotoPathNovo: string | undefined;
 
-  /** Desfaz o registro e os arquivos já enviados — usado quando um upload ou insert seguinte falha,
-   * pra não deixar uma inscrição incompleta (sem foto ou sem um documento obrigatório) na fila de
-   * Aprovações do Mateus, nem arquivo órfão nos buckets. */
-  async function desfazerInscricao(caminhoFoto?: string) {
-    await admin.from("captacao_base").delete().eq("id", candidatoId);
-    if (caminhoFoto) await admin.storage.from(ENTITY_PHOTOS_BUCKET).remove([caminhoFoto]);
+  /** Desfaz o registro e os arquivos enviados NESTA submissão — só quando é uma inscrição NOVA.
+   * Completando um cadastro que já existia antes desta submissão, nunca desfaz nada aqui: cada
+   * documento usa um path fixo por tipo (upsert), então uma falha no meio não deixa nada órfão —
+   * um documento que já tinha subido com sucesso (storage + `captacao_documentos`) continua válido
+   * mesmo se um documento seguinte falhar; a pessoa só reenvia o que faltou numa próxima tentativa.
+   * Apagar o registro (ou os arquivos já commitados) desfaria trabalho legítimo e, pior, apagaria
+   * um candidato que o Mateus criou manualmente só porque um upload posterior deu erro. */
+  async function desfazerInscricao() {
+    if (candidatoExistente) return;
+    await admin.from("captacao_base").delete().eq("id", candidatoId); // cascade apaga captacao_documentos
+    if (fotoPathNovo) await admin.storage.from(ENTITY_PHOTOS_BUCKET).remove([fotoPathNovo]);
     if (caminhosDocumentosEnviados.length > 0) {
       await admin.storage.from(CAPTACAO_DOCUMENTOS_BUCKET).remove(caminhosDocumentosEnviados);
     }
   }
 
-  // Foto e documentos são enviados depois do registro existir, porque o path de cada um usa o id
-  // do candidato. `foto` já foi conferida como File válido acima (`arquivoValido`); o `as File`
-  // só contorna o TypeScript não propagar esse narrowing por uma variável independente.
-  const fotoResultado = await uploadFotoRedimensionada(admin, foto as File, "captacao-base", candidatoId);
-  if (fotoResultado.error) {
-    await desfazerInscricao();
-    return { error: "Não foi possível enviar a foto do atleta. Tente novamente.", values: valuesTexto };
+  // Foto: só sobe se uma nova foi enviada (`fotoValida`) — completando um cadastro que já tem foto,
+  // sem trocar, o `foto_path` existente fica como está. `foto` já foi conferida como File válido
+  // acima; o `as File` só contorna o TypeScript não propagar esse narrowing por uma variável
+  // independente.
+  if (fotoValida) {
+    const fotoResultado = await uploadFotoRedimensionada(admin, foto as File, "captacao-base", candidatoId);
+    if (fotoResultado.error) {
+      await desfazerInscricao();
+      return { error: "Não foi possível enviar a foto do atleta. Tente novamente.", values: valuesTexto };
+    }
+    fotoPathNovo = fotoResultado.path;
+    await admin.from("captacao_base").update({ foto_path: fotoResultado.path }).eq("id", candidatoId);
   }
-  await admin.from("captacao_base").update({ foto_path: fotoResultado.path }).eq("id", candidatoId);
 
   for (const [tipo, arquivo] of Object.entries(documentosEnviados) as [CaptacaoDocumentoTipo, File][]) {
     const documentoResultado = await uploadCaptacaoDocumento(admin, arquivo, candidatoId, tipo);
     if (documentoResultado.error || !documentoResultado.path) {
-      await desfazerInscricao(fotoResultado.path);
+      await desfazerInscricao();
       return {
         error: `Não foi possível enviar o documento "${DOCUMENTOS_OBRIGATORIOS[tipo]}". Tente novamente.`,
         values: valuesTexto,
       };
     }
     caminhosDocumentosEnviados.push(documentoResultado.path);
+    // Upsert (não insert simples): a constraint única é (captacao_id, tipo) — permite reenviar
+    // depois de uma tentativa anterior que falhou no meio (novo cadastro ou completar existente),
+    // sem esbarrar num conflito de chave.
     const { error: docError } = await admin
       .from("captacao_documentos")
-      .insert({ captacao_id: candidatoId, tipo, arquivo_path: documentoResultado.path });
+      .upsert({ captacao_id: candidatoId, tipo, arquivo_path: documentoResultado.path }, { onConflict: "captacao_id,tipo" });
     if (docError) {
-      await desfazerInscricao(fotoResultado.path);
+      await desfazerInscricao();
       return {
         error: `Não foi possível registrar o documento "${DOCUMENTOS_OBRIGATORIOS[tipo]}". Tente novamente.`,
         values: valuesTexto,
@@ -247,5 +377,6 @@ export async function inscreverCaptacao(
 
   revalidatePath("/base/captacao");
   revalidatePath("/base/captacao/aprovacoes");
+  revalidatePath(`/base/captacao/${candidatoId}`);
   return { success: true };
 }
