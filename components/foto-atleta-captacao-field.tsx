@@ -243,25 +243,29 @@ export function FotoAtletaCaptacaoField({
           </div>
         </div>
       ) : (
-        <div className="flex items-start gap-4">
+        <div className="flex flex-wrap items-start gap-4">
           {previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={previewUrl}
               alt="Pré-visualização"
-              className="h-32 w-24 rounded-md border border-neutral-200 object-cover"
+              className="h-32 w-24 shrink-0 rounded-md border border-neutral-200 object-cover"
             />
           ) : (
-            <div className="flex h-32 w-24 items-center justify-center rounded-md border border-dashed border-neutral-300 text-xs text-neutral-400">
+            <div className="flex h-32 w-24 shrink-0 items-center justify-center rounded-md border border-dashed border-neutral-300 text-xs text-neutral-400">
               sem foto
             </div>
           )}
-          <div className="flex flex-col items-start gap-2">
+          {/* `min-w-0` + `flex-wrap` no container acima: sem isso, o <input type="file"> nativo (que
+              não encolhe abaixo do texto "Escolher arquivo / nenhum arquivo selecionado") empurra a
+              seção inteira pra fora da largura da tela em celulares — foi o que aconteceu no teste
+              do Mateus (só a seção "Foto do atleta" ficava sem a margem direita, o resto normal). */}
+          <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
             <input
               type="file"
               accept="image/*"
               onChange={selecionarArquivo}
-              className="text-sm"
+              className="w-full max-w-full text-sm"
             />
             <p className="max-w-[220px] text-xs text-neutral-400">
               Fundo neutro. Depois de escolher, dá pra ajustar o enquadramento antes de enviar.
