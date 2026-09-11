@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { EnderecoFields } from "@/components/endereco-fields";
-import { PhotoField } from "@/components/photo-field";
+import { FotoAtletaCaptacaoField } from "@/components/foto-atleta-captacao-field";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { CAPTACAO_STATUS_OPTIONS, captacaoStatusLabel } from "@/lib/futebol/captacao";
@@ -43,7 +43,7 @@ export function CaptacaoForm({
       <FormSection title="Candidato">
         <FieldGroup>
           <div className="sm:col-span-2">
-            <PhotoField label="Foto" name="foto" currentUrl={fotoUrl} />
+            <FotoAtletaCaptacaoField label="Foto" name="foto" currentUrl={fotoUrl} />
           </div>
           <TextField
             label="Nome completo"

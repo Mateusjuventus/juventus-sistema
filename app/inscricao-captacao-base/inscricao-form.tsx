@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
-import { PhotoField } from "@/components/photo-field";
+import { FotoAtletaCaptacaoField } from "@/components/foto-atleta-captacao-field";
 import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
@@ -100,6 +100,10 @@ export function InscricaoCaptacaoForm({
 
   return (
     <form ref={formRef} action={formAction} className="space-y-6" encType="multipart/form-data">
+      <FormSection title="Foto do atleta">
+        <FotoAtletaCaptacaoField label="Foto (fundo neutro)" name="foto" required error={errors.foto} />
+      </FormSection>
+
       <FormSection title="Dados do atleta">
         <FieldGroup>
           <TextField
@@ -331,14 +335,11 @@ export function InscricaoCaptacaoForm({
         />
       </FormSection>
 
-      <FormSection title="Foto e documentos obrigatórios">
+      <FormSection title="Documentos obrigatórios">
         <p className="text-sm text-neutral-500">
           Todos os itens abaixo são obrigatórios pra enviar a inscrição.
         </p>
         <FieldGroup>
-          <div className="sm:col-span-2">
-            <PhotoField label="Foto do atleta (fundo neutro)" name="foto" required error={errors.foto} />
-          </div>
           <DocumentoField label="Cópia do RG do atleta" name="rg_atleta" error={errors.rg_atleta} />
           <DocumentoField
             label="Cópia do RG do(s) responsável(is)"
