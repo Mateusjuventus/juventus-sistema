@@ -9,6 +9,7 @@ import { hojeBrasilia } from "@/lib/data-brasil";
 import { payloadMudancaStatusCaptacao, type CaptacaoStatusDecidido } from "@/lib/futebol/captacao";
 import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
 import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
+import { criarAtletaBaseAPartirDeCaptacao } from "@/lib/futebol/captacao-para-atleta";
 import type { ConfiguracaoParecerCaptacaoBaseRow } from "@/lib/supabase/types";
 
 /**
@@ -101,9 +102,17 @@ export async function salvarParecerCaptacao(
   // antes — varia por categoria); as outras linhas configuradas são avisadas (sino + push).
   await assinarComoTreinadorEAvisarDemais(supabase, candidatoId, user.id, candidato.nome_completo, candidato.numero);
 
+  // Auto-criação do cadastro em Atletas da Base ao aprovar (ver spec 2026-09-11-captacao-
+  // documentos-termo-auto-cadastro-design.md, seção 4) — best-effort, mesmo espírito de
+  // `assinarComoTreinadorEAvisarDemais` acima: nunca derruba o salvamento do parecer em si.
+  if (data.veredito === "aprovado") {
+    await criarAtletaBaseAPartirDeCaptacao(supabase, candidatoId);
+  }
+
   revalidatePath("/treinador");
   revalidatePath("/base/captacao");
   revalidatePath(`/base/captacao/${candidatoId}`);
+  revalidatePath("/base/atletas");
   redirect("/treinador");
 }
 

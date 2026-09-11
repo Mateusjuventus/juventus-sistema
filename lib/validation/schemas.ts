@@ -257,6 +257,25 @@ export const captacaoBaseSchema = z
     paiTelefone: telefoneField,
     escola: z.string().optional().or(z.literal("")),
     ...enderecoFields,
+    // Campos que passaram a existir também na inscrição pública (ver `captacaoInscricaoSchema` e
+    // spec 2026-09-11-captacao-documentos-termo-auto-cadastro-design.md, seção 1) — aqui continuam
+    // TODOS opcionais, mesmo raciocínio do resto deste formulário interno (candidato pode chegar só
+    // com nome e telefone, o resto entra conforme a avaliação anda). O Termo de Responsabilidade
+    // (seção 3) não entra aqui: é um registro de consentimento do próprio candidato/responsável no
+    // link público, não um campo que o staff preenche.
+    rg: z.string().optional().or(z.literal("")),
+    cpf: z.string().optional().or(z.literal("")),
+    segundaPosicao: z.string().optional().or(z.literal("")),
+    peDominante: z.enum(["destro", "canhoto", "ambidestro"]).optional().nullable().or(z.literal("")),
+    altura: z.coerce.number().positive().optional().nullable(),
+    peso: z.coerce.number().positive().optional().nullable(),
+    email: emailField,
+    possuiPlanoSaude: z.boolean().default(false),
+    planoSaudeQual: z.string().optional().or(z.literal("")),
+    escolaridade: z.string().optional().or(z.literal("")),
+    periodoEscolar: z.enum(["manha", "tarde", "noite"]).optional().nullable().or(z.literal("")),
+    federado: z.boolean().default(false),
+    federadoClube: z.string().optional().or(z.literal("")),
   })
   // Resultado final (Aprovado/Dispensado/Não compareceu) sempre exige a Data de término — é o que
   // faz "falta o termino da avaliação" (pedido de 19/08) valer tanto pra quem usa o botão rápido de
@@ -287,29 +306,104 @@ function inscricaoRequiredField(mensagem: string) {
  * cadastros do sistema, onde continuam opcionais) — por isso este schema não reaproveita esses
  * campos genéricos, define os seus próprios exigindo preenchimento.
  */
-export const captacaoInscricaoSchema = z.object({
-  nomeCompleto: z.string().min(1, { message: "Nome do atleta é obrigatório" }).transform(normalizarNomeProprio),
-  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-  posicao: inscricaoRequiredField("Posição é obrigatória"),
-  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
-    errorMap: () => ({ message: "Categoria é obrigatória" }),
-  }),
-  telefone: inscricaoRequiredField("Telefone é obrigatório"),
-  indicacao: inscricaoRequiredField("Indicação é obrigatória"),
-  clubeAnterior: inscricaoRequiredField("Clube anterior é obrigatório"),
-  maeNome: inscricaoRequiredField("Nome da mãe é obrigatório"),
-  maeTelefone: inscricaoRequiredField("Telefone da mãe é obrigatório"),
-  paiNome: inscricaoRequiredField("Nome do pai é obrigatório"),
-  paiTelefone: inscricaoRequiredField("Telefone do pai é obrigatório"),
-  escola: inscricaoRequiredField("Escola é obrigatória"),
-  cep: inscricaoRequiredField("CEP é obrigatório"),
-  logradouro: inscricaoRequiredField("Endereço é obrigatório"),
-  numero: inscricaoRequiredField("Número é obrigatório"),
-  complemento: inscricaoRequiredField("Complemento é obrigatório"),
-  bairro: inscricaoRequiredField("Bairro é obrigatório"),
-  cidade: inscricaoRequiredField("Cidade é obrigatória"),
-  uf: inscricaoRequiredField("UF é obrigatória"),
-});
+/** Campo numérico obrigatório vindo de texto livre (altura em metros, peso em kg) — mesmo raciocínio
+ * do `valorSalario` de `cadastroPublicoComissaoTecnicaSchema`: valida a string primeiro (vazio =
+ * erro "obrigatório") em vez de `z.coerce.number()` direto, que aceitaria "" como 0. */
+function medidaRequiredField(mensagem: string, mensagemInvalida: string) {
+  return z
+    .string()
+    .min(1, { message: mensagem })
+    .refine((v) => !Number.isNaN(Number(v)) && Number(v) > 0, { message: mensagemInvalida })
+    .transform((v) => Number(v));
+}
+
+/** Checkbox "Li e concordo" do Termo de Responsabilidade (ver spec 2026-09-11, seção 3) — precisa
+ * estar marcado, não é só um boolean qualquer (por isso o `.refine` em vez de aceitar `false`). Um
+ * pro Atleta e um pro Responsável Legal, separados de propósito. */
+function concordoTermoField(mensagem: string) {
+  return z.boolean().refine((v) => v === true, { message: mensagem });
+}
+
+/**
+ * Inscrição pública pro teste/avaliação (`/inscricao-captacao-base`) — cria sempre com
+ * `status: "inscricao"` e `origem: "publico"`, decidido no servidor. Mesmos campos do formulário
+ * interno (`captacaoBaseSchema`), EXCETO Data de início/Data de término (o Mateus preenche na hora
+ * de aprovar/trocar o status), Status/Observações (internos) e Alojamento (ajuste de 19/08: fica só
+ * no cadastro interno — "remover a parte de alojamento e deixar isso como opção para mim colocar",
+ * o Mateus decide isso depois de conhecer o candidato, não é algo que a família preenche).
+ *
+ * TODOS os campos são obrigatórios (pedido de 19/08: "tornar obrigatório todas as informações") —
+ * diferente de `captacaoBaseSchema` (cadastro interno, onde o candidato pode chegar só com nome e
+ * telefone) e diferente também de `telefoneField`/`enderecoFields` (compartilhados com outros
+ * cadastros do sistema, onde continuam opcionais) — por isso este schema não reaproveita esses
+ * campos genéricos, define os seus próprios exigindo preenchimento.
+ *
+ * Ganhou, em 2026-09-11 (ver spec 2026-09-11-captacao-documentos-termo-auto-cadastro-design.md), os
+ * campos que faltavam comparado à "Ficha de Avaliação" física (RG/CPF, 2ª posição, pé dominante,
+ * altura/peso, e-mail, plano de saúde, escolaridade/período e federação — todos obrigatórios aqui,
+ * exceto 2ª posição, que nem todo atleta tem) e o bloco do Termo de Responsabilidade — consentimento
+ * digital, não uma assinatura desenhada: nome/CPF do responsável legal mais um "Li e concordo"
+ * separado do Atleta e do Responsável. Os 5 documentos obrigatórios e a foto são arquivos, validados
+ * à parte na Server Action (não cobertos por este schema — ver `app/inscricao-captacao-base/actions.ts`).
+ */
+export const captacaoInscricaoSchema = z
+  .object({
+    nomeCompleto: z.string().min(1, { message: "Nome do atleta é obrigatório" }).transform(normalizarNomeProprio),
+    rg: rgField,
+    cpf: cpfField,
+    dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+    posicao: inscricaoRequiredField("Posição é obrigatória"),
+    segundaPosicao: z.string().optional().or(z.literal("")),
+    peDominante: z.enum(["destro", "canhoto", "ambidestro"], {
+      errorMap: () => ({ message: "Pé dominante é obrigatório" }),
+    }),
+    altura: medidaRequiredField("Altura é obrigatória", "Informe uma altura válida (em metros, ex. 1.75)"),
+    peso: medidaRequiredField("Peso é obrigatório", "Informe um peso válido (em kg, ex. 68.5)"),
+    categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+      errorMap: () => ({ message: "Categoria é obrigatória" }),
+    }),
+    telefone: inscricaoRequiredField("Telefone é obrigatório"),
+    email: z.string().min(1, { message: "E-mail é obrigatório" }).email({ message: "E-mail inválido" }),
+    indicacao: inscricaoRequiredField("Indicação é obrigatória"),
+    clubeAnterior: inscricaoRequiredField("Clube anterior é obrigatório"),
+    maeNome: inscricaoRequiredField("Nome da mãe é obrigatório"),
+    maeTelefone: inscricaoRequiredField("Telefone da mãe é obrigatório"),
+    paiNome: inscricaoRequiredField("Nome do pai é obrigatório"),
+    paiTelefone: inscricaoRequiredField("Telefone do pai é obrigatório"),
+    escola: inscricaoRequiredField("Escola é obrigatória"),
+    escolaridade: inscricaoRequiredField("Escolaridade é obrigatória"),
+    periodoEscolar: z.enum(["manha", "tarde", "noite"], {
+      errorMap: () => ({ message: "Período escolar é obrigatório" }),
+    }),
+    possuiPlanoSaude: z.enum(["sim", "nao"], {
+      errorMap: () => ({ message: "Informe se o atleta possui plano de saúde" }),
+    }),
+    planoSaudeQual: z.string().optional().or(z.literal("")),
+    federado: z.enum(["sim", "nao"], {
+      errorMap: () => ({ message: "Informe se o atleta é federado" }),
+    }),
+    federadoClube: z.string().optional().or(z.literal("")),
+    cep: inscricaoRequiredField("CEP é obrigatório"),
+    logradouro: inscricaoRequiredField("Endereço é obrigatório"),
+    numero: inscricaoRequiredField("Número é obrigatório"),
+    complemento: inscricaoRequiredField("Complemento é obrigatório"),
+    bairro: inscricaoRequiredField("Bairro é obrigatório"),
+    cidade: inscricaoRequiredField("Cidade é obrigatória"),
+    uf: inscricaoRequiredField("UF é obrigatória"),
+    // Termo de Responsabilidade — consentimento digital (seção 3 do spec).
+    responsavelLegalNome: inscricaoRequiredField("Nome do responsável legal é obrigatório"),
+    responsavelLegalCpf: cpfField,
+    concordoAtleta: concordoTermoField("É necessário confirmar que o Atleta leu e concorda com o Termo"),
+    concordoResponsavel: concordoTermoField("É necessário confirmar que o Responsável leu e concorda com o Termo"),
+  })
+  .refine((data) => data.possuiPlanoSaude !== "sim" || Boolean(data.planoSaudeQual?.trim()), {
+    message: "Informe qual é o plano de saúde",
+    path: ["planoSaudeQual"],
+  })
+  .refine((data) => data.federado !== "sim" || Boolean(data.federadoClube?.trim()), {
+    message: "Informe o clube em que o atleta é federado",
+    path: ["federadoClube"],
+  });
 export type CaptacaoInscricaoInput = z.infer<typeof captacaoInscricaoSchema>;
 
 /** Nota do Parecer Final — sempre inteira, entre 3 e 9 (mesma escala da legenda impressa no

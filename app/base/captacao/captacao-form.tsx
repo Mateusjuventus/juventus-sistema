@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { EnderecoFields } from "@/components/endereco-fields";
@@ -32,6 +33,8 @@ export function CaptacaoForm({
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
+  const [possuiPlanoSaude, setPossuiPlanoSaude] = useState(values.possuiPlanoSaude === "on");
+  const [federado, setFederado] = useState(values.federado === "on");
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -138,6 +141,113 @@ export function CaptacaoForm({
               error={errors.observacoes}
             />
           </div>
+        </FieldGroup>
+      </FormSection>
+
+      {/* Campos que passaram a existir também na inscrição pública (obrigatórios lá, ver
+          `captacaoInscricaoSchema`) — aqui continuam opcionais, mesmo espírito do resto deste
+          formulário interno (ver spec 2026-09-11-captacao-documentos-termo-auto-cadastro-design.md,
+          "Fora de escopo": novos campos disponíveis aqui também, sem bloquear o salvamento). */}
+      <FormSection title="Ficha de avaliação">
+        <FieldGroup>
+          <TextField label="RG" name="rg" defaultValue={values.rg} error={errors.rg} />
+          <TextField label="CPF" name="cpf" defaultValue={values.cpf} error={errors.cpf} />
+          <TextField
+            label="2ª posição"
+            name="segundaPosicao"
+            defaultValue={values.segundaPosicao}
+            error={errors.segundaPosicao}
+          />
+          <SelectField
+            label="Pé dominante"
+            name="peDominante"
+            defaultValue={values.peDominante}
+            error={errors.peDominante}
+          >
+            <option value="">Não informado</option>
+            <option value="destro">Destro</option>
+            <option value="canhoto">Canhoto</option>
+            <option value="ambidestro">Ambidestro</option>
+          </SelectField>
+          <TextField
+            label="Altura (metros)"
+            name="altura"
+            type="number"
+            step="0.01"
+            defaultValue={values.altura}
+            error={errors.altura}
+            placeholder="Ex: 1.75"
+          />
+          <TextField
+            label="Peso (kg)"
+            name="peso"
+            type="number"
+            step="0.1"
+            defaultValue={values.peso}
+            error={errors.peso}
+            placeholder="Ex: 68.5"
+          />
+          <TextField label="E-mail" name="email" type="email" defaultValue={values.email} error={errors.email} />
+          <TextField
+            label="Escolaridade"
+            name="escolaridade"
+            defaultValue={values.escolaridade}
+            error={errors.escolaridade}
+            placeholder="Ex: 6º ano"
+          />
+          <SelectField
+            label="Período escolar"
+            name="periodoEscolar"
+            defaultValue={values.periodoEscolar}
+            error={errors.periodoEscolar}
+          >
+            <option value="">Não informado</option>
+            <option value="manha">Manhã</option>
+            <option value="tarde">Tarde</option>
+            <option value="noite">Noite</option>
+          </SelectField>
+          <div className="flex items-center gap-2">
+            <input
+              id="possuiPlanoSaude"
+              name="possuiPlanoSaude"
+              type="checkbox"
+              defaultChecked={values.possuiPlanoSaude === "on"}
+              onChange={(e) => setPossuiPlanoSaude(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+            />
+            <label htmlFor="possuiPlanoSaude" className="text-sm font-medium text-neutral-700">
+              Possui plano de saúde
+            </label>
+          </div>
+          {possuiPlanoSaude ? (
+            <TextField
+              label="Qual plano de saúde"
+              name="planoSaudeQual"
+              defaultValue={values.planoSaudeQual}
+              error={errors.planoSaudeQual}
+            />
+          ) : null}
+          <div className="flex items-center gap-2">
+            <input
+              id="federado"
+              name="federado"
+              type="checkbox"
+              defaultChecked={values.federado === "on"}
+              onChange={(e) => setFederado(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+            />
+            <label htmlFor="federado" className="text-sm font-medium text-neutral-700">
+              É federado
+            </label>
+          </div>
+          {federado ? (
+            <TextField
+              label="Federado por qual clube"
+              name="federadoClube"
+              defaultValue={values.federadoClube}
+              error={errors.federadoClube}
+            />
+          ) : null}
         </FieldGroup>
       </FormSection>
 

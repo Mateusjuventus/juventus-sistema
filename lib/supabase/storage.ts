@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import sharp from "sharp";
+import type { CaptacaoDocumentoTipo } from "./types";
 
 export const ENTITY_PHOTOS_BUCKET = "entity-photos";
 
@@ -159,6 +160,58 @@ export async function getSignedTermoDocumentoUrl(
 
   const { data, error } = await supabase.storage
     .from(TERMO_DOCUMENTOS_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
+/** Bucket privado dos 5 documentos obrigatórios da inscrição de Captação (ver spec
+ * 2026-09-11-captacao-documentos-termo-auto-cadastro-design.md, seção 2 e
+ * supabase/migrations/0103_captacao_documentos.sql). Diferente de `ATLETA_DOCUMENTOS_BUCKET`/
+ * `COMPETICAO_DOCUMENTOS_BUCKET` (cada arquivo com id próprio, sempre acumulando), aqui o path usa o
+ * `tipo` fixo em vez de um id novo — um reenvio do mesmo tipo substitui o anterior (upsert), útil
+ * pra corrigir um upload errado antes da aprovação. A foto do candidato não usa este bucket, continua
+ * em `ENTITY_PHOTOS_BUCKET` via `uploadFotoRedimensionada`. */
+export const CAPTACAO_DOCUMENTOS_BUCKET = "captacao-documentos";
+
+export function buildCaptacaoDocumentoPath(
+  captacaoId: string,
+  tipo: CaptacaoDocumentoTipo,
+  fileName: string,
+): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "pdf";
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "pdf";
+  return `${captacaoId}/${tipo}.${safeExt}`;
+}
+
+/**
+ * Envia um documento da inscrição de Captação — sem redimensionar (pode ser PDF ou foto do
+ * documento), com `upsert: true` porque o path é fixo por tipo (ver `buildCaptacaoDocumentoPath`).
+ */
+export async function uploadCaptacaoDocumento(
+  cliente: SupabaseClient,
+  file: File,
+  captacaoId: string,
+  tipo: CaptacaoDocumentoTipo,
+): Promise<{ path?: string; error?: boolean }> {
+  const path = buildCaptacaoDocumentoPath(captacaoId, tipo, file.name);
+  const { error } = await cliente.storage
+    .from(CAPTACAO_DOCUMENTOS_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type || undefined });
+  return error ? { error: true } : { path };
+}
+
+/** Signed URL temporária (1h) pra um documento de Captação — mesmo padrão dos demais buckets
+ * privados de documento. */
+export async function getSignedCaptacaoDocumentoUrl(
+  supabase: SupabaseClient,
+  path: string | null,
+): Promise<string | null> {
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(CAPTACAO_DOCUMENTOS_BUCKET)
     .createSignedUrl(path, 60 * 60);
 
   if (error || !data) return null;

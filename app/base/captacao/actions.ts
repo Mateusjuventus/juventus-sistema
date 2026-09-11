@@ -54,11 +54,32 @@ function parseForm(formData: FormData) {
     bairro: String(formData.get("bairro") ?? ""),
     cidade: String(formData.get("cidade") ?? ""),
     uf: String(formData.get("uf") ?? ""),
+    // Campos que passaram a existir também na inscrição pública (ver `captacaoInscricaoSchema` e
+    // spec 2026-09-11-captacao-documentos-termo-auto-cadastro-design.md, seção 1) — aqui continuam
+    // opcionais, mesmo espírito do resto deste formulário interno.
+    rg: String(formData.get("rg") ?? ""),
+    cpf: String(formData.get("cpf") ?? ""),
+    segundaPosicao: String(formData.get("segundaPosicao") ?? ""),
+    peDominante: String(formData.get("peDominante") ?? ""),
+    altura: String(formData.get("altura") ?? ""),
+    peso: String(formData.get("peso") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    possuiPlanoSaude: formData.get("possuiPlanoSaude") === "on",
+    planoSaudeQual: String(formData.get("planoSaudeQual") ?? ""),
+    escolaridade: String(formData.get("escolaridade") ?? ""),
+    periodoEscolar: String(formData.get("periodoEscolar") ?? ""),
+    federado: formData.get("federado") === "on",
+    federadoClube: String(formData.get("federadoClube") ?? ""),
   };
 
   const result = captacaoBaseSchema.safeParse(raw);
   return {
-    raw: { ...raw, desejaAlojamento: raw.desejaAlojamento ? "on" : "" },
+    raw: {
+      ...raw,
+      desejaAlojamento: raw.desejaAlojamento ? "on" : "",
+      possuiPlanoSaude: raw.possuiPlanoSaude ? "on" : "",
+      federado: raw.federado ? "on" : "",
+    },
     result,
   };
 }
@@ -89,6 +110,19 @@ function dadosParaSalvar(data: ReturnType<typeof captacaoBaseSchema.parse>) {
     bairro: data.bairro || null,
     cidade: data.cidade || null,
     uf: data.uf ? data.uf.toUpperCase() : null,
+    rg: data.rg || null,
+    cpf: data.cpf || null,
+    segunda_posicao: data.segundaPosicao || null,
+    pe_dominante: data.peDominante || null,
+    altura: data.altura ?? null,
+    peso: data.peso ?? null,
+    email: data.email || null,
+    possui_plano_saude: data.possuiPlanoSaude,
+    plano_saude_qual: data.possuiPlanoSaude ? data.planoSaudeQual || null : null,
+    escolaridade: data.escolaridade || null,
+    periodo_escolar: data.periodoEscolar || null,
+    federado: data.federado,
+    federado_clube: data.federado ? data.federadoClube || null : null,
   };
 }
 

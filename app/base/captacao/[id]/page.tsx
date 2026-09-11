@@ -94,6 +94,19 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
     bairro: candidato.bairro ?? "",
     cidade: candidato.cidade ?? "",
     uf: candidato.uf ?? "",
+    rg: candidato.rg ?? "",
+    cpf: candidato.cpf ?? "",
+    segundaPosicao: candidato.segunda_posicao ?? "",
+    peDominante: candidato.pe_dominante ?? "",
+    altura: candidato.altura?.toString() ?? "",
+    peso: candidato.peso?.toString() ?? "",
+    email: candidato.email ?? "",
+    possuiPlanoSaude: candidato.possui_plano_saude ? "on" : "",
+    planoSaudeQual: candidato.plano_saude_qual ?? "",
+    escolaridade: candidato.escolaridade ?? "",
+    periodoEscolar: candidato.periodo_escolar ?? "",
+    federado: candidato.federado ? "on" : "",
+    federadoClube: candidato.federado_clube ?? "",
   };
 
   const atualizarAction = atualizarCaptacao.bind(null, candidato.id);
@@ -121,6 +134,26 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
           </p>
         ) : null}
       </div>
+
+      {candidato.atleta_gerado_id ? (
+        <section className="card mt-6 flex flex-wrap items-center justify-between gap-3 border-l-4 border-green-600 p-5">
+          <div>
+            <p className="text-sm font-semibold text-grena-escuro">Cadastro de atleta criado</p>
+            <p className="mt-1 text-sm text-neutral-600">
+              Ao ser aprovado, o sistema criou automaticamente o cadastro deste candidato em Atletas
+              da Base. Este candidato continua aparecendo normalmente aqui na Captação.
+            </p>
+          </div>
+          {candidato.categoria ? (
+            <Link
+              href={`/base/atletas/${candidato.categoria}/${candidato.atleta_gerado_id}/ver`}
+              className="whitespace-nowrap rounded-md bg-grena px-3 py-1.5 text-sm font-semibold text-white hover:bg-grena/90"
+            >
+              Ver cadastro do atleta
+            </Link>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="card mt-6 space-y-4 p-5">
         {candidato.status === "inscricao" ? (

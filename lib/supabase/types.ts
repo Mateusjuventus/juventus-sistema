@@ -1774,9 +1774,13 @@ export interface CaptacaoBaseRow {
   cidade: string | null;
   uf: string | null;
   origem: "interno" | "publico";
+  /** Reativada pela feature de auto-cadastro (ver spec 2026-09-11-captacao-documentos-termo-
+   * auto-cadastro-design.md, seção 4) — volta a ser gravada quando o Treinador aprova o parecer.
+   * Aponta pro id em `atletas_base`, não em `atletas` (Profissional). */
   atleta_gerado_id: string | null;
   /** Caminho no bucket `entity-photos` (mesmo padrão de `atletas_base.foto_path`). Upload feito
-   * pelo staff na tela interna — não pelo candidato no link público (ver spec do Parecer Final). */
+   * pelo staff na tela interna, e agora também pelo próprio candidato no link público de
+   * inscrição (ver spec do Parecer Final e seção 2 do spec de 2026-09-11). */
   foto_path: string | null;
   clube_anterior: string | null;
   /** As 4 notas do Parecer Final, preenchidas pelo Treinador — sempre entre 3 e 9 (mesma escala da
@@ -1788,9 +1792,57 @@ export interface CaptacaoBaseRow {
   parecer_comentarios: string | null;
   parecer_preenchido_em: string | null;
   parecer_preenchido_por: string | null;
+  /** Campos novos pra cobrir a "Ficha de Avaliação" física (ver spec 2026-09-11, seção 1) — RG/CPF
+   * do candidato, 2ª posição, pé dominante, altura/peso, e-mail, plano de saúde, escolaridade/
+   * período escolar e federação. Todos opcionais no cadastro interno (`CaptacaoForm`), mas
+   * obrigatórios na inscrição pública (`captacaoInscricaoSchema`). */
+  rg: string | null;
+  cpf: string | null;
+  segunda_posicao: string | null;
+  pe_dominante: "destro" | "canhoto" | "ambidestro" | null;
+  /** Metros, ex. 1.75. */
+  altura: number | null;
+  /** Kg, ex. 68.5. */
+  peso: number | null;
+  email: string | null;
+  possui_plano_saude: boolean | null;
+  plano_saude_qual: string | null;
+  escolaridade: string | null;
+  periodo_escolar: "manha" | "tarde" | "noite" | null;
+  federado: boolean | null;
+  federado_clube: string | null;
+  /** Termo de Responsabilidade — consentimento digital (ver spec 2026-09-11, seção 3). Não é uma
+   * assinatura desenhada/ICP-Brasil, é um registro de aceite (nome + CPF do responsável legal, e
+   * um "Li e concordo" separado do Atleta e do Responsável). */
+  responsavel_legal_nome: string | null;
+  responsavel_legal_cpf: string | null;
+  termo_aceite_atleta: boolean;
+  termo_aceite_responsavel: boolean;
+  termo_aceito_em: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Um dos 5 documentos obrigatórios da inscrição de Captação (ver spec 2026-09-11, seção 2) — RG do
+ * atleta, RG do(s) responsável(is), declaração escolar, atestado médico e eletrocardiograma com
+ * laudo. Diferente de `atleta_documentos` (nome livre, lista aberta): aqui a lista é fixa, então
+ * `tipo` é um enum fechado e cada tipo só aparece uma vez por candidato (reenviar substitui). A
+ * foto do candidato NÃO é um `CaptacaoDocumentoRow` — continua em `CaptacaoBaseRow.foto_path`. */
+export type CaptacaoDocumentoTipo =
+  | "rg_atleta"
+  | "rg_responsavel"
+  | "declaracao_escolar"
+  | "atestado_medico"
+  | "eletrocardiograma";
+
+export interface CaptacaoDocumentoRow {
+  id: string;
+  captacao_id: string;
+  tipo: CaptacaoDocumentoTipo;
+  /** Caminho no bucket `captacao-documentos`: `<captacao_id>/<tipo>.<ext>`. */
+  arquivo_path: string;
+  created_at: string;
 }
 
 /** Toggle da "Ficha de Cadastro" pública (`/cadastro-atleta-base`) — cria/atualiza direto em
