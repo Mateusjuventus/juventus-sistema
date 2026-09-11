@@ -13,6 +13,46 @@ import type { InscricaoCaptacaoState, VerificacaoCaptacaoState } from "./actions
 const initialState: InscricaoCaptacaoState = {};
 const initialVerificacaoState: VerificacaoCaptacaoState = { verificado: false };
 
+/** Numeração real das duas etapas do fluxo (não decorativa: a pessoa passa pela 1 antes da 2, uma
+ * vez só) — usada tanto no indicador do topo quanto pra dar contexto de progresso. */
+const ETAPAS = ["Verificação", "Ficha de inscrição"] as const;
+
+/** Indicador de progresso das duas etapas do link público (ver spec 2026-09-11-captacao-completar-
+ * cadastro-cpf-design.md) — sinaliza pra quem preenche que a verificação inicial é rápida e o
+ * grosso do trabalho (a ficha) vem depois, e que já passou por uma etapa quando chega na outra. */
+function IndicadorEtapas({ atual }: { atual: 1 | 2 }) {
+  return (
+    <ol className="mb-6 flex items-center justify-center gap-3 text-xs font-medium sm:gap-4 sm:text-sm">
+      {ETAPAS.map((etapa, i) => {
+        const numero = i + 1;
+        const concluida = numero < atual;
+        const ativa = numero === atual;
+        return (
+          <li key={etapa} className="flex items-center gap-3 sm:gap-4">
+            {i > 0 ? <span className="h-px w-4 bg-linha sm:w-8" aria-hidden="true" /> : null}
+            <span className="flex items-center gap-2">
+              <span
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                  concluida
+                    ? "bg-grena text-white"
+                    : ativa
+                      ? "border-2 border-grena text-grena"
+                      : "border border-linha text-neutral-400"
+                }`}
+              >
+                {concluida ? "✓" : numero}
+              </span>
+              <span className={ativa ? "text-grena-escuro" : concluida ? "text-neutral-600" : "text-neutral-400"}>
+                {etapa}
+              </span>
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 /**
  * Etapa inicial, antes de qualquer campo da ficha (ver spec 2026-09-11-captacao-completar-
  * cadastro-cpf-design.md): CPF + data de nascimento, pra descobrir se já existe um cadastro "Em
@@ -35,27 +75,42 @@ function VerificacaoCpfStep({
   }, [estado]);
 
   return (
-    <form action={formAction} className="space-y-5">
-      <div>
-        <p className="text-sm font-semibold text-grena-escuro">Antes de começar</p>
-        <p className="mt-1 text-sm text-neutral-500">
-          Informe o CPF e a data de nascimento do atleta. Se a equipe já começou um cadastro dele,
-          você só vai precisar completar o que falta.
+    <div>
+      <IndicadorEtapas atual={1} />
+      <form action={formAction} className="space-y-5">
+        <div className="text-center">
+          <p className="text-base font-semibold text-grena-escuro">Antes de começar</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-neutral-500">
+            Informe o CPF e a data de nascimento do atleta. Se a equipe já começou um cadastro
+            dele, você só vai precisar completar o que falta.
+          </p>
+        </div>
+        <FieldGroup>
+          <CpfField label="CPF do atleta" name="cpf" required defaultValue={estado.valuesTexto?.cpf} />
+          <TextField
+            label="Data de nascimento"
+            name="dataNascimento"
+            type="date"
+            required
+            defaultValue={estado.valuesTexto?.dataNascimento}
+          />
+        </FieldGroup>
+        {estado.erro ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{estado.erro}</p> : null}
+        <div className="flex justify-center">
+          <SubmitButton label="Continuar" pendingLabel="Verificando..." />
+        </div>
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs text-neutral-400">
+          <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+            />
+          </svg>
+          Seus dados são usados só pelo Departamento de Futebol de Base, pra este processo de avaliação.
         </p>
-      </div>
-      <FieldGroup>
-        <CpfField label="CPF do atleta" name="cpf" required defaultValue={estado.valuesTexto?.cpf} />
-        <TextField
-          label="Data de nascimento"
-          name="dataNascimento"
-          type="date"
-          required
-          defaultValue={estado.valuesTexto?.dataNascimento}
-        />
-      </FieldGroup>
-      {estado.erro ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{estado.erro}</p> : null}
-      <SubmitButton label="Continuar" pendingLabel="Verificando..." />
-    </form>
+      </form>
+    </div>
   );
 }
 
@@ -131,30 +186,36 @@ export function InscricaoCaptacaoForm({
 
   if (state.success) {
     return (
-      <div className="py-8">
+      <div className="py-6">
         <div className="text-center">
-          <p className="text-lg font-semibold text-grena-escuro">Inscrição enviada com sucesso!</p>
-          <p className="mt-2 text-sm text-neutral-500">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-grena/10">
+            <svg className="h-7 w-7 text-grena" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </span>
+          <p className="mt-4 text-lg font-semibold text-grena-escuro">Inscrição enviada com sucesso!</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-500">
             Obrigado por se inscrever. O Departamento de Futebol de Base vai avaliar e entrar em
             contato pra combinar a avaliação.
           </p>
         </div>
 
-        <div className="mx-auto mt-8 max-w-md space-y-5 border-t border-linha pt-6 text-left">
-          <div>
+        <div className="mx-auto mt-8 max-w-md space-y-4 border-t border-linha pt-6 text-left">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">O que vem a seguir</p>
+          <div className="rounded-md border border-linha bg-cinzaPagina/60 p-4">
             <p className="text-sm font-semibold text-grena-escuro">Uniformização necessária no dia da avaliação</p>
             <p className="mt-1 text-sm text-neutral-600">
               Camiseta branca, short preto, meiões pretos e chuteira apropriada para treino.
             </p>
           </div>
-          <div>
+          <div className="rounded-md border border-linha bg-cinzaPagina/60 p-4">
             <p className="text-sm font-semibold text-grena-escuro">Leve os documentos originais</p>
             <p className="mt-1 text-sm text-neutral-600">
               Mesmo já tendo enviado cópia digital nesta inscrição, os documentos originais precisam
               ser apresentados fisicamente no dia da avaliação pra liberar a participação do atleta.
             </p>
           </div>
-          <div>
+          <div className="rounded-md border border-linha bg-cinzaPagina/60 p-4">
             <p className="text-sm font-semibold text-grena-escuro">Próximos passos</p>
             <p className="mt-1 text-sm text-neutral-600">
               O processo de avaliação só começa depois que o clube enviar o agendamento com a data
@@ -168,6 +229,7 @@ export function InscricaoCaptacaoForm({
 
   return (
     <form ref={formRef} action={formAction} className="space-y-6" encType="multipart/form-data">
+      <IndicadorEtapas atual={2} />
       {verificacao.candidatoId ? (
         <>
           <input type="hidden" name="captacaoIdExistente" value={verificacao.candidatoId} />
@@ -182,7 +244,7 @@ export function InscricaoCaptacaoForm({
         </p>
       )}
 
-      <FormSection title="Foto do atleta">
+      <FormSection title="1. Foto do atleta">
         <FotoAtletaCaptacaoField
           label="Foto (fundo neutro)"
           name="foto"
@@ -192,7 +254,7 @@ export function InscricaoCaptacaoForm({
         />
       </FormSection>
 
-      <FormSection title="Dados do atleta">
+      <FormSection title="2. Dados do atleta">
         <FieldGroup>
           <TextField
             label="Nome completo do atleta"
@@ -222,7 +284,7 @@ export function InscricaoCaptacaoForm({
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Dados esportivos">
+      <FormSection title="3. Dados esportivos">
         <FieldGroup>
           <SelectField label="Categoria" name="categoria" required defaultValue={values.categoria} error={errors.categoria}>
             <option value="">Selecione</option>
@@ -297,7 +359,7 @@ export function InscricaoCaptacaoForm({
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Escolaridade e saúde">
+      <FormSection title="4. Escolaridade e saúde">
         <FieldGroup>
           <TextField label="Escola" name="escola" required defaultValue={values.escola} error={errors.escola} />
           <TextField
@@ -366,7 +428,7 @@ export function InscricaoCaptacaoForm({
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Responsáveis">
+      <FormSection title="5. Responsáveis">
         <FieldGroup>
           <TextField
             label="Nome da mãe"
@@ -399,7 +461,7 @@ export function InscricaoCaptacaoForm({
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Endereço">
+      <FormSection title="6. Endereço">
         <EnderecoFields
           required
           defaultValues={{
@@ -423,7 +485,7 @@ export function InscricaoCaptacaoForm({
         />
       </FormSection>
 
-      <FormSection title="Documentos obrigatórios">
+      <FormSection title="7. Documentos obrigatórios">
         <p className="text-sm text-neutral-500">
           Todos os itens abaixo são obrigatórios pra enviar a inscrição.
         </p>
@@ -444,7 +506,7 @@ export function InscricaoCaptacaoForm({
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Termo de Responsabilidade">
+      <FormSection title="8. Termo de Responsabilidade">
         <div className="space-y-3 rounded-md bg-cinzaPagina p-4 text-sm text-neutral-700">
           <p>
             Este documento estabelece as normas a serem cumpridas para a participação do Atleta no
