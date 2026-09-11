@@ -4,6 +4,7 @@ import { JogoTabs } from "@/components/jogo-tabs";
 import { createClient } from "@/lib/supabase/server";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import { formatDataBr, formatHorario } from "@/lib/posters/relacionados-data";
+import { formatDataHoraBrasilia } from "@/lib/data-brasil";
 import {
   montarResumo,
   totalOcupadas,
@@ -29,12 +30,6 @@ import {
 import { LinkVagas } from "@/components/link-vagas";
 import { VagasForm, type FuncaoInicial } from "@/components/vagas-form";
 import { AdicionarStaffVagaForm, type PessoaSemVaga } from "@/components/adicionar-staff-vaga-form";
-
-function formatQuando(iso: string): string {
-  const [data, hora] = iso.split("T");
-  const [ano, mes, dia] = (data ?? "").split("-");
-  return `${dia}/${mes}/${ano} às ${(hora ?? "").slice(0, 5)}`;
-}
 
 /**
  * Vagas de Staff do jogo: o Mateus abre as vagas por função, manda o link, e acompanha quem pegou.
@@ -257,7 +252,7 @@ export default async function VagasStaffPage({ params }: { params: { id: string 
                             <p className="font-medium text-neutral-800">{pessoa?.nome_completo ?? "—"}</p>
                             <p className="text-xs text-neutral-500">{pessoa?.telefone ?? ""}</p>
                           </td>
-                          <td className="px-4 py-3 text-xs text-neutral-400">{formatQuando(i.created_at)}</td>
+                          <td className="px-4 py-3 text-xs text-neutral-400">{formatDataHoraBrasilia(i.created_at)}</td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap items-center justify-end gap-2">
                               <form action={trocarAction} className="flex items-center gap-1.5">
@@ -302,7 +297,7 @@ export default async function VagasStaffPage({ params }: { params: { id: string 
                             <p className="font-medium text-neutral-800">{pessoa?.nome_completo ?? "—"}</p>
                             <p className="text-xs text-neutral-500">{pessoa?.telefone ?? ""}</p>
                           </td>
-                          <td className="px-4 py-3 text-xs text-neutral-400">{formatQuando(i.created_at)}</td>
+                          <td className="px-4 py-3 text-xs text-neutral-400">{formatDataHoraBrasilia(i.created_at)}</td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap items-center justify-end gap-2">
                               <form action={chamarAction}>
