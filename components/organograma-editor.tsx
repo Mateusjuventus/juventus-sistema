@@ -727,6 +727,16 @@ export function OrganogramaEditor({
     // da "bagunça" que voltava sozinha mesmo depois de "Reorganizar automaticamente" (spec de 27/08).
     const LIMIAR_ARRASTO_PX = 4;
     let arrastoIniciado = false;
+    // Posição mais recente durante ESTE arrasto (fecho local, não o estado `overrides` do React) —
+    // `soltar` precisava do valor final pra salvar, mas lia `overrides[arrasto.id]` direto: como
+    // `mover`/`soltar` são criadas uma vez só (no `pointerdown`) e nunca recriadas durante o arrasto,
+    // essa leitura sempre pegava o `overrides` de ANTES do arrasto começar (o `overrides` "fechado"
+    // na hora em que `iniciarArrasto` rodou), quase sempre `undefined` pra essa caixa — caindo no
+    // `?? origemX/origemY`, ou seja, salvando de volta a posição ORIGINAL mesmo depois de arrastar
+    // pra outro lugar. Era exatamente o "arrasto a caixa e ela volta pro mesmo lugar" relatado pelo
+    // Mateus (card "??? / Performance" com a linha torta). `posAtual` é atualizado de verdade a cada
+    // `mover`, então `soltar` sempre pega o valor de fato arrastado.
+    let posAtual = { x: arrastoRef.current.origemX, y: arrastoRef.current.origemY };
 
     function mover(ev: PointerEvent) {
       const arrasto = arrastoRef.current;
@@ -744,6 +754,7 @@ export function OrganogramaEditor({
         x: arrasto.origemX + deltaTelaX / escala,
         y: arrasto.origemY + deltaTelaY / escala,
       };
+      posAtual = novaPos;
       setOverrides((atual) => ({ ...atual, [arrasto.id]: novaPos }));
     }
 
@@ -755,7 +766,7 @@ export function OrganogramaEditor({
       // Nunca passou do limiar → foi só um clique (abrir o painel de edição, por exemplo) — não
       // salva posição nenhuma, a caixa nem sabe que foi tocada.
       if (!arrasto || !arrastoIniciado) return;
-      const posFinal = overrides[arrasto.id] ?? { x: arrasto.origemX, y: arrasto.origemY };
+      const posFinal = posAtual;
       setErroArrasto(null);
       void moverAction(arrasto.id, posFinal.x, posFinal.y).then((resultado) => {
         if (resultado?.error) {
