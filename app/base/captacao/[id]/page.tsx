@@ -4,12 +4,17 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
-import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
+import { getSignedCaptacaoDocumentoUrl, getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { CAPTACAO_DOCUMENTO_LABEL, captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
 import { isMaster } from "@/lib/auth/role";
 import { papeisAssinaturaParecer, podeAssinarPapel } from "@/lib/assinaturas/config";
 import { buscarAssinaturas } from "@/lib/assinaturas/actions";
-import type { CaptacaoBaseRow, ConfiguracaoParecerCaptacaoBaseRow } from "@/lib/supabase/types";
+import type {
+  CaptacaoBaseRow,
+  CaptacaoDocumentoRow,
+  CaptacaoDocumentoTipo,
+  ConfiguracaoParecerCaptacaoBaseRow,
+} from "@/lib/supabase/types";
 import { atualizarCaptacao, excluirCaptacao, mudarStatusCaptacao } from "../actions";
 import { CaptacaoForm } from "../captacao-form";
 import { CaptacaoStatusSelect } from "../captacao-status-select";
@@ -27,6 +32,24 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
   if (!data) notFound();
   const candidato = data as CaptacaoBaseRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, candidato.foto_path);
+
+  const { data: documentosData } = await supabase
+    .from("captacao_documentos")
+    .select("*")
+    .eq("captacao_id", candidato.id);
+  const documentosPorTipo = new Map(
+    ((documentosData ?? []) as CaptacaoDocumentoRow[]).map((doc) => [doc.tipo, doc]),
+  );
+  // Sempre os 5 slots da ficha física, na mesma ordem — inclusive os que ainda não foram enviados
+  // (candidato de origem "interno", ou inscrição de antes deste recurso existir), pra equipe ver de
+  // cara o que falta, não só o que já chegou.
+  const documentos = await Promise.all(
+    (Object.keys(CAPTACAO_DOCUMENTO_LABEL) as CaptacaoDocumentoTipo[]).map(async (tipo) => {
+      const doc = documentosPorTipo.get(tipo);
+      const url = doc ? await getSignedCaptacaoDocumentoUrl(supabase, doc.arquivo_path) : null;
+      return { tipo, label: CAPTACAO_DOCUMENTO_LABEL[tipo], url };
+    }),
+  );
 
   const [
     {
@@ -247,6 +270,31 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
           ) : null}
         </section>
       ) : null}
+
+      <section className="card mt-4 space-y-3 p-5">
+        <h2 className="font-display text-lg font-semibold text-neutral-900">Documentos</h2>
+        <p className="text-sm text-neutral-600">
+          Os 5 documentos obrigatórios da ficha, enviados pelo próprio candidato na inscrição — a
+          foto fica no formulário abaixo, junto com os demais dados.
+        </p>
+        <div className="space-y-2">
+          {documentos.map((doc) => (
+            <div
+              key={doc.tipo}
+              className="flex flex-wrap items-center gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm"
+            >
+              <span className="min-w-[220px] flex-1 font-medium text-neutral-800">{doc.label}</span>
+              {doc.url ? (
+                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+                  Abrir
+                </a>
+              ) : (
+                <span className="text-xs font-medium text-neutral-400">Não enviado</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="card mt-4 p-6">
         <CaptacaoForm

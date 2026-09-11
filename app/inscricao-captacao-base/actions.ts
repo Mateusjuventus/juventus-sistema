@@ -9,6 +9,7 @@ import {
   ENTITY_PHOTOS_BUCKET,
   CAPTACAO_DOCUMENTOS_BUCKET,
 } from "@/lib/supabase/storage";
+import { CAPTACAO_DOCUMENTO_LABEL } from "@/lib/futebol/captacao";
 import type { CaptacaoDocumentoTipo } from "@/lib/supabase/types";
 
 /**
@@ -36,15 +37,11 @@ export interface InscricaoCaptacaoState {
   success?: boolean;
 }
 
-/** Os 5 documentos obrigatórios (ver seção 2 do spec) — chave = `name` do `<input type="file">` no
- * formulário (igual ao `tipo` gravado em `captacao_documentos`), valor = rótulo pra mensagem de erro. */
-const DOCUMENTOS_OBRIGATORIOS: Record<CaptacaoDocumentoTipo, string> = {
-  rg_atleta: "Cópia do RG do atleta",
-  rg_responsavel: "Cópia do RG do(s) responsável(is)",
-  declaracao_escolar: "Declaração escolar",
-  atestado_medico: "Atestado médico",
-  eletrocardiograma: "Eletrocardiograma com laudo",
-};
+/** Rótulos dos 5 documentos obrigatórios (ver seção 2 do spec) — usados aqui só pra montar a
+ * mensagem de erro de campo faltando; a lista em si vive em `lib/futebol/captacao.ts`
+ * (`CAPTACAO_DOCUMENTO_LABEL`), compartilhada com a exibição pra equipe em
+ * `app/base/captacao/[id]/page.tsx`. */
+const DOCUMENTOS_OBRIGATORIOS = CAPTACAO_DOCUMENTO_LABEL;
 
 function parseForm(formData: FormData) {
   const raw = {

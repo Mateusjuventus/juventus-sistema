@@ -3,7 +3,7 @@
 // Next.js resolve — ver tsconfig.json). Os outros imports deste arquivo são só `import type`, que o
 // esbuild elimina antes de precisar resolver o caminho, por isso nunca deu problema até agora.
 import { TODAS_CATEGORIAS_BASE, type CategoriaBase } from "../auth/categorias-base";
-import type { CaptacaoBaseRow, CaptacaoStatus } from "@/lib/supabase/types";
+import type { CaptacaoBaseRow, CaptacaoDocumentoTipo, CaptacaoStatus } from "@/lib/supabase/types";
 
 /**
  * Regras puras da Captação/Avaliação (ver docs/superpowers/specs/
@@ -128,6 +128,20 @@ export function taxaAprovacao(contagem: Record<CaptacaoStatusDecidido, number>):
  * docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md — pra não duplicar a regra
  * nos dois lugares que trocam status.
  */
+/** Os 5 documentos obrigatórios da inscrição pública (ver spec 2026-09-11-captacao-documentos-
+ * termo-auto-cadastro-design.md, seção 2) — chave = `tipo` gravado em `captacao_documentos` (e
+ * `name` do `<input type="file">` no formulário), valor = rótulo pra exibir (mensagem de erro na
+ * inscrição, ou lista de documentos na tela interna do candidato). Ordem = a mesma da ficha física
+ * original. Compartilhado entre `app/inscricao-captacao-base/actions.ts` (validação) e
+ * `app/base/captacao/[id]/page.tsx` (exibição pra equipe) pra não duplicar os rótulos. */
+export const CAPTACAO_DOCUMENTO_LABEL: Record<CaptacaoDocumentoTipo, string> = {
+  rg_atleta: "Cópia do RG do atleta",
+  rg_responsavel: "Cópia do RG do(s) responsável(is)",
+  declaracao_escolar: "Declaração escolar",
+  atestado_medico: "Atestado médico",
+  eletrocardiograma: "Eletrocardiograma com laudo",
+};
+
 export function payloadMudancaStatusCaptacao(
   novoStatus: CaptacaoStatusDecidido,
   dataTerminoAtual: string | null,
