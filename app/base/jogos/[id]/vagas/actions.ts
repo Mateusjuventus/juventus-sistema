@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { desmarcarReciboAutomatico, marcarReciboAutomatico } from "@/lib/futebol/recibo-auto-sync";
+
+const TABELAS_RECIBO_BASE = { staff: "staff_operacional_base", recibos: "recibos_jogo_base" };
 
 /**
  * Espelha `app/jogos/[id]/vagas/actions.ts` para o Futebol de Base — mesma lógica, tabelas
@@ -135,12 +138,31 @@ export async function alternarVagasAbertasBase(jogoId: string, formData: FormDat
   revalidatePath(`/base/jogos/${jogoId}/vagas`);
 }
 
-/** Tira alguém da lista — a vaga volta a aparecer como livre no link. */
+/** Tira alguém da lista — a vaga volta a aparecer como livre no link, e a linha dela no Recibo de
+ * Pagamento é apagada automaticamente (ver docs/superpowers/specs/2026-09-12-recibo-automatico-vagas-design.md),
+ * mesmo que já estivesse marcada como paga: se a vaga não vale mais, o recibo automático também não. */
 export async function removerInscricaoBase(jogoId: string, formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const supabase = createClient();
-  await supabase.from("jogo_vagas_staff_base_inscricoes").delete().eq("id", id);
+
+  const { data: inscricaoData } = await supabase
+    .from("jogo_vagas_staff_base_inscricoes")
+    .select("staff_id")
+    .eq("id", id)
+    .maybeSingle();
+  const staffId = (inscricaoData as { staff_id: string } | null)?.staff_id ?? null;
+
+  // Antes essa falha ficava silenciosa: se o delete não acontecesse por qualquer motivo (RLS,
+  // conexão, etc.), a tela recarregava normalmente e parecia ter dado certo, sem nenhum aviso — foi
+  // o que o Mateus relatou (removeu a pessoa aqui, mas ela continuou aparecendo com a vaga pro lado
+  // dela). Logar o erro não resolve a causa raiz sozinho, mas garante que uma falha real não passe
+  // despercebida de novo.
+  const { error } = await supabase.from("jogo_vagas_staff_base_inscricoes").delete().eq("id", id);
+  if (error) console.error("[vagas-base] falha ao remover inscrição:", id, error);
+  else if (staffId) {
+    await desmarcarReciboAutomatico({ cliente: supabase, tabelaRecibos: TABELAS_RECIBO_BASE.recibos, jogoId, staffId });
+  }
   revalidatePath(`/base/jogos/${jogoId}/vagas`);
 }
 
@@ -152,7 +174,23 @@ export async function chamarDaEsperaBase(jogoId: string, formData: FormData): Pr
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const supabase = createClient();
-  await supabase.from("jogo_vagas_staff_base_inscricoes").update({ situacao: "confirmado" }).eq("id", id);
+
+  const { data: inscricaoData } = await supabase
+    .from("jogo_vagas_staff_base_inscricoes")
+    .select("staff_id")
+    .eq("id", id)
+    .maybeSingle();
+  const staffId = (inscricaoData as { staff_id: string } | null)?.staff_id ?? null;
+
+  const { error } = await supabase
+    .from("jogo_vagas_staff_base_inscricoes")
+    .update({ situacao: "confirmado" })
+    .eq("id", id);
+  // Vira confirmado de verdade — entra no Recibo de Pagamento automaticamente, igual a quem pegou
+  // vaga direto (ver docs/superpowers/specs/2026-09-12-recibo-automatico-vagas-design.md).
+  if (!error && staffId) {
+    await marcarReciboAutomatico({ cliente: supabase, tabelas: TABELAS_RECIBO_BASE, jogoId, staffId });
+  }
   revalidatePath(`/base/jogos/${jogoId}/vagas`);
 }
 

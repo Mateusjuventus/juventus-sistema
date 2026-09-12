@@ -8,6 +8,17 @@ import {
   MENSAGEM_RESULTADO,
   type ResultadoPegarVaga,
 } from "@/lib/futebol/vagas-staff";
+import { desmarcarReciboAutomatico, marcarReciboAutomatico } from "@/lib/futebol/recibo-auto-sync";
+
+const TABELAS_RECIBO_BASE = { staff: "staff_operacional_base", recibos: "recibos_jogo_base" };
+
+async function jogoIdDoToken(
+  admin: ReturnType<typeof createAdminClient>,
+  token: string,
+): Promise<string | null> {
+  const { data } = await admin.from("jogo_vagas_staff_base").select("jogo_id").eq("token", token).maybeSingle();
+  return (data as { jogo_id: string } | null)?.jogo_id ?? null;
+}
 
 /**
  * Espelha `app/vagas/[token]/actions.ts` para o Futebol de Base — tabelas `jogo_vagas_staff_base*`
@@ -54,6 +65,14 @@ export async function pegarVagaBase(
 
   const resultado = data as ResultadoPegarVaga;
   if (resultado === "confirmado" || resultado === "espera") {
+    // Só quem fica de fato "confirmado" entra automaticamente no recibo — quem cai na espera ainda
+    // não tem vaga de verdade (ver docs/superpowers/specs/2026-09-12-recibo-automatico-vagas-design.md).
+    if (resultado === "confirmado") {
+      const jogoId = await jogoIdDoToken(admin, token);
+      if (jogoId) {
+        await marcarReciboAutomatico({ cliente: admin, tabelas: TABELAS_RECIBO_BASE, jogoId, staffId });
+      }
+    }
     revalidatePath(`/vagas-base/${token}`);
     const detalhe = await detalheDaVaga(admin, token, staffId);
     return { sucesso: resultado, ...detalhe };
@@ -125,6 +144,11 @@ export async function desistirVagaBase(
 
   const { error } = await admin.rpc("desistir_vaga_staff_base", { p_token: token, p_staff_id: staffId });
   if (error) return { error: `Não foi possível desistir agora: ${error.message}` };
+
+  const jogoId = await jogoIdDoToken(admin, token);
+  if (jogoId) {
+    await desmarcarReciboAutomatico({ cliente: admin, tabelaRecibos: TABELAS_RECIBO_BASE.recibos, jogoId, staffId });
+  }
 
   revalidatePath(`/vagas-base/${token}`);
   return {};

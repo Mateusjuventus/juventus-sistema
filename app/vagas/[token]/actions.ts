@@ -8,6 +8,17 @@ import {
   MENSAGEM_RESULTADO,
   type ResultadoPegarVaga,
 } from "@/lib/futebol/vagas-staff";
+import { desmarcarReciboAutomatico, marcarReciboAutomatico } from "@/lib/futebol/recibo-auto-sync";
+
+const TABELAS_RECIBO = { staff: "staff_operacional", recibos: "recibos_jogo" };
+
+async function jogoIdDoToken(
+  admin: ReturnType<typeof createAdminClient>,
+  token: string,
+): Promise<string | null> {
+  const { data } = await admin.from("jogo_vagas_staff").select("jogo_id").eq("token", token).maybeSingle();
+  return (data as { jogo_id: string } | null)?.jogo_id ?? null;
+}
 
 /**
  * Ações da tela pública de vagas (`/vagas/[token]`) — sem login, igual ao autocadastro de Staff.
@@ -62,6 +73,14 @@ export async function pegarVaga(
 
   const resultado = data as ResultadoPegarVaga;
   if (resultado === "confirmado" || resultado === "espera") {
+    // Só quem fica de fato "confirmado" entra automaticamente no recibo — ver o comentário
+    // equivalente em `app/vagas-base/[token]/actions.ts`.
+    if (resultado === "confirmado") {
+      const jogoId = await jogoIdDoToken(admin, token);
+      if (jogoId) {
+        await marcarReciboAutomatico({ cliente: admin, tabelas: TABELAS_RECIBO, jogoId, staffId });
+      }
+    }
     revalidatePath(`/vagas/${token}`);
     const detalhe = await detalheDaVaga(admin, token, staffId);
     return { sucesso: resultado, ...detalhe };
@@ -135,6 +154,11 @@ export async function desistirVaga(
 
   const { error } = await admin.rpc("desistir_vaga_staff", { p_token: token, p_staff_id: staffId });
   if (error) return { error: `Não foi possível desistir agora: ${error.message}` };
+
+  const jogoId = await jogoIdDoToken(admin, token);
+  if (jogoId) {
+    await desmarcarReciboAutomatico({ cliente: admin, tabelaRecibos: TABELAS_RECIBO.recibos, jogoId, staffId });
+  }
 
   revalidatePath(`/vagas/${token}`);
   return {};

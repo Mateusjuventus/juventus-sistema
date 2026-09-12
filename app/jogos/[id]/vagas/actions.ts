@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { desmarcarReciboAutomatico, marcarReciboAutomatico } from "@/lib/futebol/recibo-auto-sync";
+
+const TABELAS_RECIBO = { staff: "staff_operacional", recibos: "recibos_jogo" };
 
 /**
  * Server Actions das Vagas de Staff de um jogo (ver
@@ -137,12 +140,28 @@ export async function alternarVagasAbertas(jogoId: string, formData: FormData): 
   revalidatePath(`/jogos/${jogoId}/vagas`);
 }
 
-/** Tira alguém da lista — a vaga volta a aparecer como livre no link. */
+/** Tira alguém da lista — a vaga volta a aparecer como livre no link, e a linha dela no Recibo de
+ * Pagamento é apagada automaticamente — ver o comentário equivalente em
+ * `app/base/jogos/[id]/vagas/actions.ts`. */
 export async function removerInscricao(jogoId: string, formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const supabase = createClient();
-  await supabase.from("jogo_vagas_staff_inscricoes").delete().eq("id", id);
+
+  const { data: inscricaoData } = await supabase
+    .from("jogo_vagas_staff_inscricoes")
+    .select("staff_id")
+    .eq("id", id)
+    .maybeSingle();
+  const staffId = (inscricaoData as { staff_id: string } | null)?.staff_id ?? null;
+
+  // Ver o comentário equivalente em `app/base/jogos/[id]/vagas/actions.ts` — mesma falha
+  // silenciosa possível aqui, mesmo tratamento.
+  const { error } = await supabase.from("jogo_vagas_staff_inscricoes").delete().eq("id", id);
+  if (error) console.error("[vagas] falha ao remover inscrição:", id, error);
+  else if (staffId) {
+    await desmarcarReciboAutomatico({ cliente: supabase, tabelaRecibos: TABELAS_RECIBO.recibos, jogoId, staffId });
+  }
   revalidatePath(`/jogos/${jogoId}/vagas`);
 }
 
@@ -155,7 +174,20 @@ export async function chamarDaEspera(jogoId: string, formData: FormData): Promis
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const supabase = createClient();
-  await supabase.from("jogo_vagas_staff_inscricoes").update({ situacao: "confirmado" }).eq("id", id);
+
+  const { data: inscricaoData } = await supabase
+    .from("jogo_vagas_staff_inscricoes")
+    .select("staff_id")
+    .eq("id", id)
+    .maybeSingle();
+  const staffId = (inscricaoData as { staff_id: string } | null)?.staff_id ?? null;
+
+  const { error } = await supabase.from("jogo_vagas_staff_inscricoes").update({ situacao: "confirmado" }).eq("id", id);
+  // Vira confirmado de verdade — entra no Recibo de Pagamento automaticamente, igual a quem pegou
+  // vaga direto (ver comentário equivalente em `app/base/jogos/[id]/vagas/actions.ts`).
+  if (!error && staffId) {
+    await marcarReciboAutomatico({ cliente: supabase, tabelas: TABELAS_RECIBO, jogoId, staffId });
+  }
   revalidatePath(`/jogos/${jogoId}/vagas`);
 }
 
@@ -191,6 +223,11 @@ export async function adicionarStaffManual(
     if (error.code === "23505") return { error: "Essa pessoa já está na lista deste jogo." };
     return { error: `Não foi possível adicionar: ${error.message}` };
   }
+
+  // Entra como confirmado direto — igual a quem pega vaga pelo link ou é chamado da espera, também
+  // entra automaticamente no Recibo de Pagamento (ver comentário equivalente em
+  // `app/base/jogos/[id]/vagas/actions.ts`).
+  await marcarReciboAutomatico({ cliente: supabase, tabelas: TABELAS_RECIBO, jogoId, staffId });
 
   revalidatePath(`/jogos/${jogoId}/vagas`);
   return { success: true };
