@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { AtletasResumoFiltros, type AtletaResumoItem, type StatusFiltroOpcao } from "@/components/atletas/atletas-resumo-filtros";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
@@ -46,6 +47,8 @@ export default async function AtletasBaseCategoriaPage({
   const categoria = params.categoria;
 
   const supabase = createClient();
+  const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
+  if (!categoriasPermitidas.includes(categoria)) notFound();
 
   const { data, error } = await supabase
     .from("atletas_base")

@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type { AtletaBaseRow, CategoriaBase, ConfiguracaoCadastroAtletaBaseRow } from "@/lib/supabase/types";
 import { alternarFichaCadastroAtletaBase } from "./actions";
@@ -18,9 +19,10 @@ import { alternarFichaCadastroAtletaBase } from "./actions";
 export default async function AtletasBasePage() {
   const supabase = createClient();
 
-  const [{ data }, { data: configData }] = await Promise.all([
+  const [{ data }, { data: configData }, categoriasPermitidas] = await Promise.all([
     supabase.from("atletas_base").select("categoria"),
     supabase.from("configuracoes_cadastro_atleta_base").select("*").limit(1).maybeSingle(),
+    getCategoriasBasePermitidas(supabase),
   ]);
   const todos = (data ?? []) as Pick<AtletaBaseRow, "categoria">[];
   const config = configData as ConfiguracaoCadastroAtletaBaseRow | null;
@@ -64,7 +66,7 @@ export default async function AtletasBasePage() {
       ) : null}
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {CATEGORIAS_BASE.map((cat) => {
+        {CATEGORIAS_BASE.filter((cat) => categoriasPermitidas.includes(cat.value)).map((cat) => {
           const total = contagemPorCategoria[cat.value] ?? 0;
           return (
             <Link

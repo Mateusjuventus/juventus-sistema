@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { ChecklistItemRow } from "@/components/checklist-item-row";
 import { createClient } from "@/lib/supabase/server";
-import type { JogoBaseRow } from "@/lib/supabase/types";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { buscarOuCriarChecklistBase, alternarChecklistItemBase, definirChecklistPrazoBase } from "./actions";
 
 /** Espelha `app/jogos/[id]/checklist/page.tsx` para o Futebol de Base. */
@@ -14,9 +14,8 @@ export default async function ChecklistJogoBasePage({
 }) {
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
-  if (!jogoData) notFound();
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = await verificarAcessoJogoBase(supabase, params.id);
+  if (!jogo) notFound();
 
   const itens = await buscarOuCriarChecklistBase(jogo);
   const concluidos = itens.filter((i) => i.concluido).length;

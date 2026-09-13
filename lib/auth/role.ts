@@ -15,6 +15,7 @@ import { TODOS_MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-bas
 import { TODOS_DEPARTAMENTOS, type DepartamentoChave } from "@/lib/auth/departamentos";
 import { TODAS_TAREFA_CATEGORIAS } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
+import { TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
 
 export interface PerfilPermissoes {
   role: PerfilRole;
@@ -24,6 +25,14 @@ export interface PerfilPermissoes {
   tarefas_categorias_visiveis: string[] | null;
   estoque_categorias_permitidas: string[] | null;
   categorias_treinador: string[] | null;
+  comissao_tecnica_id: string | null;
+  comissao_tecnica_base_id: string | null;
+  categorias_base_permitidas: string[] | null;
+  /** Embed do PostgREST — só vem preenchido quando `comissao_tecnica_base_id` aponta pra um
+   * registro existente (ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-
+   * tecnica-design.md). Resolvido no mesmo round-trip da query de `buscarPerfilPermissoes`, sem
+   * query adicional nem quebra da memoização por request. */
+  comissao_tecnica_base: { categorias: string[] } | null;
 }
 
 /** Uma única leitura de `perfis` com tudo que as funções abaixo precisam — evita repetir a mesma
@@ -60,12 +69,15 @@ const buscarPerfilPermissoes = cache(async (): Promise<PerfilPermissoes | null> 
   const { data } = await supabase
     .from("perfis")
     .select(
-      "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador",
+      "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, " +
+        "tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador, " +
+        "comissao_tecnica_id, comissao_tecnica_base_id, categorias_base_permitidas, " +
+        "comissao_tecnica_base:comissao_tecnica_base_id(categorias)",
     )
     .eq("id", user.id)
     .maybeSingle();
 
-  return data as PerfilPermissoes | null;
+  return data as unknown as PerfilPermissoes | null;
 });
 
 /**
@@ -179,4 +191,39 @@ export async function getEstoqueCategoriasPermitidas(
   if (!perfil) return [];
   if (perfil.role === "master") return TODAS_ESTOQUE_CATEGORIAS;
   return perfil.estoque_categorias_permitidas ?? TODAS_ESTOQUE_CATEGORIAS;
+}
+
+/**
+ * Regra de categorias do Futebol de Base (Atletas, Jogos e tudo dentro de um jogo), separada da
+ * leitura em `perfis` só pra poder ser testada sem precisar simular um client do Supabase (mesmo
+ * raciocínio de `resolverCategoriasProgramacao` em `lib/programacao/permissoes.ts` — ver
+ * `lib/auth/role.test.ts`). Ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-
+ * tecnica-design.md.
+ *
+ * "Master" sempre tem as 7; quem não tem o departamento "futebol_base" liberado não tem nenhuma.
+ * Quando a conta está vinculada a alguém da Comissão Técnica da Base (`comissao_tecnica_base_id`),
+ * as categorias vêm AO VIVO do registro vinculado (editar a pessoa lá muda o acesso na hora, sem
+ * precisar mexer no login) — só cai no fallback manual (`categorias_base_permitidas`) quando não
+ * há vínculo.
+ */
+export function resolverCategoriasBasePermitidas(perfil: PerfilPermissoes | null): CategoriaBase[] {
+  if (!perfil) return [];
+  if (perfil.role === "master") return TODAS_CATEGORIAS_BASE;
+
+  const departamentos = perfil.departamentos_permitidos ?? TODOS_DEPARTAMENTOS;
+  if (!departamentos.includes("futebol_base")) return [];
+
+  if (perfil.comissao_tecnica_base_id && perfil.comissao_tecnica_base) {
+    return (perfil.comissao_tecnica_base.categorias ?? []) as CategoriaBase[];
+  }
+  return (perfil.categorias_base_permitidas ?? TODAS_CATEGORIAS_BASE) as CategoriaBase[];
+}
+
+/** Versão de `resolverCategoriasBasePermitidas` que já busca o perfil do usuário logado — usada
+ * pelas páginas/guards de verdade. */
+export async function getCategoriasBasePermitidas(
+  supabase: ReturnType<typeof createClient>,
+): Promise<CategoriaBase[]> {
+  const perfil = await getPerfilPermissoes(supabase);
+  return resolverCategoriasBasePermitidas(perfil);
 }

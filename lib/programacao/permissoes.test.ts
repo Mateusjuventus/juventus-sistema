@@ -12,6 +12,10 @@ function perfil(overrides: Partial<PerfilPermissoes>): PerfilPermissoes {
     tarefas_categorias_visiveis: null,
     estoque_categorias_permitidas: null,
     categorias_treinador: null,
+    comissao_tecnica_id: null,
+    comissao_tecnica_base_id: null,
+    categorias_base_permitidas: null,
+    comissao_tecnica_base: null,
     ...overrides,
   };
 }

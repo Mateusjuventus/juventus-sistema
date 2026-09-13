@@ -9,7 +9,7 @@ import { TODOS_MODULOS_BASE, ehModuloBaseValido } from "@/lib/auth/modulos-base"
 import { TODOS_DEPARTAMENTOS, ehDepartamentoValido } from "@/lib/auth/departamentos";
 import { ehTarefaCategoriaValida } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS, ehEstoqueCategoriaValida } from "@/lib/auth/estoque-categorias";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import { ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type { PerfilRole } from "@/lib/supabase/types";
 import type { PermissaoActionState } from "@/components/permissao-checkboxes-form";
 
@@ -34,6 +34,29 @@ function parseRole(formData: FormData): PerfilRole {
 function parseCategoriasTreinador(formData: FormData, role: PerfilRole): string[] {
   if (role !== "treinador") return [];
   return formData.getAll("categoriasTreinador").map(String).filter(ehCategoriaBaseValida);
+}
+
+/** Id da pessoa da Comissão Técnica (Profissional) vinculada a este login — `""` no `<select>`
+ * vira `null` ("não vincular"). Ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-
+ * comissao-tecnica-design.md. */
+function parseComissaoTecnicaId(formData: FormData): string | null {
+  const id = String(formData.get("comissaoTecnicaId") ?? "").trim();
+  return id || null;
+}
+
+/** Mesma coisa que `parseComissaoTecnicaId`, mas pra Comissão Técnica do Futebol de Base — esse
+ * vínculo também decide as categorias que o login pode ver/acessar. */
+function parseComissaoTecnicaBaseId(formData: FormData): string | null {
+  const id = String(formData.get("comissaoTecnicaBaseId") ?? "").trim();
+  return id || null;
+}
+
+/** Categorias do Futebol de Base marcadas manualmente — só é lida de verdade quando NÃO há vínculo
+ * com a Comissão Técnica da Base (o vínculo, quando existe, sempre tem prioridade em
+ * `getCategoriasBasePermitidas`). Vale pra qualquer papel (diferente de `categoriasTreinador`, que
+ * só faz sentido pro papel "treinador"). */
+function parseCategoriasBasePermitidas(formData: FormData): string[] {
+  return formData.getAll("categoriasBasePermitidas").map(String).filter(ehCategoriaBaseValida);
 }
 
 /** Lê os checkboxes de "Módulos liberados" marcados no formulário, validando contra a lista
@@ -101,6 +124,11 @@ export async function criarUsuario(
   const tarefasCategorias = parseCategoriasTarefas(formData);
   const estoqueCategorias = parseEstoqueCategorias(formData, role);
   const categoriasTreinador = parseCategoriasTreinador(formData, role);
+  const comissaoTecnicaId = parseComissaoTecnicaId(formData);
+  const comissaoTecnicaBaseId = parseComissaoTecnicaBaseId(formData);
+  const categoriasBasePermitidas = comissaoTecnicaBaseId
+    ? TODAS_CATEGORIAS_BASE
+    : parseCategoriasBasePermitidas(formData);
   const raw = { email, role };
 
   const fieldErrors: Record<string, string> = {};
@@ -132,6 +160,9 @@ export async function criarUsuario(
     tarefas_categorias_visiveis: tarefasCategorias,
     estoque_categorias_permitidas: estoqueCategorias,
     categorias_treinador: categoriasTreinador,
+    comissao_tecnica_id: comissaoTecnicaId,
+    comissao_tecnica_base_id: comissaoTecnicaBaseId,
+    categorias_base_permitidas: categoriasBasePermitidas,
   });
   if (perfilError) {
     return {
@@ -316,6 +347,45 @@ export async function atualizarEstoqueCategorias(
 
   revalidatePath("/usuarios");
   return { success: "Ramificações de estoque salvas." };
+}
+
+/**
+ * Salva o vínculo com a Comissão Técnica (Profissional e/ou Base) de um usuário já existente —
+ * espelha `atualizarDepartamentos`. Ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-
+ * comissao-tecnica-design.md. Quando vincula à Base, grava `categorias_base_permitidas` com todas
+ * as categorias (o form nem mostra os checkboxes nesse caso) — mantém a coluna íntegra caso o
+ * vínculo seja desfeito depois; a leitura de acesso sempre prioriza o vínculo enquanto ele existir.
+ * Só master pode chamar.
+ */
+export async function atualizarVinculoComissaoTecnica(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+
+  const comissaoTecnicaId = parseComissaoTecnicaId(formData);
+  const comissaoTecnicaBaseId = parseComissaoTecnicaBaseId(formData);
+  const categoriasBasePermitidas = comissaoTecnicaBaseId
+    ? TODAS_CATEGORIAS_BASE
+    : parseCategoriasBasePermitidas(formData);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("perfis")
+    .update({
+      comissao_tecnica_id: comissaoTecnicaId,
+      comissao_tecnica_base_id: comissaoTecnicaBaseId,
+      categorias_base_permitidas: categoriasBasePermitidas,
+    })
+    .eq("id", id);
+  if (error) return { error: `Não foi possível salvar o vínculo. Tente novamente. (${error.message})` };
+
+  revalidatePath("/usuarios");
+  return { success: "Vínculo salvo." };
 }
 
 /**

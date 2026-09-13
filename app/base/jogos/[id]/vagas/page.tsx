@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import { formatDataBr, formatHorario } from "@/lib/posters/relacionados-data";
 import { formatDataHoraBrasilia } from "@/lib/data-brasil";
@@ -12,7 +13,6 @@ import {
   vagasRestantes,
 } from "@/lib/futebol/vagas-staff";
 import type {
-  JogoBaseRow,
   JogoVagasStaffBaseFuncaoRow,
   JogoVagasStaffBaseInscricaoRow,
   JogoVagasStaffBaseRow,
@@ -38,14 +38,13 @@ import { VagasForm, type FuncaoInicial } from "@/components/vagas-form";
 export default async function VagasStaffBasePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: vagasData }, { data: funcoesCatalogoData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+  const [jogo, { data: vagasData }, { data: funcoesCatalogoData }] = await Promise.all([
+    verificarAcessoJogoBase(supabase, params.id),
     supabase.from("jogo_vagas_staff_base").select("*").eq("jogo_id", params.id).maybeSingle(),
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
   ]);
 
-  if (!jogoData) notFound();
-  const jogo = jogoData as JogoBaseRow;
+  if (!jogo) notFound();
   const vagas = vagasData as JogoVagasStaffBaseRow | null;
   const funcoesCatalogo = (funcoesCatalogoData ?? []) as StaffFuncaoCatalogoRow[];
   const nomePorFuncaoId = new Map(funcoesCatalogo.map((f) => [f.id, f.nome]));

@@ -4,7 +4,7 @@ import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
-import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { CATEGORIAS_BASE, TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
 import type { JogoBaseFormState } from "./actions";
 
 const initialState: JogoBaseFormState = {};
@@ -20,16 +20,21 @@ export function JogoBaseForm({
   defaultValues,
   logoUrl,
   submitLabel,
+  categoriasPermitidas,
 }: {
   action: (prevState: JogoBaseFormState, formData: FormData) => Promise<JogoBaseFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
   logoUrl?: string | null;
   submitLabel: string;
+  /** Categorias que o usuário logado pode usar aqui (ver `getCategoriasBasePermitidas`) — quando
+   * omitido, mostra as 7 (compatibilidade com qualquer chamador antigo). */
+  categoriasPermitidas?: CategoriaBase[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
+  const categoriasDisponiveis = categoriasPermitidas ?? TODAS_CATEGORIAS_BASE;
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -44,7 +49,7 @@ export function JogoBaseForm({
             error={errors.categoria}
           >
             <option value="">Selecione</option>
-            {CATEGORIAS_BASE.map((cat) => (
+            {CATEGORIAS_BASE.filter((cat) => categoriasDisponiveis.includes(cat.value)).map((cat) => (
               <option key={cat.value} value={cat.value}>
                 {cat.label}
               </option>

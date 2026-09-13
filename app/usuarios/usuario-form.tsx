@@ -7,21 +7,30 @@ import { SubmitButton } from "@/components/submit-button";
 import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
-import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { TAREFA_CATEGORIAS, ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
+import type { ComissaoTecnicaParaSelecao } from "@/lib/auth/perfis";
 import { criarUsuario, type UsuarioFormState } from "./actions";
 
 const initialState: UsuarioFormState = {};
 
 const CHECKBOX_CLASS = "h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena";
 
-export function UsuarioForm() {
+export function UsuarioForm({
+  comissaoTecnica,
+  comissaoTecnicaBase,
+}: {
+  comissaoTecnica: ComissaoTecnicaParaSelecao[];
+  comissaoTecnicaBase: ComissaoTecnicaParaSelecao[];
+}) {
   const [state, formAction] = useFormState(criarUsuario, initialState);
   const [role, setRole] = useState(initialState.values?.role ?? "regular");
   const [modulosMarcados, setModulosMarcados] = useState<string[]>(MODULOS.map((m) => m.chave));
   const [departamentosMarcados, setDepartamentosMarcados] = useState<string[]>(
     DEPARTAMENTOS.map((d) => d.chave),
   );
+  const [comissaoTecnicaBaseId, setComissaoTecnicaBaseId] = useState("");
+  const pessoaBaseSelecionada = comissaoTecnicaBase.find((p) => p.id === comissaoTecnicaBaseId);
   const values = state.values ?? {};
   const errors = state.fieldErrors ?? {};
 
@@ -150,6 +159,23 @@ export function UsuarioForm() {
                   </div>
                 </div>
 
+                {departamentosMarcados.includes("futebol_profissional") ? (
+                  <div>
+                    <SelectField label="Vincular a alguém da Comissão Técnica (Profissional)" name="comissaoTecnicaId" defaultValue="">
+                      <option value="">— Não vincular (preencher manualmente) —</option>
+                      {comissaoTecnica.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.rotulo}
+                        </option>
+                      ))}
+                    </SelectField>
+                    <p className="-mt-0.5 text-xs text-neutral-400">
+                      Vinculado, o nome e a função usados na assinatura digital passam a vir do
+                      cadastro da Comissão Técnica — e se atualizam sozinhos se ele mudar lá.
+                    </p>
+                  </div>
+                ) : null}
+
                 {modulosMarcados.includes("estoque") ? (
                   <div className="ml-4 border-l-2 border-neutral-100 pl-4">
                     <p className="field-label">Estoque: ramificações liberadas</p>
@@ -190,6 +216,57 @@ export function UsuarioForm() {
                         </label>
                       ))}
                     </div>
+                  </div>
+                ) : null}
+
+                {departamentosMarcados.includes("futebol_base") ? (
+                  <div className="border-t border-neutral-100 pt-3">
+                    <SelectField
+                      label="Vincular a alguém da Comissão Técnica (Base)"
+                      name="comissaoTecnicaBaseId"
+                      defaultValue=""
+                      onChange={(value) => setComissaoTecnicaBaseId(value)}
+                    >
+                      <option value="">— Não vincular (preencher manualmente) —</option>
+                      {comissaoTecnicaBase.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.rotulo}
+                        </option>
+                      ))}
+                    </SelectField>
+                    <p className="-mt-0.5 text-xs text-neutral-400">
+                      Vinculado, o nome/função da assinatura E as categorias que essa pessoa vê em
+                      Atletas e Jogos passam a vir do cadastro da Comissão Técnica — se atualizam
+                      sozinhos se ele mudar lá.
+                    </p>
+
+                    {pessoaBaseSelecionada ? (
+                      <p className="mt-2 rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-600">
+                        Categorias vinculadas:{" "}
+                        {(pessoaBaseSelecionada.categorias ?? []).map(categoriaBaseLabel).join(", ")}
+                      </p>
+                    ) : (
+                      <div className="mt-2">
+                        <p className="field-label">Categorias do Futebol de Base liberadas</p>
+                        <p className="-mt-0.5 text-xs text-neutral-400">
+                          Essa pessoa só vê/mexe, em Atletas e Jogos, nas categorias marcadas aqui.
+                        </p>
+                        <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {CATEGORIAS_BASE.map((cat) => (
+                            <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                              <input
+                                type="checkbox"
+                                name="categoriasBasePermitidas"
+                                value={cat.value}
+                                defaultChecked
+                                className={CHECKBOX_CLASS}
+                              />
+                              {cat.label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : null}
               </>

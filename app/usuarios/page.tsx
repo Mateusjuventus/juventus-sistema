@@ -9,6 +9,7 @@ import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { ESTOQUE_CATEGORIAS, TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
+import { buscarComissaoTecnicaParaSelecao, buscarComissaoTecnicaBaseParaSelecao } from "@/lib/auth/perfis";
 import type { PerfilRow } from "@/lib/supabase/types";
 import {
   atualizarCategoriasTarefas,
@@ -18,8 +19,10 @@ import {
   atualizarModulos,
   atualizarModulosBase,
   atualizarPapel,
+  atualizarVinculoComissaoTecnica,
   redefinirSenha,
 } from "./actions";
+import { VinculoComissaoTecnicaForm } from "@/components/vinculo-comissao-tecnica-form";
 import { PermissaoCheckboxesForm } from "@/components/permissao-checkboxes-form";
 import { RedefinirSenhaForm } from "@/components/redefinir-senha-form";
 import { UsuarioForm } from "./usuario-form";
@@ -41,7 +44,11 @@ export default async function UsuariosPage() {
     data: { user: usuarioAtual },
   } = await supabase.auth.getUser();
 
-  const { data } = await supabase.from("perfis").select("*").order("created_at", { ascending: true });
+  const [{ data }, comissaoTecnica, comissaoTecnicaBase] = await Promise.all([
+    supabase.from("perfis").select("*").order("created_at", { ascending: true }),
+    buscarComissaoTecnicaParaSelecao(supabase),
+    buscarComissaoTecnicaBaseParaSelecao(supabase),
+  ]);
   const perfis = (data ?? []) as PerfilRow[];
 
   return (
@@ -55,7 +62,7 @@ export default async function UsuariosPage() {
       </p>
 
       <div className="mt-6">
-        <UsuarioForm />
+        <UsuarioForm comissaoTecnica={comissaoTecnica} comissaoTecnicaBase={comissaoTecnicaBase} />
       </div>
 
       <div className="mt-6 space-y-4">
@@ -67,6 +74,7 @@ export default async function UsuariosPage() {
           const categoriasTarefasVisiveis = perfil.tarefas_categorias_visiveis ?? [];
           const estoqueCategoriasPermitidas = perfil.estoque_categorias_permitidas ?? [];
           const categoriasTreinador = perfil.categorias_treinador ?? [];
+          const categoriasBasePermitidas = perfil.categorias_base_permitidas ?? [];
           const roleLabel =
             perfil.role === "master" ? "Master" : perfil.role === "treinador" ? "Treinador" : "Regular";
           return (
@@ -212,6 +220,17 @@ export default async function UsuariosPage() {
                           className="border-t border-neutral-100 pt-3"
                         />
                       ) : null}
+
+                      <VinculoComissaoTecnicaForm
+                        id={perfil.id}
+                        departamentosPermitidos={departamentosPermitidos}
+                        comissaoTecnica={comissaoTecnica}
+                        comissaoTecnicaBase={comissaoTecnicaBase}
+                        comissaoTecnicaIdAtual={perfil.comissao_tecnica_id}
+                        comissaoTecnicaBaseIdAtual={perfil.comissao_tecnica_base_id}
+                        categoriasBasePermitidasAtuais={categoriasBasePermitidas}
+                        action={atualizarVinculoComissaoTecnica}
+                      />
                     </>
                   )}
 

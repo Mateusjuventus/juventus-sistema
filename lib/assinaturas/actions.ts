@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedAssinaturaUrl } from "@/lib/supabase/storage";
+import { resolverNomeCargoParaAssinatura } from "@/lib/assinaturas/nome-cargo";
 import type { TipoDocumento } from "./config";
 
 export interface AssinarState {
@@ -51,14 +52,19 @@ export async function assinarDocumento(
 
   const { data: perfil } = await supabase
     .from("perfis")
-    .select("nome, cargo, assinatura_path")
+    .select("nome, cargo, assinatura_path, comissao_tecnica_id, comissao_tecnica_base_id")
     .eq("id", user.id)
     .maybeSingle();
-  if (!perfil?.nome) {
-    return { error: "Preencha seu nome em Minha Conta antes de assinar." };
+  if (!perfil) {
+    return { error: "Sessão expirada. Faça login novamente." };
   }
   if (!perfil.assinatura_path) {
     return { error: "Cadastre sua assinatura em Minha Conta antes de assinar." };
+  }
+
+  const { nome, cargo } = await resolverNomeCargoParaAssinatura(supabase, perfil);
+  if (!nome) {
+    return { error: "Preencha seu nome em Minha Conta antes de assinar." };
   }
 
   const { error } = await supabase.from("assinaturas_documento").upsert(
@@ -67,8 +73,8 @@ export async function assinarDocumento(
       documento_id: documentoId,
       papel,
       usuario_id: user.id,
-      nome_no_momento: perfil.nome,
-      cargo_no_momento: perfil.cargo,
+      nome_no_momento: nome,
+      cargo_no_momento: cargo,
       assinatura_path: perfil.assinatura_path,
       assinado_em: new Date().toISOString(),
     },
@@ -145,10 +151,12 @@ export async function autoAssinarComoCreator(
   const supabase = createClient();
   const { data: perfil } = await supabase
     .from("perfis")
-    .select("nome, cargo, email, assinatura_path")
+    .select("nome, cargo, email, assinatura_path, comissao_tecnica_id, comissao_tecnica_base_id")
     .eq("id", usuarioId)
     .maybeSingle();
   if (!perfil?.assinatura_path) return;
+
+  const { nome, cargo } = await resolverNomeCargoParaAssinatura(supabase, perfil);
 
   await supabase.from("assinaturas_documento").upsert(
     {
@@ -156,8 +164,8 @@ export async function autoAssinarComoCreator(
       documento_id: documentoId,
       papel,
       usuario_id: usuarioId,
-      nome_no_momento: perfil?.nome ?? perfil?.email ?? "—",
-      cargo_no_momento: perfil?.cargo ?? null,
+      nome_no_momento: nome ?? perfil?.email ?? "—",
+      cargo_no_momento: cargo ?? null,
       assinatura_path: perfil.assinatura_path,
       assinado_em: new Date().toISOString(),
     },

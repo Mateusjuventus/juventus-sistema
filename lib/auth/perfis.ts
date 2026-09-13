@@ -37,3 +37,52 @@ export async function buscarPerfisParaSelecao(
     rotulo: p.nome?.trim() ? p.nome : p.email,
   }));
 }
+
+export interface ComissaoTecnicaParaSelecao {
+  id: string;
+  rotulo: string;
+  /** Só presente na versão "Base" — categorias da pessoa vinculada, exibidas como referência
+   * quando um login é vinculado a ela (ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-
+   * comissao-tecnica-design.md). */
+  categorias?: string[];
+}
+
+/**
+ * Lista da Comissão Técnica do Futebol Profissional, pra popular o `<select>` de "Vincular a
+ * alguém da Comissão Técnica" no cadastro de usuário (`/usuarios`) — ver docs/superpowers/specs/
+ * 2026-09-13-acesso-por-categoria-comissao-tecnica-design.md. Vincular faz o login passar a usar o
+ * nome/função de lá (ao vivo) na hora de assinar documentos.
+ */
+export async function buscarComissaoTecnicaParaSelecao(
+  supabase: ReturnType<typeof createClient>,
+): Promise<ComissaoTecnicaParaSelecao[]> {
+  const { data } = await supabase
+    .from("comissao_tecnica")
+    .select("id, nome_completo, funcao")
+    .order("nome_completo", { ascending: true });
+  return ((data ?? []) as { id: string; nome_completo: string; funcao: string }[]).map((p) => ({
+    id: p.id,
+    rotulo: `${p.nome_completo} — ${p.funcao}`,
+  }));
+}
+
+/**
+ * Mesma coisa que `buscarComissaoTecnicaParaSelecao`, mas pra Comissão Técnica do Futebol de Base —
+ * aqui o vínculo também decide as categorias que o login pode ver/acessar (ver
+ * `getCategoriasBasePermitidas` em `lib/auth/role.ts`), por isso retorna `categorias` também.
+ */
+export async function buscarComissaoTecnicaBaseParaSelecao(
+  supabase: ReturnType<typeof createClient>,
+): Promise<ComissaoTecnicaParaSelecao[]> {
+  const { data } = await supabase
+    .from("comissao_tecnica_base")
+    .select("id, nome_completo, funcao, categorias")
+    .order("nome_completo", { ascending: true });
+  return ((data ?? []) as { id: string; nome_completo: string; funcao: string; categorias: string[] }[]).map(
+    (p) => ({
+      id: p.id,
+      rotulo: `${p.nome_completo} — ${p.funcao}`,
+      categorias: p.categorias,
+    }),
+  );
+}

@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import type {
-  JogoBaseRow,
   ReciboJogoBaseRow,
   StaffOperacionalBaseComFuncaoRow,
 } from "@/lib/supabase/types";
@@ -26,8 +26,8 @@ export default async function ReciboBasePage({
 }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: recibosData }, { data: staffData }, { data: vagasData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+  const [jogo, { data: recibosData }, { data: staffData }, { data: vagasData }] = await Promise.all([
+    verificarAcessoJogoBase(supabase, params.id),
     supabase.from("recibos_jogo_base").select("*").eq("jogo_id", params.id),
     supabase
       .from("staff_operacional_base")
@@ -40,8 +40,7 @@ export default async function ReciboBasePage({
     supabase.from("jogo_vagas_staff_base").select("id").eq("jogo_id", params.id).maybeSingle(),
   ]);
 
-  if (!jogoData) notFound();
-  const jogo = jogoData as JogoBaseRow;
+  if (!jogo) notFound();
   const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
   const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
   const temRecibos = recibos.length > 0;

@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { categoriaDaPosicao, corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
 import { SUMULA_EVENTO_TIPO_ICONE, SUMULA_EVENTO_TIPO_LABEL } from "@/lib/futebol/sumula-eventos";
 import { calcularMinutoAbsoluto } from "@/lib/futebol/estatisticas-atleta";
@@ -10,7 +11,6 @@ import type {
   AtletaBaseRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
-  JogoBaseRow,
   SumulaBaseRow,
   SumulaEventoBaseRow,
 } from "@/lib/supabase/types";
@@ -139,9 +139,8 @@ function TempoSection({
 export default async function SumulaBasePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
-  if (!jogoData) notFound();
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = await verificarAcessoJogoBase(supabase, params.id);
+  if (!jogo) notFound();
   const categoria = jogo.categoria;
 
   const [{ data: atletasData }, { data: convocacaoData }, { data: sumulaData }] = await Promise.all([

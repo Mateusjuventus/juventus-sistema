@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import type {
   AtletaBaseRow,
   AtletaRow,
@@ -110,6 +111,9 @@ export async function buildRelacionadosDataBase(jogoId: string): Promise<Relacio
   const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", jogoId).single();
   if (!jogoData) return null;
   const jogo = jogoData as JogoBaseRow;
+
+  const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
+  if (!categoriasPermitidas.includes(jogo.categoria)) return null;
 
   const { data: convocacaoData } = await supabase
     .from("convocacoes_base")

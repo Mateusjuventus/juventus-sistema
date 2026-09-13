@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { jogoBaseSchema } from "@/lib/validation/schemas";
 
 /**
@@ -76,6 +77,15 @@ export async function createJogoBase(
   const id = randomUUID();
   const data = result.data;
 
+  // Defesa em profundidade: o `<select>` já só oferece as categorias permitidas (ver
+  // docs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md), mas confere
+  // de novo aqui — quem tem acesso restrito não deve conseguir criar um jogo fora do escopo dele
+  // mesmo manipulando o formulário direto.
+  const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
+  if (!categoriasPermitidas.includes(data.categoria)) {
+    return { error: "Você não tem permissão para cadastrar um jogo nessa categoria.", values: raw };
+  }
+
   const { error: uploadError, path: logoPath } = await uploadLogoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
@@ -116,6 +126,11 @@ export async function updateJogoBase(
 
   const supabase = createClient();
   const data = result.data;
+
+  const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
+  if (!categoriasPermitidas.includes(data.categoria)) {
+    return { error: "Você não tem permissão para mover esse jogo pra essa categoria.", values: raw };
+  }
 
   const { error: uploadError, path: logoPath } = await uploadLogoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };

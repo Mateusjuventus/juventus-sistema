@@ -4,7 +4,8 @@ import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import type { JogoBaseRow } from "@/lib/supabase/types";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { JogoBaseForm } from "../jogo-form-base";
 import { updateJogoBase, deleteJogoBase } from "../actions";
 
@@ -14,12 +15,13 @@ export default async function EditarJogoBasePage({
   params: { id: string };
 }) {
   const supabase = createClient();
-  const { data } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
+  const jogo = await verificarAcessoJogoBase(supabase, params.id);
+  if (!jogo) notFound();
 
-  if (!data) notFound();
-
-  const jogo = data as JogoBaseRow;
-  const logoUrl = await getSignedPhotoUrl(supabase, jogo.adversario_logo_path);
+  const [logoUrl, categoriasPermitidas] = await Promise.all([
+    getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
+    getCategoriasBasePermitidas(supabase),
+  ]);
 
   const defaultValues: Record<string, string> = {
     categoria: jogo.categoria,
@@ -46,6 +48,7 @@ export default async function EditarJogoBasePage({
           defaultValues={defaultValues}
           logoUrl={logoUrl}
           submitLabel="Salvar alterações"
+          categoriasPermitidas={categoriasPermitidas}
         />
 
         <div className="mt-8 flex justify-end border-t border-linha pt-4">

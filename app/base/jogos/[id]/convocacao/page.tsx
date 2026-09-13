@@ -3,13 +3,13 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import type {
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
   ConvocacaoComissaoBaseRow,
-  JogoBaseRow,
 } from "@/lib/supabase/types";
 import { ConvocacaoFormBase } from "./convocacao-form-base";
 import { saveConvocacaoBase } from "@/lib/jogos-base/convocacao-actions";
@@ -30,9 +30,8 @@ export default async function ConvocacaoBasePage({
 }) {
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
-  if (!jogoData) notFound();
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = await verificarAcessoJogoBase(supabase, params.id);
+  if (!jogo) notFound();
   const categoria = jogo.categoria;
 
   const [{ data: atletasData }, { data: comissaoData }, { data: convocacaoData }] =

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
-import type { CategoriaGastoRow, JogoBaseRow } from "@/lib/supabase/types";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
+import type { CategoriaGastoRow } from "@/lib/supabase/types";
 import { GastoFormBase } from "../gasto-form-base";
 import { createGastoBase } from "../actions";
 
@@ -15,14 +16,13 @@ export default async function NovoGastoBasePage({
 }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: categoriasData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+  const [jogo, { data: categoriasData }] = await Promise.all([
+    verificarAcessoJogoBase(supabase, params.id),
     supabase.from("categorias_gasto").select("*").order("nome", { ascending: true }),
   ]);
 
-  if (!jogoData) notFound();
+  if (!jogo) notFound();
 
-  const jogo = jogoData as JogoBaseRow;
   const categorias = (categoriasData ?? []) as CategoriaGastoRow[];
 
   return (

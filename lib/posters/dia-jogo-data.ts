@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { ordenarPorHorario } from "@/lib/futebol/programacao-horario";
 import type { JogoBaseRow, JogoProgramacaoItemBaseRow, JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
 import { buildConfrontoTexto } from "./jogo-texto";
@@ -64,6 +65,9 @@ export async function buildDiaJogoDataBase(jogoId: string): Promise<DiaJogoData 
   const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", jogoId).single();
   if (!jogoData) return null;
   const jogo = jogoData as JogoBaseRow;
+
+  const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
+  if (!categoriasPermitidas.includes(jogo.categoria)) return null;
 
   const [{ data: itensData }, adversarioLogoUrl] = await Promise.all([
     supabase

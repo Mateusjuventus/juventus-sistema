@@ -6,9 +6,10 @@ import { DeleteButton } from "@/components/delete-button";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { papeisAssinaturaFinanceiro, podeAssinarPapel } from "@/lib/assinaturas/config";
 import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
-import type { ConfiguracaoFinanceiroBaseRow, GastoJogoBaseComCategoriaRow, JogoBaseRow } from "@/lib/supabase/types";
+import type { ConfiguracaoFinanceiroBaseRow, GastoJogoBaseComCategoriaRow } from "@/lib/supabase/types";
 import { deleteGastoBase } from "./actions";
 
 function formatMoeda(valor: number | null): string {
@@ -31,7 +32,7 @@ export default async function FinanceiroJogoBasePage({
   const supabase = createClient();
 
   const [
-    { data: jogoData },
+    jogo,
     { data: gastosData },
     { data: configData },
     {
@@ -41,7 +42,7 @@ export default async function FinanceiroJogoBasePage({
     assinaturasOrcamento,
     assinaturasDespesas,
   ] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+    verificarAcessoJogoBase(supabase, params.id),
     supabase
       .from("gastos_jogo_base")
       .select("*, categoria:categorias_gasto(nome)")
@@ -54,9 +55,8 @@ export default async function FinanceiroJogoBasePage({
     buscarAssinaturas("despesas_jogo", params.id),
   ]);
 
-  if (!jogoData) notFound();
+  if (!jogo) notFound();
 
-  const jogo = jogoData as JogoBaseRow;
   const gastos = (gastosData ?? []) as GastoJogoBaseComCategoriaRow[];
   const configFinanceiro = configData as ConfiguracaoFinanceiroBaseRow | null;
 

@@ -5,9 +5,10 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { ReciboIndividualDocument, type ReciboPdfItem } from "@/lib/pdf/recibo-document";
 import { funcaoCadastroStaff } from "@/lib/futebol/funcao-staff";
-import type { JogoBaseRow, ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
+import type { ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/recibo/pdf/route.tsx` para o Futebol de Base. Recibo de Pagamento é só
  * pra Staff Operacional — o filtro `pessoa_tipo=staff` também protege contra registros antigos de
@@ -15,9 +16,8 @@ import type { JogoBaseRow, ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow }
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
-  if (!jogoData) return new NextResponse("Jogo não encontrado.", { status: 404 });
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = await verificarAcessoJogoBase(supabase, params.id);
+  if (!jogo) return new NextResponse("Jogo não encontrado.", { status: 404 });
 
   const { data: recibosData } = await supabase
     .from("recibos_jogo_base")

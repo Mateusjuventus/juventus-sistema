@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
-import type { CategoriaGastoRow, GastoJogoBaseRow, JogoBaseRow } from "@/lib/supabase/types";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
+import type { CategoriaGastoRow, GastoJogoBaseRow } from "@/lib/supabase/types";
 import { GastoFormBase } from "../gasto-form-base";
 import { updateGastoBase } from "../actions";
 
@@ -15,15 +16,14 @@ export default async function EditarGastoBasePage({
 }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: gastoData }, { data: categoriasData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+  const [jogo, { data: gastoData }, { data: categoriasData }] = await Promise.all([
+    verificarAcessoJogoBase(supabase, params.id),
     supabase.from("gastos_jogo_base").select("*").eq("id", params.gastoId).single(),
     supabase.from("categorias_gasto").select("*").order("nome", { ascending: true }),
   ]);
 
-  if (!jogoData || !gastoData) notFound();
+  if (!jogo || !gastoData) notFound();
 
-  const jogo = jogoData as JogoBaseRow;
   const gasto = gastoData as GastoJogoBaseRow;
   const categorias = (categoriasData ?? []) as CategoriaGastoRow[];
 

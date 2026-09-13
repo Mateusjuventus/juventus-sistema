@@ -1374,6 +1374,22 @@ export interface PerfilRow {
    * desenhada-design.md). `null` até a pessoa cadastrar pela primeira vez; trocar depois não afeta
    * documentos já assinados (snapshot em `assinaturas_documento.assinatura_path`). */
   assinatura_path: string | null;
+  /** Vínculo "vivo" com um registro da Comissão Técnica (ver docs/superpowers/specs/2026-09-13-
+   * acesso-por-categoria-comissao-tecnica-design.md) — quando preenchido, nome/função pra
+   * assinatura digital passam a vir do registro vinculado em vez de `nome`/`cargo` acima (ver
+   * `resolverNomeCargoParaAssinatura`), e `nome`/`cargo` desta linha viram somente-leitura em
+   * `/minha-conta`. `comissao_tecnica_id` é do Futebol Profissional; `comissao_tecnica_base_id` é
+   * do Futebol de Base e também passa a decidir `categorias_base_permitidas` (ver
+   * `getCategoriasBasePermitidas`) — se os dois estiverem preenchidos (não deveria acontecer em uso
+   * normal), o vínculo da Base tem prioridade. `null` até alguém vincular pela tela de Usuários. */
+  comissao_tecnica_id: string | null;
+  comissao_tecnica_base_id: string | null;
+  /** Categorias do Futebol de Base que esta pessoa pode ver/acessar (Atletas, Jogos e tudo dentro
+   * de um jogo) — só usada quando `comissao_tecnica_base_id` está vazio (sem vínculo, o vínculo
+   * sempre tem prioridade e usa as categorias do próprio registro da Comissão Técnica). Segue a
+   * mesma convenção de todo o resto de `perfis`: "not null default <lista completa>", nunca "vazio
+   * = tudo liberado". */
+  categorias_base_permitidas: string[];
   created_at: string;
 }
 

@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { compararPorNumeroCamisaGoleiroPrimeiro } from "@/lib/futebol/ordem-posicao";
 import { PresskitDocument, type AtletaPresskitItem } from "@/lib/pdf/presskit-document";
 import type {
@@ -14,18 +15,16 @@ import type {
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
   ConvocacaoComissaoBaseRow,
-  JogoBaseRow,
 } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/presskit/route.tsx` para o Futebol de Base. */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
-  if (!jogoData) {
+  const jogo = await verificarAcessoJogoBase(supabase, params.id);
+  if (!jogo) {
     return new NextResponse("Jogo não encontrado.", { status: 404 });
   }
-  const jogo = jogoData as JogoBaseRow;
 
   const { data: convocacaoData } = await supabase
     .from("convocacoes_base")

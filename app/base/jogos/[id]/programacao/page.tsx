@@ -3,8 +3,9 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { ProgramacaoLinha } from "@/components/programacao-linha";
 import { createClient } from "@/lib/supabase/server";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { ordenarPorHorario } from "@/lib/futebol/programacao-horario";
-import type { JogoBaseRow, JogoProgramacaoItemBaseRow } from "@/lib/supabase/types";
+import type { JogoProgramacaoItemBaseRow } from "@/lib/supabase/types";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import {
   adicionarItemProgramacaoBase,
@@ -23,8 +24,8 @@ export default async function ProgramacaoBasePage({
 }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: itensData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+  const [jogo, { data: itensData }] = await Promise.all([
+    verificarAcessoJogoBase(supabase, params.id),
     supabase
       .from("jogo_programacao_itens_base")
       .select("*")
@@ -32,8 +33,7 @@ export default async function ProgramacaoBasePage({
       .order("ordem", { ascending: true }),
   ]);
 
-  if (!jogoData) notFound();
-  const jogo = jogoData as JogoBaseRow;
+  if (!jogo) notFound();
   const itens = (itensData ?? []) as JogoProgramacaoItemBaseRow[];
 
   // Do menor horário pro maior — igual ao Profissional (ver `lib/futebol/programacao-horario.ts`).

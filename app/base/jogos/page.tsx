@@ -5,6 +5,7 @@ import { SearchBar } from "@/components/search-bar";
 import { JogoCardBase } from "@/components/jogos/jogo-card-base";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { CATEGORIAS_BASE, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { JogoBaseRow } from "@/lib/supabase/types";
 
@@ -26,8 +27,13 @@ export default async function JogosBasePage({
   // Profissional (`app/jogos/page.tsx`).
   const ordem = searchParams.ordem === "proximidade" ? "proximidade" : "cronologico";
   const supabase = createClient();
+  const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
 
-  let query = supabase.from("jogos_base").select("*").order("data_jogo", { ascending: false });
+  let query = supabase
+    .from("jogos_base")
+    .select("*")
+    .in("categoria", categoriasPermitidas)
+    .order("data_jogo", { ascending: false });
   if (q) query = query.ilike("adversario_nome", `%${q}%`);
   if (mandanteFiltro === "casa") query = query.eq("mandante", true);
   if (mandanteFiltro === "fora") query = query.eq("mandante", false);
@@ -35,7 +41,7 @@ export default async function JogosBasePage({
 
   const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }] = await Promise.all([
     query,
-    supabase.from("jogos_base").select("id, data_jogo"),
+    supabase.from("jogos_base").select("id, data_jogo").in("categoria", categoriasPermitidas),
     supabase.from("convocacoes_base").select("jogo_id"),
   ]);
   const hojeStr = new Date().toISOString().slice(0, 10);
@@ -92,7 +98,7 @@ export default async function JogosBasePage({
             </label>
             <select id="categoria" name="categoria" defaultValue={categoriaFiltro} className="field-input">
               <option value="">Todas</option>
-              {CATEGORIAS_BASE.map((cat) => (
+              {CATEGORIAS_BASE.filter((cat) => categoriasPermitidas.includes(cat.value)).map((cat) => (
                 <option key={cat.value} value={cat.value}>
                   {cat.label}
                 </option>

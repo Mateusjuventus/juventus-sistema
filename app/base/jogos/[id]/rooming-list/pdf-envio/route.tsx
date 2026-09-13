@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import {
   RoomingListEnvioDocument,
   type RoomingListEnvioOcupante,
@@ -15,7 +16,6 @@ import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
-  JogoBaseRow,
   RoomingListBaseRow,
   RoomingListOcupanteBaseRow,
   RoomingListQuartoBaseRow,
@@ -28,9 +28,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
-  if (!jogoData) return new NextResponse("Jogo não encontrado.", { status: 404 });
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = await verificarAcessoJogoBase(supabase, params.id);
+  if (!jogo) return new NextResponse("Jogo não encontrado.", { status: 404 });
 
   const { data: roomingListData } = await supabase
     .from("rooming_list_base")

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import type {
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
@@ -31,6 +32,10 @@ export async function getJogoBaseEConvocados(jogoId: string): Promise<Convocados
 
   if (!jogoData) return null;
   const jogo = jogoData as JogoBaseRow;
+
+  const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
+  if (!categoriasPermitidas.includes(jogo.categoria)) return null;
+
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
 
   if (!convocacao) return { jogo, convocacao: null, atletas: [], comissao: [] };

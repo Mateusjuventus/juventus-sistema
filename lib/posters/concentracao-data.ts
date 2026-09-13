@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { ordenarPorHorario } from "@/lib/futebol/programacao-horario";
 import type { JogoBaseRow, JogoProgramacaoItemBaseRow, JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
 import { diaDaSemana } from "./relacionados-data";
@@ -78,6 +79,9 @@ export async function buildConcentracaoDataBase(jogoId: string): Promise<Concent
   if (!jogoData) return null;
   const jogo = jogoData as JogoBaseRow;
   if (!jogo.concentracao_data) return null;
+
+  const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
+  if (!categoriasPermitidas.includes(jogo.categoria)) return null;
 
   const [{ data: itensData }, adversarioLogoUrl] = await Promise.all([
     supabase

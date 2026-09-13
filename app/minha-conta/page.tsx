@@ -6,6 +6,7 @@ import { MinhaAssinaturaForm } from "@/components/minha-assinatura-form";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedAssinaturaUrl } from "@/lib/supabase/storage";
 import { getDepartamentosPermitidos, getModulosPermitidos, getModulosBasePermitidos, getUserRole } from "@/lib/auth/role";
+import { resolverNomeCargoParaAssinatura } from "@/lib/assinaturas/nome-cargo";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
 import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
@@ -35,9 +36,18 @@ export default async function MinhaContaPage() {
   ]);
 
   const { data: perfil } = user
-    ? await supabase.from("perfis").select("nome, cargo, assinatura_path").eq("id", user.id).maybeSingle()
+    ? await supabase
+        .from("perfis")
+        .select("nome, cargo, assinatura_path, comissao_tecnica_id, comissao_tecnica_base_id")
+        .eq("id", user.id)
+        .maybeSingle()
     : { data: null };
   const assinaturaUrl = await getSignedAssinaturaUrl(supabase, perfil?.assinatura_path ?? null);
+
+  const vinculado = Boolean(perfil?.comissao_tecnica_id || perfil?.comissao_tecnica_base_id);
+  const { nome: nomeExibido, cargo: cargoExibido } = perfil
+    ? await resolverNomeCargoParaAssinatura(supabase, perfil)
+    : { nome: null, cargo: null };
 
   const master = role === "master";
 
@@ -108,7 +118,19 @@ export default async function MinhaContaPage() {
         </div>
 
         <div className="card p-5">
-          <NomeCargoForm action={salvarMeuNomeCargo} nome={perfil?.nome ?? null} cargo={perfil?.cargo ?? null} />
+          {vinculado ? (
+            <div>
+              <p className="field-label">Nome</p>
+              <p className="text-sm text-neutral-800">{nomeExibido ?? "—"}</p>
+              <p className="field-label mt-3">Cargo</p>
+              <p className="text-sm text-neutral-800">{cargoExibido ?? "—"}</p>
+              <p className="mt-2 text-xs text-neutral-400">
+                Vinculado ao cadastro da Comissão Técnica — pra alterar, atualize o cadastro lá.
+              </p>
+            </div>
+          ) : (
+            <NomeCargoForm action={salvarMeuNomeCargo} nome={perfil?.nome ?? null} cargo={perfil?.cargo ?? null} />
+          )}
         </div>
 
         <div className="card p-5">
