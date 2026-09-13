@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { ParecerFinalDocument, montarAssinaturasParecer } from "@/lib/pdf/parecer-final-document";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { AssinaturaCaptacao, CaptacaoBaseRow, ConfiguracaoParecerCaptacaoBaseRow } from "@/lib/supabase/types";
 
 /**
@@ -34,7 +34,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const configAssinaturas =
     (configData as Pick<ConfiguracaoParecerCaptacaoBaseRow, "assinaturas"> | null)?.assinaturas ??
     ([] as AssinaturaCaptacao[]);
-  const assinaturas = montarAssinaturasParecer(configAssinaturas, assinaturasSalvas);
+  const assinaturasComImagem = await resolverImagensAssinaturas(supabase, assinaturasSalvas);
+  const assinaturas = montarAssinaturasParecer(configAssinaturas, assinaturasComImagem);
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };

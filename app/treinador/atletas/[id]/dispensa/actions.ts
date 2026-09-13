@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasTreinador } from "@/lib/auth/role";
 import { relatorioDispensaSchema } from "@/lib/validation/schemas";
-import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
+import { autoAssinarComoCreator, possuiAssinaturaCadastrada } from "@/lib/assinaturas/actions";
 import { criarNotificacao } from "@/lib/notificacoes/actions";
 import type { RelatorioDispensaFormState } from "@/components/relatorio-dispensa-form";
 
@@ -57,6 +57,13 @@ export async function salvarRelatorioDispensaTreinador(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  // Quem envia já assina automaticamente o papel "treinador" ao salvar (ver mais abaixo) — sem
+  // assinatura cadastrada, isso geraria um relatório sem imagem de assinatura de verdade, por
+  // isso o envio já é bloqueado aqui (ver docs/superpowers/specs/2026-09-13-assinatura-desenhada-
+  // design.md).
+  if (!(await possuiAssinaturaCadastrada(supabase, user.id))) {
+    return { error: "Cadastre sua assinatura em Minha Conta antes de enviar o relatório de dispensa." };
+  }
 
   const data = result.data;
   const { error } = await supabase

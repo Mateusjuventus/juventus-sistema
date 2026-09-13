@@ -1,6 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import type { ConfiguracaoFinanceiroBaseRow, ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
-import type { AssinaturaResumo } from "@/lib/assinaturas/actions";
+import type { AssinaturaComImagem } from "@/lib/assinaturas/actions";
 import type { AssinaturaInfo } from "./logistica-shared";
 
 const PADRAO_ASSINATURA_1: AssinaturaInfo = { nome: "Mateus dos Santos", cargo: "Supervisor de Futebol" };
@@ -55,7 +55,7 @@ export async function getAssinaturasFinanceiroBase(
  */
 export function montarAssinaturasFinanceiroComDigital(
   base: { assinatura1: AssinaturaInfo; assinatura2: AssinaturaInfo },
-  assinaturasSalvas: AssinaturaResumo[],
+  assinaturasSalvas: AssinaturaComImagem[],
 ): { assinatura1: AssinaturaInfo; assinatura2: AssinaturaInfo } {
   function resolver(papel: "assinatura1" | "assinatura2", cfg: AssinaturaInfo): AssinaturaInfo {
     const salva = assinaturasSalvas.find((a) => a.papel === papel);
@@ -64,6 +64,7 @@ export function montarAssinaturasFinanceiroComDigital(
         nome: salva.nomeNoMomento,
         cargo: salva.cargoNoMomento ?? cfg.cargo,
         assinadoDigitalmenteEm: salva.assinadoEm,
+        assinaturaImagemSrc: salva.assinaturaImagemSrc,
       };
     }
     return { nome: "", cargo: cfg.cargo, pendente: true };

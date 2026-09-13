@@ -14,11 +14,17 @@ describe("montarAssinaturasParecer", () => {
           nomeNoMomento: "Mateus dos Santos",
           cargoNoMomento: "Supervisor de Futebol",
           assinadoEm: "2026-08-28T10:00:00Z",
+          assinaturaImagemSrc: "https://example.com/assinatura-mateus.png",
         },
       ],
     );
     expect(resultado).toEqual([
-      { nome: "Mateus dos Santos", cargo: "Supervisor de Futebol", assinadoDigitalmenteEm: "2026-08-28T10:00:00Z" },
+      {
+        nome: "Mateus dos Santos",
+        cargo: "Supervisor de Futebol",
+        assinadoDigitalmenteEm: "2026-08-28T10:00:00Z",
+        assinaturaImagemSrc: "https://example.com/assinatura-mateus.png",
+      },
       { nome: "", cargo: "Gerente de Futebol", pendente: true },
     ]);
   });

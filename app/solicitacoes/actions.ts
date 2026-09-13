@@ -8,7 +8,7 @@ import { hojeBrasilia } from "@/lib/data-brasil";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotal } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
-import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
+import { autoAssinarComoCreator, possuiAssinaturaCadastrada } from "@/lib/assinaturas/actions";
 import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
 import { isMaster } from "@/lib/auth/role";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
@@ -365,6 +365,13 @@ export async function createSolicitacao(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente.", values: raw };
+  // O Solicitante assina automaticamente ao criar (ver mais abaixo) — sem assinatura cadastrada,
+  // isso geraria um documento sem imagem de assinatura de verdade, por isso a criação já é
+  // bloqueada aqui (ver docs/superpowers/specs/2026-09-13-assinatura-desenhada-design.md).
+  if (!(await possuiAssinaturaCadastrada(supabase, user.id))) {
+    return { error: "Cadastre sua assinatura em Minha Conta antes de criar uma solicitação.", values: raw };
+  }
   const data = result.data;
   const numero = await proximoNumero(supabase);
   const solicitante = await solicitanteFinal(supabase, data.solicitante);
@@ -508,6 +515,11 @@ export async function duplicarSolicitacao(formData: FormData): Promise<void> {
   const original = originalData as SolicitacaoRow;
   if (!(await souDonoOuMaster(supabase, original.created_by))) {
     console.error(`Tentativa de duplicar solicitação ${id} por usuário sem permissão.`);
+    return;
+  }
+  // Mesma trava de createSolicitacao: duplicar também assina automaticamente como Solicitante.
+  if (!user || !(await possuiAssinaturaCadastrada(supabase, user.id))) {
+    console.error(`Tentativa de duplicar solicitação ${id} sem assinatura cadastrada.`);
     return;
   }
 

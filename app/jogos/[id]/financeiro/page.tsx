@@ -7,7 +7,7 @@ import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
 import { papeisAssinaturaFinanceiro, podeAssinarPapel } from "@/lib/assinaturas/config";
-import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { ConfiguracaoFinanceiroRow, GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 import { deleteGasto } from "./actions";
 
@@ -73,6 +73,11 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
         ),
       )
     : [];
+  const [assinaturasOrcamentoComImagem, assinaturasDespesasComImagem, minhaAssinaturaCadastrada] = await Promise.all([
+    resolverImagensAssinaturas(supabase, assinaturasOrcamento),
+    resolverImagensAssinaturas(supabase, assinaturasDespesas),
+    user ? possuiAssinaturaCadastrada(supabase, user.id) : Promise.resolve(false),
+  ]);
 
   return (
     <AppShell>
@@ -187,8 +192,9 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
             documentoId={jogo.id}
             caminhoRevalidar={`/jogos/${jogo.id}/financeiro`}
             papeis={papeisFinanceiro}
-            assinaturas={assinaturasOrcamento}
+            assinaturas={assinaturasOrcamentoComImagem}
             papeisQuePossoAssinar={[...papeisQuePossoAssinar]}
+            minhaAssinaturaCadastrada={minhaAssinaturaCadastrada}
           />
         </div>
       ) : null}
@@ -201,8 +207,9 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
             documentoId={jogo.id}
             caminhoRevalidar={`/jogos/${jogo.id}/financeiro`}
             papeis={papeisFinanceiro}
-            assinaturas={assinaturasDespesas}
+            assinaturas={assinaturasDespesasComImagem}
             papeisQuePossoAssinar={[...papeisQuePossoAssinar]}
+            minhaAssinaturaCadastrada={minhaAssinaturaCadastrada}
           />
         </div>
       ) : null}

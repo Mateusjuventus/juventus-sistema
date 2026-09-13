@@ -1351,6 +1351,11 @@ export interface PerfilRow {
    * notificacoes-design.md). `null` até a pessoa preencher pela primeira vez. */
   nome: string | null;
   cargo: string | null;
+  /** Caminho (Storage, bucket `assinaturas`) da assinatura desenhada/anexada ATUAL da conta — a
+   * mais recente cadastrada em `/minha-conta` (ver docs/superpowers/specs/2026-09-13-assinatura-
+   * desenhada-design.md). `null` até a pessoa cadastrar pela primeira vez; trocar depois não afeta
+   * documentos já assinados (snapshot em `assinaturas_documento.assinatura_path`). */
+  assinatura_path: string | null;
   created_at: string;
 }
 

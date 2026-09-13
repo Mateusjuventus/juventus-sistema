@@ -2,12 +2,14 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { TrocarSenhaForm } from "@/components/trocar-senha-form";
 import { NomeCargoForm } from "@/components/nome-cargo-form";
+import { MinhaAssinaturaForm } from "@/components/minha-assinatura-form";
 import { createClient } from "@/lib/supabase/server";
+import { getSignedAssinaturaUrl } from "@/lib/supabase/storage";
 import { getDepartamentosPermitidos, getModulosPermitidos, getModulosBasePermitidos, getUserRole } from "@/lib/auth/role";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
 import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
-import { trocarMinhaSenha, salvarMeuNomeCargo } from "./actions";
+import { trocarMinhaSenha, salvarMeuNomeCargo, salvarMinhaAssinatura } from "./actions";
 
 /**
  * Autoatendimento da própria conta — e-mail, papel e o que a pessoa tem liberado (só leitura), mais
@@ -33,8 +35,9 @@ export default async function MinhaContaPage() {
   ]);
 
   const { data: perfil } = user
-    ? await supabase.from("perfis").select("nome, cargo").eq("id", user.id).maybeSingle()
+    ? await supabase.from("perfis").select("nome, cargo, assinatura_path").eq("id", user.id).maybeSingle()
     : { data: null };
+  const assinaturaUrl = await getSignedAssinaturaUrl(supabase, perfil?.assinatura_path ?? null);
 
   const master = role === "master";
 
@@ -106,6 +109,10 @@ export default async function MinhaContaPage() {
 
         <div className="card p-5">
           <NomeCargoForm action={salvarMeuNomeCargo} nome={perfil?.nome ?? null} cargo={perfil?.cargo ?? null} />
+        </div>
+
+        <div className="card p-5">
+          <MinhaAssinaturaForm action={salvarMinhaAssinatura} assinaturaUrl={assinaturaUrl} />
         </div>
 
         <TrocarSenhaForm action={trocarMinhaSenha} />

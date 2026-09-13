@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { OrcamentoDocument, type OrcamentoPdfCategoria } from "@/lib/pdf/orcamento-document";
 import { getAssinaturasFinanceiro, montarAssinaturasFinanceiroComDigital } from "@/lib/pdf/assinaturas";
-import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
@@ -28,7 +28,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     getAssinaturasFinanceiro(supabase),
     buscarAssinaturas("orcamento_jogo", jogo.id),
   ]);
-  const { assinatura1, assinatura2 } = montarAssinaturasFinanceiroComDigital(assinaturasConfig, assinaturasSalvas);
+  const assinaturasComImagem = await resolverImagensAssinaturas(supabase, assinaturasSalvas);
+  const { assinatura1, assinatura2 } = montarAssinaturasFinanceiroComDigital(assinaturasConfig, assinaturasComImagem);
   const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
 
   if (gastos.length === 0) {

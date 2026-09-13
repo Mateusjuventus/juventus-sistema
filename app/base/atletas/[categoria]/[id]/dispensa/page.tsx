@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { RelatorioDispensaForm } from "@/components/relatorio-dispensa-form";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { papeisEsperados, podeAssinarPapel } from "@/lib/assinaturas/config";
-import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
@@ -31,11 +31,15 @@ export default async function DispensaAtletaBasePage({
 
   const jaGerado = Boolean(atleta.dispensa_data);
   const action = salvarRelatorioDispensaAdmin.bind(null, atleta.id, params.categoria);
-  const [assinaturas, { data: { user } }, master, { data: configData }] = await Promise.all([
+  const [assinaturasSalvas, { data: { user } }, master, { data: configData }] = await Promise.all([
     jaGerado ? buscarAssinaturas("dispensa_base", atleta.id) : Promise.resolve([]),
     supabase.auth.getUser(),
     isMaster(supabase),
     supabase.from("configuracoes_dispensa_base").select("*").limit(1).maybeSingle(),
+  ]);
+  const [assinaturas, minhaAssinaturaCadastrada] = await Promise.all([
+    resolverImagensAssinaturas(supabase, assinaturasSalvas),
+    user ? possuiAssinaturaCadastrada(supabase, user.id) : Promise.resolve(false),
   ]);
   const configDispensa = configData as ConfiguracaoDispensaBaseRow | null;
   const papeisQuePossoAssinar =
@@ -86,6 +90,7 @@ export default async function DispensaAtletaBasePage({
             papeis={papeisEsperados("dispensa_base")}
             assinaturas={assinaturas}
             papeisQuePossoAssinar={papeisQuePossoAssinar}
+            minhaAssinaturaCadastrada={minhaAssinaturaCadastrada}
           />
         ) : null}
       </div>

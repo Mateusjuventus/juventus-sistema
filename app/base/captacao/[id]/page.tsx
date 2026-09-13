@@ -14,7 +14,7 @@ import {
 } from "@/lib/futebol/captacao";
 import { isMaster } from "@/lib/auth/role";
 import { papeisAssinaturaParecer, podeAssinarPapel } from "@/lib/assinaturas/config";
-import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type {
   CaptacaoBaseRow,
   CaptacaoDocumentoRow,
@@ -81,6 +81,10 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
     isMaster(supabase),
     supabase.from("configuracoes_parecer_captacao_base").select("assinaturas").limit(1).maybeSingle(),
     buscarAssinaturas("parecer_captacao_base", candidato.id),
+  ]);
+  const [assinaturasComImagem, minhaAssinaturaCadastrada] = await Promise.all([
+    resolverImagensAssinaturas(supabase, assinaturas),
+    user ? possuiAssinaturaCadastrada(supabase, user.id) : Promise.resolve(false),
   ]);
   const configAssinaturas =
     (configParecerData as Pick<ConfiguracaoParecerCaptacaoBaseRow, "assinaturas"> | null)?.assinaturas ?? [];
@@ -280,8 +284,9 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
               documentoId={candidato.id}
               caminhoRevalidar={`/base/captacao/${candidato.id}`}
               papeis={papeisParecer}
-              assinaturas={assinaturas}
+              assinaturas={assinaturasComImagem}
               papeisQuePossoAssinar={papeisQuePossoAssinar}
+              minhaAssinaturaCadastrada={minhaAssinaturaCadastrada}
             />
           ) : null}
         </section>

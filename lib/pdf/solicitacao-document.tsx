@@ -230,19 +230,27 @@ function formatMoeda(valor: number): string {
 /** Estado das 2 assinaturas da Solicitação (ver docs/superpowers/specs/2026-08-28-assinatura-
  * digital-notificacoes-design.md) — `null` = ainda pendente. */
 export interface SolicitacaoAssinaturas {
-  solicitante: { nome: string; cargo: string | null; assinadoEm: string } | null;
-  encarregado: { nome: string; cargo: string | null; assinadoEm: string } | null;
+  solicitante: { nome: string; cargo: string | null; assinadoEm: string; assinaturaImagemSrc: string | null } | null;
+  encarregado: { nome: string; cargo: string | null; assinadoEm: string; assinaturaImagemSrc: string | null } | null;
 }
 
-/** Combina o que foi salvo em `assinaturas_documento` com o estado esperado (Solicitante +
- * Encarregado) — mesmo espírito de `montarAssinaturasDispensa` em
- * `lib/pdf/relatorio-dispensa-document.tsx`. */
+/** Combina o que foi salvo em `assinaturas_documento` (já passado por `resolverImagensAssinaturas`)
+ * com o estado esperado (Solicitante + Encarregado) — mesmo espírito de `montarAssinaturasDispensa`
+ * em `lib/pdf/relatorio-dispensa-document.tsx`. */
 export function montarAssinaturasSolicitacao(
-  assinaturasSalvas: { papel: string; nomeNoMomento: string; cargoNoMomento: string | null; assinadoEm: string }[],
+  assinaturasSalvas: {
+    papel: string;
+    nomeNoMomento: string;
+    cargoNoMomento: string | null;
+    assinadoEm: string;
+    assinaturaImagemSrc: string | null;
+  }[],
 ): SolicitacaoAssinaturas {
   function porPapel(papel: string) {
     const a = assinaturasSalvas.find((x) => x.papel === papel);
-    return a ? { nome: a.nomeNoMomento, cargo: a.cargoNoMomento, assinadoEm: a.assinadoEm } : null;
+    return a
+      ? { nome: a.nomeNoMomento, cargo: a.cargoNoMomento, assinadoEm: a.assinadoEm, assinaturaImagemSrc: a.assinaturaImagemSrc }
+      : null;
   }
   return { solicitante: porPapel("solicitante"), encarregado: porPapel("encarregado") };
 }
@@ -553,6 +561,7 @@ export function SolicitacaoDocument({
                   nome: assinaturas.solicitante.nome,
                   cargo: assinaturas.solicitante.cargo ?? "Solicitante",
                   assinadoDigitalmenteEm: assinaturas.solicitante.assinadoEm,
+                  assinaturaImagemSrc: assinaturas.solicitante.assinaturaImagemSrc,
                 }
               : { nome: "", cargo: "Solicitante", pendente: true }
           }
@@ -562,6 +571,7 @@ export function SolicitacaoDocument({
                   nome: assinaturas.encarregado.nome,
                   cargo: assinaturas.encarregado.cargo ?? "Encarregado do Departamento",
                   assinadoDigitalmenteEm: assinaturas.encarregado.assinadoEm,
+                  assinaturaImagemSrc: assinaturas.encarregado.assinaturaImagemSrc,
                 }
               : { nome: "", cargo: "Encarregado do Departamento", pendente: true }
           }

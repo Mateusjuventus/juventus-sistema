@@ -136,19 +136,27 @@ export interface RelatorioDispensaAtleta {
 /** `nome`/`cargo` de quem assinou cada papel (ver docs/superpowers/specs/2026-08-28-assinatura-
  * digital-notificacoes-design.md) — `null` = ainda pendente. */
 export interface RelatorioDispensaAssinaturas {
-  treinador: { nome: string; cargo: string | null; assinadoEm: string } | null;
-  departamento: { nome: string; cargo: string | null; assinadoEm: string } | null;
+  treinador: { nome: string; cargo: string | null; assinadoEm: string; assinaturaImagemSrc: string | null } | null;
+  departamento: { nome: string; cargo: string | null; assinadoEm: string; assinaturaImagemSrc: string | null } | null;
 }
 
-/** Converte o resultado genérico de `buscarAssinaturas("dispensa_base", ...)` no formato que este
- * documento espera — usado pelas duas rotas de PDF (Treinador e cadastro interno), pra não repetir
- * o mesmo mapeamento duas vezes. */
+/** Converte o resultado genérico de `buscarAssinaturas("dispensa_base", ...)` (já passado por
+ * `resolverImagensAssinaturas`) no formato que este documento espera — usado pelas duas rotas de
+ * PDF (Treinador e cadastro interno), pra não repetir o mesmo mapeamento duas vezes. */
 export function montarAssinaturasDispensa(
-  assinaturasSalvas: { papel: string; nomeNoMomento: string; cargoNoMomento: string | null; assinadoEm: string }[],
+  assinaturasSalvas: {
+    papel: string;
+    nomeNoMomento: string;
+    cargoNoMomento: string | null;
+    assinadoEm: string;
+    assinaturaImagemSrc: string | null;
+  }[],
 ): RelatorioDispensaAssinaturas {
   function porPapel(papel: string) {
     const a = assinaturasSalvas.find((x) => x.papel === papel);
-    return a ? { nome: a.nomeNoMomento, cargo: a.cargoNoMomento, assinadoEm: a.assinadoEm } : null;
+    return a
+      ? { nome: a.nomeNoMomento, cargo: a.cargoNoMomento, assinadoEm: a.assinadoEm, assinaturaImagemSrc: a.assinaturaImagemSrc }
+      : null;
   }
   return { treinador: porPapel("treinador"), departamento: porPapel("departamento") };
 }
@@ -243,6 +251,7 @@ export function RelatorioDispensaDocument({
                   nome: assinaturas.treinador.nome,
                   cargo: assinaturas.treinador.cargo ?? "Treinador / Responsável pela avaliação",
                   assinadoDigitalmenteEm: assinaturas.treinador.assinadoEm,
+                  assinaturaImagemSrc: assinaturas.treinador.assinaturaImagemSrc,
                 }
               : { nome: "", cargo: "Treinador / Responsável pela avaliação", pendente: true }
           }
@@ -252,6 +261,7 @@ export function RelatorioDispensaDocument({
                   nome: assinaturas.departamento.nome,
                   cargo: assinaturas.departamento.cargo ?? "Departamento de Futebol de Base",
                   assinadoDigitalmenteEm: assinaturas.departamento.assinadoEm,
+                  assinaturaImagemSrc: assinaturas.departamento.assinaturaImagemSrc,
                 }
               : { nome: "", cargo: "Departamento de Futebol de Base", pendente: true }
           }

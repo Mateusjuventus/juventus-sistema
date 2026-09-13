@@ -174,7 +174,13 @@ const OPCOES_VEREDITO = [
  */
 export function montarAssinaturasParecer(
   config: { id: string; nome: string; cargo: string }[],
-  assinaturasSalvas: { papel: string; nomeNoMomento: string; cargoNoMomento: string | null; assinadoEm: string }[],
+  assinaturasSalvas: {
+    papel: string;
+    nomeNoMomento: string;
+    cargoNoMomento: string | null;
+    assinadoEm: string;
+    assinaturaImagemSrc: string | null;
+  }[],
 ): AssinaturaInfo[] {
   return config
     .filter((c) => c.nome.trim().length > 0)
@@ -185,6 +191,7 @@ export function montarAssinaturasParecer(
           nome: salva.nomeNoMomento,
           cargo: salva.cargoNoMomento ?? c.cargo,
           assinadoDigitalmenteEm: salva.assinadoEm,
+          assinaturaImagemSrc: salva.assinaturaImagemSrc,
         };
       }
       return { nome: "", cargo: c.cargo || c.nome, pendente: true };

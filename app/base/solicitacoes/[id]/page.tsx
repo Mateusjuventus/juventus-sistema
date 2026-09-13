@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { isMaster } from "@/lib/auth/role";
 import { papeisAssinaturaSolicitacao, podeAssinarPapel } from "@/lib/assinaturas/config";
-import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import { SOLICITACAO_TIPOS, STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import type { ConfiguracaoSolicitacoesBaseRow, SolicitacaoItemBaseRow, SolicitacaoBaseRow } from "@/lib/supabase/types";
 import { SolicitacaoForm } from "../solicitacao-form";
@@ -71,7 +71,11 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
   const podeEditar = master || souCriador;
 
   const itens = (itensData ?? []) as SolicitacaoItemBaseRow[];
-  const fotoUrls = await Promise.all(itens.map((i) => getSignedPhotoUrl(supabase, i.foto_path)));
+  const [fotoUrls, assinaturasComImagem, minhaAssinaturaCadastrada] = await Promise.all([
+    Promise.all(itens.map((i) => getSignedPhotoUrl(supabase, i.foto_path))),
+    resolverImagensAssinaturas(supabase, assinaturas),
+    user ? possuiAssinaturaCadastrada(supabase, user.id) : Promise.resolve(false),
+  ]);
 
   const papeisSolicitacao = papeisAssinaturaSolicitacao({
     encarregadoCargo: configSolicitacoes?.encarregado_cargo ?? "",
@@ -209,8 +213,9 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
           documentoId={s.id}
           caminhoRevalidar={`/base/solicitacoes/${s.id}`}
           papeis={papeisSolicitacao}
-          assinaturas={assinaturas}
+          assinaturas={assinaturasComImagem}
           papeisQuePossoAssinar={[...papeisQuePossoAssinar]}
+          minhaAssinaturaCadastrada={minhaAssinaturaCadastrada}
         />
       </div>
 

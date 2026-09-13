@@ -238,6 +238,10 @@ export const financeiroStyles = StyleSheet.create({
   assinaturaDigitalSelo: { fontSize: 9, fontWeight: 700, color: CORES.grena, textAlign: "center" },
   assinaturaDigitalData: { fontSize: 7.5, color: "#737373", textAlign: "center", marginTop: 2 },
   assinaturaPendenteTexto: { fontSize: 8.5, color: "#a3a3a3", textAlign: "center", fontStyle: "italic" },
+  /** Imagem da assinatura desenhada/anexada (ver docs/superpowers/specs/2026-09-13-assinatura-
+   * desenhada-design.md) — só aparece quando o papel tem `assinaturaImagemSrc` (assinaturas de
+   * antes desta mudança continuam mostrando só o texto abaixo). */
+  assinaturaImagem: { width: 110, height: 38, objectFit: "contain", marginBottom: 2 },
 });
 
 const DEPARTAMENTO_LABELS = {
@@ -286,6 +290,10 @@ export interface AssinaturaInfo {
    * digitalmente por [nome], [cargo], em [data]" — `nome`/`cargo` acima continuam sendo só o
    * rótulo do papel (ex. "Departamento de Futebol de Base"), igual a hoje. */
   assinadoDigitalmenteEm?: string;
+  /** Signed URL da imagem da assinatura desenhada/anexada (ver docs/superpowers/specs/2026-09-13-
+   * assinatura-desenhada-design.md) — só faz sentido junto de `assinadoDigitalmenteEm`. `null`/
+   * ausente: assinatura de antes desta mudança, mostra só o texto de sempre, sem imagem. */
+  assinaturaImagemSrc?: string | null;
   /** Documento com assinatura digital, mas esse papel específico ainda não foi assinado — mostra
    * "Pendente de assinatura" no lugar da linha em branco (documento ainda não impresso pra
    * assinar na mão, então uma linha vazia sem contexto confundiria). Ignorado se
@@ -300,6 +308,10 @@ function ConteudoColunaAssinatura({ assinatura }: { assinatura: AssinaturaInfo }
   if (assinatura.assinadoDigitalmenteEm) {
     return (
       <>
+        {assinatura.assinaturaImagemSrc ? (
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image style={financeiroStyles.assinaturaImagem} src={assinatura.assinaturaImagemSrc} />
+        ) : null}
         <Text style={financeiroStyles.assinaturaDigitalSelo}>Assinado digitalmente</Text>
         <Text style={financeiroStyles.assinaturaNome}>{assinatura.nome}</Text>
         <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>

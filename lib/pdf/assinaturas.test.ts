@@ -14,13 +14,16 @@ describe("montarAssinaturasFinanceiroComDigital", () => {
         usuarioId: "u1",
         nomeNoMomento: "Mateus dos Santos",
         cargoNoMomento: "Supervisor de Futebol",
+        assinaturaPath: "u1/assinatura-1.png",
         assinadoEm: "2026-08-28T10:00:00Z",
+        assinaturaImagemSrc: "https://example.com/assinatura-mateus.png",
       },
     ]);
     expect(resultado.assinatura1).toEqual({
       nome: "Mateus dos Santos",
       cargo: "Supervisor de Futebol",
       assinadoDigitalmenteEm: "2026-08-28T10:00:00Z",
+      assinaturaImagemSrc: "https://example.com/assinatura-mateus.png",
     });
     expect(resultado.assinatura2).toEqual({ nome: "", cargo: "Gerente de Futebol", pendente: true });
   });

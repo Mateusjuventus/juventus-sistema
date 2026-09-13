@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import { SolicitacaoDocument, montarAssinaturasSolicitacao, type SolicitacaoPdfItem } from "@/lib/pdf/solicitacao-document";
-import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { SolicitacaoItemRow, SolicitacaoRow } from "@/lib/supabase/types";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -68,6 +68,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const assinaturas = montarAssinaturasSolicitacao(await resolverImagensAssinaturas(supabase, assinaturasSalvas));
 
   const buffer = await renderToBuffer(
     <SolicitacaoDocument
@@ -89,7 +90,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         titularConta: s.titular_conta,
       }}
       itens={itens}
-      assinaturas={montarAssinaturasSolicitacao(assinaturasSalvas)}
+      assinaturas={assinaturas}
     />,
   );
 

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import type { CaptacaoDocumentoTipo } from "./types";
@@ -216,4 +217,52 @@ export async function getSignedCaptacaoDocumentoUrl(
 
   if (error || !data) return null;
   return data.signedUrl;
+}
+
+/** Bucket privado das assinaturas desenhadas/anexadas por conta (ver spec
+ * docs/superpowers/specs/2026-09-13-assinatura-desenhada-design.md e
+ * supabase/migrations/0104_assinatura_desenhada.sql). Diferente de `ENTITY_PHOTOS_BUCKET` (upsert
+ * de nome fixo), cada assinatura salva ganha um `id` novo e nunca sobrescreve a anterior — é isso
+ * que permite `assinaturas_documento.assinatura_path` continuar apontando pra imagem certa mesmo
+ * depois que a pessoa troca a assinatura salva em `/minha-conta`. */
+export const ASSINATURAS_BUCKET = "assinaturas";
+
+export function buildAssinaturaPath(usuarioId: string, assinaturaId: string, fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "png";
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "png";
+  return `${usuarioId}/${assinaturaId}.${safeExt}`;
+}
+
+/** Signed URL temporária (1h) pra uma imagem de assinatura salva — mesmo padrão dos demais buckets
+ * privados. */
+export async function getSignedAssinaturaUrl(
+  supabase: SupabaseClient,
+  path: string | null,
+): Promise<string | null> {
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(ASSINATURAS_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
+/**
+ * Salva uma nova assinatura (desenhada ou anexada) da conta logada — sem redimensionar nem tratar
+ * a imagem (fora de escopo da spec), sobe como veio. Cada chamada gera um `id` novo (nunca upsert
+ * no mesmo nome), pra que assinaturas já feitas com a versão anterior continuem intactas.
+ */
+export async function uploadAssinatura(
+  cliente: SupabaseClient,
+  file: File,
+  usuarioId: string,
+): Promise<{ path?: string; error?: boolean }> {
+  const assinaturaId = randomUUID();
+  const path = buildAssinaturaPath(usuarioId, assinaturaId, file.name);
+  const { error } = await cliente.storage
+    .from(ASSINATURAS_BUCKET)
+    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+  return error ? { error: true } : { path };
 }

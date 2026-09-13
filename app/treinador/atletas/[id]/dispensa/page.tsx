@@ -6,7 +6,7 @@ import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { RelatorioDispensaForm } from "@/components/relatorio-dispensa-form";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { papeisEsperados } from "@/lib/assinaturas/config";
-import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { AtletaBaseRow } from "@/lib/supabase/types";
 import { salvarRelatorioDispensaTreinador } from "./actions";
 
@@ -28,7 +28,14 @@ export default async function DispensaAtletaTreinadorPage({ params }: { params: 
 
   const jaGerado = Boolean(atleta.dispensa_data);
   const action = salvarRelatorioDispensaTreinador.bind(null, atleta.id);
-  const assinaturas = jaGerado ? await buscarAssinaturas("dispensa_base", atleta.id) : [];
+  const assinaturasSalvas = jaGerado ? await buscarAssinaturas("dispensa_base", atleta.id) : [];
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [assinaturas, minhaAssinaturaCadastrada] = await Promise.all([
+    resolverImagensAssinaturas(supabase, assinaturasSalvas),
+    user ? possuiAssinaturaCadastrada(supabase, user.id) : Promise.resolve(false),
+  ]);
 
   return (
     <div className="min-h-screen bg-pagina">
@@ -74,6 +81,7 @@ export default async function DispensaAtletaTreinadorPage({ params }: { params: 
                 papeis={papeisEsperados("dispensa_base")}
                 assinaturas={assinaturas}
                 papeisQuePossoAssinar={["treinador"]}
+                minhaAssinaturaCadastrada={minhaAssinaturaCadastrada}
               />
             </div>
           ) : (
