@@ -1,15 +1,19 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { buscarPerfisParaSelecao } from "@/lib/auth/perfis";
 import type { ConfiguracaoSolicitacoesBaseRow } from "@/lib/supabase/types";
 import { ConfiguracaoEncarregadoFormBase } from "./configuracao-encarregado-form";
 import { updateConfiguracaoSolicitacoesBase } from "./actions";
 
-/** Espelha `app/solicitacoes/configuracoes/page.tsx` para o Futebol de Base. */
+/** Espelha `app/solicitacoes/configuracoes/page.tsx` para o Futebol de Base — restrita a Master. */
 export default async function ConfiguracoesSolicitacoesBasePage() {
   const supabase = createClient();
+  if (!(await isMaster(supabase))) redirect("/base/solicitacoes");
+
   const [{ data }, perfis] = await Promise.all([
     supabase.from("configuracoes_solicitacoes_base").select("*").limit(1).maybeSingle(),
     buscarPerfisParaSelecao(supabase),

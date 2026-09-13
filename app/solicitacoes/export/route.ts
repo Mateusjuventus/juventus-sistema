@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { SOLICITACAO_TIPOS, SOLICITACAO_STATUS, STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import type { SolicitacaoItemRow, SolicitacaoRow, SolicitacaoTipo, SolicitacaoStatus } from "@/lib/supabase/types";
@@ -23,7 +24,15 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status") ?? "";
 
   const supabase = createClient();
+  const master = await isMaster(supabase);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   let query = supabase.from("solicitacoes").select("*").order("data_solicitacao", { ascending: false });
+  // Mesma regra de visibilidade da listagem — ver
+  // docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md.
+  if (!master && user) query = query.eq("created_by", user.id);
   if (tipo) query = query.eq("tipo", tipo as SolicitacaoTipo);
   if (status) query = query.eq("status", status as SolicitacaoStatus);
 

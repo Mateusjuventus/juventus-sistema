@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotal } from "@/lib/solicitacao-valor-total";
+import { isMaster } from "@/lib/auth/role";
 import {
   solicitacaoItemSchema,
   solicitacaoItemPagamentoSchema,
@@ -20,6 +21,30 @@ export interface SolicitacaoItemFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
+}
+
+/**
+ * Os itens de uma solicitação (compra, pagamento, passageiros...) pertencem à mesma solicitação —
+ * herdam a mesma regra de autoria dela (ver
+ * docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md): só quem criou a
+ * solicitação, ou Master, pode adicionar/editar/excluir um item.
+ */
+async function souDonoDaSolicitacaoOuMaster(
+  supabase: ReturnType<typeof createClient>,
+  solicitacaoId: string,
+): Promise<boolean> {
+  const master = await isMaster(supabase);
+  if (master) return true;
+  const { data: solicitacao } = await supabase
+    .from("solicitacoes")
+    .select("created_by")
+    .eq("id", solicitacaoId)
+    .maybeSingle();
+  if (!solicitacao?.created_by) return false;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return !!user && user.id === solicitacao.created_by;
 }
 
 /** Cada tipo de solicitação guarda campos diferentes na mesma tabela `solicitacao_itens` — só o
@@ -112,6 +137,11 @@ export async function createSolicitacaoItem(
   }
 
   const supabase = createClient();
+
+  if (!(await souDonoDaSolicitacaoOuMaster(supabase, solicitacaoId))) {
+    return { error: "Você só pode adicionar itens em solicitações que você mesmo criou.", values: raw };
+  }
+
   const id = randomUUID();
 
   const { data: existentes } = await supabase
@@ -288,6 +318,10 @@ export async function updateSolicitacaoItem(
 
   const supabase = createClient();
 
+  if (!(await souDonoDaSolicitacaoOuMaster(supabase, solicitacaoId))) {
+    return { error: "Você só pode editar itens de solicitações que você mesmo criou.", values: raw };
+  }
+
   if (tipo === "pagamento" || tipo === "reembolso") {
     const data = result.data as { descricao: string; valor: number; observacao?: string };
     const { error } = await supabase
@@ -436,7 +470,19 @@ export async function updateSolicitacaoItem(
 
 export async function deleteSolicitacaoItem(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
   const supabase = createClient();
+  const { data: item } = await supabase
+    .from("solicitacao_itens")
+    .select("solicitacao_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!item?.solicitacao_id || !(await souDonoDaSolicitacaoOuMaster(supabase, item.solicitacao_id))) {
+    console.error(`Tentativa de excluir item ${id} por usuário sem permissão.`);
+    return;
+  }
+
   const { data } = await supabase
     .from("solicitacao_itens")
     .delete()

@@ -10,7 +10,33 @@ import { recalcularValorTotalBase } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
 import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
 import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
+import { isMaster } from "@/lib/auth/role";
+import { nomeDaContaAtual } from "@/lib/auth/perfis";
 import type { SolicitacaoBaseRow, SolicitacaoItemBaseRow, SolicitacaoTipo } from "@/lib/supabase/types";
+
+/** Espelha `solicitanteFinal` (app/solicitacoes/actions.ts) para o Futebol de Base — ver
+ * docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md. */
+async function solicitanteFinal(
+  supabase: ReturnType<typeof createClient>,
+  solicitanteDoFormulario: string,
+): Promise<string> {
+  if (await isMaster(supabase)) return solicitanteDoFormulario;
+  return (await nomeDaContaAtual(supabase)) ?? solicitanteDoFormulario;
+}
+
+/** Espelha `souDonoOuMaster` (app/solicitacoes/actions.ts) para o Futebol de Base. */
+async function souDonoOuMaster(
+  supabase: ReturnType<typeof createClient>,
+  createdBy: string | null,
+): Promise<boolean> {
+  const master = await isMaster(supabase);
+  if (master) return true;
+  if (!createdBy) return false;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return !!user && user.id === createdBy;
+}
 
 /** Espelha `notificarEncarregado` (app/solicitacoes/actions.ts) para o Futebol de Base. */
 async function notificarEncarregado(
@@ -317,6 +343,7 @@ export async function createSolicitacaoBase(
   } = await supabase.auth.getUser();
   const data = result.data;
   const numero = await proximoNumero(supabase);
+  const solicitante = await solicitanteFinal(supabase, data.solicitante);
 
   const { data: criada, error } = await supabase
     .from("solicitacoes_base")
@@ -324,7 +351,7 @@ export async function createSolicitacaoBase(
       numero,
       tipo: data.tipo,
       data_solicitacao: data.dataSolicitacao,
-      solicitante: data.solicitante,
+      solicitante,
       setor: data.setor,
       descricao_necessidade: data.descricaoNecessidade || null,
       prazo_sugerido: data.prazoSugerido || null,
@@ -380,12 +407,22 @@ export async function updateSolicitacaoBase(
   const supabase = createClient();
   const data = result.data;
 
+  const { data: existente } = await supabase
+    .from("solicitacoes_base")
+    .select("created_by")
+    .eq("id", id)
+    .maybeSingle();
+  if (!existente || !(await souDonoOuMaster(supabase, existente.created_by))) {
+    return { error: "Você só pode editar solicitações que você mesmo criou.", values: raw };
+  }
+  const solicitante = await solicitanteFinal(supabase, data.solicitante);
+
   const { error } = await supabase
     .from("solicitacoes_base")
     .update({
       tipo: data.tipo,
       data_solicitacao: data.dataSolicitacao,
-      solicitante: data.solicitante,
+      solicitante,
       setor: data.setor,
       descricao_necessidade: data.descricaoNecessidade || null,
       prazo_sugerido: data.prazoSugerido || null,
@@ -415,7 +452,19 @@ export async function updateSolicitacaoBase(
 
 export async function deleteSolicitacaoBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
   const supabase = createClient();
+  const { data: existente } = await supabase
+    .from("solicitacoes_base")
+    .select("created_by")
+    .eq("id", id)
+    .maybeSingle();
+  if (!existente || !(await souDonoOuMaster(supabase, existente.created_by))) {
+    console.error(`Tentativa de excluir solicitação ${id} por usuário sem permissão.`);
+    return;
+  }
+
   await supabase.from("solicitacoes_base").delete().eq("id", id);
   revalidatePath("/base/solicitacoes");
 }
@@ -432,6 +481,10 @@ export async function duplicarSolicitacaoBase(formData: FormData): Promise<void>
   const { data: originalData } = await supabase.from("solicitacoes_base").select("*").eq("id", id).single();
   if (!originalData) return;
   const original = originalData as SolicitacaoBaseRow;
+  if (!(await souDonoOuMaster(supabase, original.created_by))) {
+    console.error(`Tentativa de duplicar solicitação ${id} por usuário sem permissão.`);
+    return;
+  }
 
   const numero = await proximoNumero(supabase);
 
@@ -523,6 +576,16 @@ export async function updateSolicitacaoStatusBase(formData: FormData): Promise<v
   if (!result.success || !id) return;
 
   const supabase = createClient();
+  const { data: existente } = await supabase
+    .from("solicitacoes_base")
+    .select("created_by")
+    .eq("id", id)
+    .maybeSingle();
+  if (!existente || !(await souDonoOuMaster(supabase, existente.created_by))) {
+    console.error(`Tentativa de alterar status da solicitação ${id} por usuário sem permissão.`);
+    return;
+  }
+
   await supabase.from("solicitacoes_base").update({ status: result.data.status }).eq("id", id);
   revalidatePath("/base/solicitacoes");
   revalidatePath(`/base/solicitacoes/${id}`);

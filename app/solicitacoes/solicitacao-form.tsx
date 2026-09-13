@@ -581,11 +581,17 @@ export function SolicitacaoForm({
   entityId,
   defaultValues,
   submitLabel,
+  solicitanteTravado,
 }: {
   action: (prevState: SolicitacaoFormState, formData: FormData) => Promise<SolicitacaoFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
   submitLabel: string;
+  /** Quando `true` (quem não é Master), o campo "Solicitante" vira só um texto mostrando o nome da
+   * própria conta — sem input pra editar. O valor final é sempre recalculado no servidor a partir
+   * da conta de quem está logado (ver `createSolicitacao`/`updateSolicitacao`), então nem precisa
+   * ir junto no FormData daqui; só Master continua com o campo de texto livre de sempre. */
+  solicitanteTravado?: boolean;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
@@ -606,14 +612,26 @@ export function SolicitacaoForm({
             defaultValue={values.dataSolicitacao}
             error={errors.dataSolicitacao}
           />
-          <TextField
-            label="Solicitante"
-            name="solicitante"
-            required
-            autoComplete="off"
-            defaultValue={values.solicitante}
-            error={errors.solicitante}
-          />
+          {solicitanteTravado ? (
+            <div>
+              <label className="field-label">Solicitante</label>
+              <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+                {values.solicitante}
+              </p>
+              <p className="mt-1 text-xs text-neutral-400">
+                Travado com o nome da sua conta — só o Master pode lançar em nome de outra pessoa.
+              </p>
+            </div>
+          ) : (
+            <TextField
+              label="Solicitante"
+              name="solicitante"
+              required
+              autoComplete="off"
+              defaultValue={values.solicitante}
+              error={errors.solicitante}
+            />
+          )}
           <TextField
             label="Setor / C.C"
             name="setor"

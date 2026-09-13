@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { SolicitacoesLista } from "@/components/solicitacoes-lista";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { SOLICITACAO_TIPOS, SOLICITACAO_STATUS } from "@/lib/validation/schemas";
 import type { SolicitacaoRow, SolicitacaoTipo, SolicitacaoStatus } from "@/lib/supabase/types";
 import { deleteSolicitacao, duplicarSolicitacao, updateSolicitacaoStatus } from "./actions";
@@ -30,10 +31,18 @@ export default async function SolicitacoesPage({
   const busca = (searchParams.busca ?? "").trim();
 
   const supabase = createClient();
+  const master = await isMaster(supabase);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   let query = supabase
     .from("solicitacoes")
     .select("*")
     .order(COLUNA_ORDENACAO[ordenarPor], { ascending: direcao === "asc" });
+  // Quem não é Master só vê as próprias solicitações — ver
+  // docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md.
+  if (!master && user) query = query.eq("created_by", user.id);
   if (tipoFiltro) query = query.eq("tipo", tipoFiltro as SolicitacaoTipo);
   if (statusFiltro) query = query.eq("status", statusFiltro as SolicitacaoStatus);
   if (busca) {
@@ -63,9 +72,11 @@ export default async function SolicitacoesPage({
         >
           Exportar para Excel
         </a>
-        <Link href="/solicitacoes/configuracoes" className="btn-secondary">
-          Configurações
-        </Link>
+        {master ? (
+          <Link href="/solicitacoes/configuracoes" className="btn-secondary">
+            Configurações
+          </Link>
+        ) : null}
         <Link href="/solicitacoes/novo" className="btn-primary">
           + Nova solicitação
         </Link>

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadItemFotoIfPresent } from "@/lib/solicitacao-itens-upload";
 import { recalcularValorTotalBase } from "@/lib/solicitacao-valor-total";
+import { isMaster } from "@/lib/auth/role";
 import {
   solicitacaoItemSchema,
   solicitacaoItemPagamentoSchema,
@@ -21,6 +22,26 @@ export interface SolicitacaoItemFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
+}
+
+/** Espelha `souDonoDaSolicitacaoOuMaster` (app/solicitacoes/[id]/itens/actions.ts) para o Futebol
+ * de Base. */
+async function souDonoDaSolicitacaoOuMaster(
+  supabase: ReturnType<typeof createClient>,
+  solicitacaoId: string,
+): Promise<boolean> {
+  const master = await isMaster(supabase);
+  if (master) return true;
+  const { data: solicitacao } = await supabase
+    .from("solicitacoes_base")
+    .select("created_by")
+    .eq("id", solicitacaoId)
+    .maybeSingle();
+  if (!solicitacao?.created_by) return false;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return !!user && user.id === solicitacao.created_by;
 }
 
 function parseItemForm(tipo: SolicitacaoTipo, formData: FormData) {
@@ -110,6 +131,11 @@ export async function createSolicitacaoItemBase(
   }
 
   const supabase = createClient();
+
+  if (!(await souDonoDaSolicitacaoOuMaster(supabase, solicitacaoId))) {
+    return { error: "Você só pode adicionar itens em solicitações que você mesmo criou.", values: raw };
+  }
+
   const id = randomUUID();
 
   const { data: existentes } = await supabase
@@ -286,6 +312,10 @@ export async function updateSolicitacaoItemBase(
 
   const supabase = createClient();
 
+  if (!(await souDonoDaSolicitacaoOuMaster(supabase, solicitacaoId))) {
+    return { error: "Você só pode editar itens de solicitações que você mesmo criou.", values: raw };
+  }
+
   if (tipo === "pagamento" || tipo === "reembolso") {
     const data = result.data as { descricao: string; valor: number; observacao?: string };
     const { error } = await supabase
@@ -434,7 +464,19 @@ export async function updateSolicitacaoItemBase(
 
 export async function deleteSolicitacaoItemBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
   const supabase = createClient();
+  const { data: item } = await supabase
+    .from("solicitacao_itens_base")
+    .select("solicitacao_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!item?.solicitacao_id || !(await souDonoDaSolicitacaoOuMaster(supabase, item.solicitacao_id))) {
+    console.error(`Tentativa de excluir item ${id} por usuário sem permissão.`);
+    return;
+  }
+
   const { data } = await supabase
     .from("solicitacao_itens_base")
     .delete()

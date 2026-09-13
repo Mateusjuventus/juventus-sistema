@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { DeleteButton } from "@/components/delete-button";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
@@ -8,6 +8,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { isMaster } from "@/lib/auth/role";
 import { papeisAssinaturaSolicitacao, podeAssinarPapel } from "@/lib/assinaturas/config";
 import { buscarAssinaturas } from "@/lib/assinaturas/actions";
+import { SOLICITACAO_TIPOS, STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import type { ConfiguracaoSolicitacoesBaseRow, SolicitacaoItemBaseRow, SolicitacaoBaseRow } from "@/lib/supabase/types";
 import { SolicitacaoForm } from "../solicitacao-form";
 import { duplicarSolicitacaoBase, updateSolicitacaoBase } from "../actions";
@@ -23,6 +24,10 @@ function formatMoeda(valor: number | null): string {
   if (valor === null) return "—";
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+const TIPO_LABEL = Object.fromEntries(SOLICITACAO_TIPOS.map((t) => [t.value, t.label]));
+const CHAVE_PIX_TIPO_LABEL = Object.fromEntries(STAFF_CHAVE_PIX_TIPOS.map((t) => [t.value, t.label]));
+const TIPO_CONTA_LABEL = Object.fromEntries(TIPO_CONTA_BANCARIA.map((t) => [t.value, t.label]));
 
 /** Espelha `app/solicitacoes/[id]/page.tsx` para o Futebol de Base. */
 export default async function EditarSolicitacaoBasePage({ params }: { params: { id: string } }) {
@@ -52,10 +57,22 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
   if (!data) notFound();
 
   const s = data as SolicitacaoBaseRow;
+  const configSolicitacoes = configData as ConfiguracaoSolicitacoesBaseRow | null;
+
+  // Acesso: só quem criou, Master, ou o Encarregado configurado do departamento — ver
+  // docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md. O Encarregado
+  // que não é o criador só visualiza e assina (ver `podeEditar` abaixo), não edita.
+  const souCriador = !!s.created_by && s.created_by === user?.id;
+  const souEncarregado = podeAssinarPapel(configSolicitacoes?.encarregado_usuario_id, user?.id ?? "", master);
+  if (!master && !souCriador && !souEncarregado) redirect("/base/solicitacoes");
+
+  // Só o criador ou Master edita/exclui/duplica; o Encarregado que abriu só pra assinar entra em
+  // modo leitura (mesmo fallback de `created_by` nulo/legado usado abaixo em `papeisQuePossoAssinar`).
+  const podeEditar = master || souCriador;
+
   const itens = (itensData ?? []) as SolicitacaoItemBaseRow[];
   const fotoUrls = await Promise.all(itens.map((i) => getSignedPhotoUrl(supabase, i.foto_path)));
 
-  const configSolicitacoes = configData as ConfiguracaoSolicitacoesBaseRow | null;
   const papeisSolicitacao = papeisAssinaturaSolicitacao({
     encarregadoCargo: configSolicitacoes?.encarregado_cargo ?? "",
   });
@@ -101,6 +118,34 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
   const ehExame = s.tipo === "exame_medico";
   const labelSingular = ehPassageiro ? "passageiro" : ehHospede ? "hóspede" : ehExame ? "exame" : "item";
 
+  // Modo leitura (Encarregado que não é o criador): mesmos campos do formulário, só texto — ver
+  // docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md.
+  const camposLeitura: { rotulo: string; valor: string }[] = [
+    { rotulo: "Tipo", valor: TIPO_LABEL[s.tipo] ?? s.tipo },
+    { rotulo: "Data da Solicitação", valor: formatData(s.data_solicitacao) },
+    { rotulo: "Solicitante", valor: s.solicitante },
+    { rotulo: "Setor / C.C", valor: s.setor },
+    { rotulo: "Descrição da Necessidade", valor: s.descricao_necessidade || "—" },
+    { rotulo: "Prazo Sugerido", valor: formatData(s.prazo_sugerido) },
+  ];
+  if (s.chave_pix) {
+    camposLeitura.push({ rotulo: "Chave PIX", valor: s.chave_pix });
+    camposLeitura.push({
+      rotulo: "Tipo de Chave PIX",
+      valor: s.chave_pix_tipo ? (CHAVE_PIX_TIPO_LABEL[s.chave_pix_tipo] ?? "—") : "—",
+    });
+  }
+  if (s.banco || s.agencia || s.conta) {
+    camposLeitura.push({ rotulo: "Banco", valor: s.banco || "—" });
+    camposLeitura.push({ rotulo: "Agência", valor: s.agencia || "—" });
+    camposLeitura.push({ rotulo: "Conta", valor: s.conta || "—" });
+    camposLeitura.push({
+      rotulo: "Tipo de Conta",
+      valor: s.tipo_conta ? (TIPO_CONTA_LABEL[s.tipo_conta] ?? "—") : "—",
+    });
+    camposLeitura.push({ rotulo: "Titular da Conta", valor: s.titular_conta || "—" });
+  }
+
   return (
     <AppShell departamento="futebol_base">
       <Link href="/base/solicitacoes" className="text-sm font-medium text-grena hover:underline">
@@ -119,21 +164,43 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
           >
             Gerar PDF
           </a>
-          <form action={duplicarSolicitacaoBase}>
-            <input type="hidden" name="id" value={s.id} />
-            <button type="submit" className="btn-secondary">
-              Duplicar
-            </button>
-          </form>
+          {podeEditar ? (
+            <form action={duplicarSolicitacaoBase}>
+              <input type="hidden" name="id" value={s.id} />
+              <button type="submit" className="btn-secondary">
+                Duplicar
+              </button>
+            </form>
+          ) : null}
         </div>
       </div>
+
+      {!podeEditar ? (
+        <p className="mt-2 rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+          Você está vendo esta solicitação como Encarregado do Departamento — só quem criou ou o
+          Master pode editar.
+        </p>
+      ) : null}
+
       <div className="mt-4">
-        <SolicitacaoForm
-          action={updateSolicitacaoBase}
-          entityId={s.id}
-          defaultValues={defaultValues}
-          submitLabel="Salvar alterações"
-        />
+        {podeEditar ? (
+          <SolicitacaoForm
+            action={updateSolicitacaoBase}
+            entityId={s.id}
+            defaultValues={defaultValues}
+            submitLabel="Salvar alterações"
+            solicitanteTravado={!master}
+          />
+        ) : (
+          <div className="card grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
+            {camposLeitura.map((c) => (
+              <div key={c.rotulo}>
+                <p className="field-label">{c.rotulo}</p>
+                <p className="text-sm text-neutral-700">{c.valor}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-4">
@@ -156,9 +223,11 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
             {s.tipo === "pagamento" || s.tipo === "reembolso" || s.tipo === "transporte" || s.tipo === "hospedagem" ? (
               <p className="text-sm font-semibold text-neutral-600">Total: {formatMoeda(s.valor)}</p>
             ) : null}
-            <Link href={`/base/solicitacoes/${s.id}/itens/novo`} className="btn-primary">
-              {ehPassageiro ? "+ Novo passageiro" : ehHospede ? "+ Novo hóspede" : ehExame ? "+ Novo exame" : "+ Novo item"}
-            </Link>
+            {podeEditar ? (
+              <Link href={`/base/solicitacoes/${s.id}/itens/novo`} className="btn-primary">
+                {ehPassageiro ? "+ Novo passageiro" : ehHospede ? "+ Novo hóspede" : ehExame ? "+ Novo exame" : "+ Novo item"}
+              </Link>
+            ) : null}
           </div>
 
           {itens.length === 0 ? (
@@ -260,12 +329,14 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
                     </div>
                   ) : null}
 
-                  <div className="flex shrink-0 gap-2">
-                    <Link href={`/base/solicitacoes/${s.id}/itens/${item.id}`} className="btn-secondary">
-                      Editar
-                    </Link>
-                    <DeleteButton action={deleteSolicitacaoItemBase} id={item.id} entityLabel={labelSingular} />
-                  </div>
+                  {podeEditar ? (
+                    <div className="flex shrink-0 gap-2">
+                      <Link href={`/base/solicitacoes/${s.id}/itens/${item.id}`} className="btn-secondary">
+                        Editar
+                      </Link>
+                      <DeleteButton action={deleteSolicitacaoItemBase} id={item.id} entityLabel={labelSingular} />
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>

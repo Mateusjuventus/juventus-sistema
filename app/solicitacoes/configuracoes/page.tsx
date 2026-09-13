@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { buscarPerfisParaSelecao } from "@/lib/auth/perfis";
 import type { ConfiguracaoSolicitacoesRow } from "@/lib/supabase/types";
 import { ConfiguracaoEncarregadoForm } from "./configuracao-encarregado-form";
@@ -11,9 +13,13 @@ import { updateConfiguracaoSolicitacoes } from "./actions";
  * Quem assina digitalmente como "Encarregado do Departamento" nas Solicitações do Futebol
  * Profissional (ver docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md,
  * Fase 2) — o Solicitante é sempre quem cria (auto-assina), esse é o segundo assinante fixo.
+ * Restrita a Master (ver docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-
+ * design.md) — quem tentar acessar direto é redirecionado.
  */
 export default async function ConfiguracoesSolicitacoesPage() {
   const supabase = createClient();
+  if (!(await isMaster(supabase))) redirect("/solicitacoes");
+
   const [{ data }, perfis] = await Promise.all([
     supabase.from("configuracoes_solicitacoes").select("*").limit(1).maybeSingle(),
     buscarPerfisParaSelecao(supabase),

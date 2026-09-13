@@ -10,7 +10,42 @@ import { recalcularValorTotal } from "@/lib/solicitacao-valor-total";
 import { solicitacaoSchema, solicitacaoStatusSchema } from "@/lib/validation/schemas";
 import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
 import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
+import { isMaster } from "@/lib/auth/role";
+import { nomeDaContaAtual } from "@/lib/auth/perfis";
 import type { SolicitacaoItemRow, SolicitacaoRow, SolicitacaoTipo } from "@/lib/supabase/types";
+
+/**
+ * Só quem é Master pode escolher livremente quem é o "Solicitante" de uma solicitação alheia (ver
+ * docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md) — pra qualquer
+ * outra pessoa, o valor digitado no formulário é ignorado e substituído pelo nome da própria conta,
+ * mesmo que o campo tenha sido manipulado no navegador antes de enviar.
+ */
+async function solicitanteFinal(
+  supabase: ReturnType<typeof createClient>,
+  solicitanteDoFormulario: string,
+): Promise<string> {
+  if (await isMaster(supabase)) return solicitanteDoFormulario;
+  return (await nomeDaContaAtual(supabase)) ?? solicitanteDoFormulario;
+}
+
+/**
+ * Dono de uma solicitação existente: só ele (ou Master) pode editar, excluir, duplicar, ou mexer
+ * nos itens dela. `null` em `created_by` é uma solicitação criada antes desta funcionalidade —
+ * nesses casos legados, qualquer Master pode agir (mesmo fallback usado pra assinatura, ver
+ * `lib/assinaturas/config.ts`), e ninguém mais.
+ */
+async function souDonoOuMaster(
+  supabase: ReturnType<typeof createClient>,
+  createdBy: string | null,
+): Promise<boolean> {
+  const master = await isMaster(supabase);
+  if (master) return true;
+  if (!createdBy) return false;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return !!user && user.id === createdBy;
+}
 
 /** Avisa o Encarregado do Departamento (configurado em /solicitacoes/configuracoes, ou qualquer
  * master se ninguém estiver vinculado ainda) que uma solicitação nova está esperando a assinatura
@@ -332,6 +367,7 @@ export async function createSolicitacao(
   } = await supabase.auth.getUser();
   const data = result.data;
   const numero = await proximoNumero(supabase);
+  const solicitante = await solicitanteFinal(supabase, data.solicitante);
 
   const { data: criada, error } = await supabase
     .from("solicitacoes")
@@ -339,7 +375,7 @@ export async function createSolicitacao(
       numero,
       tipo: data.tipo,
       data_solicitacao: data.dataSolicitacao,
-      solicitante: data.solicitante,
+      solicitante,
       setor: data.setor,
       descricao_necessidade: data.descricaoNecessidade || null,
       prazo_sugerido: data.prazoSugerido || null,
@@ -399,12 +435,18 @@ export async function updateSolicitacao(
   const supabase = createClient();
   const data = result.data;
 
+  const { data: existente } = await supabase.from("solicitacoes").select("created_by").eq("id", id).maybeSingle();
+  if (!existente || !(await souDonoOuMaster(supabase, existente.created_by))) {
+    return { error: "Você só pode editar solicitações que você mesmo criou.", values: raw };
+  }
+  const solicitante = await solicitanteFinal(supabase, data.solicitante);
+
   const { error } = await supabase
     .from("solicitacoes")
     .update({
       tipo: data.tipo,
       data_solicitacao: data.dataSolicitacao,
-      solicitante: data.solicitante,
+      solicitante,
       setor: data.setor,
       descricao_necessidade: data.descricaoNecessidade || null,
       prazo_sugerido: data.prazoSugerido || null,
@@ -434,7 +476,15 @@ export async function updateSolicitacao(
 
 export async function deleteSolicitacao(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
   const supabase = createClient();
+  const { data: existente } = await supabase.from("solicitacoes").select("created_by").eq("id", id).maybeSingle();
+  if (!existente || !(await souDonoOuMaster(supabase, existente.created_by))) {
+    console.error(`Tentativa de excluir solicitação ${id} por usuário sem permissão.`);
+    return;
+  }
+
   await supabase.from("solicitacoes").delete().eq("id", id);
   revalidatePath("/solicitacoes");
 }
@@ -456,6 +506,10 @@ export async function duplicarSolicitacao(formData: FormData): Promise<void> {
   const { data: originalData } = await supabase.from("solicitacoes").select("*").eq("id", id).single();
   if (!originalData) return;
   const original = originalData as SolicitacaoRow;
+  if (!(await souDonoOuMaster(supabase, original.created_by))) {
+    console.error(`Tentativa de duplicar solicitação ${id} por usuário sem permissão.`);
+    return;
+  }
 
   const numero = await proximoNumero(supabase);
 
@@ -550,6 +604,12 @@ export async function updateSolicitacaoStatus(formData: FormData): Promise<void>
   if (!result.success || !id) return;
 
   const supabase = createClient();
+  const { data: existente } = await supabase.from("solicitacoes").select("created_by").eq("id", id).maybeSingle();
+  if (!existente || !(await souDonoOuMaster(supabase, existente.created_by))) {
+    console.error(`Tentativa de alterar status da solicitação ${id} por usuário sem permissão.`);
+    return;
+  }
+
   await supabase.from("solicitacoes").update({ status: result.data.status }).eq("id", id);
   revalidatePath("/solicitacoes");
   revalidatePath(`/solicitacoes/${id}`);
