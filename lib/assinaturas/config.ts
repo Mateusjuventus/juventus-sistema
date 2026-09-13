@@ -10,6 +10,8 @@
  * os dois nunca mostram números diferentes de assinantes esperados.
  */
 
+import type { SolicitacaoTipo } from "@/lib/supabase/types";
+
 export type TipoDocumento =
   | "dispensa_base"
   | "parecer_captacao_base"
@@ -72,16 +74,50 @@ export function papeisAssinaturaParecer(
     .map((c) => ({ papel: c.id, rotulo: c.cargo || c.nome }));
 }
 
+const TIPOS_DEPARTAMENTO_COMPRAS: SolicitacaoTipo[] = [
+  "compra",
+  "transporte",
+  "passagem_aerea",
+  "exame_medico",
+  "hospedagem",
+];
+
 /**
- * Monta os 2 papéis fixos ("solicitante"/"encarregado") de uma Solicitação — "Solicitante" é
- * sempre a pessoa que criou (auto-assina na hora, ver `autoAssinarComoCreator` em
- * `app/solicitacoes/actions.ts`); "encarregado" é configurável por departamento (rótulo = cargo
- * configurado em `/solicitacoes/configuracoes` ou `/base/solicitacoes/configuracoes`).
+ * Decide qual "Departamento" assina uma Solicitação, conforme o tipo — nunca os dois na mesma
+ * solicitação. Compra/Transporte/Passagem Aérea/Exame Médico/Hospedagem passam pelo Departamento
+ * de Compras; Pagamento/Reembolso passam pelo Departamento Financeiro. Esse é o papel que o PDF
+ * antigo já tinha antes da assinatura digital (ver docs/superpowers/specs/2026-08-28-assinatura-
+ * digital-notificacoes-design.md) e que voltou a pedido do Mateus.
  */
-export function papeisAssinaturaSolicitacao(config: { encarregadoCargo: string }): PapelEsperado[] {
+export function papelDepartamentoSolicitacao(tipo: SolicitacaoTipo): "compras" | "financeiro" {
+  return TIPOS_DEPARTAMENTO_COMPRAS.includes(tipo) ? "compras" : "financeiro";
+}
+
+/**
+ * Monta os 4 papéis de uma Solicitação — "Solicitante" é sempre a pessoa que criou (auto-assina na
+ * hora, ver `autoAssinarComoCreator` em `app/solicitacoes/actions.ts`); os outros 3 são
+ * configuráveis em `/solicitacoes/configuracoes` ou `/base/solicitacoes/configuracoes`:
+ * "encarregado" (Encarregado do Departamento), o Departamento de Compras OU Financeiro (conforme
+ * `papelDepartamentoSolicitacao`, nunca os dois) e "aprovador" (mesma pessoa configurada nas duas
+ * situações — só o rótulo do Departamento ao lado muda).
+ */
+export function papeisAssinaturaSolicitacao(config: {
+  tipo: SolicitacaoTipo;
+  encarregadoCargo: string;
+  comprasCargo: string;
+  financeiroCargo: string;
+  aprovadorCargo: string;
+}): PapelEsperado[] {
+  const papelDepartamento = papelDepartamentoSolicitacao(config.tipo);
+  const rotuloDepartamento =
+    papelDepartamento === "compras"
+      ? config.comprasCargo || "Departamento de Compras"
+      : config.financeiroCargo || "Departamento Financeiro";
   return [
     { papel: "solicitante", rotulo: "Solicitante" },
     { papel: "encarregado", rotulo: config.encarregadoCargo || "Encarregado do Departamento" },
+    { papel: papelDepartamento, rotulo: rotuloDepartamento },
+    { papel: "aprovador", rotulo: config.aprovadorCargo || "Aprovador" },
   ];
 }
 

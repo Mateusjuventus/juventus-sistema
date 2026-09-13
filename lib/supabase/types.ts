@@ -1244,6 +1244,18 @@ export interface ConfiguracaoSolicitacoesRow {
   encarregado_nome: string;
   encarregado_cargo: string;
   encarregado_usuario_id: string | null;
+  /** Departamento de Compras/Financeiro e Aprovador (ver docs/superpowers/specs/2026-08-28-
+   * assinatura-digital-notificacoes-design.md — papéis que o PDF antigo tinha e voltaram a pedido
+   * do Mateus, agora com assinatura desenhada de verdade). `compras_*`/`financeiro_*` nunca
+   * assinam a mesma solicitação — o tipo decide qual dos dois aparece (ver
+   * `papelDepartamentoSolicitacao` em lib/assinaturas/config.ts); `aprovador_*` é o mesmo em
+   * qualquer tipo. */
+  compras_cargo: string;
+  compras_usuario_id: string | null;
+  financeiro_cargo: string;
+  financeiro_usuario_id: string | null;
+  aprovador_cargo: string;
+  aprovador_usuario_id: string | null;
   updated_at: string;
 }
 
@@ -1254,6 +1266,12 @@ export interface ConfiguracaoSolicitacoesBaseRow {
   encarregado_nome: string;
   encarregado_cargo: string;
   encarregado_usuario_id: string | null;
+  compras_cargo: string;
+  compras_usuario_id: string | null;
+  financeiro_cargo: string;
+  financeiro_usuario_id: string | null;
+  aprovador_cargo: string;
+  aprovador_usuario_id: string | null;
   updated_at: string;
 }
 

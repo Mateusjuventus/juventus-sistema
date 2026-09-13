@@ -1,0 +1,11 @@
+-- Corrige "permission denied for table perfis" ao salvar a assinatura desenhada/anexada em
+-- Minha Conta (app/minha-conta/actions.ts, salvarMinhaAssinatura).
+--
+-- Mesma causa já documentada em 0092_perfis_autoatualizar_nome_cargo.sql: a policy de RLS
+-- "usuario_atualiza_proprio_nome_cargo" (auth.uid() = id) permite o UPDATE na linha, mas o GRANT
+-- de update em `perfis` pra "authenticated" é por COLUNA (0092 só liberou nome/cargo) — a coluna
+-- nova `assinatura_path`, criada em 0104_assinatura_desenhada.sql, nunca foi incluída nesse grant,
+-- então o Postgres barra o UPDATE antes mesmo de chegar na policy de RLS.
+--
+-- Seguro rodar de novo: GRANT não falha nem duplica se já tiver sido concedido antes.
+grant update (assinatura_path) on public.perfis to authenticated;

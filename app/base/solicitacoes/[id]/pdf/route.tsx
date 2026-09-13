@@ -9,6 +9,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import { SolicitacaoDocument, montarAssinaturasSolicitacao, type SolicitacaoPdfItem } from "@/lib/pdf/solicitacao-document";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
+import { papelDepartamentoSolicitacao } from "@/lib/assinaturas/config";
 import type { SolicitacaoItemBaseRow, SolicitacaoBaseRow } from "@/lib/supabase/types";
 
 /** Espelha `app/solicitacoes/[id]/pdf/route.tsx` para o Futebol de Base. */
@@ -69,7 +70,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
-  const assinaturas = montarAssinaturasSolicitacao(await resolverImagensAssinaturas(supabase, assinaturasSalvas));
+  const assinaturas = montarAssinaturasSolicitacao(
+    await resolverImagensAssinaturas(supabase, assinaturasSalvas),
+    papelDepartamentoSolicitacao(s.tipo),
+  );
 
   const buffer = await renderToBuffer(
     <SolicitacaoDocument

@@ -6,7 +6,7 @@ import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { isMaster } from "@/lib/auth/role";
-import { papeisAssinaturaSolicitacao, podeAssinarPapel } from "@/lib/assinaturas/config";
+import { papeisAssinaturaSolicitacao, papelDepartamentoSolicitacao, podeAssinarPapel } from "@/lib/assinaturas/config";
 import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import { SOLICITACAO_TIPOS, STAFF_CHAVE_PIX_TIPOS, TIPO_CONTA_BANCARIA } from "@/lib/validation/schemas";
 import type { ConfiguracaoSolicitacoesRow, SolicitacaoItemRow, SolicitacaoRow } from "@/lib/supabase/types";
@@ -58,15 +58,23 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
   const s = data as SolicitacaoRow;
   const configSolicitacoes = configData as ConfiguracaoSolicitacoesRow | null;
 
-  // Acesso: só quem criou, Master, ou o Encarregado configurado do departamento — ver
-  // docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md. O Encarregado
-  // que não é o criador só visualiza e assina (ver `podeEditar` abaixo), não edita.
+  // Qual "Departamento" assina esta solicitação (Compras ou Financeiro, conforme o tipo — nunca os
+  // dois) e quem está vinculado a ele na configuração.
+  const papelDepartamento = papelDepartamentoSolicitacao(s.tipo);
+  const usuarioVinculadoDepartamento =
+    papelDepartamento === "compras" ? configSolicitacoes?.compras_usuario_id : configSolicitacoes?.financeiro_usuario_id;
+
+  // Acesso: só quem criou, Master, ou um dos 3 assinantes configurados (Encarregado, Departamento,
+  // Aprovador) — ver docs/superpowers/specs/2026-09-13-solicitacoes-autoria-visibilidade-design.md.
+  // Quem não é o criador só visualiza e assina (ver `podeEditar` abaixo), não edita.
   const souCriador = !!s.created_by && s.created_by === user?.id;
   const souEncarregado = podeAssinarPapel(configSolicitacoes?.encarregado_usuario_id, user?.id ?? "", master);
-  if (!master && !souCriador && !souEncarregado) redirect("/solicitacoes");
+  const souDepartamento = podeAssinarPapel(usuarioVinculadoDepartamento, user?.id ?? "", master);
+  const souAprovador = podeAssinarPapel(configSolicitacoes?.aprovador_usuario_id, user?.id ?? "", master);
+  if (!master && !souCriador && !souEncarregado && !souDepartamento && !souAprovador) redirect("/solicitacoes");
 
-  // Só o criador ou Master edita/exclui/duplica; o Encarregado que abriu só pra assinar entra em
-  // modo leitura (mesmo fallback de `created_by` nulo/legado usado abaixo em `papeisQuePossoAssinar`).
+  // Só o criador ou Master edita/exclui/duplica; quem abriu só pra assinar entra em modo leitura
+  // (mesmo fallback de `created_by` nulo/legado usado abaixo em `papeisQuePossoAssinar`).
   const podeEditar = master || souCriador;
 
   const itens = (itensData ?? []) as SolicitacaoItemRow[];
@@ -77,18 +85,25 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
   ]);
 
   const papeisSolicitacao = papeisAssinaturaSolicitacao({
+    tipo: s.tipo,
     encarregadoCargo: configSolicitacoes?.encarregado_cargo ?? "",
+    comprasCargo: configSolicitacoes?.compras_cargo ?? "",
+    financeiroCargo: configSolicitacoes?.financeiro_cargo ?? "",
+    aprovadorCargo: configSolicitacoes?.aprovador_cargo ?? "",
   });
   const papeisQuePossoAssinar = user
-    ? (["solicitante", "encarregado"] as const).filter((papel) =>
-        papel === "solicitante"
-          ? // Solicitações criadas antes desta funcionalidade não têm `created_by` (fica null) —
-            // sem isso, ninguém seria dono do papel de Solicitante e ele ficaria pendente pra
-            // sempre. Nesses casos legados, qualquer master pode assinar no lugar (mesma regra de
-            // fallback do Encarregado quando não há ninguém vinculado).
-            (s.created_by ? s.created_by === user.id : master)
-          : podeAssinarPapel(configSolicitacoes?.encarregado_usuario_id, user.id, master),
-      )
+    ? (["solicitante", "encarregado", papelDepartamento, "aprovador"] as string[]).filter((papel) => {
+        if (papel === "solicitante") {
+          // Solicitações criadas antes desta funcionalidade não têm `created_by` (fica null) — sem
+          // isso, ninguém seria dono do papel de Solicitante e ele ficaria pendente pra sempre.
+          // Nesses casos legados, qualquer master pode assinar no lugar (mesma regra de fallback
+          // usada abaixo pros outros papéis quando não há ninguém vinculado).
+          return s.created_by ? s.created_by === user.id : master;
+        }
+        if (papel === "encarregado") return souEncarregado;
+        if (papel === papelDepartamento) return souDepartamento;
+        return souAprovador;
+      })
     : [];
 
   const defaultValues = {
@@ -180,8 +195,7 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
 
       {!podeEditar ? (
         <p className="mt-2 rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
-          Você está vendo esta solicitação como Encarregado do Departamento — só quem criou ou o
-          Master pode editar.
+          Você está vendo esta solicitação pra assinar — só quem criou ou o Master pode editar.
         </p>
       ) : null}
 

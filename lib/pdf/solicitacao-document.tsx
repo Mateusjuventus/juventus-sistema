@@ -8,6 +8,7 @@ import {
   type AssinaturaInfo,
   type LogoSrc,
 } from "./logistica-shared";
+import { papelDepartamentoSolicitacao } from "@/lib/assinaturas/config";
 import type { SolicitacaoTipo } from "@/lib/supabase/types";
 
 const TITULOS: Record<SolicitacaoTipo, string> = {
@@ -227,16 +228,23 @@ function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-/** Estado das 2 assinaturas da Solicitação (ver docs/superpowers/specs/2026-08-28-assinatura-
- * digital-notificacoes-design.md) — `null` = ainda pendente. */
+/** Estado das 4 assinaturas da Solicitação — Solicitante, Encarregado do Departamento, o
+ * Departamento de Compras OU Financeiro (nunca os dois, ver `papelDepartamentoSolicitacao`) e
+ * Aprovador. São os mesmos 4 assinantes que o PDF antigo tinha antes da assinatura digital (ver
+ * docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md) e que voltaram a
+ * pedido do Mateus. `null` = ainda pendente. */
 export interface SolicitacaoAssinaturas {
   solicitante: { nome: string; cargo: string | null; assinadoEm: string; assinaturaImagemSrc: string | null } | null;
   encarregado: { nome: string; cargo: string | null; assinadoEm: string; assinaturaImagemSrc: string | null } | null;
+  departamento: { nome: string; cargo: string | null; assinadoEm: string; assinaturaImagemSrc: string | null } | null;
+  aprovador: { nome: string; cargo: string | null; assinadoEm: string; assinaturaImagemSrc: string | null } | null;
 }
 
 /** Combina o que foi salvo em `assinaturas_documento` (já passado por `resolverImagensAssinaturas`)
- * com o estado esperado (Solicitante + Encarregado) — mesmo espírito de `montarAssinaturasDispensa`
- * em `lib/pdf/relatorio-dispensa-document.tsx`. */
+ * com o estado esperado (Solicitante + Encarregado + Departamento + Aprovador) — mesmo espírito de
+ * `montarAssinaturasDispensa` em `lib/pdf/relatorio-dispensa-document.tsx`. `departamentoPapel`
+ * (`"compras"` ou `"financeiro"`, ver `papelDepartamentoSolicitacao`) diz qual papel gravado em
+ * `assinaturas_documento` corresponde ao slot "departamento" desta solicitação específica. */
 export function montarAssinaturasSolicitacao(
   assinaturasSalvas: {
     papel: string;
@@ -245,6 +253,7 @@ export function montarAssinaturasSolicitacao(
     assinadoEm: string;
     assinaturaImagemSrc: string | null;
   }[],
+  departamentoPapel: "compras" | "financeiro",
 ): SolicitacaoAssinaturas {
   function porPapel(papel: string) {
     const a = assinaturasSalvas.find((x) => x.papel === papel);
@@ -252,15 +261,20 @@ export function montarAssinaturasSolicitacao(
       ? { nome: a.nomeNoMomento, cargo: a.cargoNoMomento, assinadoEm: a.assinadoEm, assinaturaImagemSrc: a.assinaturaImagemSrc }
       : null;
   }
-  return { solicitante: porPapel("solicitante"), encarregado: porPapel("encarregado") };
+  return {
+    solicitante: porPapel("solicitante"),
+    encarregado: porPapel("encarregado"),
+    departamento: porPapel(departamentoPapel),
+    aprovador: porPapel("aprovador"),
+  };
 }
 
 /**
  * Documento de Solicitação (Compra, Pagamento, Exame Médico, Reembolso ou Passagem Aérea) — segue
  * o modelo de formulário impresso já usado pelo clube: logo centralizado no topo, faixa com o
  * título, tabela de dados (rótulo em vinho, valor em preto), tabela de itens centralizada, e bloco
- * de assinaturas (Solicitante + Encarregado do Departamento — antes eram 4 linhas em branco,
- * incluindo um "Aprovador" que o Mateus decidiu não precisar mais, ver a spec).
+ * de assinaturas com os 4 assinantes de sempre: Solicitante, Encarregado do Departamento,
+ * Departamento de Compras/Financeiro (conforme o tipo) e Aprovador.
  */
 export function SolicitacaoDocument({
   juventusLogoSrc,
@@ -275,6 +289,12 @@ export function SolicitacaoDocument({
 }) {
   const departamento = DEPARTAMENTOS[solicitacao.tipo];
   const mostrarItens = TIPOS_COM_ITENS.includes(solicitacao.tipo);
+  // Qual "Departamento" assina esta solicitação (Compras ou Financeiro, nunca os dois — ver
+  // `papelDepartamentoSolicitacao`) e o rótulo padrão dele enquanto pendente. Independente do
+  // `DEPARTAMENTOS` acima (que é só o texto da nota de rodapé, mais granular: Médico/Viagens/etc.).
+  const departamentoPapel = papelDepartamentoSolicitacao(solicitacao.tipo);
+  const rotuloDepartamentoPendente =
+    departamentoPapel === "compras" ? "Departamento de Compras" : "Departamento Financeiro";
 
   // Monta as linhas da tabela de dados dinamicamente, conforme o tipo — assim a última linha (que
   // não deve ter borda inferior, já que a tabela toda já tem uma borda ao redor) é sempre a linha
@@ -574,6 +594,32 @@ export function SolicitacaoDocument({
                   assinaturaImagemSrc: assinaturas.encarregado.assinaturaImagemSrc,
                 }
               : { nome: "", cargo: "Encarregado do Departamento", pendente: true }
+          }
+        />
+
+        {/* 2ª linha de assinaturas, mesmos moldes da 1ª (Departamento de Compras/Financeiro,
+            conforme o tipo, + Aprovador) — os 4 assinantes que o PDF antigo já tinha, ver
+            `SolicitacaoAssinaturas` acima. */}
+        <AssinaturasBlock
+          assinatura1={
+            assinaturas.departamento
+              ? {
+                  nome: assinaturas.departamento.nome,
+                  cargo: assinaturas.departamento.cargo ?? rotuloDepartamentoPendente,
+                  assinadoDigitalmenteEm: assinaturas.departamento.assinadoEm,
+                  assinaturaImagemSrc: assinaturas.departamento.assinaturaImagemSrc,
+                }
+              : { nome: "", cargo: rotuloDepartamentoPendente, pendente: true }
+          }
+          assinatura2={
+            assinaturas.aprovador
+              ? {
+                  nome: assinaturas.aprovador.nome,
+                  cargo: assinaturas.aprovador.cargo ?? "Aprovador",
+                  assinadoDigitalmenteEm: assinaturas.aprovador.assinadoEm,
+                  assinaturaImagemSrc: assinaturas.aprovador.assinaturaImagemSrc,
+                }
+              : { nome: "", cargo: "Aprovador", pendente: true }
           }
         />
 

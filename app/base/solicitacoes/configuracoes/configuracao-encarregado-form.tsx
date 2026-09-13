@@ -56,6 +56,78 @@ export function ConfiguracaoEncarregadoFormBase({
         </FieldGroup>
       </FormSection>
 
+      <FormSection title="Departamento de Compras">
+        <p className="-mt-2 text-sm text-neutral-500">
+          Assina Solicitações de Compra, Transporte, Passagem Aérea, Exame Médico e Hospedagem.
+        </p>
+        <FieldGroup>
+          <TextField label="Cargo" name="comprasCargo" defaultValue={values.comprasCargo} error={errors.comprasCargo} />
+          <SelectField
+            label="Usuário que assina digitalmente"
+            name="comprasUsuarioId"
+            defaultValue={values.comprasUsuarioId}
+          >
+            <option value="">— Não vincular (qualquer master pode assinar) —</option>
+            {perfis.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.rotulo}
+              </option>
+            ))}
+          </SelectField>
+        </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Departamento Financeiro">
+        <p className="-mt-2 text-sm text-neutral-500">Assina Solicitações de Pagamento e Reembolso.</p>
+        <FieldGroup>
+          <TextField
+            label="Cargo"
+            name="financeiroCargo"
+            defaultValue={values.financeiroCargo}
+            error={errors.financeiroCargo}
+          />
+          <SelectField
+            label="Usuário que assina digitalmente"
+            name="financeiroUsuarioId"
+            defaultValue={values.financeiroUsuarioId}
+          >
+            <option value="">— Não vincular (qualquer master pode assinar) —</option>
+            {perfis.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.rotulo}
+              </option>
+            ))}
+          </SelectField>
+        </FieldGroup>
+      </FormSection>
+
+      <FormSection title="Aprovador">
+        <p className="-mt-2 text-sm text-neutral-500">
+          Assina por último, em qualquer tipo de Solicitação — ao lado do Departamento de Compras ou
+          do Departamento Financeiro, conforme o caso.
+        </p>
+        <FieldGroup>
+          <TextField
+            label="Cargo"
+            name="aprovadorCargo"
+            defaultValue={values.aprovadorCargo}
+            error={errors.aprovadorCargo}
+          />
+          <SelectField
+            label="Usuário que assina digitalmente"
+            name="aprovadorUsuarioId"
+            defaultValue={values.aprovadorUsuarioId}
+          >
+            <option value="">— Não vincular (qualquer master pode assinar) —</option>
+            {perfis.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.rotulo}
+              </option>
+            ))}
+          </SelectField>
+        </FieldGroup>
+      </FormSection>
+
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}

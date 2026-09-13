@@ -16,6 +16,12 @@ function parseForm(formData: FormData) {
     encarregadoNome: String(formData.get("encarregadoNome") ?? ""),
     encarregadoCargo: String(formData.get("encarregadoCargo") ?? ""),
     encarregadoUsuarioId: String(formData.get("encarregadoUsuarioId") ?? ""),
+    comprasCargo: String(formData.get("comprasCargo") ?? ""),
+    comprasUsuarioId: String(formData.get("comprasUsuarioId") ?? ""),
+    financeiroCargo: String(formData.get("financeiroCargo") ?? ""),
+    financeiroUsuarioId: String(formData.get("financeiroUsuarioId") ?? ""),
+    aprovadorCargo: String(formData.get("aprovadorCargo") ?? ""),
+    aprovadorUsuarioId: String(formData.get("aprovadorUsuarioId") ?? ""),
   };
 
   const result = configuracaoSolicitacoesSchema.safeParse(raw);
@@ -44,6 +50,12 @@ export async function updateConfiguracaoSolicitacoesBase(
     encarregado_nome: data.encarregadoNome,
     encarregado_cargo: data.encarregadoCargo,
     encarregado_usuario_id: data.encarregadoUsuarioId || null,
+    compras_cargo: data.comprasCargo,
+    compras_usuario_id: data.comprasUsuarioId || null,
+    financeiro_cargo: data.financeiroCargo,
+    financeiro_usuario_id: data.financeiroUsuarioId || null,
+    aprovador_cargo: data.aprovadorCargo,
+    aprovador_usuario_id: data.aprovadorUsuarioId || null,
   };
 
   const { error } = id

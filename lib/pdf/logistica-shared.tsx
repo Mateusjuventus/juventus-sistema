@@ -235,12 +235,13 @@ export const financeiroStyles = StyleSheet.create({
   assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
   assinaturaNome: { fontSize: 9.5, fontWeight: 700, color: "#1f1f1f", textAlign: "center" },
   assinaturaCargo: { fontSize: 8, color: "#525252", textAlign: "center", marginTop: 1 },
-  assinaturaDigitalSelo: { fontSize: 9, fontWeight: 700, color: CORES.grena, textAlign: "center" },
-  assinaturaDigitalData: { fontSize: 7.5, color: "#737373", textAlign: "center", marginTop: 2 },
   assinaturaPendenteTexto: { fontSize: 8.5, color: "#a3a3a3", textAlign: "center", fontStyle: "italic" },
   /** Imagem da assinatura desenhada/anexada (ver docs/superpowers/specs/2026-09-13-assinatura-
-   * desenhada-design.md) — só aparece quando o papel tem `assinaturaImagemSrc` (assinaturas de
-   * antes desta mudança continuam mostrando só o texto abaixo). */
+   * desenhada-design.md) — some por cima da linha (`assinaturaLinha`), no lugar de onde a pessoa
+   * assinaria à mão; embaixo da linha continua só nome/cargo, sem nenhum texto de "assinado
+   * digitalmente" nem data/hora (pedido do Mateus: manter o mesmo modelo de sempre, só com a
+   * assinatura de verdade por cima). Assinaturas de antes desta mudança (sem imagem salva)
+   * continuam mostrando só o texto, sem a imagem. */
   assinaturaImagem: { width: 110, height: 38, objectFit: "contain", marginBottom: 2 },
 });
 
@@ -286,9 +287,10 @@ export interface AssinaturaInfo {
   nome: string;
   cargo: string;
   /** Documento com assinatura digital (ver docs/superpowers/specs/2026-08-28-assinatura-digital-
-   * notificacoes-design.md): quando presente, substitui a linha em branco por "Assinado
-   * digitalmente por [nome], [cargo], em [data]" — `nome`/`cargo` acima continuam sendo só o
-   * rótulo do papel (ex. "Departamento de Futebol de Base"), igual a hoje. */
+   * notificacoes-design.md): quando presente, o modelo continua sendo o de sempre (linha + nome +
+   * cargo) — a única mudança é a imagem da assinatura (`assinaturaImagemSrc`) por cima da linha,
+   * quando existir. Não aparece nenhum texto de "assinado digitalmente" nem data/hora — pedido do
+   * Mateus pra manter o documento com a cara de sempre. */
   assinadoDigitalmenteEm?: string;
   /** Signed URL da imagem da assinatura desenhada/anexada (ver docs/superpowers/specs/2026-09-13-
    * assinatura-desenhada-design.md) — só faz sentido junto de `assinadoDigitalmenteEm`. `null`/
@@ -312,12 +314,9 @@ function ConteudoColunaAssinatura({ assinatura }: { assinatura: AssinaturaInfo }
           // eslint-disable-next-line jsx-a11y/alt-text
           <Image style={financeiroStyles.assinaturaImagem} src={assinatura.assinaturaImagemSrc} />
         ) : null}
-        <Text style={financeiroStyles.assinaturaDigitalSelo}>Assinado digitalmente</Text>
+        <View style={financeiroStyles.assinaturaLinha} />
         <Text style={financeiroStyles.assinaturaNome}>{assinatura.nome}</Text>
         <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
-        <Text style={financeiroStyles.assinaturaDigitalData}>
-          em {formatCarimbo(new Date(assinatura.assinadoDigitalmenteEm))}
-        </Text>
       </>
     );
   }

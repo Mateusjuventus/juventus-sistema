@@ -4,6 +4,7 @@ import {
   papeisAssinaturaParecer,
   papeisAssinaturaSolicitacao,
   papeisEsperados,
+  papelDepartamentoSolicitacao,
   podeAssinarPapel,
 } from "./config";
 
@@ -59,18 +60,54 @@ describe("papeisAssinaturaParecer", () => {
   });
 });
 
+describe("papelDepartamentoSolicitacao", () => {
+  it("Compra/Transporte/Passagem Aérea/Exame Médico/Hospedagem vão pro Departamento de Compras", () => {
+    expect(papelDepartamentoSolicitacao("compra")).toBe("compras");
+    expect(papelDepartamentoSolicitacao("transporte")).toBe("compras");
+    expect(papelDepartamentoSolicitacao("passagem_aerea")).toBe("compras");
+    expect(papelDepartamentoSolicitacao("exame_medico")).toBe("compras");
+    expect(papelDepartamentoSolicitacao("hospedagem")).toBe("compras");
+  });
+
+  it("Pagamento/Reembolso vão pro Departamento Financeiro", () => {
+    expect(papelDepartamentoSolicitacao("pagamento")).toBe("financeiro");
+    expect(papelDepartamentoSolicitacao("reembolso")).toBe("financeiro");
+  });
+});
+
 describe("papeisAssinaturaSolicitacao", () => {
-  it("Solicitante é fixo, Encarregado usa o cargo configurado como rótulo", () => {
-    const papeis = papeisAssinaturaSolicitacao({ encarregadoCargo: "Gerente Administrativo" });
+  const configBase = { encarregadoCargo: "Gerente Administrativo", comprasCargo: "", financeiroCargo: "", aprovadorCargo: "" };
+
+  it("monta os 4 papéis, nessa ordem, com o cargo configurado como rótulo", () => {
+    const papeis = papeisAssinaturaSolicitacao({
+      tipo: "compra",
+      encarregadoCargo: "Gerente Administrativo",
+      comprasCargo: "Departamento de Suprimentos",
+      financeiroCargo: "",
+      aprovadorCargo: "Diretor Executivo",
+    });
     expect(papeis).toEqual([
       { papel: "solicitante", rotulo: "Solicitante" },
       { papel: "encarregado", rotulo: "Gerente Administrativo" },
+      { papel: "compras", rotulo: "Departamento de Suprimentos" },
+      { papel: "aprovador", rotulo: "Diretor Executivo" },
     ]);
   });
 
-  it("cargo do encarregado ainda não configurado cai num rótulo genérico", () => {
-    const papeis = papeisAssinaturaSolicitacao({ encarregadoCargo: "" });
+  it("Pagamento/Reembolso usam o papel e o cargo do Financeiro, não o de Compras", () => {
+    const papeis = papeisAssinaturaSolicitacao({
+      ...configBase,
+      tipo: "pagamento",
+      financeiroCargo: "Departamento Financeiro Central",
+    });
+    expect(papeis[2]).toEqual({ papel: "financeiro", rotulo: "Departamento Financeiro Central" });
+  });
+
+  it("cargos ainda não configurados caem em rótulos genéricos", () => {
+    const papeis = papeisAssinaturaSolicitacao({ ...configBase, tipo: "compra", encarregadoCargo: "" });
     expect(papeis[1]).toEqual({ papel: "encarregado", rotulo: "Encarregado do Departamento" });
+    expect(papeis[2]).toEqual({ papel: "compras", rotulo: "Departamento de Compras" });
+    expect(papeis[3]).toEqual({ papel: "aprovador", rotulo: "Aprovador" });
   });
 });
 

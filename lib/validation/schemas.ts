@@ -1077,6 +1077,12 @@ export const configuracaoSolicitacoesSchema = z.object({
   encarregadoNome: z.string(),
   encarregadoCargo: z.string(),
   encarregadoUsuarioId: z.string().optional(),
+  comprasCargo: z.string(),
+  comprasUsuarioId: z.string().optional(),
+  financeiroCargo: z.string(),
+  financeiroUsuarioId: z.string().optional(),
+  aprovadorCargo: z.string(),
+  aprovadorUsuarioId: z.string().optional(),
 });
 export type ConfiguracaoSolicitacoesInput = z.infer<typeof configuracaoSolicitacoesSchema>;
 
