@@ -3,13 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import { diaDaSemana, formatDataBr, formatHorario } from "@/lib/posters/relacionados-data";
 import { horarioDaFuncao, montarResumo, todasPreenchidas, vagasRestantes } from "@/lib/futebol/vagas-staff";
+import { listarStaffAtivoParaVagas } from "@/lib/futebol/staff-vagas-lista";
 import type {
   JogoRow,
   JogoVagasStaffFuncaoRow,
   JogoVagasStaffInscricaoRow,
   JogoVagasStaffRow,
   StaffFuncaoCatalogoRow,
-  StaffOperacionalRow,
 } from "@/lib/supabase/types";
 import { desistirVaga, pegarVaga } from "./actions";
 import {
@@ -111,16 +111,7 @@ export default async function VagasPublicasPage({ params }: { params: { token: s
   const resumos = montarResumo(funcoes, inscricoes, nomePorFuncaoId);
   const lotado = todasPreenchidas(resumos);
 
-  const { data: staffData } = await admin
-    .from("staff_operacional")
-    .select("id, nome_completo, funcao_id, funcao_terceirizada_id, terceirizada")
-    .eq("ativo", true)
-    .order("nome_completo", { ascending: true });
-
-  const staff = (staffData ?? []) as Pick<
-    StaffOperacionalRow,
-    "id" | "nome_completo" | "funcao_id" | "funcao_terceirizada_id" | "terceirizada"
-  >[];
+  const staff = await listarStaffAtivoParaVagas(admin, "staff_operacional");
 
   const resumoPorFuncaoId = new Map(resumos.map((r) => [r.funcaoId, r]));
   const pessoas: PessoaOpcao[] = staff.map((p) => {
