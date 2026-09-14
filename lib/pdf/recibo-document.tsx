@@ -79,14 +79,17 @@ const styles = StyleSheet.create({
   colFuncao: { flex: 1 },
   colValor: { width: 80, textAlign: "right" },
   colPago: { width: 50, textAlign: "center" },
-  // Colunas do Recibo Consolidado (página em paisagem — ver `ReciboConsolidadoDocument` abaixo).
-  // A função não tem coluna própria aqui: os itens já vêm agrupados por função, com o nome dela no
-  // cabeçalho da seção (`sharedStyles.sectionTitulo`), então repetir numa coluna seria redundante.
+  // Colunas do Recibo Consolidado (página em retrato, igual ao Recibo Individual — ver
+  // `ReciboConsolidadoDocument` abaixo). A função não tem coluna própria aqui: os itens já vêm
+  // agrupados por função, com o nome dela no cabeçalho da seção (`sharedStyles.sectionTitulo`),
+  // então repetir numa coluna seria redundante. Larguras fixas (CPF/Valor/Pago) mais enxutas que
+  // numa página em paisagem, pra sobrar espaço pro Nome e a Chave Pix (colunas flexíveis) no
+  // retrato mais estreito do A4.
   colConsNome: { flex: 1.5 },
-  colConsCpf: { width: 90 },
+  colConsCpf: { width: 68 },
   colConsChavePix: { flex: 1.6 },
-  colConsValor: { width: 75, textAlign: "right" },
-  colConsPago: { width: 50, textAlign: "center" },
+  colConsValor: { width: 58, textAlign: "right" },
+  colConsPago: { width: 34, textAlign: "center" },
   totalRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -204,8 +207,9 @@ export function ReciboIndividualDocument({
 /**
  * Consolidado de todos os pagamentos de um jogo — uma linha por pessoa, agrupadas por função (ver
  * `agruparPorFuncao`), com CPF e Chave Pix (+ tipo) de cada uma pra conferência antes do pagamento.
- * Página em paisagem (só este documento — o Recibo Individual continua em pé) porque as duas
- * colunas novas não cabiam de forma legível no retrato de A4.
+ * Página em retrato, igual ao Recibo Individual — o agrupamento por função vira o cabeçalho de cada
+ * seção, então não precisa de uma coluna própria pra função, o que libera espaço suficiente pras
+ * colunas de CPF e Chave Pix caberem no retrato de A4.
  */
 export function ReciboConsolidadoDocument({
   jogo,
@@ -223,7 +227,7 @@ export function ReciboConsolidadoDocument({
 
   return (
     <Document>
-      <Page size="A4" orientation="landscape" style={sharedStyles.page}>
+      <Page size="A4" style={sharedStyles.page}>
         <DocumentoHeader
           jogo={jogo}
           juventusLogoSrc={juventusLogoSrc}
