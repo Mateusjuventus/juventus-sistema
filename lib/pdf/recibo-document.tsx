@@ -79,17 +79,18 @@ const styles = StyleSheet.create({
   colFuncao: { flex: 1 },
   colValor: { width: 80, textAlign: "right" },
   colPago: { width: 50, textAlign: "center" },
-  // Colunas do Recibo Consolidado (página em retrato, igual ao Recibo Individual — ver
-  // `ReciboConsolidadoDocument` abaixo). A função não tem coluna própria aqui: os itens já vêm
-  // agrupados por função, com o nome dela no cabeçalho da seção (`sharedStyles.sectionTitulo`),
-  // então repetir numa coluna seria redundante. Larguras fixas (CPF/Valor/Pago) mais enxutas que
-  // numa página em paisagem, pra sobrar espaço pro Nome e a Chave Pix (colunas flexíveis) no
-  // retrato mais estreito do A4.
-  colConsNome: { flex: 1.5 },
-  colConsCpf: { width: 68 },
-  colConsChavePix: { flex: 1.6 },
-  colConsValor: { width: 58, textAlign: "right" },
-  colConsPago: { width: 34, textAlign: "center" },
+  // Colunas do Recibo Consolidado (página em paisagem — ver `ReciboConsolidadoDocument` abaixo).
+  // Função tem coluna própria (não é mais cabeçalho de seção) e Tipo/Chave Pix ficam separados pra
+  // o tipo (CPF, e-mail, telefone...) não se confundir visualmente com o valor da chave ao lado.
+  // `marginRight` em quase todas — sem ele, colunas cujo texto preenche a largura toda (como CPF)
+  // encostavam direto na coluna seguinte, sem nenhum espaço em branco entre as duas.
+  colConsNome: { flex: 1.3, marginRight: 6 },
+  colConsFuncao: { flex: 1, marginRight: 6 },
+  colConsCpf: { width: 82, marginRight: 6 },
+  colConsTipoChave: { width: 62, marginRight: 6 },
+  colConsChavePix: { flex: 1.3, marginRight: 6 },
+  colConsValor: { width: 68, textAlign: "right", marginRight: 6 },
+  colConsPago: { width: 40, textAlign: "center" },
   totalRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -107,21 +108,23 @@ function formatMoeda(valor: number | null): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-/** Junta tipo + valor da chave Pix numa única célula (ex.: "CPF · 123.456.789-00") — mesmo rótulo
- * de tipo já usado no Recibo Individual (`CHAVE_PIX_TIPO_LABEL`). */
-function formatChavePixConsolidado(item: ReciboPdfItem): string {
-  if (!item.chavePix) return "—";
-  const tipoLabel = item.chavePixTipo ? CHAVE_PIX_TIPO_LABEL[item.chavePixTipo] : null;
-  return tipoLabel ? `${tipoLabel} · ${item.chavePix}` : item.chavePix;
+/** Rótulo do tipo da chave Pix pra coluna própria da tabela (ex.: "Telefone") — mesmo rótulo já
+ * usado no Recibo Individual (`CHAVE_PIX_TIPO_LABEL`), só que numa célula separada da chave em si
+ * em vez de junto no mesmo texto. */
+function formatTipoChavePix(item: ReciboPdfItem): string {
+  if (!item.chavePix || !item.chavePixTipo) return "—";
+  return CHAVE_PIX_TIPO_LABEL[item.chavePixTipo];
 }
 
 /**
- * Agrupa os itens do Recibo Consolidado pela função no jogo — pessoas da mesma função ficam juntas
- * na tabela, em vez de intercaladas na ordem em que foram marcadas como incluídas (ex.: todos os
- * Gandulas seguidos, depois todos os Seguranças). Grupos em ordem alfabética do nome da função, pra
- * o resultado ser sempre previsível independente da ordem de cadastro.
+ * Ordena os itens do Recibo Consolidado sequenciando por função no jogo — pessoas da mesma função
+ * ficam juntas na tabela, em vez de intercaladas na ordem em que foram marcadas como incluídas (ex.:
+ * todos os Gandulas seguidos, depois todos os Seguranças). A função continua aparecendo na própria
+ * linha (coluna "Função"); isso só decide a ORDEM das linhas, sem cabeçalho de seção. Ordem
+ * alfabética do nome da função, pra o resultado ser sempre previsível independente da ordem de
+ * cadastro.
  */
-function agruparPorFuncao(itens: ReciboPdfItem[]): { funcao: string; itens: ReciboPdfItem[] }[] {
+function ordenarPorFuncao(itens: ReciboPdfItem[]): ReciboPdfItem[] {
   const grupos = new Map<string, ReciboPdfItem[]>();
   for (const item of itens) {
     const chave = item.funcaoJogo?.trim() || "Sem função";
@@ -130,7 +133,7 @@ function agruparPorFuncao(itens: ReciboPdfItem[]): { funcao: string; itens: Reci
   }
   return Array.from(grupos.entries())
     .sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))
-    .map(([funcao, itensDoGrupo]) => ({ funcao, itens: itensDoGrupo }));
+    .flatMap(([, itensDoGrupo]) => itensDoGrupo);
 }
 
 export interface ReciboPdfItem {
@@ -205,11 +208,11 @@ export function ReciboIndividualDocument({
 }
 
 /**
- * Consolidado de todos os pagamentos de um jogo — uma linha por pessoa, agrupadas por função (ver
- * `agruparPorFuncao`), com CPF e Chave Pix (+ tipo) de cada uma pra conferência antes do pagamento.
- * Página em retrato, igual ao Recibo Individual — o agrupamento por função vira o cabeçalho de cada
- * seção, então não precisa de uma coluna própria pra função, o que libera espaço suficiente pras
- * colunas de CPF e Chave Pix caberem no retrato de A4.
+ * Consolidado de todos os pagamentos de um jogo — uma linha por pessoa, sequenciadas por função
+ * (ver `ordenarPorFuncao` — sem cabeçalho de seção, a função é uma coluna igual às outras), com CPF
+ * e Chave Pix (tipo e valor em colunas separadas) de cada uma pra conferência antes do pagamento.
+ * Página em paisagem (só este documento — o Recibo Individual continua em pé) porque as colunas
+ * extras não cabiam de forma legível no retrato de A4.
  */
 export function ReciboConsolidadoDocument({
   jogo,
@@ -223,11 +226,11 @@ export function ReciboConsolidadoDocument({
   itens: ReciboPdfItem[];
 }) {
   const total = itens.reduce((soma, item) => soma + (item.valor ?? 0), 0);
-  const grupos = agruparPorFuncao(itens);
+  const itensOrdenados = ordenarPorFuncao(itens);
 
   return (
     <Document>
-      <Page size="A4" style={sharedStyles.page}>
+      <Page size="A4" orientation="landscape" style={sharedStyles.page}>
         <DocumentoHeader
           jogo={jogo}
           juventusLogoSrc={juventusLogoSrc}
@@ -239,25 +242,24 @@ export function ReciboConsolidadoDocument({
           <Text style={sharedStyles.emptyState}>Nenhum recibo registrado.</Text>
         ) : (
           <View style={styles.table}>
-            {grupos.map((grupo) => (
-              <View key={grupo.funcao} wrap={false}>
-                <Text style={sharedStyles.sectionTitulo}>{grupo.funcao}</Text>
-                <View style={sharedStyles.tableHeaderRow}>
-                  <Text style={[styles.colConsNome, sharedStyles.headerCell]}>Nome</Text>
-                  <Text style={[styles.colConsCpf, sharedStyles.headerCell]}>CPF</Text>
-                  <Text style={[styles.colConsChavePix, sharedStyles.headerCell]}>Chave Pix</Text>
-                  <Text style={[styles.colConsValor, sharedStyles.headerCell]}>Valor</Text>
-                  <Text style={[styles.colConsPago, sharedStyles.headerCell]}>Pago</Text>
-                </View>
-                {grupo.itens.map((item, i) => (
-                  <View style={sharedStyles.tableRow} key={i} wrap={false}>
-                    <Text style={styles.colConsNome}>{item.nome}</Text>
-                    <Text style={styles.colConsCpf}>{item.cpf ? formatCPF(item.cpf) : "—"}</Text>
-                    <Text style={styles.colConsChavePix}>{formatChavePixConsolidado(item)}</Text>
-                    <Text style={styles.colConsValor}>{formatMoeda(item.valor)}</Text>
-                    <Text style={styles.colConsPago}>{item.pago ? "Sim" : "—"}</Text>
-                  </View>
-                ))}
+            <View style={sharedStyles.tableHeaderRow}>
+              <Text style={[styles.colConsNome, sharedStyles.headerCell]}>Nome</Text>
+              <Text style={[styles.colConsFuncao, sharedStyles.headerCell]}>Função</Text>
+              <Text style={[styles.colConsCpf, sharedStyles.headerCell]}>CPF</Text>
+              <Text style={[styles.colConsTipoChave, sharedStyles.headerCell]}>Tipo</Text>
+              <Text style={[styles.colConsChavePix, sharedStyles.headerCell]}>Chave Pix</Text>
+              <Text style={[styles.colConsValor, sharedStyles.headerCell]}>Valor</Text>
+              <Text style={[styles.colConsPago, sharedStyles.headerCell]}>Pago</Text>
+            </View>
+            {itensOrdenados.map((item, i) => (
+              <View style={sharedStyles.tableRow} key={i} wrap={false}>
+                <Text style={styles.colConsNome}>{item.nome}</Text>
+                <Text style={styles.colConsFuncao}>{item.funcaoJogo ?? "—"}</Text>
+                <Text style={styles.colConsCpf}>{item.cpf ? formatCPF(item.cpf) : "—"}</Text>
+                <Text style={styles.colConsTipoChave}>{formatTipoChavePix(item)}</Text>
+                <Text style={styles.colConsChavePix}>{item.chavePix ?? "—"}</Text>
+                <Text style={styles.colConsValor}>{formatMoeda(item.valor)}</Text>
+                <Text style={styles.colConsPago}>{item.pago ? "Sim" : "—"}</Text>
               </View>
             ))}
           </View>
