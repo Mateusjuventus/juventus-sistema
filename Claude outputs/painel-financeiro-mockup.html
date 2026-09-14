@@ -1,0 +1,288 @@
+<title>Painel Financeiro — mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --grena: #5C0A35;
+    --grena-escuro: #3F0724;
+    --dourado: #B98F1E;
+    --cinza-pagina: #EEF0F2;
+    --linha: #E3E5E8;
+    --contexto: #C7C9CD;
+    --branco: #FFFFFF;
+    --texto: #1F2023;
+    --texto-2: #5B5E66;
+    --bg: var(--cinza-pagina);
+    --card-bg: var(--branco);
+    --tag-bg: #F4EFE3;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--texto);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .topbar {
+    background: var(--grena);
+    color: var(--branco);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 10px; }
+  .topbar .brand .crest {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--dourado); color: var(--grena-escuro);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; flex-shrink: 0;
+  }
+  .topbar .brand div p { margin: 0; line-height: 1.2; }
+  .topbar .brand .titulo { font-weight: 700; font-size: 15px; }
+  .topbar .brand .sub { font-size: 12px; opacity: 0.75; }
+  .topbar .sair {
+    font-size: 13px; color: var(--branco); opacity: 0.85;
+    border: 1px solid rgba(255,255,255,0.35); border-radius: 6px;
+    padding: 6px 12px; background: transparent; cursor: pointer;
+  }
+
+  nav.tabs {
+    display: flex; gap: 4px; padding: 0 28px; background: var(--grena-escuro);
+    overflow-x: auto;
+  }
+  nav.tabs button {
+    background: none; border: none; color: rgba(255,255,255,0.7);
+    padding: 12px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    border-bottom: 2px solid transparent; white-space: nowrap;
+    font-family: inherit;
+  }
+  nav.tabs button.active { color: var(--branco); border-bottom-color: var(--dourado); }
+
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 28px 64px; }
+  [hidden] { display: none !important; }
+
+  h1 { font-size: 20px; margin: 0 0 4px; color: var(--grena-escuro); }
+  .lead { font-size: 13px; color: var(--texto-2); margin: 0 0 20px; }
+
+  .card {
+    background: var(--card-bg); border: 1px solid var(--linha); border-radius: 10px;
+    padding: 18px;
+  }
+  .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat p.label { margin: 0; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--texto-2); font-weight: 600; }
+  .stat p.valor { margin: 6px 0 0; font-size: 22px; font-weight: 800; color: var(--grena-escuro); }
+  .stat p.valor.destaque { color: var(--dourado); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--texto-2); padding: 8px 10px; border-bottom: 1px solid var(--linha); }
+  td { padding: 10px 10px; border-bottom: 1px solid var(--linha); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge.profissional { background: var(--tag-bg); color: var(--grena-escuro); }
+  .badge.base { background: #E9EEF7; color: #2A4D8F; }
+  .badge.status-pendente { background: #FDF0DC; color: #8A5A16; }
+  .badge.status-aprovada { background: #E3F3E7; color: #276B3E; }
+  .link-ver { color: var(--grena); font-weight: 600; text-decoration: none; font-size: 13px; }
+  .link-ver:hover { text-decoration: underline; }
+  .obs { font-size: 12px; color: var(--texto-2); margin-top: 16px; }
+
+  .pills { display: flex; gap: 6px; margin-bottom: 18px; }
+  .pill { border: 1px solid var(--linha); background: var(--branco); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: var(--texto-2); cursor: pointer; font-family: inherit; }
+  .pill.active { background: var(--grena); border-color: var(--grena); color: var(--branco); }
+
+  .barrow { display: grid; grid-template-columns: 130px 1fr 78px; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--linha); }
+  .barrow:last-child { border-bottom: none; }
+  .barrow .nome { font-size: 13px; font-weight: 600; color: var(--grena-escuro); }
+  .bartrack { position: relative; height: 20px; background: var(--cinza-pagina); border-radius: 4px; overflow: hidden; }
+  .bar-previsto { position: absolute; top: 0; left: 0; height: 100%; background: var(--contexto); border-radius: 4px; }
+  .bar-efetuado { position: absolute; top: 0; left: 0; height: 100%; background: var(--grena); border-radius: 4px; }
+  .bar-efetuado.estourou { background: var(--dourado); }
+  .barrow .pct { text-align: right; font-size: 13px; font-weight: 700; color: var(--grena-escuro); }
+  .barrow .pct.estourou { color: var(--dourado); }
+  .legenda { display: flex; gap: 18px; font-size: 12px; color: var(--texto-2); margin: 14px 0 4px; }
+  .legenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .cols2 { display: grid; grid-template-columns: 1fr 1.3fr; gap: 18px; align-items: start; }
+  @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
+  .relatorio-item { padding: 12px; border: 1px solid var(--linha); border-radius: 8px; margin-bottom: 8px; }
+  .relatorio-item .num { font-weight: 700; color: var(--grena-escuro); font-size: 13.5px; }
+  .relatorio-item .meta { font-size: 12px; color: var(--texto-2); margin-top: 2px; }
+
+  .campo { margin-bottom: 12px; }
+  .campo label { display: block; font-size: 12px; font-weight: 600; color: var(--texto-2); margin-bottom: 4px; }
+  .campo input, .campo select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--linha); border-radius: 6px;
+    font-size: 13.5px; font-family: inherit; background: var(--branco); color: var(--texto);
+  }
+  .checklist label { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--linha); font-size: 13.5px; }
+  .checklist label:last-child { border-bottom: none; }
+  .checklist .valor { margin-left: auto; font-weight: 700; color: var(--grena-escuro); }
+  .btn {
+    background: var(--grena); color: var(--branco); border: none; border-radius: 6px;
+    padding: 10px 18px; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .btn.secundario { background: transparent; color: var(--grena); border: 1px solid var(--grena); }
+  .row-btn { display: flex; gap: 8px; margin-top: 14px; }
+  .aviso-mock {
+    background: #FFF8E8; border: 1px solid #EAD9A8; color: #6b5215;
+    border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 18px;
+  }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="crest">CJ</div>
+    <div>
+      <p class="titulo">Clube Atlético Juventus</p>
+      <p class="sub">Painel Financeiro</p>
+    </div>
+  </div>
+  <button class="sair">Sair</button>
+</div>
+
+<nav class="tabs">
+  <button class="active" data-tab="compras">Compras</button>
+  <button data-tab="gastos">Gastos dos Jogos</button>
+  <button data-tab="relatorios">Relatórios de Pagamento</button>
+</nav>
+
+<main>
+  <div class="aviso-mock">Mockup pra revisão de layout — números e nomes abaixo são só exemplo, não são dados reais do sistema.</div>
+
+  <!-- TAB 1: COMPRAS -->
+  <section id="tab-compras">
+    <h1>Compras</h1>
+    <p class="lead">Solicitações do tipo Compra de qualquer solicitante, Profissional e Base — só consulta.</p>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <table>
+        <thead>
+          <tr><th>Nº</th><th>Solicitante</th><th>Departamento</th><th>Data</th><th>Item</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          <tr><td>047</td><td>Pedro Machado</td><td><span class="badge profissional">Profissional</span></td><td>08/09</td><td>Bolas de treino (12x)</td><td><span class="badge status-pendente">Pendente</span></td><td><a class="link-ver" href="#">Ver →</a></td></tr>
+          <tr><td>046</td><td>Mateus Santos</td><td><span class="badge profissional">Profissional</span></td><td>05/09</td><td>Material de fisioterapia</td><td><span class="badge status-aprovada">Aprovada</span></td><td><a class="link-ver" href="#">Ver →</a></td></tr>
+          <tr><td>031</td><td>Gustavo Lima</td><td><span class="badge base">Base</span></td><td>02/09</td><td>Coletes de treino Sub-15</td><td><span class="badge status-aprovada">Aprovada</span></td><td><a class="link-ver" href="#">Ver →</a></td></tr>
+          <tr><td>029</td><td>Ana Souza</td><td><span class="badge base">Base</span></td><td>28/08</td><td>Kit de primeiros socorros</td><td><span class="badge status-pendente">Pendente</span></td><td><a class="link-ver" href="#">Ver →</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TAB 2: GASTOS -->
+  <section id="tab-gastos" hidden>
+    <h1>Gastos dos Jogos</h1>
+    <p class="lead">Previsto x efetuado dos dois departamentos, com o percentual do orçamento já usado — só consulta.</p>
+
+    <div class="pills">
+      <button class="pill active">Ambos</button>
+      <button class="pill">Profissional</button>
+      <button class="pill">Base</button>
+    </div>
+
+    <div class="grid-cards">
+      <div class="card stat"><p class="label">Previsto</p><p class="valor">R$ 184.200</p></div>
+      <div class="card stat"><p class="label">Efetuado</p><p class="valor">R$ 151.860</p></div>
+      <div class="card stat"><p class="label">% do orçamento usado</p><p class="valor destaque">82%</p></div>
+    </div>
+
+    <div class="card">
+      <p style="margin:0 0 4px; font-weight:700; color:var(--grena-escuro); font-size:14px;">Por categoria</p>
+      <div class="legenda">
+        <span><i class="dot" style="background:var(--contexto)"></i> Previsto</span>
+        <span><i class="dot" style="background:var(--grena)"></i> Efetuado</span>
+        <span><i class="dot" style="background:var(--dourado)"></i> Acima do previsto</span>
+      </div>
+
+      <div class="barrow">
+        <div class="nome">Hospedagem</div>
+        <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:88%"></div></div>
+        <div class="pct">88%</div>
+      </div>
+      <div class="barrow">
+        <div class="nome">Transporte/Ônibus</div>
+        <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado estourou" style="width:100%"></div></div>
+        <div class="pct estourou">109%</div>
+      </div>
+      <div class="barrow">
+        <div class="nome">Alimentação</div>
+        <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:74%"></div></div>
+        <div class="pct">74%</div>
+      </div>
+      <div class="barrow">
+        <div class="nome">Arbitragem</div>
+        <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:95%"></div></div>
+        <div class="pct">95%</div>
+      </div>
+      <div class="barrow">
+        <div class="nome">Material Esportivo</div>
+        <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:61%"></div></div>
+        <div class="pct">61%</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: RELATORIOS -->
+  <section id="tab-relatorios" hidden>
+    <h1>Relatórios de Pagamento</h1>
+    <p class="lead">Junta Solicitações de Pagamento recebidas (Profissional e Base) e pagamentos avulsos num relatório em PDF — não muda o status das solicitações originais.</p>
+
+    <div class="cols2">
+      <div>
+        <p style="margin:0 0 10px; font-weight:700; color:var(--grena-escuro); font-size:14px;">Já gerados</p>
+        <div class="relatorio-item">
+          <div class="num">Relatório de Pagamento Nº 004</div>
+          <div class="meta">12/09/2026 · 3 solicitações + 1 avulso · R$ 18.420</div>
+        </div>
+        <div class="relatorio-item">
+          <div class="num">Relatório de Pagamento Nº 003</div>
+          <div class="meta">30/08/2026 · 5 solicitações · R$ 27.150</div>
+        </div>
+        <button class="btn secundario" style="margin-top:8px; width:100%;">Ver todos</button>
+      </div>
+
+      <div class="card">
+        <p style="margin:0 0 10px; font-weight:700; color:var(--grena-escuro); font-size:14px;">Novo relatório</p>
+
+        <p style="font-size:12px; font-weight:600; color:var(--texto-2); margin:0 0 6px;">Solicitações de Pagamento recebidas</p>
+        <div class="checklist">
+          <label><input type="checkbox" checked> Nº 052 · Pedro Machado <span class="valor">R$ 4.200</span></label>
+          <label><input type="checkbox" checked> Nº 051 · Ana Souza (Base) <span class="valor">R$ 1.980</span></label>
+          <label><input type="checkbox"> Nº 048 · Mateus Santos <span class="valor">R$ 6.500</span></label>
+        </div>
+
+        <p style="font-size:12px; font-weight:600; color:var(--texto-2); margin:18px 0 6px;">+ Pagamento avulso</p>
+        <div class="campo"><label>Descrição</label><input type="text" placeholder="Ex.: Pagamento de fisioterapeuta autônomo"></div>
+        <div class="campo"><label>Beneficiário</label><input type="text" placeholder="Nome de quem recebe"></div>
+        <div class="campo"><label>Categoria</label>
+          <select><option>Material Esportivo</option><option>Transporte/Ônibus</option><option>Outros</option></select>
+        </div>
+        <div class="campo"><label>Valor</label><input type="text" placeholder="R$ 0,00"></div>
+        <div class="campo"><label>Data</label><input type="date"></div>
+
+        <div class="row-btn">
+          <button class="btn">Gerar Relatório (PDF)</button>
+          <button class="btn secundario">+ Adicionar outro avulso</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  document.querySelectorAll('nav.tabs button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav.tabs button').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      ['compras', 'gastos', 'relatorios'].forEach((id) => {
+        document.getElementById('tab-' + id).hidden = (id !== btn.dataset.tab);
+      });
+    });
+  });
+</script>

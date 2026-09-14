@@ -79,6 +79,14 @@ const styles = StyleSheet.create({
   colFuncao: { flex: 1 },
   colValor: { width: 80, textAlign: "right" },
   colPago: { width: 50, textAlign: "center" },
+  // Colunas do Recibo Consolidado (página em paisagem — ver `ReciboConsolidadoDocument` abaixo).
+  // A função não tem coluna própria aqui: os itens já vêm agrupados por função, com o nome dela no
+  // cabeçalho da seção (`sharedStyles.sectionTitulo`), então repetir numa coluna seria redundante.
+  colConsNome: { flex: 1.5 },
+  colConsCpf: { width: 90 },
+  colConsChavePix: { flex: 1.6 },
+  colConsValor: { width: 75, textAlign: "right" },
+  colConsPago: { width: 50, textAlign: "center" },
   totalRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -94,6 +102,32 @@ const styles = StyleSheet.create({
 function formatMoeda(valor: number | null): string {
   if (valor === null) return "—";
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/** Junta tipo + valor da chave Pix numa única célula (ex.: "CPF · 123.456.789-00") — mesmo rótulo
+ * de tipo já usado no Recibo Individual (`CHAVE_PIX_TIPO_LABEL`). */
+function formatChavePixConsolidado(item: ReciboPdfItem): string {
+  if (!item.chavePix) return "—";
+  const tipoLabel = item.chavePixTipo ? CHAVE_PIX_TIPO_LABEL[item.chavePixTipo] : null;
+  return tipoLabel ? `${tipoLabel} · ${item.chavePix}` : item.chavePix;
+}
+
+/**
+ * Agrupa os itens do Recibo Consolidado pela função no jogo — pessoas da mesma função ficam juntas
+ * na tabela, em vez de intercaladas na ordem em que foram marcadas como incluídas (ex.: todos os
+ * Gandulas seguidos, depois todos os Seguranças). Grupos em ordem alfabética do nome da função, pra
+ * o resultado ser sempre previsível independente da ordem de cadastro.
+ */
+function agruparPorFuncao(itens: ReciboPdfItem[]): { funcao: string; itens: ReciboPdfItem[] }[] {
+  const grupos = new Map<string, ReciboPdfItem[]>();
+  for (const item of itens) {
+    const chave = item.funcaoJogo?.trim() || "Sem função";
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave)!.push(item);
+  }
+  return Array.from(grupos.entries())
+    .sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))
+    .map(([funcao, itensDoGrupo]) => ({ funcao, itens: itensDoGrupo }));
 }
 
 export interface ReciboPdfItem {
@@ -167,6 +201,12 @@ export function ReciboIndividualDocument({
   );
 }
 
+/**
+ * Consolidado de todos os pagamentos de um jogo — uma linha por pessoa, agrupadas por função (ver
+ * `agruparPorFuncao`), com CPF e Chave Pix (+ tipo) de cada uma pra conferência antes do pagamento.
+ * Página em paisagem (só este documento — o Recibo Individual continua em pé) porque as duas
+ * colunas novas não cabiam de forma legível no retrato de A4.
+ */
 export function ReciboConsolidadoDocument({
   jogo,
   juventusLogoSrc,
@@ -179,10 +219,11 @@ export function ReciboConsolidadoDocument({
   itens: ReciboPdfItem[];
 }) {
   const total = itens.reduce((soma, item) => soma + (item.valor ?? 0), 0);
+  const grupos = agruparPorFuncao(itens);
 
   return (
     <Document>
-      <Page size="A4" style={sharedStyles.page}>
+      <Page size="A4" orientation="landscape" style={sharedStyles.page}>
         <DocumentoHeader
           jogo={jogo}
           juventusLogoSrc={juventusLogoSrc}
@@ -190,26 +231,33 @@ export function ReciboConsolidadoDocument({
           titulo="Recibo Consolidado de Pagamento"
         />
 
-        <View style={styles.table}>
-          <View style={sharedStyles.tableHeaderRow}>
-            <Text style={[styles.colNome, sharedStyles.headerCell]}>Nome</Text>
-            <Text style={[styles.colFuncao, sharedStyles.headerCell]}>Função no jogo</Text>
-            <Text style={[styles.colValor, sharedStyles.headerCell]}>Valor</Text>
-            <Text style={[styles.colPago, sharedStyles.headerCell]}>Pago</Text>
-          </View>
-          {itens.length === 0 ? (
-            <Text style={sharedStyles.emptyState}>Nenhum recibo registrado.</Text>
-          ) : (
-            itens.map((item, i) => (
-              <View style={sharedStyles.tableRow} key={i} wrap={false}>
-                <Text style={styles.colNome}>{item.nome}</Text>
-                <Text style={styles.colFuncao}>{item.funcaoJogo ?? "—"}</Text>
-                <Text style={styles.colValor}>{formatMoeda(item.valor)}</Text>
-                <Text style={styles.colPago}>{item.pago ? "Sim" : "—"}</Text>
+        {itens.length === 0 ? (
+          <Text style={sharedStyles.emptyState}>Nenhum recibo registrado.</Text>
+        ) : (
+          <View style={styles.table}>
+            {grupos.map((grupo) => (
+              <View key={grupo.funcao} wrap={false}>
+                <Text style={sharedStyles.sectionTitulo}>{grupo.funcao}</Text>
+                <View style={sharedStyles.tableHeaderRow}>
+                  <Text style={[styles.colConsNome, sharedStyles.headerCell]}>Nome</Text>
+                  <Text style={[styles.colConsCpf, sharedStyles.headerCell]}>CPF</Text>
+                  <Text style={[styles.colConsChavePix, sharedStyles.headerCell]}>Chave Pix</Text>
+                  <Text style={[styles.colConsValor, sharedStyles.headerCell]}>Valor</Text>
+                  <Text style={[styles.colConsPago, sharedStyles.headerCell]}>Pago</Text>
+                </View>
+                {grupo.itens.map((item, i) => (
+                  <View style={sharedStyles.tableRow} key={i} wrap={false}>
+                    <Text style={styles.colConsNome}>{item.nome}</Text>
+                    <Text style={styles.colConsCpf}>{item.cpf ? formatCPF(item.cpf) : "—"}</Text>
+                    <Text style={styles.colConsChavePix}>{formatChavePixConsolidado(item)}</Text>
+                    <Text style={styles.colConsValor}>{formatMoeda(item.valor)}</Text>
+                    <Text style={styles.colConsPago}>{item.pago ? "Sim" : "—"}</Text>
+                  </View>
+                ))}
               </View>
-            ))
-          )}
-        </View>
+            ))}
+          </View>
+        )}
 
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total:</Text>

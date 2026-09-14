@@ -1,0 +1,160 @@
+<title>Painel Financeiro — Gastos dos Jogos (mockup)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --grena: #5C0A35;
+    --grena-escuro: #3F0724;
+    --dourado: #B98F1E;
+    --cinza-pagina: #EEF0F2;
+    --linha: #E3E5E8;
+    --contexto: #C7C9CD;
+    --branco: #FFFFFF;
+    --texto: #1F2023;
+    --texto-2: #5B5E66;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cinza-pagina);
+    color: var(--texto);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .topbar {
+    background: var(--grena);
+    color: var(--branco);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 10px; }
+  .topbar .brand .crest {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--dourado); color: var(--grena-escuro);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; flex-shrink: 0;
+  }
+  .topbar .brand div p { margin: 0; line-height: 1.2; }
+  .topbar .brand .titulo { font-weight: 700; font-size: 15px; }
+  .topbar .brand .sub { font-size: 12px; opacity: 0.75; }
+  .topbar .sair {
+    font-size: 13px; color: var(--branco); opacity: 0.85;
+    border: 1px solid rgba(255,255,255,0.35); border-radius: 6px;
+    padding: 6px 12px; background: transparent; cursor: pointer; font-family: inherit;
+  }
+
+  main { max-width: 880px; margin: 0 auto; padding: 28px 28px 64px; }
+
+  h1 { font-size: 20px; margin: 0 0 4px; color: var(--grena-escuro); }
+  .lead { font-size: 13px; color: var(--texto-2); margin: 0 0 20px; }
+
+  .aviso-mock {
+    background: #FFF8E8; border: 1px solid #EAD9A8; color: #6b5215;
+    border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 18px;
+  }
+
+  .pills { display: flex; gap: 6px; margin-bottom: 18px; }
+  .pill { border: 1px solid var(--linha); background: var(--branco); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: var(--texto-2); cursor: pointer; font-family: inherit; }
+  .pill.active { background: var(--grena); border-color: var(--grena); color: var(--branco); }
+
+  .card { background: var(--branco); border: 1px solid var(--linha); border-radius: 10px; padding: 18px; }
+  .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat p.label { margin: 0; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--texto-2); font-weight: 600; }
+  .stat p.valor { margin: 6px 0 0; font-size: 22px; font-weight: 800; color: var(--grena-escuro); }
+  .stat p.valor.destaque { color: var(--dourado); }
+
+  .painel-titulo { margin: 0 0 4px; font-weight: 700; color: var(--grena-escuro); font-size: 14px; }
+  .legenda { display: flex; gap: 18px; font-size: 12px; color: var(--texto-2); margin: 4px 0 14px; }
+  .legenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .barrow { display: grid; grid-template-columns: 150px 1fr 82px; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--linha); }
+  .barrow:last-child { border-bottom: none; }
+  .barrow .nome { font-size: 13px; font-weight: 600; color: var(--grena-escuro); }
+  .bartrack { position: relative; height: 20px; background: var(--cinza-pagina); border-radius: 4px; overflow: hidden; }
+  .bar-previsto { position: absolute; top: 0; left: 0; height: 100%; background: var(--contexto); border-radius: 4px; }
+  .bar-efetuado { position: absolute; top: 0; left: 0; height: 100%; background: var(--grena); border-radius: 4px; }
+  .bar-efetuado.estourou { background: var(--dourado); }
+  .barrow .pct { text-align: right; font-size: 13px; font-weight: 700; color: var(--grena-escuro); }
+  .barrow .pct.estourou { color: var(--dourado); }
+
+  .rodape-nota { font-size: 12px; color: var(--texto-2); margin-top: 18px; }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="crest">CJ</div>
+    <div>
+      <p class="titulo">Clube Atlético Juventus</p>
+      <p class="sub">Painel Financeiro</p>
+    </div>
+  </div>
+  <button class="sair">Sair</button>
+</div>
+
+<main>
+  <div class="aviso-mock">Mockup só da tela de Gastos dos Jogos (única tela desta fase) — números e nomes são exemplo, não são dados reais.</div>
+
+  <h1>Gastos dos Jogos</h1>
+  <p class="lead">Previsto x efetuado dos dois departamentos, com o percentual do orçamento já usado — só consulta, sem editar.</p>
+
+  <div class="pills">
+    <button class="pill active">Ambos</button>
+    <button class="pill">Profissional</button>
+    <button class="pill">Base</button>
+  </div>
+
+  <div class="grid-cards">
+    <div class="card stat"><p class="label">Previsto</p><p class="valor">R$ 184.200</p></div>
+    <div class="card stat"><p class="label">Efetuado</p><p class="valor">R$ 151.860</p></div>
+    <div class="card stat"><p class="label">% do orçamento usado</p><p class="valor destaque">82%</p></div>
+  </div>
+
+  <div class="card">
+    <p class="painel-titulo">Por categoria</p>
+    <div class="legenda">
+      <span><i class="dot" style="background:var(--contexto)"></i> Previsto</span>
+      <span><i class="dot" style="background:var(--grena)"></i> Efetuado</span>
+      <span><i class="dot" style="background:var(--dourado)"></i> Acima do previsto</span>
+    </div>
+
+    <div class="barrow">
+      <div class="nome">Hospedagem</div>
+      <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:88%"></div></div>
+      <div class="pct">88%</div>
+    </div>
+    <div class="barrow">
+      <div class="nome">Transporte/Ônibus</div>
+      <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado estourou" style="width:100%"></div></div>
+      <div class="pct estourou">109%</div>
+    </div>
+    <div class="barrow">
+      <div class="nome">Alimentação</div>
+      <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:74%"></div></div>
+      <div class="pct">74%</div>
+    </div>
+    <div class="barrow">
+      <div class="nome">Arbitragem</div>
+      <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:95%"></div></div>
+      <div class="pct">95%</div>
+    </div>
+    <div class="barrow">
+      <div class="nome">Material Esportivo</div>
+      <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:61%"></div></div>
+      <div class="pct">61%</div>
+    </div>
+    <div class="barrow">
+      <div class="nome">Segurança</div>
+      <div class="bartrack"><div class="bar-previsto" style="width:100%"></div><div class="bar-efetuado" style="width:40%"></div></div>
+      <div class="pct">40%</div>
+    </div>
+  </div>
+
+  <p class="rodape-nota">Essa é a única tela desta fase — sem abas de Compras ou Relatórios ainda, como combinado.</p>
+</main>

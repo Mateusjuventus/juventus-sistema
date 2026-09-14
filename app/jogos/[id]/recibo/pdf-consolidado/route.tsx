@@ -51,9 +51,11 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return {
       nome: pessoa?.nome_completo ?? "—",
       tipo: "Staff Operacional",
+      cpf: pessoa?.cpf ?? "",
       funcaoJogo: r.funcao_jogo ?? (pessoa ? funcaoCadastroStaff(pessoa) : null),
       valor: r.valor,
-      chavePix: null,
+      chavePix: r.chave_pix,
+      chavePixTipo: r.chave_pix_tipo,
       pago: r.pago,
     };
   });
