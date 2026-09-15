@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { OrganogramaBaseDocument, type OrganogramaBaseNoDocumento } from "@/lib/pdf/organograma-base-document";
-import type { ComissaoTecnicaBaseRow, OrganogramaBaseRow } from "@/lib/supabase/types";
+import type { ComissaoTecnicaBaseRow, OrganogramaBaseLinhaRow, OrganogramaBaseRow } from "@/lib/supabase/types";
 
 /** PDF do Organograma da Base — mesma resolução de nome/cargo (pessoa vinculada > texto livre >
  * "???") da tela (`app/base/comissao-tecnica/organograma/page.tsx`), mesma logo usada nos outros
@@ -14,9 +14,10 @@ import type { ComissaoTecnicaBaseRow, OrganogramaBaseRow } from "@/lib/supabase/
 export async function GET() {
   const supabase = createClient();
 
-  const [{ data: nosData }, { data: pessoasData }] = await Promise.all([
+  const [{ data: nosData }, { data: pessoasData }, { data: linhasData }] = await Promise.all([
     supabase.from("organograma_base").select("*").order("ordem", { ascending: true }),
     supabase.from("comissao_tecnica_base").select("id, nome_completo, funcao"),
+    supabase.from("organograma_base_linha").select("linha, reporta_para"),
   ]);
 
   const nosBrutos = (nosData ?? []) as OrganogramaBaseRow[];
@@ -33,6 +34,7 @@ export async function GET() {
     const pessoa = n.comissao_tecnica_base_id ? pessoaPorId.get(n.comissao_tecnica_base_id) : undefined;
     return {
       id: n.id,
+      comissaoTecnicaBaseId: n.comissao_tecnica_base_id,
       nomeExibido: pessoa?.nome_completo ?? n.nome ?? "???",
       cargoExibido: pessoa?.funcao ?? n.cargo ?? "",
       grupo: n.grupo,
@@ -44,12 +46,20 @@ export async function GET() {
       posManual: n.pos_manual,
     };
   });
+  const linhasReportaPara = ((linhasData ?? []) as Pick<OrganogramaBaseLinhaRow, "linha" | "reporta_para">[]).map(
+    (l) => ({ linha: l.linha, reportaPara: l.reporta_para }),
+  );
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(
-    <OrganogramaBaseDocument juventusLogoSrc={juventusLogoSrc} geradoEm={new Date()} nos={nos} />,
+    <OrganogramaBaseDocument
+      juventusLogoSrc={juventusLogoSrc}
+      geradoEm={new Date()}
+      nos={nos}
+      linhasReportaPara={linhasReportaPara}
+    />,
   );
 
   return new NextResponse(new Uint8Array(buffer), {

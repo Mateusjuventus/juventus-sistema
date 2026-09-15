@@ -8,30 +8,28 @@ import type { OrganogramaNoFormState } from "@/components/organograma-editor";
 const CAMINHO = "/base/comissao-tecnica/organograma";
 
 /**
- * Ajusta `pos_x`/`pos_y` de todo mundo depois de qualquer criação/edição — três regras diferentes
- * pra três tipos de caixa:
+ * Ajusta `pos_x`/`pos_y` de todo mundo depois de qualquer criação/edição/troca de supervisor — duas
+ * regras diferentes pra dois tipos de caixa (ver docs/superpowers/specs/2026-09-15-organograma-
+ * cartoes-por-comissao-design.md, item 4):
  *
- * - Célula de grade (Grupo E Linha preenchidos): NUNCA tem posição salva — sempre usa o cálculo
- *   automático da grade (ver `lib/futebol/organograma.ts`), então ela nunca sai do alinhamento por
- *   arrasto (a tela nem deixa mais arrastar essas). Se alguma já tinha `pos_x`/`pos_y` de antes
- *   (arrastada ou congelada por uma versão anterior desta função), essa posição é apagada aqui —
- *   ela "volta" pra grade.
- * - Caixa arrastada manualmente (`pos_manual = true`, ver `moverNoOrganograma`): NUNCA é tocada
- *   aqui, mesmo que uma caixa nova apareça do lado dela — é um arranjo de propósito do Mateus.
- * - Qualquer outra caixa (liderança, ou Grupo sem Linha, sem arrasto manual): recalculada JUNTO com
- *   todas as outras do mesmo tipo a cada criação/edição, não só a caixa nova. Uma versão anterior
- *   só recalculava a caixa recém-criada e "congelava" as demais como estavam — como a posição de
- *   cada caixa depende de quantas outras existem no mesmo nível (ver `calcularLayoutAutomatico`),
- *   isso podia fazer a caixa nova cair EM CIMA de uma caixa já existente, sem ninguém perceber até
- *   reparar que uma "sumiu" da tela (escondida atrás de outra) ou até exportar o PDF e ver as duas
- *   sobrepostas (spec de 27/08 — bug real reportado pelo Mateus). Recalcular todas juntas garante
- *   que essas caixas nunca se sobrepõem entre si; só grava quem de fato mudou de posição, pra não
- *   gerar updates (nem revalidação) à toa.
+ * - Cartão de comissão/departamento (qualquer caixa com `grupo`, com ou sem `linha` — inclusive o
+ *   solo legado): NUNCA tem posição salva — sempre calculada na hora (aqui E na tela E no PDF), então
+ *   nunca sai do alinhamento por arrasto (a tela nem deixa mais arrastar essas). Se alguma já tinha
+ *   `pos_x`/`pos_y` de antes (arrastada ou congelada por uma versão anterior), essa posição é apagada
+ *   aqui — ela "volta" pro cartão calculado.
+ * - Caixa de liderança arrastada manualmente (`pos_manual = true`, ver `moverNoOrganograma`): NUNCA é
+ *   tocada aqui — é um arranjo de propósito do Mateus.
+ * - Qualquer outra caixa de liderança (sem arrasto manual): recalculada JUNTO com todas as outras do
+ *   mesmo tipo a cada criação/edição/troca de supervisor, não só a caixa nova — como a posição de
+ *   cada uma depende de quantas outras (e cartões) existem no mesmo nível (ver
+ *   `calcularLayoutAutomatico`), recalcular todas juntas garante que nunca se sobrepõem entre si; só
+ *   grava quem de fato mudou de posição, pra não gerar updates (nem revalidação) à toa.
  */
 async function ajustarPosicoesAutomaticas(supabase: ReturnType<typeof createClient>): Promise<void> {
-  const { data } = await supabase
-    .from("organograma_base")
-    .select("id, reporta_para, grupo, linha, ordem, pos_x, pos_y, pos_manual");
+  const [{ data }, { data: linhaData }] = await Promise.all([
+    supabase.from("organograma_base").select("id, reporta_para, grupo, linha, ordem, pos_x, pos_y, pos_manual"),
+    supabase.from("organograma_base_linha").select("linha, reporta_para"),
+  ]);
   const linhas = (data ?? []) as {
     id: string;
     reporta_para: string | null;
@@ -42,12 +40,15 @@ async function ajustarPosicoesAutomaticas(supabase: ReturnType<typeof createClie
     pos_y: number | null;
     pos_manual: boolean;
   }[];
-
-  const naGrade = (l: (typeof linhas)[number]) => Boolean(l.grupo && l.linha);
-  const paraDescongelar = linhas.filter(
-    (l) => naGrade(l) && (l.pos_x !== null || l.pos_y !== null || l.pos_manual),
+  const linhaReportaParaMap = new Map(
+    ((linhaData ?? []) as { linha: string; reporta_para: string | null }[]).map((l) => [l.linha, l.reporta_para]),
   );
-  const paraRecalcular = linhas.filter((l) => !naGrade(l) && !l.pos_manual);
+
+  const ehCartao = (l: (typeof linhas)[number]) => Boolean(l.grupo);
+  const paraDescongelar = linhas.filter(
+    (l) => ehCartao(l) && (l.pos_x !== null || l.pos_y !== null || l.pos_manual),
+  );
+  const paraRecalcular = linhas.filter((l) => !ehCartao(l) && !l.pos_manual);
 
   const atualizacoes = paraDescongelar.map((l) =>
     supabase.from("organograma_base").update({ pos_x: null, pos_y: null, pos_manual: false }).eq("id", l.id),
@@ -62,12 +63,12 @@ async function ajustarPosicoesAutomaticas(supabase: ReturnType<typeof createClie
           grupo: l.grupo,
           linha: l.linha,
           ordem: l.ordem,
-          automatico: Boolean(l.grupo && l.linha) || !l.pos_manual,
         }),
       ),
+      linhaReportaParaMap,
     );
     for (const l of paraRecalcular) {
-      const pos = layout.get(l.id);
+      const pos = layout.posicoesLideranca.get(l.id);
       if (!pos) continue;
       const x = Math.round(pos.x);
       const y = Math.round(pos.y);
@@ -138,9 +139,46 @@ export async function salvarNoOrganograma(
     if (error) return { error: `Não foi possível criar: ${error.message}` };
   }
 
+  // Supervisor da comissão/departamento inteira — só vem preenchido no formulário quando é a
+  // PRIMEIRA pessoa de uma linha nova (ver `PainelEdicao`/item 7 da spec); pra uma linha já
+  // existente, o campo nem aparece, então `novaLinhaReportaPara` não chega aqui e o supervisor já
+  // definido antes continua intacto.
+  const novaLinhaReportaPara = formData.get("novaLinhaReportaPara");
+  if (linha && novaLinhaReportaPara !== null) {
+    const { error: erroLinha } = await supabase
+      .from("organograma_base_linha")
+      .upsert(
+        { linha, reporta_para: String(novaLinhaReportaPara).trim() || null, updated_at: new Date().toISOString() },
+        { onConflict: "linha" },
+      );
+    if (erroLinha) {
+      return { error: `Caixa salva, mas não foi possível definir o supervisor dessa comissão/departamento: ${erroLinha.message}` };
+    }
+  }
+
   await ajustarPosicoesAutomaticas(supabase);
   revalidatePath(CAMINHO);
   return { success: true };
+}
+
+/**
+ * Troca o supervisor de uma `linha` inteira (comissão/departamento) — campo "Essa comissão reporta
+ * para" no painel de edição (ver item 2/7 da spec de 15/09). Separado de `salvarNoOrganograma`
+ * porque é uma propriedade da LINHA, não de uma pessoa específica dela: muda de uma vez pra todo
+ * mundo listado naquele cartão. Recalcula posições de liderança em seguida porque a largura da
+ * subárvore de um supervisor depende de quantas comissões (cartões) reportam pra ele.
+ */
+export async function definirSupervisorLinha(linha: string, reportaPara: string | null): Promise<{ error?: string }> {
+  if (!linha) return {};
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("organograma_base_linha")
+    .upsert({ linha, reporta_para: reportaPara, updated_at: new Date().toISOString() }, { onConflict: "linha" });
+  if (error) return { error: `Não foi possível salvar o supervisor: ${error.message}` };
+
+  await ajustarPosicoesAutomaticas(supabase);
+  revalidatePath(CAMINHO);
+  return {};
 }
 
 /**

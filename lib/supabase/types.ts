@@ -306,6 +306,16 @@ export interface OrganogramaBaseRow {
   updated_at: string;
 }
 
+/** Qual caixa de liderança (supervisor) cada comissão/departamento (`linha`) do Organograma da Base
+ * reporta pra — ver docs/superpowers/specs/2026-09-15-organograma-cartoes-por-comissao-design.md.
+ * Uma linha por valor de `linha` usado em `OrganogramaBaseRow`; `reporta_para` nulo até alguém
+ * escolher pela tela (a comissão continua aparecendo, só cai num grupo "sem supervisor definido"). */
+export interface OrganogramaBaseLinhaRow {
+  linha: string;
+  reporta_para: string | null;
+  updated_at: string;
+}
+
 export interface StaffFuncaoCatalogoRow {
   id: string;
   nome: string;
