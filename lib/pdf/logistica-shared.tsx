@@ -242,7 +242,6 @@ export const financeiroStyles = StyleSheet.create({
   assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
   assinaturaNome: { fontSize: 9.5, fontWeight: 700, color: "#1f1f1f", textAlign: "center" },
   assinaturaCargo: { fontSize: 8, color: "#525252", textAlign: "center", marginTop: 1 },
-  assinaturaPendenteTexto: { fontSize: 8.5, color: "#a3a3a3", textAlign: "center", fontStyle: "italic" },
   /** Imagem da assinatura desenhada/anexada (ver docs/superpowers/specs/2026-09-13-assinatura-
    * desenhada-design.md) — some por cima da linha (`assinaturaLinha`), no lugar de onde a pessoa
    * assinaria à mão; embaixo da linha continua só nome/cargo, sem nenhum texto de "assinado
@@ -308,10 +307,11 @@ export interface AssinaturaInfo {
    * assinatura-desenhada-design.md) — só faz sentido junto de `assinadoDigitalmenteEm`. `null`/
    * ausente: assinatura de antes desta mudança, mostra só o texto de sempre, sem imagem. */
   assinaturaImagemSrc?: string | null;
-  /** Documento com assinatura digital, mas esse papel específico ainda não foi assinado — mostra
-   * "Pendente de assinatura" no lugar da linha em branco (documento ainda não impresso pra
-   * assinar na mão, então uma linha vazia sem contexto confundiria). Ignorado se
-   * `assinadoDigitalmenteEm` também estiver presente. */
+  /** Documento com assinatura digital, mas esse papel específico ainda não foi assinado — mostra só
+   * a linha em branco com o cargo embaixo (sem nome, já que ninguém assinou ainda). Não mostra mais
+   * nenhum texto de "Pendente de assinatura" no PDF impresso — pedido do Mateus de 16/09, já que
+   * isso é visível pra quem vê o documento assinado/impresso, não só pra quem acessa o sistema.
+   * Ignorado se `assinadoDigitalmenteEm` também estiver presente. */
   pendente?: boolean;
 }
 
@@ -339,7 +339,6 @@ function ConteudoColunaAssinatura({ assinatura }: { assinatura: AssinaturaInfo }
       <>
         <View style={financeiroStyles.assinaturaArea} />
         <View style={financeiroStyles.assinaturaLinha} />
-        <Text style={financeiroStyles.assinaturaPendenteTexto}>Pendente de assinatura</Text>
         <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
       </>
     );
