@@ -17,13 +17,48 @@ function garantirConfigurado(): boolean {
   return true;
 }
 
+/** Quanto tempo (ms) esperar por UM envio de push antes de desistir e seguir em frente. */
+export const TIMEOUT_ENVIO_PUSH_MS = 8000;
+
+/**
+ * Corre `promessa` contra um limite de tempo e resolve assim que UM dos dois terminar primeiro —
+ * nunca rejeita por causa do timeout (só "desiste de esperar"). Extraído como função pura, testável
+ * sem precisar simular o `web-push`/Supabase de verdade (mesmo raciocínio de
+ * `resolverCategoriasBasePermitidas` em `lib/auth/role.ts`: separar a parte que dá pra testar sem
+ * montar um client inteiro).
+ *
+ * Por que isso existe: `webpush.sendNotification` faz uma chamada HTTPS de verdade pro navegador/
+ * sistema operacional de quem vai receber o push, sem nenhum timeout próprio — um endpoint lento,
+ * inacessível ou com rede instável podia deixar essa promessa pendurada por muito tempo (minutos,
+ * dependendo da rede). Como `criarNotificacao` é chamada de DENTRO de outras Server Actions (ex.:
+ * `createSolicitacao` ao criar uma solicitação) e o código sempre esperou (`await`) o push terminar
+ * antes de seguir pro resto do fluxo (gravar os itens, `redirect`...), esse pendurado travava a
+ * ação inteira — parecia que "clicar em Cadastrar carrega e não salva", mesmo a solicitação já tendo
+ * sido inserida no banco alguns passos antes. O comentário logo abaixo já dizia que envio de push é
+ * "melhor esforço, nunca bloqueia" — faltava só isso aqui pra ser verdade de fato.
+ */
+export function comTimeout<T>(promessa: Promise<T>, ms: number): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    let resolvido = false;
+    const finalizar = (valor?: T) => {
+      if (resolvido) return;
+      resolvido = true;
+      resolve(valor);
+    };
+    promessa.then((valor) => finalizar(valor), () => finalizar(undefined));
+    setTimeout(() => finalizar(undefined), ms);
+  });
+}
+
 /**
  * Envia push (Web Push nativo do navegador, sem SaaS terceiro — ver docs/superpowers/specs/
  * 2026-08-28-assinatura-digital-notificacoes-design.md) pra TODAS as inscrições salvas daquele
  * usuário (pode ter mais de um aparelho/navegador). "Melhor esforço" de propósito: quem nunca
  * aceitou push simplesmente não tem inscrição salva (nada acontece, sem erro); uma inscrição
  * expirada/revogada (código 404/410 do navegador) é removida do banco pra não tentar de novo à
- * toa nas próximas vezes.
+ * toa nas próximas vezes. Cada envio corre contra `TIMEOUT_ENVIO_PUSH_MS` (`comTimeout` acima) —
+ * quem chamou nunca fica esperando mais que isso, mesmo que o envio em si (e a limpeza da inscrição
+ * expirada, se for o caso) sigam rodando sozinhos em segundo plano depois disso.
  */
 export async function enviarPushParaUsuario(
   usuarioId: string,
@@ -42,20 +77,21 @@ export async function enviarPushParaUsuario(
 
   await Promise.all(
     inscricoes.map(async (inscricao) => {
-      try {
-        await webpush.sendNotification(
+      const envio = webpush
+        .sendNotification(
           {
             endpoint: inscricao.endpoint,
             keys: { p256dh: inscricao.chave_p256dh, auth: inscricao.chave_auth },
           },
           corpoPush,
-        );
-      } catch (err) {
-        const status = (err as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) {
-          await supabase.from("push_subscriptions").delete().eq("id", inscricao.id);
-        }
-      }
+        )
+        .catch(async (err) => {
+          const status = (err as { statusCode?: number }).statusCode;
+          if (status === 404 || status === 410) {
+            await supabase.from("push_subscriptions").delete().eq("id", inscricao.id);
+          }
+        });
+      await comTimeout(envio, TIMEOUT_ENVIO_PUSH_MS);
     }),
   );
 }
