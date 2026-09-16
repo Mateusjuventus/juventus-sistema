@@ -583,8 +583,8 @@ function CaixaLideranca({
         selecionada ? "ring-2 ring-dourado" : ""
       } ${no.vaga ? "opacity-60" : ""}`}
     >
-      <p className="truncate text-sm font-bold text-white">{no.nomeExibido}</p>
-      <p className="truncate text-xs text-white/80">{no.cargoExibido}</p>
+      <p className="line-clamp-2 break-words text-sm font-bold leading-tight text-white">{no.nomeExibido}</p>
+      <p className="line-clamp-2 break-words text-xs leading-tight text-white/80">{no.cargoExibido}</p>
     </div>
   );
 }

@@ -37,12 +37,15 @@ export interface OrganogramaPosicao {
   y: number;
 }
 
-// Reduzidas (eram 220/230) a pedido do Mateus — a árvore fica larga rápido com vários supervisores/
-// comissões, e uma caixa/cartão mais estreito sobra mais espaço horizontal pro organograma crescer
-// antes de precisar encolher a página inteira (nome/cargo continuam cabendo: cortam com "…" quando
-// não cabem, tela e PDF já tratam isso).
-export const LARGURA_CAIXA = 180;
-export const ALTURA_CAIXA = 84;
+// Estreita (eram 220/230, depois 180/84) a pedido do Mateus de 16/09 — a árvore fica larga rápido
+// com vários supervisores/comissões, e uma caixa mais estreita sobra mais espaço horizontal pro
+// organograma crescer antes de precisar encolher a página inteira. Diferente da tentativa anterior,
+// nome/cargo da caixa de liderança NÃO cortam mais com "…": quebram em até 2 linhas (tela e PDF), e
+// a altura cresceu (84 → 96) só o suficiente pra caber isso sem sobra visual — ver `CaixaLideranca`
+// em `components/organograma-editor.tsx` e o bloco `caixaLideranca` em
+// `lib/pdf/organograma-base-document.tsx`.
+export const LARGURA_CAIXA = 160;
+export const ALTURA_CAIXA = 96;
 export const LARGURA_CARTAO = 200;
 export const ALTURA_TITULO_CARTAO = 30;
 export const ALTURA_ITEM_CARTAO = 34;
