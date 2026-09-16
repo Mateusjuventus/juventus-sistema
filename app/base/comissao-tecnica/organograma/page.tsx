@@ -13,6 +13,7 @@ import type { ComissaoTecnicaBaseRow, OrganogramaBaseLinhaRow, OrganogramaBaseRo
 import {
   salvarNoOrganograma,
   moverNoOrganograma,
+  moverCartaoOrganograma,
   excluirNoOrganograma,
   moverLinhaOrganograma,
   definirSupervisorLinha,
@@ -30,15 +31,19 @@ export default async function OrganogramaBasePage() {
   const [{ data: nosData }, { data: pessoasData }, { data: linhasData }] = await Promise.all([
     supabase.from("organograma_base").select("*").order("ordem", { ascending: true }),
     supabase.from("comissao_tecnica_base").select("id, nome_completo, funcao").order("nome_completo", { ascending: true }),
-    supabase.from("organograma_base_linha").select("linha, reporta_para"),
+    supabase.from("organograma_base_linha").select("linha, reporta_para, pos_x, pos_y, pos_manual"),
   ]);
 
   const nosBrutos = (nosData ?? []) as OrganogramaBaseRow[];
   const pessoas = (pessoasData ?? []) as Pick<ComissaoTecnicaBaseRow, "id" | "nome_completo" | "funcao">[];
   const pessoaPorId = new Map(pessoas.map((p) => [p.id, p]));
-  const linhasReportaPara: LinhaSupervisor[] = ((linhasData ?? []) as Pick<OrganogramaBaseLinhaRow, "linha" | "reporta_para">[]).map(
-    (l) => ({ linha: l.linha, reportaPara: l.reporta_para }),
-  );
+  const linhasReportaPara: LinhaSupervisor[] = ((linhasData ?? []) as OrganogramaBaseLinhaRow[]).map((l) => ({
+    linha: l.linha,
+    reportaPara: l.reporta_para,
+    posX: l.pos_x,
+    posY: l.pos_y,
+    posManual: l.pos_manual,
+  }));
 
   const nos: OrganogramaNoData[] = nosBrutos.map((n) => {
     const pessoa = n.comissao_tecnica_base_id ? pessoaPorId.get(n.comissao_tecnica_base_id) : undefined;
@@ -78,11 +83,10 @@ export default async function OrganogramaBasePage() {
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-sm text-neutral-500">
-          Arraste as caixas de liderança pra organizar do seu jeito — os cartões de comissão/
-          departamento se posicionam sozinhos, abaixo do supervisor que reportam. Clique numa caixa ou
-          numa pessoa do cartão pra editar, ou em &quot;+ Nova caixa&quot; pra adicionar alguém —
-          vinculada a um cadastro da Comissão Técnica, ou preenchida na mão (Presidente, Diretor, vaga
-          em aberto).
+          Arraste as caixas de liderança, ou o título de um cartão de comissão/departamento, pra
+          organizar do seu jeito. Clique numa caixa ou numa pessoa do cartão pra editar, ou em
+          &quot;+ Nova caixa&quot; pra adicionar alguém — vinculada a um cadastro da Comissão Técnica,
+          ou preenchida na mão (Presidente, Diretor, vaga em aberto).
         </p>
         {nos.length > 0 ? (
           <a
@@ -102,6 +106,7 @@ export default async function OrganogramaBasePage() {
         linhasReportaPara={linhasReportaPara}
         salvarAction={salvarNoOrganograma}
         moverAction={moverNoOrganograma}
+        moverCartaoAction={moverCartaoOrganograma}
         excluirAction={excluirNoOrganograma}
         moverLinhaAction={moverLinhaOrganograma}
         definirSupervisorLinhaAction={definirSupervisorLinha}

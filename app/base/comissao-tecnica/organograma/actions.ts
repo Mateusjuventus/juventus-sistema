@@ -12,11 +12,14 @@ const CAMINHO = "/base/comissao-tecnica/organograma";
  * regras diferentes pra dois tipos de caixa (ver docs/superpowers/specs/2026-09-15-organograma-
  * cartoes-por-comissao-design.md, item 4):
  *
- * - Cartão de comissão/departamento (qualquer caixa com `grupo`, com ou sem `linha` — inclusive o
- *   solo legado): NUNCA tem posição salva — sempre calculada na hora (aqui E na tela E no PDF), então
- *   nunca sai do alinhamento por arrasto (a tela nem deixa mais arrastar essas). Se alguma já tinha
- *   `pos_x`/`pos_y` de antes (arrastada ou congelada por uma versão anterior), essa posição é apagada
- *   aqui — ela "volta" pro cartão calculado.
+ * - Cartão AGRUPADO por `linha` (caixa com `grupo` E `linha`): nunca guarda posição na própria
+ *   linha do `organograma_base` — desde que cartão passou a poder ser arrastado (pedido do Mateus de
+ *   16/09), a posição manual dele mora em `organograma_base_linha.pos_x/pos_y/pos_manual` (uma por
+ *   `linha`, não por pessoa). Se alguma dessas linhas ainda tiver `pos_x`/`pos_y` sobrando de uma
+ *   versão anterior (congelada por engano), essa sobra é apagada aqui.
+ * - Cartão SOLO (caixa com `grupo` mas SEM `linha`, caso raro/legado): funciona como uma liderança —
+ *   arrastado manualmente (`pos_manual = true`) nunca é tocado aqui; sem arrasto manual, qualquer
+ *   sobra de posição é zerada (volta a ser sempre calculado).
  * - Caixa de liderança arrastada manualmente (`pos_manual = true`, ver `moverNoOrganograma`): NUNCA é
  *   tocada aqui — é um arranjo de propósito do Mateus.
  * - Qualquer outra caixa de liderança (sem arrasto manual): recalculada JUNTO com todas as outras do
@@ -44,11 +47,17 @@ async function ajustarPosicoesAutomaticas(supabase: ReturnType<typeof createClie
     ((linhaData ?? []) as { linha: string; reporta_para: string | null }[]).map((l) => [l.linha, l.reporta_para]),
   );
 
-  const ehCartao = (l: (typeof linhas)[number]) => Boolean(l.grupo);
-  const paraDescongelar = linhas.filter(
-    (l) => ehCartao(l) && (l.pos_x !== null || l.pos_y !== null || l.pos_manual),
-  );
-  const paraRecalcular = linhas.filter((l) => !ehCartao(l) && !l.pos_manual);
+  const ehCartaoAgrupado = (l: (typeof linhas)[number]) => Boolean(l.grupo && l.linha);
+  const ehCartaoSolo = (l: (typeof linhas)[number]) => Boolean(l.grupo && !l.linha);
+  const paraDescongelar = [
+    // Cartão agrupado: nunca guarda posição na própria linha do `organograma_base` — sobra de antes
+    // é sempre limpa, independente de `pos_manual` (a posição manual de verdade agora mora em
+    // `organograma_base_linha`, mexida por `moverCartaoOrganograma`, não aqui).
+    ...linhas.filter((l) => ehCartaoAgrupado(l) && (l.pos_x !== null || l.pos_y !== null || l.pos_manual)),
+    // Cartão solo: mesma regra de uma liderança — só limpa sobra de quem NÃO foi arrastado.
+    ...linhas.filter((l) => ehCartaoSolo(l) && !l.pos_manual && (l.pos_x !== null || l.pos_y !== null)),
+  ];
+  const paraRecalcular = linhas.filter((l) => !l.grupo && !l.pos_manual);
 
   const atualizacoes = paraDescongelar.map((l) =>
     supabase.from("organograma_base").update({ pos_x: null, pos_y: null, pos_manual: false }).eq("id", l.id),
@@ -267,22 +276,69 @@ export async function moverNoOrganograma(id: string, x: number, y: number): Prom
 }
 
 /**
- * "Reorganizar automaticamente" — solta TODAS as caixas arrastadas de volta pro layout automático
- * (por hierarquia/grupo/linha), como se nenhuma tivesse sido arrastada ainda. Pedido do Mateus depois
- * de várias rodadas de teste terem deixado o organograma "uma bagunça" (caixas arrastadas em cantos
- * que já não faziam sentido, como o "Coordenador de Performance" perto da liderança). Célula de
- * grade nunca precisa disso (nunca é arrastada); só zera `pos_manual`/`pos_x`/`pos_y` de quem tinha
- * arrasto salvo, e deixa `ajustarPosicoesAutomaticas` calcular tudo de novo, do zero. Dali em diante
- * o Mateus volta a arrastar só quem precisar — cada caixa arrastada não é mais tocada aqui até a
- * próxima vez que "Reorganizar automaticamente" for usado de novo (mesma regra de sempre).
+ * Salva a posição arrastada de um CARTÃO inteiro (comissão/departamento) — mesmo espírito de
+ * `moverNoOrganograma`, mas pra `chave` de um cartão (ver `OrganogramaCartaoInfo.chave`) em vez do
+ * id de uma pessoa. Pedido do Mateus de 16/09: antes só dava pra reordenar cartões do MESMO
+ * supervisor (`moverLinhaOrganograma`); arrastar deixa colocar cartões de supervisores diferentes
+ * lado a lado, na ordem que quiser, mesmo cada um mantendo o supervisor de verdade vinculado.
+ *
+ * `chave` começando com `"solo:"` é um cartão de 1 item só (caixa com `grupo` mas sem `linha`) — a
+ * posição mora direto na própria caixa (`organograma_base.pos_x/pos_y`, mesma coluna de uma
+ * liderança). Qualquer outra `chave` é a `linha` de verdade — a posição mora em
+ * `organograma_base_linha.pos_x/pos_y` (uma por linha, vale pra comissão inteira, não por pessoa).
+ * O `upsert` só nos 3 campos de posição nunca mexe em `reporta_para` de quem já tinha supervisor
+ * definido (mesmo raciocínio de `definirSupervisorLinha`, que faz o inverso).
+ */
+export async function moverCartaoOrganograma(chave: string, x: number, y: number): Promise<{ error?: string }> {
+  if (!chave) return {};
+  const supabase = createClient();
+  if (chave.startsWith("solo:")) {
+    const id = chave.slice("solo:".length);
+    const { error } = await supabase
+      .from("organograma_base")
+      .update({ pos_x: Math.round(x), pos_y: Math.round(y), pos_manual: true })
+      .eq("id", id);
+    if (error) return { error: `Não foi possível salvar a posição: ${error.message}` };
+  } else {
+    const { error } = await supabase.from("organograma_base_linha").upsert(
+      {
+        linha: chave,
+        pos_x: Math.round(x),
+        pos_y: Math.round(y),
+        pos_manual: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "linha" },
+    );
+    if (error) return { error: `Não foi possível salvar a posição: ${error.message}` };
+  }
+  revalidatePath(CAMINHO);
+  return {};
+}
+
+/**
+ * "Reorganizar automaticamente" — solta TODAS as caixas E CARTÕES arrastados de volta pro layout
+ * automático (por hierarquia/grupo/linha), como se nada tivesse sido arrastado ainda. Pedido do
+ * Mateus depois de várias rodadas de teste terem deixado o organograma "uma bagunça" (caixas
+ * arrastadas em cantos que já não faziam sentido, como o "Coordenador de Performance" perto da
+ * liderança) — e, desde que cartão também passou a poder ser arrastado (16/09), vale pra ele também.
+ * Só zera `pos_manual`/`pos_x`/`pos_y` de quem tinha arrasto salvo (caixa em `organograma_base`,
+ * cartão agrupado em `organograma_base_linha`), e deixa `ajustarPosicoesAutomaticas` calcular tudo de
+ * novo, do zero. Dali em diante o Mateus volta a arrastar só quem precisar — cada caixa/cartão
+ * arrastado não é mais tocado aqui até a próxima vez que "Reorganizar automaticamente" for usado de
+ * novo (mesma regra de sempre).
  */
 export async function reorganizarOrganograma(): Promise<{ error?: string }> {
   const supabase = createClient();
-  const { error } = await supabase
-    .from("organograma_base")
-    .update({ pos_x: null, pos_y: null, pos_manual: false })
-    .eq("pos_manual", true);
-  if (error) return { error: `Não foi possível reorganizar: ${error.message}` };
+  const [{ error: erroCaixas }, { error: erroCartoes }] = await Promise.all([
+    supabase.from("organograma_base").update({ pos_x: null, pos_y: null, pos_manual: false }).eq("pos_manual", true),
+    supabase
+      .from("organograma_base_linha")
+      .update({ pos_x: null, pos_y: null, pos_manual: false })
+      .eq("pos_manual", true),
+  ]);
+  if (erroCaixas) return { error: `Não foi possível reorganizar: ${erroCaixas.message}` };
+  if (erroCartoes) return { error: `Não foi possível reorganizar: ${erroCartoes.message}` };
 
   await ajustarPosicoesAutomaticas(supabase);
   revalidatePath(CAMINHO);

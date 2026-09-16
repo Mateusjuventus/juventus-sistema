@@ -14,6 +14,7 @@ import {
   cartoesConectadosDoLayout,
   contarCartoesPorPessoaVinculada,
   corNomeCartao,
+  mesclarPosicoesCartaoManual,
   ordenarItensDoCartao,
   type OrganogramaNo,
   type OrganogramaPosicao,
@@ -447,5 +448,34 @@ describe("agruparLinhasPorSupervisor", () => {
     const grupos = agruparLinhasPorSupervisor(nos, linhaReportaPara);
     expect(grupos.get("gustavo")).toEqual(["Comissão Sub20", "Comissão Sub17"]);
     expect(grupos.get("italo")).toEqual(["Comissão Sub14", "Comissão Sub13"]);
+  });
+});
+
+describe("mesclarPosicoesCartaoManual", () => {
+  it("mantém a posição automática pra quem não tem override manual", () => {
+    const automaticas = new Map<string, OrganogramaPosicao>([
+      ["Comissão Sub20", { x: 0, y: 0 }],
+      ["Comissão Sub17", { x: 200, y: 0 }],
+    ]);
+    const resultado = mesclarPosicoesCartaoManual(automaticas, []);
+    expect(resultado.get("Comissão Sub20")).toEqual({ x: 0, y: 0 });
+    expect(resultado.get("Comissão Sub17")).toEqual({ x: 200, y: 0 });
+  });
+
+  it("posição manual vence a automática pra quem foi arrastado", () => {
+    const automaticas = new Map<string, OrganogramaPosicao>([
+      ["Comissão Sub20", { x: 0, y: 0 }],
+      ["Comissão Sub17", { x: 200, y: 0 }],
+    ]);
+    const resultado = mesclarPosicoesCartaoManual(automaticas, [{ chave: "Comissão Sub20", x: 999, y: 888 }]);
+    expect(resultado.get("Comissão Sub20")).toEqual({ x: 999, y: 888 });
+    // Quem não foi arrastado continua na posição automática, sem efeito colateral.
+    expect(resultado.get("Comissão Sub17")).toEqual({ x: 200, y: 0 });
+  });
+
+  it("não modifica o mapa automático original (imutável)", () => {
+    const automaticas = new Map<string, OrganogramaPosicao>([["Comissão Sub20", { x: 0, y: 0 }]]);
+    mesclarPosicoesCartaoManual(automaticas, [{ chave: "Comissão Sub20", x: 999, y: 888 }]);
+    expect(automaticas.get("Comissão Sub20")).toEqual({ x: 0, y: 0 });
   });
 });

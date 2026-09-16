@@ -18,6 +18,8 @@ import {
   cartoesConectadosDoLayout,
   contarCartoesPorPessoaVinculada,
   corNomeCartao,
+  mesclarPosicoesCartaoManual,
+  type OrganogramaCartaoPosicaoManual,
   type OrganogramaNo,
 } from "@/lib/futebol/organograma";
 
@@ -182,12 +184,20 @@ function hexCorNome(cor: "normal" | "dourado" | "vermelho"): string {
 }
 
 /** Mesmo cálculo da tela (posição de cada caixa de liderança e de cada cartão, conectores em ângulo
- * reto) — só sem os overrides de arrasto (o PDF é uma foto do que está salvo, não tem interação). */
-function calcularDiagrama(nos: OrganogramaBaseNoDocumento[], linhaReportaPara: Map<string, string | null>) {
+ * reto) — o PDF é uma foto do que está salvo (sem overrides de arrasto EM ANDAMENTO, já que não tem
+ * interação), mas já inclui a posição arrastada e SALVA de um cartão (`linhasPosicaoManual`), do
+ * mesmo jeito que já incluía a de uma caixa de liderança (`no.posX`/`no.posY`). */
+function calcularDiagrama(
+  nos: OrganogramaBaseNoDocumento[],
+  linhaReportaPara: Map<string, string | null>,
+  posicoesCartaoManuais: OrganogramaCartaoPosicaoManual[],
+) {
   const nosLayout = nos.map(
     (n): OrganogramaNo => ({ id: n.id, reportaPara: n.reportaPara, grupo: n.grupo, linha: n.linha, ordem: n.ordem }),
   );
-  const layout = calcularLayoutAutomatico(nosLayout, linhaReportaPara);
+  const layoutBruto = calcularLayoutAutomatico(nosLayout, linhaReportaPara);
+  const posicoesCartao = mesclarPosicoesCartaoManual(layoutBruto.posicoesCartao, posicoesCartaoManuais);
+  const layout = { ...layoutBruto, posicoesCartao };
 
   const posicoesLideranca = new Map<string, Ponto>();
   for (const no of nos) {
@@ -224,10 +234,19 @@ export function OrganogramaBaseDocument({
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
   nos: OrganogramaBaseNoDocumento[];
-  linhasReportaPara: { linha: string; reportaPara: string | null }[];
+  linhasReportaPara: { linha: string; reportaPara: string | null; posX: number | null; posY: number | null; posManual: boolean }[];
 }) {
   const linhaReportaParaMap = new Map(linhasReportaPara.map((l) => [l.linha, l.reportaPara]));
-  const diagrama = calcularDiagrama(nos, linhaReportaParaMap);
+  const posicoesCartaoManuais: OrganogramaCartaoPosicaoManual[] = [];
+  for (const l of linhasReportaPara) {
+    if (l.posManual && l.posX !== null && l.posY !== null) posicoesCartaoManuais.push({ chave: l.linha, x: l.posX, y: l.posY });
+  }
+  for (const n of nos) {
+    if (n.grupo && !n.linha && n.posManual && n.posX !== null && n.posY !== null) {
+      posicoesCartaoManuais.push({ chave: `solo:${n.id}`, x: n.posX, y: n.posY });
+    }
+  }
+  const diagrama = calcularDiagrama(nos, linhaReportaParaMap, posicoesCartaoManuais);
   const nosPorId = new Map(nos.map((n) => [n.id, n]));
   const comissaoIdPorNo = new Map(nos.map((n) => [n.id, n.comissaoTecnicaBaseId]));
   const contagemPorPessoa = contarCartoesPorPessoaVinculada(diagrama.layout.cartoes, comissaoIdPorNo);

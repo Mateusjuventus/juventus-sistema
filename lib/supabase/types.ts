@@ -313,6 +313,11 @@ export interface OrganogramaBaseRow {
 export interface OrganogramaBaseLinhaRow {
   linha: string;
   reporta_para: string | null;
+  // Posição arrastada pelo usuário pro cartão inteiro dessa linha; null = layout automático (mesmo
+  // princípio de `organograma_base.pos_x/pos_y` pra uma caixa de liderança — ver migration 0109).
+  pos_x: number | null;
+  pos_y: number | null;
+  pos_manual: boolean;
   updated_at: string;
 }
 

@@ -8,10 +8,15 @@
  *   normal por "reporta para" — essas continuam podendo ser arrastadas (posição manual salva).
  * - **Cartão de comissão/departamento** (com `grupo`, agrupadas por `linha`): cada valor distinto de
  *   `linha` vira UM cartão (título = nome da comissão/departamento, lista vertical de função→pessoa
- *   por dentro). Um cartão nunca é arrastado — sua posição é sempre calculada aqui, ligada à caixa de
- *   liderança que a `linha` reporta pra (`linhaReportaPara`, tabela `organograma_base_linha`). Uma
+ *   por dentro), ligado por padrão à caixa de liderança que a `linha` reporta pra (`linhaReportaPara`,
+ *   tabela `organograma_base_linha`). A posição calculada aqui é só o PONTO DE PARTIDA — dá pra
+ *   arrastar um cartão pra qualquer lugar (posição manual salva em `organograma_base_linha.pos_x/
+ *   pos_y`, mesmo princípio de uma liderança), útil principalmente pra colocar cartões de
+ *   supervisores DIFERENTES lado a lado numa ordem específica (ver `mesclarPosicoesCartaoManual`
+ *   abaixo — "Mover linha pra cima/baixo" só reordena entre comissões do MESMO supervisor). Uma
  *   caixa com `grupo` mas SEM `linha` (caso raro/legado) vira um cartão de 1 item só, ligado via o
- *   `reportaPara` da própria caixa (mesmo campo que uma liderança usa).
+ *   `reportaPara` da própria caixa (mesmo campo que uma liderança usa) — a posição manual dele fica
+ *   direto em `organograma_base.pos_x/pos_y`, como a de qualquer outra caixa.
  *
  * O desenho é uma árvore só: cada caixa de liderança pode ter, como filhos, outras lideranças E/OU
  * cartões: a largura reservada pra ela na fileira de irmãos é a largura do que tiver embaixo dela
@@ -113,6 +118,29 @@ export interface OrganogramaLayout {
   posicoesLideranca: Map<string, OrganogramaPosicao>;
   cartoes: OrganogramaCartaoInfo[];
   posicoesCartao: Map<string, OrganogramaPosicao>;
+}
+
+export interface OrganogramaCartaoPosicaoManual {
+  /** `cartao.chave` — a `linha` de verdade, ou `solo:<id>` pra um cartão de 1 item só. */
+  chave: string;
+  x: number;
+  y: number;
+}
+
+/** Mescla posições de cartão arrastadas manualmente por cima do layout automático — mesmo princípio
+ * já usado pra caixa de liderança (`posX`/`posY` não-nulos vencem o cálculo automático). Extraído
+ * aqui, compartilhado entre tela e PDF, pra nunca divergir (pedido do Mateus de 16/09: cartão de
+ * comissão/departamento também pode ser arrastado, mesmo tendo um supervisor de verdade vinculado —
+ * "Mover linha pra cima/baixo" continua só pra reordenar comissões do MESMO supervisor; arrastar dá
+ * controle total, inclusive pra colocar cartões de supervisores diferentes lado a lado na ordem que
+ * quiser). */
+export function mesclarPosicoesCartaoManual(
+  posicoesAutomaticas: Map<string, OrganogramaPosicao>,
+  manuais: OrganogramaCartaoPosicaoManual[],
+): Map<string, OrganogramaPosicao> {
+  const resultado = new Map(posicoesAutomaticas);
+  for (const m of manuais) resultado.set(m.chave, { x: m.x, y: m.y });
+  return resultado;
 }
 
 /** Monta a lista de conexões supervisor→cartão pra passar em `calcularConectores` — só os cartões
