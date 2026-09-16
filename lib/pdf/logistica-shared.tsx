@@ -232,6 +232,13 @@ export const financeiroStyles = StyleSheet.create({
   },
   assinaturasRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 36 },
   assinaturaCol: { width: "42%", alignItems: "center" },
+  /** Altura FIXA reservada pra imagem da assinatura, sempre ANTES da linha — existe nos 3 estados
+   * (assinado com imagem, assinado sem imagem/pendente, em branco), mesmo quando fica vazia. Sem
+   * isso, a coluna com assinatura ficava com a linha mais baixa que a coluna vizinha ainda pendente
+   * (a imagem "empurrava" a linha só daquele lado) — exatamente o "desconfigurado" que o Mateus
+   * reportou quando um assina e o outro ainda não. Com a altura sempre reservada, a linha cai
+   * sempre na mesma altura nas duas colunas, não importa o estado de cada uma. */
+  assinaturaArea: { height: 34, alignItems: "center" },
   assinaturaLinha: { borderTopWidth: 0.75, borderTopColor: "#737373", width: "100%", marginBottom: 6 },
   assinaturaNome: { fontSize: 9.5, fontWeight: 700, color: "#1f1f1f", textAlign: "center" },
   assinaturaCargo: { fontSize: 8, color: "#525252", textAlign: "center", marginTop: 1 },
@@ -241,8 +248,13 @@ export const financeiroStyles = StyleSheet.create({
    * assinaria à mão; embaixo da linha continua só nome/cargo, sem nenhum texto de "assinado
    * digitalmente" nem data/hora (pedido do Mateus: manter o mesmo modelo de sempre, só com a
    * assinatura de verdade por cima). Assinaturas de antes desta mudança (sem imagem salva)
-   * continuam mostrando só o texto, sem a imagem. */
-  assinaturaImagem: { width: 110, height: 38, objectFit: "contain", marginBottom: 2 },
+   * continuam mostrando só o texto, sem a imagem. Maior que antes e de propósito MAIS ALTA que
+   * `assinaturaArea` — a parte de baixo "vaza" pra fora da área reservada e cruza por cima da
+   * linha, do jeito que uma assinatura de verdade feita à mão fica (o traço não para exatamente em
+   * cima da linha, ele descansa nela). Como a área reservada continua com altura fixa, isso não
+   * empurra a linha nem desalinha nada — só a imagem "vaza" visualmente por cima dela (pedido do
+   * Mateus de 16/09: maior, e pode sobrepor a linha se precisar pra ficar correto). */
+  assinaturaImagem: { width: 128, height: 44, objectFit: "contain" },
 });
 
 const DEPARTAMENTO_LABELS = {
@@ -310,10 +322,12 @@ function ConteudoColunaAssinatura({ assinatura }: { assinatura: AssinaturaInfo }
   if (assinatura.assinadoDigitalmenteEm) {
     return (
       <>
-        {assinatura.assinaturaImagemSrc ? (
-          // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={financeiroStyles.assinaturaImagem} src={assinatura.assinaturaImagemSrc} />
-        ) : null}
+        <View style={financeiroStyles.assinaturaArea}>
+          {assinatura.assinaturaImagemSrc ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image style={financeiroStyles.assinaturaImagem} src={assinatura.assinaturaImagemSrc} />
+          ) : null}
+        </View>
         <View style={financeiroStyles.assinaturaLinha} />
         <Text style={financeiroStyles.assinaturaNome}>{assinatura.nome}</Text>
         <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
@@ -323,6 +337,7 @@ function ConteudoColunaAssinatura({ assinatura }: { assinatura: AssinaturaInfo }
   if (assinatura.pendente) {
     return (
       <>
+        <View style={financeiroStyles.assinaturaArea} />
         <View style={financeiroStyles.assinaturaLinha} />
         <Text style={financeiroStyles.assinaturaPendenteTexto}>Pendente de assinatura</Text>
         <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
@@ -331,6 +346,7 @@ function ConteudoColunaAssinatura({ assinatura }: { assinatura: AssinaturaInfo }
   }
   return (
     <>
+      <View style={financeiroStyles.assinaturaArea} />
       <View style={financeiroStyles.assinaturaLinha} />
       <Text style={financeiroStyles.assinaturaNome}>{assinatura.nome}</Text>
       <Text style={financeiroStyles.assinaturaCargo}>{assinatura.cargo}</Text>
