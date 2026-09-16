@@ -32,9 +32,13 @@ export interface OrganogramaPosicao {
   y: number;
 }
 
-export const LARGURA_CAIXA = 220;
+// Reduzidas (eram 220/230) a pedido do Mateus — a árvore fica larga rápido com vários supervisores/
+// comissões, e uma caixa/cartão mais estreito sobra mais espaço horizontal pro organograma crescer
+// antes de precisar encolher a página inteira (nome/cargo continuam cabendo: cortam com "…" quando
+// não cabem, tela e PDF já tratam isso).
+export const LARGURA_CAIXA = 180;
 export const ALTURA_CAIXA = 84;
-export const LARGURA_CARTAO = 230;
+export const LARGURA_CARTAO = 200;
 export const ALTURA_TITULO_CARTAO = 30;
 export const ALTURA_ITEM_CARTAO = 34;
 export const PADDING_CARTAO_V = 10;
@@ -150,6 +154,46 @@ export function contarCartoesPorPessoaVinculada(
   const contagem = new Map<string, number>();
   for (const [pessoaId, chaves] of cartoesPorPessoa) contagem.set(pessoaId, chaves.size);
   return contagem;
+}
+
+/**
+ * Agrupa cada `linha` (comissão/departamento) pelo id da liderança pra quem ela reporta — mesma regra
+ * de resolução do layout (aponta pra ninguém, ou pra alguém que não existe mais/não é liderança, cai
+ * no grupo "sem supervisor", chave `null`). Usado por "Mover linha pra cima/baixo" (tela e servidor,
+ * `moverLinhaOrganograma`) pra só comparar/trocar `ordem` entre IRMÃS DE VERDADE (mesmo supervisor) —
+ * antes disso a lista era global (todas as linhas do organograma inteiro, de qualquer supervisor),
+ * então mover uma linha podia trocar `ordem` com a linha de OUTRO supervisor: como `posicionar()` só
+ * ordena filhos dentro do mesmo pai, essa troca não mudava nada visualmente (parecia que o botão "não
+ * deixava" reordenar) e ainda podia atrapalhar a ordem de quem era irmã de verdade (pedido do Mateus
+ * de 16/09, depois de splitar os supervisores Gustavo/Italo). Cada lista interna já sai ordenada pelo
+ * mesmo critério de sempre (menor `ordem` entre quem está na linha).
+ */
+export function agruparLinhasPorSupervisor(
+  nos: Pick<OrganogramaNo, "id" | "grupo" | "linha" | "ordem">[],
+  linhaReportaPara: Map<string, string | null>,
+): Map<string | null, string[]> {
+  const lideresIds = new Set(nos.filter((n) => !n.grupo).map((n) => n.id));
+  const ordensPorLinha = new Map<string, number[]>();
+  for (const n of nos) {
+    if (!n.grupo || !n.linha) continue;
+    ordensPorLinha.set(n.linha, [...(ordensPorLinha.get(n.linha) ?? []), n.ordem]);
+  }
+
+  const brutoPorGrupo = new Map<string | null, { linha: string; minOrdem: number }[]>();
+  for (const [linha, ordens] of ordensPorLinha) {
+    const paiBruto = linhaReportaPara.get(linha) ?? null;
+    const pai = paiBruto && lideresIds.has(paiBruto) ? paiBruto : null;
+    brutoPorGrupo.set(pai, [...(brutoPorGrupo.get(pai) ?? []), { linha, minOrdem: Math.min(...ordens) }]);
+  }
+
+  const resultado = new Map<string | null, string[]>();
+  for (const [pai, lista] of brutoPorGrupo) {
+    resultado.set(
+      pai,
+      [...lista].sort((a, b) => a.minOrdem - b.minOrdem).map((l) => l.linha),
+    );
+  }
+  return resultado;
 }
 
 interface NoInterno {
@@ -322,7 +366,12 @@ export function calcularLayoutAutomatico(
       todasAsPosicoes.length > 0
         ? Math.max(...todasAsPosicoes.map((p) => p.y + p.altura)) + GAP_Y_NIVEL
         : 0;
-    let cursorX = 0;
+    // Centralizada em x=0, mesmo critério da fileira de lideranças acima — começar em x=0 e só
+    // crescer pra direita (jeito antigo) deixava essa fileira jogada pro lado direito do desenho
+    // sempre que a árvore principal também tivesse conteúdo à esquerda de x=0, quebrando a
+    // centralização do desenho inteiro (relatado pelo Mateus).
+    const larguraTotalOrfaos = cartoesOrfaos.length * LARGURA_CARTAO + (cartoesOrfaos.length - 1) * GAP_X;
+    let cursorX = -larguraTotalOrfaos / 2;
     for (const cartao of [...cartoesOrfaos].sort(
       (a, b) => (ordemDoCartao.get(a.chave) ?? 0) - (ordemDoCartao.get(b.chave) ?? 0) || a.chave.localeCompare(b.chave),
     )) {

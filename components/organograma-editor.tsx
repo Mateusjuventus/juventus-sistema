@@ -9,6 +9,7 @@ import {
   LARGURA_CAIXA,
   LARGURA_CARTAO,
   PADDING_CARTAO_V,
+  agruparLinhasPorSupervisor,
   alturaCartao,
   calcularConectores,
   calcularLayoutAutomatico,
@@ -144,7 +145,7 @@ function PainelEdicao({
   no,
   todosOsNos,
   linhasReportaPara,
-  linhasOrdenadas,
+  linhasIrmas,
   pessoasDisponiveis,
   filhosCount,
   salvarAction,
@@ -156,7 +157,10 @@ function PainelEdicao({
   no: OrganogramaNoData | null;
   todosOsNos: OrganogramaNoData[];
   linhasReportaPara: LinhaSupervisor[];
-  linhasOrdenadas: string[];
+  /** Só as linhas que são IRMÃS DE VERDADE da linha sendo editada (mesmo supervisor — ver
+   * `agruparLinhasPorSupervisor`), já na ordem de exibição. "Mover linha pra cima/baixo" só faz
+   * sentido comparado com essas: uma linha de outro supervisor nem é vizinha dela no desenho. */
+  linhasIrmas: string[];
   pessoasDisponiveis: PessoaComissao[];
   filhosCount: number;
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
@@ -259,7 +263,7 @@ function PainelEdicao({
   const mostrarReportaParaNovaLinha = mostrarGrupoLinha && linhaEhNova;
 
   const ehCelulaDeGradeExistente = Boolean(no && no.grupo && no.linha);
-  const posicaoDaLinha = no?.linha ? linhasOrdenadas.indexOf(no.linha) : -1;
+  const posicaoDaLinha = no?.linha ? linhasIrmas.indexOf(no.linha) : -1;
   const supervisorAtualDaLinha = no?.linha ? (linhasReportaPara.find((l) => l.linha === no.linha)?.reportaPara ?? null) : null;
 
   return (
@@ -473,11 +477,11 @@ function PainelEdicao({
                 type="button"
                 className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={
-                  posicaoDaLinha === -1 || posicaoDaLinha >= linhasOrdenadas.length - 1 || statusMoverLinha?.tipo === "movendo"
+                  posicaoDaLinha === -1 || posicaoDaLinha >= linhasIrmas.length - 1 || statusMoverLinha?.tipo === "movendo"
                 }
                 onClick={() => void moverLinha("baixo")}
                 title={
-                  posicaoDaLinha !== -1 && posicaoDaLinha >= linhasOrdenadas.length - 1
+                  posicaoDaLinha !== -1 && posicaoDaLinha >= linhasIrmas.length - 1
                     ? "Essa linha já é a última — não tem pra onde descer."
                     : undefined
                 }
@@ -489,10 +493,10 @@ function PainelEdicao({
               <p className="mt-1 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{statusMoverLinha.texto}</p>
             ) : (
               <p className="mt-1 text-xs text-neutral-400">
-                Move a linha inteira &quot;{no!.linha}&quot; — todo o cartão sobe ou desce, sem precisar
-                digitar número nem salvar: já move na hora.
-                {linhasOrdenadas.length <= 1
-                  ? " Os botões ficam desativados enquanto essa for a única linha — assim que houver outra, dá pra reordenar."
+                Move a linha inteira &quot;{no!.linha}&quot; — todo o cartão sobe ou desce entre as
+                comissões do MESMO supervisor, sem precisar digitar número nem salvar: já move na hora.
+                {linhasIrmas.length <= 1
+                  ? " Os botões ficam desativados enquanto essa for a única comissão desse supervisor — assim que houver outra, dá pra reordenar."
                   : ""}
               </p>
             )}
@@ -785,18 +789,24 @@ export function OrganogramaEditor({
     [layout, comissaoIdPorNo],
   );
 
-  // Mesma regra de ordenação de linha que `moverLinhaOrganograma` usa no servidor (menor `ordem`
-  // entre quem usa aquela linha) — só pra saber se a linha selecionada já está no topo/base.
-  const linhasOrdenadas = useMemo(() => {
-    const porLinha = new Map<string, number[]>();
-    for (const n of nos) {
-      if (!n.grupo || !n.linha) continue;
-      porLinha.set(n.linha, [...(porLinha.get(n.linha) ?? []), n.ordem]);
+  // Mesmo agrupamento por supervisor que `moverLinhaOrganograma` usa no servidor — "Mover linha pra
+  // cima/baixo" só compara uma linha com as IRMÃS DE VERDADE dela (mesmo supervisor), nunca a lista
+  // inteira de linhas do organograma (ver `agruparLinhasPorSupervisor`).
+  const gruposDeLinhas = useMemo(
+    () =>
+      agruparLinhasPorSupervisor(
+        nos.map((n) => ({ id: n.id, grupo: n.grupo, linha: n.linha, ordem: n.ordem })),
+        linhaReportaParaMap,
+      ),
+    [nos, linhaReportaParaMap],
+  );
+  function linhasIrmasDe(linha: string | null): string[] {
+    if (!linha) return [];
+    for (const lista of gruposDeLinhas.values()) {
+      if (lista.includes(linha)) return lista;
     }
-    return [...porLinha.entries()]
-      .sort((a, b) => Math.min(...a[1]) - Math.min(...b[1]))
-      .map(([linha]) => linha);
-  }, [nos]);
+    return [linha];
+  }
 
   // Limites reais do conteúdo (liderança + cartões), sem forçar simetria em torno de x=0.
   const todasAsCaixas = [
@@ -952,7 +962,7 @@ export function OrganogramaEditor({
           no={noSelecionado}
           todosOsNos={nos}
           linhasReportaPara={linhasReportaPara}
-          linhasOrdenadas={linhasOrdenadas}
+          linhasIrmas={linhasIrmasDe(noSelecionado?.linha ?? null)}
           pessoasDisponiveis={pessoasComissao}
           filhosCount={filhosDoSelecionado}
           salvarAction={salvarAction}

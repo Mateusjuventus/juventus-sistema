@@ -79,6 +79,12 @@ caixas de liderança (Presidente, Diretor, Coordenador, Supervisor...).
 Comissão sem supervisor definido (`reporta_para` nulo) continua aparecendo — só cai num grupo à
 parte ("sem supervisor definido"), sem quebrar quem ainda não configurou isso.
 
+"Mover linha pra cima/baixo" passa a comparar/trocar `ordem` só entre linhas do MESMO supervisor
+(nunca a lista inteira de comissões do organograma) — como o desenho só ordena filhos dentro do
+mesmo pai, mover uma linha na lista global podia trocar `ordem` com a linha de outro supervisor sem
+mudar nada visualmente, e ainda bagunçar a ordem de quem era irmã de verdade (corrigido em 16/09,
+depois de Gustavo/Italo virarem supervisores separados — ver `agruparLinhasPorSupervisor`).
+
 O Mateus vai precisar reconfigurar as caixas do Gustavo e do Italo depois desta entrega, pela própria
 tela: hoje elas são célula de grade (Grupo="Supervisor"); viram caixa de liderança (sem Grupo/Linha,
 `reporta_para` = Coordenador Técnico), do jeito que Diretor/Coordenador já são hoje. Isso não muda

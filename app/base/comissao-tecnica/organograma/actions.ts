@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { calcularLayoutAutomatico, type OrganogramaNo } from "@/lib/futebol/organograma";
+import { agruparLinhasPorSupervisor, calcularLayoutAutomatico, type OrganogramaNo } from "@/lib/futebol/organograma";
 import type { OrganogramaNoFormState } from "@/components/organograma-editor";
 
 const CAMINHO = "/base/comissao-tecnica/organograma";
@@ -182,11 +182,16 @@ export async function definirSupervisorLinha(linha: string, reportaPara: string 
 }
 
 /**
- * Move uma `linha` inteira da grade (ex.: "Comissão Sub20") um degrau pra cima ou pra baixo entre
- * as outras linhas — chamada direto pelo componente cliente, como `moverNoOrganograma`. É o jeito de
- * reordenar célula de grade "na mão" sem digitar número: como todas as colunas daquela linha viram
- * juntas (o valor de `ordem` de cada uma soma o mesmo deslocamento), a linha troca de posição com a
- * vizinha sem desalinhar nada.
+ * Move uma `linha` inteira da grade (ex.: "Comissão Sub20") um degrau pra cima ou pra baixo — chamada
+ * direto pelo componente cliente, como `moverNoOrganograma`. É o jeito de reordenar cartão "na mão"
+ * sem digitar número: como todas as colunas daquela linha viram juntas (o valor de `ordem` de cada
+ * uma soma o mesmo deslocamento), a linha troca de posição com a vizinha sem desalinhar nada.
+ *
+ * A comparação/troca é só entre linhas do MESMO supervisor (`agruparLinhasPorSupervisor`), nunca a
+ * lista inteira do organograma — como `posicionar()` só ordena filhos dentro do mesmo pai, trocar
+ * `ordem` com a linha de OUTRO supervisor não muda nada visualmente (o botão parecia "não deixar"
+ * reordenar) e ainda podia bagunçar a ordem de quem era irmã de verdade (pedido do Mateus de 16/09,
+ * depois de Gustavo/Italo virarem supervisores separados).
  *
  * Devolve `{ error }` em vez de simplesmente não fazer nada quando alguma coisa falha — antes, um
  * erro do Supabase aqui desaparecia em silêncio (a `select` inicial ignorava `error`, e nenhum dos
@@ -199,29 +204,28 @@ export async function moverLinhaOrganograma(
 ): Promise<{ error?: string }> {
   if (!linha) return {};
   const supabase = createClient();
-  const { data, error: erroSelect } = await supabase
-    .from("organograma_base")
-    .select("id, ordem, linha, grupo")
-    .not("grupo", "is", null)
-    .not("linha", "is", null);
+  const [{ data, error: erroSelect }, { data: linhaData, error: erroLinhaData }] = await Promise.all([
+    supabase.from("organograma_base").select("id, ordem, linha, grupo"),
+    supabase.from("organograma_base_linha").select("linha, reporta_para"),
+  ]);
   if (erroSelect) return { error: `Não foi possível mover: ${erroSelect.message}` };
-  const nos = (data ?? []) as { id: string; ordem: number; linha: string; grupo: string }[];
-
-  const porLinha = new Map<string, typeof nos>();
-  for (const n of nos) porLinha.set(n.linha, [...(porLinha.get(n.linha) ?? []), n]);
-
-  // Mesma regra de ordenação de linha que `calcularLayoutAutomatico` usa: menor `ordem` entre quem
-  // usa aquela linha, em qualquer coluna.
-  const ordenadas = [...porLinha.entries()].sort(
-    (a, b) => Math.min(...a[1].map((n) => n.ordem)) - Math.min(...b[1].map((n) => n.ordem)),
+  if (erroLinhaData) return { error: `Não foi possível mover: ${erroLinhaData.message}` };
+  const nos = (data ?? []) as { id: string; ordem: number; linha: string | null; grupo: string | null }[];
+  const linhaReportaParaMap = new Map(
+    ((linhaData ?? []) as { linha: string; reporta_para: string | null }[]).map((l) => [l.linha, l.reporta_para]),
   );
-  const indiceAtual = ordenadas.findIndex(([l]) => l === linha);
-  if (indiceAtual === -1) return { error: "Essa linha não foi encontrada — atualize a página e tente de novo." };
-  const indiceAlvo = direcao === "cima" ? indiceAtual - 1 : indiceAtual + 1;
-  if (indiceAlvo < 0 || indiceAlvo >= ordenadas.length) return {}; // já é a primeira/última, não faz nada
 
-  const [, nosA] = ordenadas[indiceAtual];
-  const [, nosB] = ordenadas[indiceAlvo];
+  const grupos = agruparLinhasPorSupervisor(nos, linhaReportaParaMap);
+  const ordenadas = [...grupos.values()].find((lista) => lista.includes(linha));
+  if (!ordenadas) return { error: "Essa linha não foi encontrada — atualize a página e tente de novo." };
+
+  const indiceAtual = ordenadas.indexOf(linha);
+  const indiceAlvo = direcao === "cima" ? indiceAtual - 1 : indiceAtual + 1;
+  if (indiceAlvo < 0 || indiceAlvo >= ordenadas.length) return {}; // já é a primeira/última do grupo, não faz nada
+
+  const linhaAlvo = ordenadas[indiceAlvo];
+  const nosA = nos.filter((n) => n.grupo && n.linha === linha);
+  const nosB = nos.filter((n) => n.grupo && n.linha === linhaAlvo);
   const minA = Math.min(...nosA.map((n) => n.ordem));
   const minB = Math.min(...nosB.map((n) => n.ordem));
   const deslocamento = minB - minA;
