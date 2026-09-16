@@ -17,8 +17,11 @@ function garantirConfigurado(): boolean {
   return true;
 }
 
-/** Quanto tempo (ms) esperar por UM envio de push antes de desistir e seguir em frente. */
-export const TIMEOUT_ENVIO_PUSH_MS = 8000;
+/** Quanto tempo (ms) esperar por UM envio de push antes de desistir e seguir em frente. Curto de
+ * propósito (era 8000 antes) — uma entrega de push de verdade normalmente termina bem abaixo de 1s;
+ * esse limite só existe pra cobrir o caso raro de endpoint travado, então não precisa ser generoso a
+ * ponto de virar ele mesmo o motivo de "salvar" demorar (pedido do Mateus de 16/09). */
+export const TIMEOUT_ENVIO_PUSH_MS = 3000;
 
 /**
  * Corre `promessa` contra um limite de tempo e resolve assim que UM dos dois terminar primeiro —
