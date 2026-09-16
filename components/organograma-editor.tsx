@@ -579,7 +579,7 @@ function CaixaLideranca({
       onPointerDown={onPointerDownCaixa}
       onClick={onClick}
       style={{ left: x, top: y, width: LARGURA_CAIXA, height: ALTURA_CAIXA }}
-      className={`absolute flex select-none flex-col justify-center rounded-md bg-grena p-3 text-white shadow-sm cursor-grab active:cursor-grabbing ${
+      className={`absolute flex select-none flex-col justify-center overflow-hidden rounded-md bg-grena p-3 text-white shadow-sm cursor-grab active:cursor-grabbing ${
         selecionada ? "ring-2 ring-dourado" : ""
       } ${no.vaga ? "opacity-60" : ""}`}
     >
