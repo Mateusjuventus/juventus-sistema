@@ -615,6 +615,13 @@ export function SolicitacaoForm({
           {solicitanteTravado ? (
             <div>
               <label className="field-label">Solicitante</label>
+              {/* O valor de verdade é sempre recalculado no servidor a partir da conta de quem está
+                  logado (`solicitanteFinal`, em ./actions.ts) — este hidden é só pra o formulário não
+                  ir vazio pra validação (que exige "Solicitante" preenchido). Sem ele, quem não é
+                  Master nunca conseguia cadastrar nada: a validação recusava em silêncio (o erro de
+                  campo não tinha onde aparecer aqui, já que este bloco não mostra um input de
+                  verdade), e a tela só parecia "não salvar" sem explicar por quê. */}
+              <input type="hidden" name="solicitante" value={values.solicitante ?? ""} />
               <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
                 {values.solicitante}
               </p>
