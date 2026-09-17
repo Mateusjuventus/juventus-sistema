@@ -17,7 +17,7 @@ export async function GET() {
   const [{ data: nosData }, { data: pessoasData }, { data: linhasData }] = await Promise.all([
     supabase.from("organograma_base").select("*").order("ordem", { ascending: true }),
     supabase.from("comissao_tecnica_base").select("id, nome_completo, funcao"),
-    supabase.from("organograma_base_linha").select("linha, reporta_para"),
+    supabase.from("organograma_base_linha").select("linha, reporta_para, pos_x, pos_y, pos_manual"),
   ]);
 
   const nosBrutos = (nosData ?? []) as OrganogramaBaseRow[];
@@ -46,9 +46,13 @@ export async function GET() {
       posManual: n.pos_manual,
     };
   });
-  const linhasReportaPara = ((linhasData ?? []) as Pick<OrganogramaBaseLinhaRow, "linha" | "reporta_para">[]).map(
-    (l) => ({ linha: l.linha, reportaPara: l.reporta_para }),
-  );
+  const linhasReportaPara = ((linhasData ?? []) as OrganogramaBaseLinhaRow[]).map((l) => ({
+    linha: l.linha,
+    reportaPara: l.reporta_para,
+    posX: l.pos_x,
+    posY: l.pos_y,
+    posManual: l.pos_manual,
+  }));
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };

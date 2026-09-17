@@ -8,10 +8,15 @@
  *   normal por "reporta para" — essas continuam podendo ser arrastadas (posição manual salva).
  * - **Cartão de comissão/departamento** (com `grupo`, agrupadas por `linha`): cada valor distinto de
  *   `linha` vira UM cartão (título = nome da comissão/departamento, lista vertical de função→pessoa
- *   por dentro). Um cartão nunca é arrastado — sua posição é sempre calculada aqui, ligada à caixa de
- *   liderança que a `linha` reporta pra (`linhaReportaPara`, tabela `organograma_base_linha`). Uma
+ *   por dentro), ligado por padrão à caixa de liderança que a `linha` reporta pra (`linhaReportaPara`,
+ *   tabela `organograma_base_linha`). A posição calculada aqui é só o PONTO DE PARTIDA — dá pra
+ *   arrastar um cartão pra qualquer lugar (posição manual salva em `organograma_base_linha.pos_x/
+ *   pos_y`, mesmo princípio de uma liderança), útil principalmente pra colocar cartões de
+ *   supervisores DIFERENTES lado a lado numa ordem específica (ver `mesclarPosicoesCartaoManual`
+ *   abaixo — "Mover linha pra cima/baixo" só reordena entre comissões do MESMO supervisor). Uma
  *   caixa com `grupo` mas SEM `linha` (caso raro/legado) vira um cartão de 1 item só, ligado via o
- *   `reportaPara` da própria caixa (mesmo campo que uma liderança usa).
+ *   `reportaPara` da própria caixa (mesmo campo que uma liderança usa) — a posição manual dele fica
+ *   direto em `organograma_base.pos_x/pos_y`, como a de qualquer outra caixa.
  *
  * O desenho é uma árvore só: cada caixa de liderança pode ter, como filhos, outras lideranças E/OU
  * cartões: a largura reservada pra ela na fileira de irmãos é a largura do que tiver embaixo dela
@@ -32,9 +37,17 @@ export interface OrganogramaPosicao {
   y: number;
 }
 
-export const LARGURA_CAIXA = 220;
-export const ALTURA_CAIXA = 84;
-export const LARGURA_CARTAO = 230;
+// Largura da caixa de liderança = mesma do cartão (220 → 180 → 160 → 200, ajustes sucessivos a
+// pedido do Mateus de 16/09 até o nome caber sem cortar) — com essa largura, nome e cargo cabem numa
+// linha só na maioria dos casos. Altura enxuta (era 84 antes desses ajustes) pedida pelo Mateus
+// depois de ver a caixa larga: 72 ainda cabe um nome de 2 linhas + cargo de 1 linha sem cortar
+// (ver `CaixaLideranca` em `components/organograma-editor.tsx` e o bloco `caixaLideranca` em
+// `lib/pdf/organograma-base-document.tsx`) — cuidado ao alterar sem checar as duas: nome/cargo
+// quebram em até 2 linhas em vez de cortar com "…"; só um cargo excepcionalmente longo (mais do que
+// cabe em 2 linhas) ainda corta, como rede de segurança.
+export const LARGURA_CAIXA = 200;
+export const ALTURA_CAIXA = 72;
+export const LARGURA_CARTAO = 200;
 export const ALTURA_TITULO_CARTAO = 30;
 export const ALTURA_ITEM_CARTAO = 34;
 export const PADDING_CARTAO_V = 10;
@@ -111,6 +124,29 @@ export interface OrganogramaLayout {
   posicoesCartao: Map<string, OrganogramaPosicao>;
 }
 
+export interface OrganogramaCartaoPosicaoManual {
+  /** `cartao.chave` — a `linha` de verdade, ou `solo:<id>` pra um cartão de 1 item só. */
+  chave: string;
+  x: number;
+  y: number;
+}
+
+/** Mescla posições de cartão arrastadas manualmente por cima do layout automático — mesmo princípio
+ * já usado pra caixa de liderança (`posX`/`posY` não-nulos vencem o cálculo automático). Extraído
+ * aqui, compartilhado entre tela e PDF, pra nunca divergir (pedido do Mateus de 16/09: cartão de
+ * comissão/departamento também pode ser arrastado, mesmo tendo um supervisor de verdade vinculado —
+ * "Mover linha pra cima/baixo" continua só pra reordenar comissões do MESMO supervisor; arrastar dá
+ * controle total, inclusive pra colocar cartões de supervisores diferentes lado a lado na ordem que
+ * quiser). */
+export function mesclarPosicoesCartaoManual(
+  posicoesAutomaticas: Map<string, OrganogramaPosicao>,
+  manuais: OrganogramaCartaoPosicaoManual[],
+): Map<string, OrganogramaPosicao> {
+  const resultado = new Map(posicoesAutomaticas);
+  for (const m of manuais) resultado.set(m.chave, { x: m.x, y: m.y });
+  return resultado;
+}
+
 /** Monta a lista de conexões supervisor→cartão pra passar em `calcularConectores` — só os cartões
  * que têm um `parentId` válido (sem supervisor definido não desenha conector nenhum, fica só na
  * fileira à parte). Extraído aqui, em vez de cada consumidor montar essa lista por conta própria,
@@ -150,6 +186,46 @@ export function contarCartoesPorPessoaVinculada(
   const contagem = new Map<string, number>();
   for (const [pessoaId, chaves] of cartoesPorPessoa) contagem.set(pessoaId, chaves.size);
   return contagem;
+}
+
+/**
+ * Agrupa cada `linha` (comissão/departamento) pelo id da liderança pra quem ela reporta — mesma regra
+ * de resolução do layout (aponta pra ninguém, ou pra alguém que não existe mais/não é liderança, cai
+ * no grupo "sem supervisor", chave `null`). Usado por "Mover linha pra cima/baixo" (tela e servidor,
+ * `moverLinhaOrganograma`) pra só comparar/trocar `ordem` entre IRMÃS DE VERDADE (mesmo supervisor) —
+ * antes disso a lista era global (todas as linhas do organograma inteiro, de qualquer supervisor),
+ * então mover uma linha podia trocar `ordem` com a linha de OUTRO supervisor: como `posicionar()` só
+ * ordena filhos dentro do mesmo pai, essa troca não mudava nada visualmente (parecia que o botão "não
+ * deixava" reordenar) e ainda podia atrapalhar a ordem de quem era irmã de verdade (pedido do Mateus
+ * de 16/09, depois de splitar os supervisores Gustavo/Italo). Cada lista interna já sai ordenada pelo
+ * mesmo critério de sempre (menor `ordem` entre quem está na linha).
+ */
+export function agruparLinhasPorSupervisor(
+  nos: Pick<OrganogramaNo, "id" | "grupo" | "linha" | "ordem">[],
+  linhaReportaPara: Map<string, string | null>,
+): Map<string | null, string[]> {
+  const lideresIds = new Set(nos.filter((n) => !n.grupo).map((n) => n.id));
+  const ordensPorLinha = new Map<string, number[]>();
+  for (const n of nos) {
+    if (!n.grupo || !n.linha) continue;
+    ordensPorLinha.set(n.linha, [...(ordensPorLinha.get(n.linha) ?? []), n.ordem]);
+  }
+
+  const brutoPorGrupo = new Map<string | null, { linha: string; minOrdem: number }[]>();
+  for (const [linha, ordens] of ordensPorLinha) {
+    const paiBruto = linhaReportaPara.get(linha) ?? null;
+    const pai = paiBruto && lideresIds.has(paiBruto) ? paiBruto : null;
+    brutoPorGrupo.set(pai, [...(brutoPorGrupo.get(pai) ?? []), { linha, minOrdem: Math.min(...ordens) }]);
+  }
+
+  const resultado = new Map<string | null, string[]>();
+  for (const [pai, lista] of brutoPorGrupo) {
+    resultado.set(
+      pai,
+      [...lista].sort((a, b) => a.minOrdem - b.minOrdem).map((l) => l.linha),
+    );
+  }
+  return resultado;
 }
 
 interface NoInterno {
@@ -322,7 +398,12 @@ export function calcularLayoutAutomatico(
       todasAsPosicoes.length > 0
         ? Math.max(...todasAsPosicoes.map((p) => p.y + p.altura)) + GAP_Y_NIVEL
         : 0;
-    let cursorX = 0;
+    // Centralizada em x=0, mesmo critério da fileira de lideranças acima — começar em x=0 e só
+    // crescer pra direita (jeito antigo) deixava essa fileira jogada pro lado direito do desenho
+    // sempre que a árvore principal também tivesse conteúdo à esquerda de x=0, quebrando a
+    // centralização do desenho inteiro (relatado pelo Mateus).
+    const larguraTotalOrfaos = cartoesOrfaos.length * LARGURA_CARTAO + (cartoesOrfaos.length - 1) * GAP_X;
+    let cursorX = -larguraTotalOrfaos / 2;
     for (const cartao of [...cartoesOrfaos].sort(
       (a, b) => (ordemDoCartao.get(a.chave) ?? 0) - (ordemDoCartao.get(b.chave) ?? 0) || a.chave.localeCompare(b.chave),
     )) {

@@ -18,6 +18,8 @@ import {
   cartoesConectadosDoLayout,
   contarCartoesPorPessoaVinculada,
   corNomeCartao,
+  mesclarPosicoesCartaoManual,
+  type OrganogramaCartaoPosicaoManual,
   type OrganogramaNo,
 } from "@/lib/futebol/organograma";
 
@@ -141,15 +143,14 @@ const FONTE_CARTAO_FUNCAO_MIN = 5.5;
 const FONTE_CARTAO_NOME_BASE = 9;
 const FONTE_CARTAO_NOME_MIN = 7.5;
 
-// Espelham o `paddingHorizontal`/padding das caixas acima — usados só pra calcular a largura
-// disponível pro texto em `truncarParaCaber`.
-const PADDING_HORIZONTAL_CAIXA = 6;
+// Espelha o `paddingHorizontal`/padding dos itens de cartão acima — usado só pra calcular a largura
+// disponível pro texto em `truncarParaCaber` (a caixa de liderança não usa mais truncarParaCaber,
+// ver comentário no `.map` dela abaixo).
 const PADDING_HORIZONTAL_CARTAO_ITEM = 6;
 
 // Largura média de um caractere como fração do tamanho da fonte, usada por `truncarParaCaber` —
-// nome (negrito, minúsculas/maiúsculas misturadas), cargo/função (normal ou caixa alta).
+// nome (negrito, minúsculas/maiúsculas misturadas), função/título em caixa alta.
 const FATOR_LARGURA_NOME = 0.58;
-const FATOR_LARGURA_CARGO = 0.5;
 const FATOR_LARGURA_CAIXA_ALTA = 0.68;
 
 interface Ponto {
@@ -182,12 +183,20 @@ function hexCorNome(cor: "normal" | "dourado" | "vermelho"): string {
 }
 
 /** Mesmo cálculo da tela (posição de cada caixa de liderança e de cada cartão, conectores em ângulo
- * reto) — só sem os overrides de arrasto (o PDF é uma foto do que está salvo, não tem interação). */
-function calcularDiagrama(nos: OrganogramaBaseNoDocumento[], linhaReportaPara: Map<string, string | null>) {
+ * reto) — o PDF é uma foto do que está salvo (sem overrides de arrasto EM ANDAMENTO, já que não tem
+ * interação), mas já inclui a posição arrastada e SALVA de um cartão (`linhasPosicaoManual`), do
+ * mesmo jeito que já incluía a de uma caixa de liderança (`no.posX`/`no.posY`). */
+function calcularDiagrama(
+  nos: OrganogramaBaseNoDocumento[],
+  linhaReportaPara: Map<string, string | null>,
+  posicoesCartaoManuais: OrganogramaCartaoPosicaoManual[],
+) {
   const nosLayout = nos.map(
     (n): OrganogramaNo => ({ id: n.id, reportaPara: n.reportaPara, grupo: n.grupo, linha: n.linha, ordem: n.ordem }),
   );
-  const layout = calcularLayoutAutomatico(nosLayout, linhaReportaPara);
+  const layoutBruto = calcularLayoutAutomatico(nosLayout, linhaReportaPara);
+  const posicoesCartao = mesclarPosicoesCartaoManual(layoutBruto.posicoesCartao, posicoesCartaoManuais);
+  const layout = { ...layoutBruto, posicoesCartao };
 
   const posicoesLideranca = new Map<string, Ponto>();
   for (const no of nos) {
@@ -224,10 +233,19 @@ export function OrganogramaBaseDocument({
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
   nos: OrganogramaBaseNoDocumento[];
-  linhasReportaPara: { linha: string; reportaPara: string | null }[];
+  linhasReportaPara: { linha: string; reportaPara: string | null; posX: number | null; posY: number | null; posManual: boolean }[];
 }) {
   const linhaReportaParaMap = new Map(linhasReportaPara.map((l) => [l.linha, l.reportaPara]));
-  const diagrama = calcularDiagrama(nos, linhaReportaParaMap);
+  const posicoesCartaoManuais: OrganogramaCartaoPosicaoManual[] = [];
+  for (const l of linhasReportaPara) {
+    if (l.posManual && l.posX !== null && l.posY !== null) posicoesCartaoManuais.push({ chave: l.linha, x: l.posX, y: l.posY });
+  }
+  for (const n of nos) {
+    if (n.grupo && !n.linha && n.posManual && n.posX !== null && n.posY !== null) {
+      posicoesCartaoManuais.push({ chave: `solo:${n.id}`, x: n.posX, y: n.posY });
+    }
+  }
+  const diagrama = calcularDiagrama(nos, linhaReportaParaMap, posicoesCartaoManuais);
   const nosPorId = new Map(nos.map((n) => [n.id, n]));
   const comissaoIdPorNo = new Map(nos.map((n) => [n.id, n.comissaoTecnicaBaseId]));
   const contagemPorPessoa = contarCartoesPorPessoaVinculada(diagrama.layout.cartoes, comissaoIdPorNo);
@@ -294,18 +312,23 @@ export function OrganogramaBaseDocument({
               const no = nosPorId.get(id);
               if (!no) return null;
               const p = pt(pos);
-              const larguraTexto = larguraCaixaPdf - PADDING_HORIZONTAL_CAIXA * 2;
               return (
                 <View
                   key={id}
                   style={[styles.caixaLideranca, { left: p.x, top: p.y, width: larguraCaixaPdf, height: alturaCaixaPdf }]}
                 >
+                  {/* Sem truncarParaCaber aqui de propósito (pedido do Mateus de 16/09): nome/cargo da
+                   * caixa de liderança quebram em até 2 linhas (o Text do react-pdf já quebra sozinho
+                   * dentro da largura da View) em vez de cortar com "…" — a altura da caixa
+                   * (`ALTURA_CAIXA`) já reserva espaço pra isso, e `overflow: "hidden"` no estilo
+                   * continua como rede de segurança pro caso raro de um nome/cargo excepcionalmente
+                   * longo mesmo assim não caber. */}
                   <Text style={[styles.caixaNome, { fontSize: fontSizeNome, color: "#ffffff" }]}>
-                    {truncarParaCaber(no.nomeExibido, larguraTexto, fontSizeNome, FATOR_LARGURA_NOME)}
+                    {no.nomeExibido}
                   </Text>
                   {no.cargoExibido ? (
                     <Text style={[styles.caixaCargo, { fontSize: fontSizeCargo, color: "#ffffffcc" }]}>
-                      {truncarParaCaber(no.cargoExibido, larguraTexto, fontSizeCargo, FATOR_LARGURA_CARGO)}
+                      {no.cargoExibido}
                     </Text>
                   ) : null}
                 </View>

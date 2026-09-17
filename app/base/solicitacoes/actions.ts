@@ -112,6 +112,9 @@ function parseForm(formData: FormData) {
   return { raw, result };
 }
 
+/** Espelha `salvarItensInline` (app/solicitacoes/actions.ts) — mesmo raciocínio de montar a lista de
+ * linhas primeiro (já filtrando as em branco) e gravar tudo num único `insert`, em vez de um por
+ * vez, um atrás do outro (parte do "melhora esse tempo de salvamento" pedido pelo Mateus em 16/09). */
 async function salvarItensInlineBase(
   supabase: ReturnType<typeof createClient>,
   formData: FormData,
@@ -124,25 +127,46 @@ async function salvarItensInlineBase(
     const observacoes = formData.getAll("itemObservacao").map(String);
     const fotos = formData.getAll("itemFoto");
 
-    let ordem = 0;
-    for (let i = 0; i < descricoes.length; i++) {
-      const item = descricoes[i]?.trim();
-      if (!item) continue;
-      const quantidade = quantidades[i]?.trim() || "1";
+    const preenchidos = descricoes
+      .map((descricao, i) => ({ item: descricao?.trim(), i }))
+      .filter((linha): linha is { item: string; i: number } => Boolean(linha.item));
 
-      const id = randomUUID();
-      const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(supabase, fotos[i] ?? null, id);
-      if (uploadError) return { error: uploadError };
+    // Upload de foto de cada item roda em paralelo (não mais um de cada vez, esperando o anterior
+    // terminar) — `ordem` vem do índice em `preenchidos`, não da ordem de chegada dos uploads, então
+    // fica correto mesmo que um upload termine antes do outro.
+    const linhas: {
+      id: string;
+      solicitacao_id: string;
+      quantidade: string;
+      item: string;
+      observacao: string | null;
+      foto_path: string | null;
+      ordem: number;
+    }[] = [];
+    let erroUpload: string | undefined;
+    await Promise.all(
+      preenchidos.map(async ({ item, i }, ordem) => {
+        const id = randomUUID();
+        const { error: uploadError, path: fotoPath } = await uploadItemFotoIfPresent(supabase, fotos[i] ?? null, id);
+        if (uploadError) {
+          erroUpload = uploadError;
+          return;
+        }
+        linhas.push({
+          id,
+          solicitacao_id: solicitacaoId,
+          quantidade: quantidades[i]?.trim() || "1",
+          item,
+          observacao: observacoes[i]?.trim() || null,
+          foto_path: fotoPath ?? null,
+          ordem,
+        });
+      }),
+    );
+    if (erroUpload) return { error: erroUpload };
 
-      const { error } = await supabase.from("solicitacao_itens_base").insert({
-        id,
-        solicitacao_id: solicitacaoId,
-        quantidade,
-        item,
-        observacao: observacoes[i]?.trim() || null,
-        foto_path: fotoPath ?? null,
-        ordem: ordem++,
-      });
+    if (linhas.length > 0) {
+      const { error } = await supabase.from("solicitacao_itens_base").insert(linhas);
       if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
     }
     return {};
@@ -153,21 +177,23 @@ async function salvarItensInlineBase(
     const observacoes = formData.getAll("itemObservacao").map(String);
     const valores = formData.getAll("itemValor").map(String);
 
-    let ordem = 0;
-    for (let i = 0; i < descricoes.length; i++) {
-      const descricao = descricoes[i]?.trim();
-      if (!descricao) continue;
-      const valorStr = valores[i]?.trim();
-      const valor = valorStr ? Number(valorStr) : null;
-
-      const { error } = await supabase.from("solicitacao_itens_base").insert({
-        id: randomUUID(),
-        solicitacao_id: solicitacaoId,
-        descricao,
-        observacao: observacoes[i]?.trim() || null,
-        valor,
-        ordem: ordem++,
+    const linhas = descricoes
+      .map((descricao, i) => ({ descricao: descricao?.trim(), i }))
+      .filter((linha): linha is { descricao: string; i: number } => Boolean(linha.descricao))
+      .map(({ descricao, i }, ordem) => {
+        const valorStr = valores[i]?.trim();
+        return {
+          id: randomUUID(),
+          solicitacao_id: solicitacaoId,
+          descricao,
+          observacao: observacoes[i]?.trim() || null,
+          valor: valorStr ? Number(valorStr) : null,
+          ordem,
+        };
       });
+
+    if (linhas.length > 0) {
+      const { error } = await supabase.from("solicitacao_itens_base").insert(linhas);
       if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
     }
 
@@ -183,12 +209,10 @@ async function salvarItensInlineBase(
     const horariosVoo = formData.getAll("itemHorarioVoo").map(String);
     const observacoes = formData.getAll("itemObservacao").map(String);
 
-    let ordem = 0;
-    for (let i = 0; i < passageiros.length; i++) {
-      const passageiro = passageiros[i]?.trim();
-      if (!passageiro) continue;
-
-      const { error } = await supabase.from("solicitacao_itens_base").insert({
+    const linhas = passageiros
+      .map((passageiro, i) => ({ passageiro: passageiro?.trim(), i }))
+      .filter((linha): linha is { passageiro: string; i: number } => Boolean(linha.passageiro))
+      .map(({ passageiro, i }, ordem) => ({
         id: randomUUID(),
         solicitacao_id: solicitacaoId,
         passageiro,
@@ -197,8 +221,11 @@ async function salvarItensInlineBase(
         data_voo: datasVoo[i]?.trim() || null,
         horario_voo: horariosVoo[i]?.trim() || null,
         observacao: observacoes[i]?.trim() || null,
-        ordem: ordem++,
-      });
+        ordem,
+      }));
+
+    if (linhas.length > 0) {
+      const { error } = await supabase.from("solicitacao_itens_base").insert(linhas);
       if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
     }
     return {};
@@ -213,25 +240,27 @@ async function salvarItensInlineBase(
     const valores = formData.getAll("itemValor").map(String);
     const observacoes = formData.getAll("itemObservacao").map(String);
 
-    let ordem = 0;
-    for (let i = 0; i < passageiros.length; i++) {
-      const passageiro = passageiros[i]?.trim();
-      if (!passageiro) continue;
-      const valorStr = valores[i]?.trim();
-      const valor = valorStr ? Number(valorStr) : null;
-
-      const { error } = await supabase.from("solicitacao_itens_base").insert({
-        id: randomUUID(),
-        solicitacao_id: solicitacaoId,
-        passageiro,
-        origem: origens[i]?.trim() || null,
-        destino: destinos[i]?.trim() || null,
-        data_voo: datasVoo[i]?.trim() || null,
-        horario_voo: horariosVoo[i]?.trim() || null,
-        valor,
-        observacao: observacoes[i]?.trim() || null,
-        ordem: ordem++,
+    const linhas = passageiros
+      .map((passageiro, i) => ({ passageiro: passageiro?.trim(), i }))
+      .filter((linha): linha is { passageiro: string; i: number } => Boolean(linha.passageiro))
+      .map(({ passageiro, i }, ordem) => {
+        const valorStr = valores[i]?.trim();
+        return {
+          id: randomUUID(),
+          solicitacao_id: solicitacaoId,
+          passageiro,
+          origem: origens[i]?.trim() || null,
+          destino: destinos[i]?.trim() || null,
+          data_voo: datasVoo[i]?.trim() || null,
+          horario_voo: horariosVoo[i]?.trim() || null,
+          valor: valorStr ? Number(valorStr) : null,
+          observacao: observacoes[i]?.trim() || null,
+          ordem,
+        };
       });
+
+    if (linhas.length > 0) {
+      const { error } = await supabase.from("solicitacao_itens_base").insert(linhas);
       if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
     }
 
@@ -249,26 +278,28 @@ async function salvarItensInlineBase(
     const valores = formData.getAll("itemValor").map(String);
     const observacoes = formData.getAll("itemObservacao").map(String);
 
-    let ordem = 0;
-    for (let i = 0; i < passageiros.length; i++) {
-      const passageiro = passageiros[i]?.trim();
-      if (!passageiro) continue;
-      const valorStr = valores[i]?.trim();
-      const valor = valorStr ? Number(valorStr) : null;
-
-      const { error } = await supabase.from("solicitacao_itens_base").insert({
-        id: randomUUID(),
-        solicitacao_id: solicitacaoId,
-        passageiro,
-        cidade: cidades[i]?.trim() || null,
-        hotel: hoteis[i]?.trim() || null,
-        data_entrada: datasEntrada[i]?.trim() || null,
-        data_saida: datasSaida[i]?.trim() || null,
-        tipo_acomodacao: tiposAcomodacao[i]?.trim() || null,
-        valor,
-        observacao: observacoes[i]?.trim() || null,
-        ordem: ordem++,
+    const linhas = passageiros
+      .map((passageiro, i) => ({ passageiro: passageiro?.trim(), i }))
+      .filter((linha): linha is { passageiro: string; i: number } => Boolean(linha.passageiro))
+      .map(({ passageiro, i }, ordem) => {
+        const valorStr = valores[i]?.trim();
+        return {
+          id: randomUUID(),
+          solicitacao_id: solicitacaoId,
+          passageiro,
+          cidade: cidades[i]?.trim() || null,
+          hotel: hoteis[i]?.trim() || null,
+          data_entrada: datasEntrada[i]?.trim() || null,
+          data_saida: datasSaida[i]?.trim() || null,
+          tipo_acomodacao: tiposAcomodacao[i]?.trim() || null,
+          valor: valorStr ? Number(valorStr) : null,
+          observacao: observacoes[i]?.trim() || null,
+          ordem,
+        };
       });
+
+    if (linhas.length > 0) {
+      const { error } = await supabase.from("solicitacao_itens_base").insert(linhas);
       if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
     }
 
@@ -292,31 +323,34 @@ async function salvarItensInlineBase(
     const datasVolta = formData.getAll("itemDataVolta").map(String);
     const horariosVolta = formData.getAll("itemHorarioVolta").map(String);
 
-    let ordem = 0;
-    for (let i = 0; i < nomes.length; i++) {
-      const nome = nomes[i]?.trim();
-      if (!nome) continue;
-      const houveTransporte = houveTransportes[i] === "sim";
-
-      const { error } = await supabase.from("solicitacao_itens_base").insert({
-        id: randomUUID(),
-        solicitacao_id: solicitacaoId,
-        passageiro: nome,
-        item: exames[i]?.trim() || null,
-        data_exame: datasExame[i]?.trim() || null,
-        local_exame: locais[i]?.trim() || null,
-        observacao: observacoes[i]?.trim() || null,
-        houve_transporte: houveTransporte,
-        origem: houveTransporte ? origens[i]?.trim() || null : null,
-        destino: houveTransporte ? destinos[i]?.trim() || null : null,
-        data_voo: houveTransporte ? datasIda[i]?.trim() || null : null,
-        horario_voo: houveTransporte ? horariosIda[i]?.trim() || null : null,
-        origem_volta: houveTransporte ? origensVolta[i]?.trim() || null : null,
-        destino_volta: houveTransporte ? destinosVolta[i]?.trim() || null : null,
-        data_volta: houveTransporte ? datasVolta[i]?.trim() || null : null,
-        horario_volta: houveTransporte ? horariosVolta[i]?.trim() || null : null,
-        ordem: ordem++,
+    const linhas = nomes
+      .map((nome, i) => ({ nome: nome?.trim(), i }))
+      .filter((linha): linha is { nome: string; i: number } => Boolean(linha.nome))
+      .map(({ nome, i }, ordem) => {
+        const houveTransporte = houveTransportes[i] === "sim";
+        return {
+          id: randomUUID(),
+          solicitacao_id: solicitacaoId,
+          passageiro: nome,
+          item: exames[i]?.trim() || null,
+          data_exame: datasExame[i]?.trim() || null,
+          local_exame: locais[i]?.trim() || null,
+          observacao: observacoes[i]?.trim() || null,
+          houve_transporte: houveTransporte,
+          origem: houveTransporte ? origens[i]?.trim() || null : null,
+          destino: houveTransporte ? destinos[i]?.trim() || null : null,
+          data_voo: houveTransporte ? datasIda[i]?.trim() || null : null,
+          horario_voo: houveTransporte ? horariosIda[i]?.trim() || null : null,
+          origem_volta: houveTransporte ? origensVolta[i]?.trim() || null : null,
+          destino_volta: houveTransporte ? destinosVolta[i]?.trim() || null : null,
+          data_volta: houveTransporte ? datasVolta[i]?.trim() || null : null,
+          horario_volta: houveTransporte ? horariosVolta[i]?.trim() || null : null,
+          ordem,
+        };
       });
+
+    if (linhas.length > 0) {
+      const { error } = await supabase.from("solicitacao_itens_base").insert(linhas);
       if (error) return { error: "Não foi possível salvar os itens. Tente novamente." };
     }
     return {};
@@ -379,16 +413,17 @@ export async function createSolicitacaoBase(
     return { error: "Não foi possível salvar a solicitação. Tente novamente.", values: raw };
   }
 
-  if (user) {
-    await autoAssinarComoCreator("solicitacao", criada.id, "solicitante", user.id);
-  }
-  await notificarEncarregado(supabase, numero, criada.id);
-
-  if (TIPOS_COM_ITENS.includes(data.tipo)) {
-    const { error: itensError } = await salvarItensInlineBase(supabase, formData, criada.id, data.tipo);
-    if (itensError) {
-      return { error: `Solicitação salva, mas houve um problema com os itens: ${itensError}`, values: raw };
-    }
+  // Assinar, avisar o Encarregado e salvar os itens não dependem uns dos outros — em paralelo em
+  // vez de um de cada vez (mesmo raciocínio de createSolicitacao, app/solicitacoes/actions.ts).
+  const [itensResultado] = await Promise.all([
+    TIPOS_COM_ITENS.includes(data.tipo)
+      ? salvarItensInlineBase(supabase, formData, criada.id, data.tipo)
+      : Promise.resolve({} as { error?: string }),
+    user ? autoAssinarComoCreator("solicitacao", criada.id, "solicitante", user.id) : Promise.resolve(),
+    notificarEncarregado(supabase, numero, criada.id),
+  ]);
+  if (itensResultado.error) {
+    return { error: `Solicitação salva, mas houve um problema com os itens: ${itensResultado.error}`, values: raw };
   }
 
   revalidatePath("/base/solicitacoes");
@@ -472,6 +507,9 @@ export async function deleteSolicitacaoBase(formData: FormData): Promise<void> {
     return;
   }
 
+  // Espelha o mesmo ajuste de app/solicitacoes/actions.ts: sem isso, a notificação de assinatura
+  // pendente ficava no sino pra sempre depois da solicitação ser excluída (link virava 404).
+  await supabase.from("notificacoes").delete().eq("link", `/base/solicitacoes/${id}`);
   await supabase.from("solicitacoes_base").delete().eq("id", id);
   revalidatePath("/base/solicitacoes");
 }
@@ -526,56 +564,58 @@ export async function duplicarSolicitacaoBase(formData: FormData): Promise<void>
 
   if (error || !nova) return;
 
-  if (user) {
-    await autoAssinarComoCreator("solicitacao", nova.id, "solicitante", user.id);
-  }
-  await notificarEncarregado(supabase, numero, nova.id);
+  // Copiar os itens, assinar e avisar o Encarregado não dependem uns dos outros — em paralelo em
+  // vez de um atrás do outro (mesmo raciocínio de duplicarSolicitacao, app/solicitacoes/actions.ts).
+  await Promise.all([
+    (async () => {
+      if (!TIPOS_COM_ITENS.includes(original.tipo)) return;
+      const { data: itensData } = await supabase
+        .from("solicitacao_itens_base")
+        .select("*")
+        .eq("solicitacao_id", id)
+        .order("ordem", { ascending: true });
+      const itens = (itensData ?? []) as SolicitacaoItemBaseRow[];
 
-  if (TIPOS_COM_ITENS.includes(original.tipo)) {
-    const { data: itensData } = await supabase
-      .from("solicitacao_itens_base")
-      .select("*")
-      .eq("solicitacao_id", id)
-      .order("ordem", { ascending: true });
-    const itens = (itensData ?? []) as SolicitacaoItemBaseRow[];
+      if (itens.length > 0) {
+        await supabase.from("solicitacao_itens_base").insert(
+          itens.map((item) => ({
+            id: randomUUID(),
+            solicitacao_id: nova.id,
+            quantidade: item.quantidade,
+            item: item.item,
+            foto_path: item.foto_path,
+            descricao: item.descricao,
+            observacao: item.observacao,
+            valor: item.valor,
+            passageiro: item.passageiro,
+            origem: item.origem,
+            destino: item.destino,
+            data_voo: item.data_voo,
+            horario_voo: item.horario_voo,
+            cidade: item.cidade,
+            hotel: item.hotel,
+            data_entrada: item.data_entrada,
+            data_saida: item.data_saida,
+            tipo_acomodacao: item.tipo_acomodacao,
+            data_exame: item.data_exame,
+            local_exame: item.local_exame,
+            houve_transporte: item.houve_transporte,
+            origem_volta: item.origem_volta,
+            destino_volta: item.destino_volta,
+            data_volta: item.data_volta,
+            horario_volta: item.horario_volta,
+            ordem: item.ordem,
+          })),
+        );
+      }
 
-    if (itens.length > 0) {
-      await supabase.from("solicitacao_itens_base").insert(
-        itens.map((item) => ({
-          id: randomUUID(),
-          solicitacao_id: nova.id,
-          quantidade: item.quantidade,
-          item: item.item,
-          foto_path: item.foto_path,
-          descricao: item.descricao,
-          observacao: item.observacao,
-          valor: item.valor,
-          passageiro: item.passageiro,
-          origem: item.origem,
-          destino: item.destino,
-          data_voo: item.data_voo,
-          horario_voo: item.horario_voo,
-          cidade: item.cidade,
-          hotel: item.hotel,
-          data_entrada: item.data_entrada,
-          data_saida: item.data_saida,
-          tipo_acomodacao: item.tipo_acomodacao,
-          data_exame: item.data_exame,
-          local_exame: item.local_exame,
-          houve_transporte: item.houve_transporte,
-          origem_volta: item.origem_volta,
-          destino_volta: item.destino_volta,
-          data_volta: item.data_volta,
-          horario_volta: item.horario_volta,
-          ordem: item.ordem,
-        })),
-      );
-    }
-
-    if (TIPOS_COM_VALOR_CALCULADO.includes(original.tipo)) {
-      await recalcularValorTotalBase(supabase, nova.id);
-    }
-  }
+      if (TIPOS_COM_VALOR_CALCULADO.includes(original.tipo)) {
+        await recalcularValorTotalBase(supabase, nova.id);
+      }
+    })(),
+    user ? autoAssinarComoCreator("solicitacao", nova.id, "solicitante", user.id) : Promise.resolve(),
+    notificarEncarregado(supabase, numero, nova.id),
+  ]);
 
   revalidatePath("/base/solicitacoes");
   redirect(`/base/solicitacoes/${nova.id}`);

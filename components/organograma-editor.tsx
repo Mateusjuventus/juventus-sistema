@@ -9,13 +9,16 @@ import {
   LARGURA_CAIXA,
   LARGURA_CARTAO,
   PADDING_CARTAO_V,
+  agruparLinhasPorSupervisor,
   alturaCartao,
   calcularConectores,
   calcularLayoutAutomatico,
   cartoesConectadosDoLayout,
   contarCartoesPorPessoaVinculada,
   corNomeCartao,
+  mesclarPosicoesCartaoManual,
   type OrganogramaCartaoInfo,
+  type OrganogramaCartaoPosicaoManual,
   type OrganogramaNo,
 } from "@/lib/futebol/organograma";
 import { DeleteButton } from "@/components/delete-button";
@@ -57,6 +60,12 @@ export interface PessoaComissao {
 export interface LinhaSupervisor {
   linha: string;
   reportaPara: string | null;
+  /** Posição arrastada pro cartão inteiro dessa linha; `null`/`false` = layout automático decide
+   * (mesmo princípio de `OrganogramaNoData.posX/posY/posManual` pra uma caixa de liderança — ver
+   * migration 0109 e `moverCartaoOrganograma`). */
+  posX: number | null;
+  posY: number | null;
+  posManual: boolean;
 }
 
 const PADDING = 40;
@@ -144,7 +153,7 @@ function PainelEdicao({
   no,
   todosOsNos,
   linhasReportaPara,
-  linhasOrdenadas,
+  linhasIrmas,
   pessoasDisponiveis,
   filhosCount,
   salvarAction,
@@ -156,7 +165,10 @@ function PainelEdicao({
   no: OrganogramaNoData | null;
   todosOsNos: OrganogramaNoData[];
   linhasReportaPara: LinhaSupervisor[];
-  linhasOrdenadas: string[];
+  /** Só as linhas que são IRMÃS DE VERDADE da linha sendo editada (mesmo supervisor — ver
+   * `agruparLinhasPorSupervisor`), já na ordem de exibição. "Mover linha pra cima/baixo" só faz
+   * sentido comparado com essas: uma linha de outro supervisor nem é vizinha dela no desenho. */
+  linhasIrmas: string[];
   pessoasDisponiveis: PessoaComissao[];
   filhosCount: number;
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
@@ -259,7 +271,7 @@ function PainelEdicao({
   const mostrarReportaParaNovaLinha = mostrarGrupoLinha && linhaEhNova;
 
   const ehCelulaDeGradeExistente = Boolean(no && no.grupo && no.linha);
-  const posicaoDaLinha = no?.linha ? linhasOrdenadas.indexOf(no.linha) : -1;
+  const posicaoDaLinha = no?.linha ? linhasIrmas.indexOf(no.linha) : -1;
   const supervisorAtualDaLinha = no?.linha ? (linhasReportaPara.find((l) => l.linha === no.linha)?.reportaPara ?? null) : null;
 
   return (
@@ -473,11 +485,11 @@ function PainelEdicao({
                 type="button"
                 className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={
-                  posicaoDaLinha === -1 || posicaoDaLinha >= linhasOrdenadas.length - 1 || statusMoverLinha?.tipo === "movendo"
+                  posicaoDaLinha === -1 || posicaoDaLinha >= linhasIrmas.length - 1 || statusMoverLinha?.tipo === "movendo"
                 }
                 onClick={() => void moverLinha("baixo")}
                 title={
-                  posicaoDaLinha !== -1 && posicaoDaLinha >= linhasOrdenadas.length - 1
+                  posicaoDaLinha !== -1 && posicaoDaLinha >= linhasIrmas.length - 1
                     ? "Essa linha já é a última — não tem pra onde descer."
                     : undefined
                 }
@@ -489,10 +501,10 @@ function PainelEdicao({
               <p className="mt-1 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{statusMoverLinha.texto}</p>
             ) : (
               <p className="mt-1 text-xs text-neutral-400">
-                Move a linha inteira &quot;{no!.linha}&quot; — todo o cartão sobe ou desce, sem precisar
-                digitar número nem salvar: já move na hora.
-                {linhasOrdenadas.length <= 1
-                  ? " Os botões ficam desativados enquanto essa for a única linha — assim que houver outra, dá pra reordenar."
+                Move a linha inteira &quot;{no!.linha}&quot; — todo o cartão sobe ou desce entre as
+                comissões do MESMO supervisor, sem precisar digitar número nem salvar: já move na hora.
+                {linhasIrmas.length <= 1
+                  ? " Os botões ficam desativados enquanto essa for a única comissão desse supervisor — assim que houver outra, dá pra reordenar."
                   : ""}
               </p>
             )}
@@ -567,20 +579,26 @@ function CaixaLideranca({
       onPointerDown={onPointerDownCaixa}
       onClick={onClick}
       style={{ left: x, top: y, width: LARGURA_CAIXA, height: ALTURA_CAIXA }}
-      className={`absolute flex select-none flex-col justify-center rounded-md bg-grena p-3 text-white shadow-sm cursor-grab active:cursor-grabbing ${
+      className={`absolute flex select-none flex-col justify-center overflow-hidden rounded-md bg-grena p-3 text-white shadow-sm cursor-grab active:cursor-grabbing ${
         selecionada ? "ring-2 ring-dourado" : ""
       } ${no.vaga ? "opacity-60" : ""}`}
     >
-      <p className="truncate text-sm font-bold text-white">{no.nomeExibido}</p>
-      <p className="truncate text-xs text-white/80">{no.cargoExibido}</p>
+      {/* `shrink-0` nos dois <p> é essencial aqui: como cada um já tem overflow escondido (via
+       * `line-clamp-2`), o flexbox por padrão pode encolhê-los ABAIXO da altura real do texto pra
+       * caber no espaço da caixa — sem isso, um nome de 2 linhas espremia e sobrepunha visualmente o
+       * cargo embaixo (bug visto pelo Mateus em 16/09) em vez de simplesmente ocupar o espaço
+       * naturalmente e deixar o `overflow-hidden` da caixa (acima) cortar só o que sobrar. */}
+      <p className="line-clamp-2 shrink-0 break-words text-sm font-bold leading-tight text-white">{no.nomeExibido}</p>
+      <p className="line-clamp-2 shrink-0 break-words text-xs leading-tight text-white/80">{no.cargoExibido}</p>
     </div>
   );
 }
 
 /** Um cartão de comissão/departamento: título grená com o nome da linha, lista vertical de
  * função→pessoa por baixo — um item por caixa (`organograma_base`) que pertence àquela linha. Cada
- * ITEM é clicável pra editar (o cartão em si não se arrasta nem se clica como bloco — a posição dele
- * é sempre calculada, nunca manual). */
+ * ITEM é clicável pra editar; o TÍTULO (faixa grená) é a alça de arrasto do cartão inteiro — pedido
+ * do Mateus de 16/09: antes o cartão nunca podia ser arrastado (posição sempre calculada), só dava
+ * pra reordenar entre comissões do MESMO supervisor. */
 function CartaoComissao({
   cartao,
   itens,
@@ -589,6 +607,7 @@ function CartaoComissao({
   selecionadoId,
   contagemPorPessoa,
   onClickItem,
+  onPointerDownTitulo,
 }: {
   cartao: OrganogramaCartaoInfo;
   itens: OrganogramaNoData[];
@@ -597,6 +616,7 @@ function CartaoComissao({
   selecionadoId: string | null;
   contagemPorPessoa: Map<string, number>;
   onClickItem: (id: string) => void;
+  onPointerDownTitulo: (e: React.PointerEvent) => void;
 }) {
   const altura = alturaCartao(itens.length);
   return (
@@ -605,8 +625,9 @@ function CartaoComissao({
       className="absolute overflow-hidden rounded-md border border-linha bg-white shadow-sm"
     >
       <div
+        onPointerDown={onPointerDownTitulo}
         style={{ height: ALTURA_TITULO_CARTAO }}
-        className="flex items-center justify-center bg-grena px-2 text-center text-xs font-bold uppercase tracking-wide text-white"
+        className="flex select-none items-center justify-center bg-grena px-2 text-center text-xs font-bold uppercase tracking-wide text-white cursor-grab active:cursor-grabbing"
       >
         <span className="truncate">{cartao.titulo}</span>
       </div>
@@ -658,7 +679,7 @@ function ReorganizarButton({ reorganizarAction }: { reorganizarAction: () => Pro
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-2 rounded-md bg-amber-50 p-2">
         <span className="text-sm text-amber-800">
-          Solta todas as caixas de liderança arrastadas de volta pro lugar automático. Confirma?
+          Solta todas as caixas e cartões arrastados de volta pro lugar automático. Confirma?
         </span>
         <button
           type="button"
@@ -695,6 +716,7 @@ export function OrganogramaEditor({
   linhasReportaPara,
   salvarAction,
   moverAction,
+  moverCartaoAction,
   excluirAction,
   moverLinhaAction,
   definirSupervisorLinhaAction,
@@ -705,6 +727,7 @@ export function OrganogramaEditor({
   linhasReportaPara: LinhaSupervisor[];
   salvarAction: (prevState: OrganogramaNoFormState, formData: FormData) => Promise<OrganogramaNoFormState>;
   moverAction: (id: string, x: number, y: number) => Promise<{ error?: string }>;
+  moverCartaoAction: (chave: string, x: number, y: number) => Promise<{ error?: string }>;
   excluirAction: (prevState: { error?: string }, formData: FormData) => Promise<{ error?: string }>;
   moverLinhaAction: (linha: string, direcao: "cima" | "baixo") => Promise<{ error?: string }>;
   definirSupervisorLinhaAction: (linha: string, reportaPara: string | null) => Promise<{ error?: string }>;
@@ -720,16 +743,28 @@ export function OrganogramaEditor({
     }
   }, [nos, selecionado]);
   const [overrides, setOverrides] = useState<Record<string, { x: number; y: number }>>({});
+  // Mesma ideia de `overrides`, mas por `chave` de CARTÃO em vez de id de caixa de liderança —
+  // separado porque as duas coisas nunca colidem (uuid vs. texto da linha/"solo:<uuid>") mas usam
+  // ações e mapas de posição diferentes.
+  const [overridesCartao, setOverridesCartao] = useState<Record<string, { x: number; y: number }>>({});
   const [erroArrasto, setErroArrasto] = useState<string | null>(null);
   const arrastoRef = useRef<{ id: string; inicioX: number; inicioY: number; origemX: number; origemY: number } | null>(
     null,
   );
+  const arrastoCartaoRef = useRef<{
+    chave: string;
+    inicioX: number;
+    inicioY: number;
+    origemX: number;
+    origemY: number;
+  } | null>(null);
 
   // Assim que dados novos chegam do servidor, descarta as posições otimistas locais (mesmo raciocínio
   // de sempre — sem isso uma posição arrastada ficava presa na memória do navegador pra sempre).
   useEffect(() => {
     setOverrides({});
-  }, [nos]);
+    setOverridesCartao({});
+  }, [nos, linhasReportaPara]);
 
   const linhaReportaParaMap = useMemo(
     () => new Map(linhasReportaPara.map((l) => [l.linha, l.reportaPara])),
@@ -756,7 +791,7 @@ export function OrganogramaEditor({
   const nosPorId = useMemo(() => new Map(nos.map((n) => [n.id, n])), [nos]);
 
   // Posição de cada caixa de LIDERANÇA — arrasto/posição salva manda; layout automático só decide
-  // quem nunca foi arrastada. Cartão nunca entra aqui: é sempre `layout.posicoesCartao`.
+  // quem nunca foi arrastada.
   const posicoesLideranca = useMemo(() => {
     const mapa = new Map<string, { x: number; y: number }>();
     for (const no of nos) {
@@ -769,15 +804,44 @@ export function OrganogramaEditor({
     return mapa;
   }, [nos, overrides, layout]);
 
+  // Posição de cada CARTÃO — mesmo princípio acima, arrasto em progresso (`overridesCartao`) vence
+  // posição salva (`organograma_base_linha.pos_x/pos_y` pra um cartão agrupado, ou a própria
+  // `organograma_base.pos_x/pos_y` pra um cartão solo), que vence o layout automático. Reaproveita
+  // `mesclarPosicoesCartaoManual` (mesma função do PDF) pra nunca divergir.
+  const posicoesCartaoSalvas: OrganogramaCartaoPosicaoManual[] = useMemo(() => {
+    const salvas: OrganogramaCartaoPosicaoManual[] = [];
+    for (const l of linhasReportaPara) {
+      if (l.posManual && l.posX !== null && l.posY !== null) salvas.push({ chave: l.linha, x: l.posX, y: l.posY });
+    }
+    for (const no of nos) {
+      if (no.grupo && !no.linha && no.posManual && no.posX !== null && no.posY !== null) {
+        salvas.push({ chave: `solo:${no.id}`, x: no.posX, y: no.posY });
+      }
+    }
+    return salvas;
+  }, [linhasReportaPara, nos]);
+  const posicoesCartao = useMemo(() => {
+    // Ordem importa: salva primeiro, arrasto ao vivo por último — `mesclarPosicoesCartaoManual`
+    // aplica em sequência, então quem vem depois vence (mesma prioridade de `posicoesLideranca`
+    // acima: automático < salvo < arrasto em andamento).
+    const overridesAoVivo = Object.entries(overridesCartao).map(([chave, pos]) => ({ chave, ...pos }));
+    return mesclarPosicoesCartaoManual(layout.posicoesCartao, [...posicoesCartaoSalvas, ...overridesAoVivo]);
+  }, [layout, posicoesCartaoSalvas, overridesCartao]);
+
   // Conectores em ângulo reto (tronco/barramento/pé) — liderança↔liderança E supervisor↔cartão,
   // cálculo compartilhado com o PDF via `calcularConectores`/`cartoesConectadosDoLayout`, pra nunca
-  // divergir.
+  // divergir. Usa `posicoesCartao` (já com arrasto manual mesclado), não `layout.posicoesCartao` cru
+  // — senão o conector ficava preso no ponto automático enquanto o cartão já tinha se movido na tela.
   const conectores = useMemo(() => {
     const nosParaConector = nos.map(
       (n): OrganogramaNo => ({ id: n.id, reportaPara: n.reportaPara, grupo: n.grupo, linha: n.linha, ordem: n.ordem }),
     );
-    return calcularConectores(nosParaConector, posicoesLideranca, cartoesConectadosDoLayout(layout));
-  }, [nos, posicoesLideranca, layout]);
+    return calcularConectores(
+      nosParaConector,
+      posicoesLideranca,
+      cartoesConectadosDoLayout({ cartoes: layout.cartoes, posicoesCartao }),
+    );
+  }, [nos, posicoesLideranca, layout, posicoesCartao]);
 
   const comissaoIdPorNo = useMemo(() => new Map(nos.map((n) => [n.id, n.comissaoTecnicaBaseId])), [nos]);
   const contagemPorPessoa = useMemo(
@@ -785,24 +849,30 @@ export function OrganogramaEditor({
     [layout, comissaoIdPorNo],
   );
 
-  // Mesma regra de ordenação de linha que `moverLinhaOrganograma` usa no servidor (menor `ordem`
-  // entre quem usa aquela linha) — só pra saber se a linha selecionada já está no topo/base.
-  const linhasOrdenadas = useMemo(() => {
-    const porLinha = new Map<string, number[]>();
-    for (const n of nos) {
-      if (!n.grupo || !n.linha) continue;
-      porLinha.set(n.linha, [...(porLinha.get(n.linha) ?? []), n.ordem]);
+  // Mesmo agrupamento por supervisor que `moverLinhaOrganograma` usa no servidor — "Mover linha pra
+  // cima/baixo" só compara uma linha com as IRMÃS DE VERDADE dela (mesmo supervisor), nunca a lista
+  // inteira de linhas do organograma (ver `agruparLinhasPorSupervisor`).
+  const gruposDeLinhas = useMemo(
+    () =>
+      agruparLinhasPorSupervisor(
+        nos.map((n) => ({ id: n.id, grupo: n.grupo, linha: n.linha, ordem: n.ordem })),
+        linhaReportaParaMap,
+      ),
+    [nos, linhaReportaParaMap],
+  );
+  function linhasIrmasDe(linha: string | null): string[] {
+    if (!linha) return [];
+    for (const lista of gruposDeLinhas.values()) {
+      if (lista.includes(linha)) return lista;
     }
-    return [...porLinha.entries()]
-      .sort((a, b) => Math.min(...a[1]) - Math.min(...b[1]))
-      .map(([linha]) => linha);
-  }, [nos]);
+    return [linha];
+  }
 
   // Limites reais do conteúdo (liderança + cartões), sem forçar simetria em torno de x=0.
   const todasAsCaixas = [
     ...[...posicoesLideranca.values()].map((p) => ({ x: p.x, y: p.y, w: LARGURA_CAIXA, h: ALTURA_CAIXA })),
     ...layout.cartoes.map((c) => {
-      const p = layout.posicoesCartao.get(c.chave)!;
+      const p = posicoesCartao.get(c.chave)!;
       return { x: p.x, y: p.y, w: LARGURA_CARTAO, h: alturaCartao(c.itens.length) };
     }),
   ];
@@ -866,6 +936,53 @@ export function OrganogramaEditor({
     window.addEventListener("pointerup", soltar);
   }
 
+  /** Mesmo mecanismo de `iniciarArrasto` acima, só que pra um CARTÃO inteiro (pela `chave`) em vez
+   * de uma caixa de liderança (pelo `id`) — mapa/ação diferentes, resto idêntico. */
+  function iniciarArrastoCartao(chave: string, e: React.PointerEvent) {
+    e.stopPropagation();
+    const atual = posicoesCartao.get(chave) ?? { x: 0, y: 0 };
+    arrastoCartaoRef.current = { chave, inicioX: e.clientX, inicioY: e.clientY, origemX: atual.x, origemY: atual.y };
+    const LIMIAR_ARRASTO_PX = 4;
+    let arrastoIniciado = false;
+    let posAtual = { x: arrastoCartaoRef.current.origemX, y: arrastoCartaoRef.current.origemY };
+
+    function mover(ev: PointerEvent) {
+      const arrasto = arrastoCartaoRef.current;
+      if (!arrasto) return;
+      const deltaTelaX = ev.clientX - arrasto.inicioX;
+      const deltaTelaY = ev.clientY - arrasto.inicioY;
+      if (!arrastoIniciado) {
+        if (Math.hypot(deltaTelaX, deltaTelaY) < LIMIAR_ARRASTO_PX) return;
+        arrastoIniciado = true;
+      }
+      const novaPos = { x: arrasto.origemX + deltaTelaX, y: arrasto.origemY + deltaTelaY };
+      posAtual = novaPos;
+      setOverridesCartao((atual) => ({ ...atual, [arrasto.chave]: novaPos }));
+    }
+
+    function soltar() {
+      const arrasto = arrastoCartaoRef.current;
+      arrastoCartaoRef.current = null;
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+      if (!arrasto || !arrastoIniciado) return;
+      const posFinal = posAtual;
+      setErroArrasto(null);
+      void moverCartaoAction(arrasto.chave, posFinal.x, posFinal.y).then((resultado) => {
+        if (resultado?.error) {
+          setErroArrasto(resultado.error);
+          setOverridesCartao((atual) => {
+            const { [arrasto.chave]: _descartada, ...resto } = atual;
+            return resto;
+          });
+        }
+      });
+    }
+
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+  }
+
   const noSelecionado = selecionado && selecionado !== "novo" ? (nos.find((n) => n.id === selecionado) ?? null) : null;
   const painelAberto = selecionado !== null;
   const filhosDoSelecionado = noSelecionado
@@ -919,7 +1036,7 @@ export function OrganogramaEditor({
             })}
 
             {layout.cartoes.map((cartao) => {
-              const pos = layout.posicoesCartao.get(cartao.chave);
+              const pos = posicoesCartao.get(cartao.chave);
               if (!pos) return null;
               const p = tela(pos);
               const itens = cartao.itens.map((id) => nosPorId.get(id)).filter((n): n is OrganogramaNoData => !!n);
@@ -933,6 +1050,7 @@ export function OrganogramaEditor({
                   selecionadoId={selecionado !== "novo" ? selecionado : null}
                   contagemPorPessoa={contagemPorPessoa}
                   onClickItem={(id) => setSelecionado(id)}
+                  onPointerDownTitulo={(e) => iniciarArrastoCartao(cartao.chave, e)}
                 />
               );
             })}
@@ -952,7 +1070,7 @@ export function OrganogramaEditor({
           no={noSelecionado}
           todosOsNos={nos}
           linhasReportaPara={linhasReportaPara}
-          linhasOrdenadas={linhasOrdenadas}
+          linhasIrmas={linhasIrmasDe(noSelecionado?.linha ?? null)}
           pessoasDisponiveis={pessoasComissao}
           filhosCount={filhosDoSelecionado}
           salvarAction={salvarAction}

@@ -7,12 +7,14 @@ import {
   LARGURA_CAIXA,
   LARGURA_CARTAO,
   PADDING_CARTAO_V,
+  agruparLinhasPorSupervisor,
   alturaCartao,
   calcularConectores,
   calcularLayoutAutomatico,
   cartoesConectadosDoLayout,
   contarCartoesPorPessoaVinculada,
   corNomeCartao,
+  mesclarPosicoesCartaoManual,
   ordenarItensDoCartao,
   type OrganogramaNo,
   type OrganogramaPosicao,
@@ -144,6 +146,24 @@ describe("calcularLayoutAutomatico", () => {
     expect(layout.posicoesCartao.get("Comissão X")!.y).toBeGreaterThan(
       layout.posicoesLideranca.get("coordenador")!.y + ALTURA_CAIXA,
     );
+  });
+
+  it("fileira de cartões sem supervisor fica centralizada em x=0, não jogada pra direita", () => {
+    const layout = calcularLayoutAutomatico(
+      [
+        no("coordenador", null, null),
+        no("treinador-a", null, "Treinador", 0, "Comissão A"),
+        no("treinador-b", null, "Treinador", 1, "Comissão B"),
+      ],
+      new Map(), // nenhuma das duas linhas tem supervisor definido — as duas caem na fileira órfã
+    );
+    const a = layout.posicoesCartao.get("Comissão A")!;
+    const b = layout.posicoesCartao.get("Comissão B")!;
+    const minX = Math.min(a.x, b.x);
+    const maxX = Math.max(a.x, b.x) + LARGURA_CARTAO;
+    // Ponto médio da fileira inteira tem que ficar em x=0 (mesma referência da árvore de liderança
+    // acima) — a versão anterior começava em x=0 e só crescia pra direita, ficando toda deslocada.
+    expect((minX + maxX) / 2).toBeCloseTo(0);
   });
 
   it("dois supervisores com números diferentes de comissões não se sobrepõem (largura por subárvore)", () => {
@@ -367,5 +387,95 @@ describe("calcularConectores", () => {
     // centroX do cartão: -300 + LARGURA_CARTAO/2; centroX da liderança-filho: 300 + LARGURA_CAIXA/2.
     expect(barramento.x1).toBeCloseTo(-300 + LARGURA_CARTAO / 2);
     expect(barramento.x2).toBeCloseTo(300 + LARGURA_CAIXA / 2);
+  });
+});
+
+describe("agruparLinhasPorSupervisor", () => {
+  it("cada supervisor forma seu próprio grupo, ordenado por ordem mínima entre quem usa a linha", () => {
+    const nos = [
+      no("gustavo", null, null),
+      no("italo", null, null),
+      no("sub20-a", null, "Treinador", 0, "Comissão Sub20"),
+      no("sub17-a", null, "Treinador", 1, "Comissão Sub17"),
+      no("sub15-a", null, "Treinador", 2, "Comissão Sub15"),
+      no("sub14-a", null, "Treinador", 3, "Comissão Sub14"),
+      no("sub13-a", null, "Treinador", 4, "Comissão Sub13"),
+    ];
+    const linhaReportaPara = new Map<string, string | null>([
+      ["Comissão Sub20", "gustavo"],
+      ["Comissão Sub17", "gustavo"],
+      ["Comissão Sub15", "gustavo"],
+      ["Comissão Sub14", "italo"],
+      ["Comissão Sub13", "italo"],
+    ]);
+    const grupos = agruparLinhasPorSupervisor(nos, linhaReportaPara);
+    expect(grupos.get("gustavo")).toEqual(["Comissão Sub20", "Comissão Sub17", "Comissão Sub15"]);
+    expect(grupos.get("italo")).toEqual(["Comissão Sub14", "Comissão Sub13"]);
+  });
+
+  it("linha sem supervisor (ou apontando pra alguém que não existe/não é liderança) cai no grupo `null`", () => {
+    const nos = [
+      no("supervisor", null, null),
+      no("a", null, "Treinador", 0, "Comissão A"),
+      no("b", null, "Treinador", 1, "Comissão B"),
+    ];
+    const linhaReportaPara = new Map<string, string | null>([
+      ["Comissão A", null],
+      ["Comissão B", "alguem-que-nao-existe"],
+    ]);
+    const grupos = agruparLinhasPorSupervisor(nos, linhaReportaPara);
+    expect(grupos.get(null)).toEqual(["Comissão A", "Comissão B"]);
+    expect(grupos.has("supervisor")).toBe(false);
+  });
+
+  it("uma linha de um supervisor nunca aparece misturada no grupo de outro supervisor, mesmo com `ordem` intercalada", () => {
+    // `ordem` global intercalada de propósito (0,1,2,3 alternando Gustavo/Italo) — o agrupamento
+    // precisa separar por supervisor antes de olhar pra `ordem`, não confiar numa lista global.
+    const nos = [
+      no("gustavo", null, null),
+      no("italo", null, null),
+      no("sub20-a", null, "Treinador", 0, "Comissão Sub20"),
+      no("sub14-a", null, "Treinador", 1, "Comissão Sub14"),
+      no("sub17-a", null, "Treinador", 2, "Comissão Sub17"),
+      no("sub13-a", null, "Treinador", 3, "Comissão Sub13"),
+    ];
+    const linhaReportaPara = new Map<string, string | null>([
+      ["Comissão Sub20", "gustavo"],
+      ["Comissão Sub17", "gustavo"],
+      ["Comissão Sub14", "italo"],
+      ["Comissão Sub13", "italo"],
+    ]);
+    const grupos = agruparLinhasPorSupervisor(nos, linhaReportaPara);
+    expect(grupos.get("gustavo")).toEqual(["Comissão Sub20", "Comissão Sub17"]);
+    expect(grupos.get("italo")).toEqual(["Comissão Sub14", "Comissão Sub13"]);
+  });
+});
+
+describe("mesclarPosicoesCartaoManual", () => {
+  it("mantém a posição automática pra quem não tem override manual", () => {
+    const automaticas = new Map<string, OrganogramaPosicao>([
+      ["Comissão Sub20", { x: 0, y: 0 }],
+      ["Comissão Sub17", { x: 200, y: 0 }],
+    ]);
+    const resultado = mesclarPosicoesCartaoManual(automaticas, []);
+    expect(resultado.get("Comissão Sub20")).toEqual({ x: 0, y: 0 });
+    expect(resultado.get("Comissão Sub17")).toEqual({ x: 200, y: 0 });
+  });
+
+  it("posição manual vence a automática pra quem foi arrastado", () => {
+    const automaticas = new Map<string, OrganogramaPosicao>([
+      ["Comissão Sub20", { x: 0, y: 0 }],
+      ["Comissão Sub17", { x: 200, y: 0 }],
+    ]);
+    const resultado = mesclarPosicoesCartaoManual(automaticas, [{ chave: "Comissão Sub20", x: 999, y: 888 }]);
+    expect(resultado.get("Comissão Sub20")).toEqual({ x: 999, y: 888 });
+    // Quem não foi arrastado continua na posição automática, sem efeito colateral.
+    expect(resultado.get("Comissão Sub17")).toEqual({ x: 200, y: 0 });
+  });
+
+  it("não modifica o mapa automático original (imutável)", () => {
+    const automaticas = new Map<string, OrganogramaPosicao>([["Comissão Sub20", { x: 0, y: 0 }]]);
+    mesclarPosicoesCartaoManual(automaticas, [{ chave: "Comissão Sub20", x: 999, y: 888 }]);
+    expect(automaticas.get("Comissão Sub20")).toEqual({ x: 0, y: 0 });
   });
 });
