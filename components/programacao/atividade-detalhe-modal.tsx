@@ -4,9 +4,11 @@ import { useState } from "react";
 import { ModalShell } from "./modal";
 import { GameCard } from "./game-card";
 import { NovaSubatividadeModal } from "./nova-subatividade-modal";
+import { AtividadeFormModal } from "./nova-atividade-modal";
 import { formatHorarioCurto, labelTipoAtividade } from "@/lib/programacao/tipo-atividade";
-import type { AtividadeComDetalhes } from "@/lib/programacao/queries";
+import type { AtividadeComDetalhes, JogoResumoAtividade } from "@/lib/programacao/queries";
 import type { ProgramacaoCatalogoSubatividadeRow } from "@/lib/supabase/types";
+import type { CategoriaBase } from "@/lib/auth/categorias-base";
 
 function formatDataBr(dataIso: string): string {
   const [ano, mes, dia] = dataIso.split("-");
@@ -16,19 +18,25 @@ function formatDataBr(dataIso: string): string {
 /**
  * Detalhe de uma atividade da grade — abas Planejamento (lista de subatividades + "+ Nova
  * Subatividade") e Executado (ainda não tem nada pra registrar aqui — ver spec, "Fora de escopo").
- * Sem edição/remoção da atividade nesta rodada (só criar e visualizar, ver plano de implementação).
+ * Botão "Editar" adicionado em 18/09 (pedido do Mateus) abre o mesmo formulário de "+ Nova
+ * Atividade" (`AtividadeFormModal`) já preenchido — ainda sem remoção de atividade/subatividade.
  */
 export function AtividadeDetalheModal({
   atividade,
   catalogo,
+  categoria,
+  jogosParaSelecao,
   onClose,
 }: {
   atividade: AtividadeComDetalhes;
   catalogo: ProgramacaoCatalogoSubatividadeRow[];
+  categoria: CategoriaBase;
+  jogosParaSelecao: JogoResumoAtividade[];
   onClose: () => void;
 }) {
   const [aba, setAba] = useState<"planejamento" | "executado">("planejamento");
   const [novaSubAberta, setNovaSubAberta] = useState(false);
+  const [editarAberto, setEditarAberto] = useState(false);
 
   const subtitulo = atividade.jogo
     ? undefined
@@ -45,24 +53,29 @@ export function AtividadeDetalheModal({
           </div>
         ) : null}
 
-        <div className="flex gap-4 border-b border-linha">
-          <button
-            type="button"
-            onClick={() => setAba("planejamento")}
-            className={`border-b-2 px-1 pb-2 text-sm font-semibold transition-colors ${
-              aba === "planejamento" ? "border-grena text-grena" : "border-transparent text-neutral-400 hover:text-grena"
-            }`}
-          >
-            Planejamento
-          </button>
-          <button
-            type="button"
-            onClick={() => setAba("executado")}
-            className={`border-b-2 px-1 pb-2 text-sm font-semibold transition-colors ${
-              aba === "executado" ? "border-grena text-grena" : "border-transparent text-neutral-400 hover:text-grena"
-            }`}
-          >
-            Executado
+        <div className="flex items-start justify-between gap-4 border-b border-linha">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setAba("planejamento")}
+              className={`border-b-2 px-1 pb-2 text-sm font-semibold transition-colors ${
+                aba === "planejamento" ? "border-grena text-grena" : "border-transparent text-neutral-400 hover:text-grena"
+              }`}
+            >
+              Planejamento
+            </button>
+            <button
+              type="button"
+              onClick={() => setAba("executado")}
+              className={`border-b-2 px-1 pb-2 text-sm font-semibold transition-colors ${
+                aba === "executado" ? "border-grena text-grena" : "border-transparent text-neutral-400 hover:text-grena"
+              }`}
+            >
+              Executado
+            </button>
+          </div>
+          <button type="button" onClick={() => setEditarAberto(true)} className="mb-2 shrink-0 text-sm font-semibold text-grena hover:underline">
+            Editar
           </button>
         </div>
 
@@ -109,6 +122,18 @@ export function AtividadeDetalheModal({
           atividadeNome={atividade.nome}
           catalogo={catalogo}
           onClose={() => setNovaSubAberta(false)}
+        />
+      ) : null}
+
+      {editarAberto ? (
+        <AtividadeFormModal
+          categoria={categoria}
+          jogosParaSelecao={jogosParaSelecao}
+          atividadeExistente={atividade}
+          onClose={() => {
+            setEditarAberto(false);
+            onClose();
+          }}
         />
       ) : null}
     </>

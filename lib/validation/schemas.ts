@@ -1247,6 +1247,14 @@ export const criarAtividadeSchema = z.object({
 });
 export type CriarAtividadeInput = z.infer<typeof criarAtividadeSchema>;
 
+/** "Editar Atividade" (mesmo formulário de criar, ver `components/programacao/nova-atividade-
+ * modal.tsx` — pedido do Mateus de 18/09, antes só dava pra criar e visualizar) — mesmos campos de
+ * `criarAtividadeSchema` mais o `id` de qual atividade está sendo alterada. */
+export const atualizarAtividadeSchema = criarAtividadeSchema.extend({
+  id: z.string().min(1, { message: "Atividade inválida" }),
+});
+export type AtualizarAtividadeInput = z.infer<typeof atualizarAtividadeSchema>;
+
 /** "+ Nova Atividade" quando o tipo é Jogo Oficial/Jogo Treino — em vez de digitar horário/local,
  * escolhe um jogo já cadastrado em `jogos_base` daquela categoria (ver spec, "Atividade de jogo não
  * duplica dado"). */
@@ -1260,6 +1268,13 @@ export const criarAtividadeDeJogoSchema = z.object({
   jogoId: z.string().min(1, { message: "Selecione o jogo" }),
 });
 export type CriarAtividadeDeJogoInput = z.infer<typeof criarAtividadeDeJogoSchema>;
+
+/** "Editar Atividade" quando o tipo é Jogo Oficial/Jogo Treino — mesmos campos de
+ * `criarAtividadeDeJogoSchema` mais o `id` de qual atividade está sendo alterada. */
+export const atualizarAtividadeDeJogoSchema = criarAtividadeDeJogoSchema.extend({
+  id: z.string().min(1, { message: "Atividade inválida" }),
+});
+export type AtualizarAtividadeDeJogoInput = z.infer<typeof atualizarAtividadeDeJogoSchema>;
 
 /** "Copiar Dia" da Programação Semanal (ver spec, Parte 1) — copia as atividades de `dataOrigem`
  * pra uma ou mais `datasDestino`, de qualquer semana. Mesmo padrão de array-de-enum usado em

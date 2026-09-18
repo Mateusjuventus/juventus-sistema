@@ -4,7 +4,7 @@ import { corHexAtividade } from "./tipo-atividade";
 
 describe("corExportacaoAtividade", () => {
   it("apresentacao/cafe_manha/video/academia/treinamento usam a paleta da exportação, não a da grade em tela", () => {
-    expect(corExportacaoAtividade("apresentacao")).toEqual({ bg: "#2B5F99", text: "#FFFFFF" });
+    expect(corExportacaoAtividade("apresentacao")).toEqual({ bg: "#FBE2D5", text: "#1F1F1F" });
     expect(corExportacaoAtividade("cafe_manha")).toEqual({ bg: "#4A90D9", text: "#FFFFFF" });
     expect(corExportacaoAtividade("video")).toEqual({ bg: "#8EE685", text: "#1F1F1F" });
     expect(corExportacaoAtividade("academia")).toEqual({ bg: "#FDE68A", text: "#1F1F1F" });

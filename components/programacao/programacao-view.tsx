@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AtividadeCard } from "./atividade-card";
-import { NovaAtividadeModal } from "./nova-atividade-modal";
+import { AtividadeFormModal } from "./nova-atividade-modal";
 import { AtividadeDetalheModal } from "./atividade-detalhe-modal";
 import { CopiarDiaModal } from "./copiar-dia-modal";
 import { MicrocicloTextoEditor } from "./microciclo-texto-editor";
@@ -239,7 +239,7 @@ export function ProgramacaoView({
       </div>
 
       {modalNovaAtividadeAberto ? (
-        <NovaAtividadeModal
+        <AtividadeFormModal
           categoria={categoriaAtiva}
           jogosParaSelecao={jogosParaSelecao}
           onClose={() => setModalNovaAtividadeAberto(false)}
@@ -258,6 +258,8 @@ export function ProgramacaoView({
         <AtividadeDetalheModal
           atividade={atividadeSelecionada}
           catalogo={catalogo}
+          categoria={categoriaAtiva}
+          jogosParaSelecao={jogosParaSelecao}
           onClose={() => setAtividadeSelecionadaId(null)}
         />
       ) : null}

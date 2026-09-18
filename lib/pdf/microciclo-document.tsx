@@ -13,9 +13,12 @@ import { montarLinhaMicrociclo, type MicrocicloData, type MicrocicloAtividade } 
  * local do Treino do dia, e cards de jogo com os dois escudos (Juventus × adversário). SEM bloco de
  * assinatura, a pedido do Mateus (ver `DocumentoFooter`, já sem nome algum).
  *
- * Alturas fixas abaixo (ALTURA_MANHA/ALTURA_SEDE_SOCIAL/ALTURA_TARDE) são estimativa inicial de
- * engenharia — ajustar visualmente contra a foto/PDF de referência do Mateus antes de considerar a
- * exportação pronta (ver plano de implementação, "Riscos/decisões de implementação sinalizadas").
+ * Alturas fixas abaixo (ALTURA_MANHA/ALTURA_SEDE_SOCIAL/ALTURA_TARDE) foram a estimativa inicial de
+ * engenharia e continuam valendo — conferidas em 18/09 contra a nova foto de referência do Mateus
+ * ("PROGRAMAÇÃO SEMANAL SUB 20"), que só pediu ajuste de cor (cabeçalho/colunas de dia pra grená,
+ * "Apresentação" pra pêssego — ver `lib/programacao/cores-exportacao.ts`) e do rótulo do turno vazio
+ * ("Descanso" em vez de um "—" apagado, mesmo vocabulário da foto). Ver plano de implementação,
+ * "Riscos/decisões de implementação sinalizadas".
  */
 
 const ALTURA_MANHA = 140;
@@ -63,6 +66,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   manhaBloco: { minHeight: ALTURA_MANHA, padding: 4 },
+  turnoVazioBox: { flex: 1, alignItems: "center", justifyContent: "center" },
   sedeSocialBloco: {
     minHeight: ALTURA_SEDE_SOCIAL,
     paddingHorizontal: 4,
@@ -77,7 +81,16 @@ const styles = StyleSheet.create({
   atividadeBox: { borderWidth: 0.75, borderColor: "#e5e5e5", borderRadius: 2, padding: 3, marginBottom: 3 },
   atividadeNome: { fontSize: 7.5, fontWeight: 700 },
   atividadeHorario: { fontSize: 6.5, marginTop: 0.5 },
-  turnoVazio: { fontSize: 6.5, color: "#d4d4d4", fontStyle: "italic" },
+  // "Descanso" (turno sem atividade dentro de um dia que tem outros compromissos) — vocabulário do
+  // modelo de referência do Mateus ("PROGRAMAÇÃO SEMANAL SUB 20", 18/09), distinto de "Folga" (dia
+  // inteiro livre, ver `folgaTexto` acima). Antes disso o turno vazio só mostrava um "—" apagado.
+  turnoVazio: {
+    fontSize: 7.5,
+    fontWeight: 700,
+    color: "#a3a3a3",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
 });
 
 // `jogoBox` usa a cor grená de marca (não a navy da exportação genérica) — mantém o mesmo
@@ -194,7 +207,9 @@ export function MicrocicloDocument({
                     <>
                       <View style={styles.manhaBloco}>
                         {dia.atividadesPorTurno.manha.length === 0 ? (
-                          <Text style={styles.turnoVazio}>—</Text>
+                          <View style={styles.turnoVazioBox}>
+                            <Text style={styles.turnoVazio}>Descanso</Text>
+                          </View>
                         ) : null}
                         {dia.atividadesPorTurno.manha.map((atividade) =>
                           atividade.jogo ? (
@@ -212,7 +227,11 @@ export function MicrocicloDocument({
                       ) : null}
 
                       <View style={styles.tardeBloco}>
-                        {atividadesTarde.length === 0 ? <Text style={styles.turnoVazio}>—</Text> : null}
+                        {atividadesTarde.length === 0 ? (
+                          <View style={styles.turnoVazioBox}>
+                            <Text style={styles.turnoVazio}>Descanso</Text>
+                          </View>
+                        ) : null}
                         {atividadesTarde.map((atividade) =>
                           atividade.jogo ? (
                             <CardJogo key={atividade.id} atividade={atividade} juventusLogoSrc={juventusLogoSrc} />

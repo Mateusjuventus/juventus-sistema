@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Organograma — mockup cartão por comissão</title>
+<style>
+  :root {
+    --grena: #5C0A35;
+    --grena-escuro: #3F0724;
+    --dourado: #B98F1E;
+    --cinza-pagina: #EEF0F2;
+    --linha: #E3E5E8;
+    --branco: #FFFFFF;
+    --texto: #1F2023;
+    --texto-2: #5B5E66;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cinza-pagina);
+    color: var(--texto);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  }
+  .aviso-mock {
+    background: #FFF8E8; border: 1px solid #EAD9A8; color: #6b5215;
+    border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin: 20px 24px 0;
+  }
+  main { padding: 20px 24px 60px; overflow-x: auto; }
+  h1 { font-size: 18px; margin: 0 0 16px; color: var(--grena-escuro); text-align: center; }
+
+  .arvore { display: flex; flex-direction: column; align-items: center; min-width: 1180px; }
+
+  .caixa-lideranca {
+    background: var(--grena); color: white; border-radius: 6px;
+    padding: 10px 16px; text-align: center; width: 220px;
+  }
+  .caixa-lideranca p.nome { margin: 0; font-size: 13px; font-weight: 700; }
+  .caixa-lideranca p.cargo { margin: 2px 0 0; font-size: 11px; opacity: 0.8; }
+  .caixa-lideranca.vaga { background: #8a4a68; }
+
+  .linha-conectora { width: 1.5px; height: 22px; background: var(--dourado); }
+
+  .nivel-supervisores {
+    display: flex; gap: 64px; margin-top: 0;
+  }
+  .bloco-supervisor { display: flex; flex-direction: column; align-items: center; }
+
+  .comissoes-do-supervisor {
+    display: flex; gap: 18px; margin-top: 22px; flex-wrap: wrap; justify-content: center;
+  }
+
+  .card-comissao {
+    background: var(--branco); border: 1px solid var(--linha); border-radius: 8px;
+    width: 200px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card-comissao .titulo {
+    background: var(--grena); color: white; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em; text-align: center; padding: 8px 6px;
+  }
+  .card-comissao .lista { padding: 8px 10px 10px; }
+  .card-comissao .item { padding: 5px 0; border-bottom: 1px solid var(--linha); }
+  .card-comissao .item:last-child { border-bottom: none; }
+  .card-comissao .item p.funcao {
+    margin: 0; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--texto-2); font-weight: 600;
+  }
+  .card-comissao .item p.pessoa { margin: 1px 0 0; font-size: 12px; font-weight: 600; color: var(--grena-escuro); }
+  .card-comissao .item p.pessoa.vaga { color: #b3b6bb; font-weight: 500; font-style: italic; }
+
+  .rodape-nota { max-width: 760px; margin: 28px auto 0; font-size: 12px; color: var(--texto-2); text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  Mockup só pra combinar o formato do cartão e o agrupamento por supervisor — nomes vêm aproximados do
+  seu print (pode ter alguma célula fora do lugar), não é uma leitura definitiva dos seus dados.
+</div>
+
+<main>
+<h1>Organograma — Comissão Técnica / Diretoria (Futebol de Base)</h1>
+
+<div class="arvore">
+  <div class="caixa-lideranca">
+    <p class="nome">Claudio Roberto Fiorito Filho</p>
+    <p class="cargo">Presidente</p>
+  </div>
+  <div class="linha-conectora"></div>
+  <div class="caixa-lideranca">
+    <p class="nome">Arthur Fraga Gomes</p>
+    <p class="cargo">Diretor de Futebol</p>
+  </div>
+  <div class="linha-conectora"></div>
+  <div class="caixa-lideranca">
+    <p class="nome">Mateus dos Santos Pereira</p>
+    <p class="cargo">Coordenador Administrativo</p>
+  </div>
+  <div class="linha-conectora"></div>
+  <div class="caixa-lideranca vaga">
+    <p class="nome">???</p>
+    <p class="cargo">Coordenador Técnico</p>
+  </div>
+  <div class="linha-conectora"></div>
+
+  <div class="nivel-supervisores">
+    <div class="bloco-supervisor">
+      <div class="caixa-lideranca">
+        <p class="nome">Gustavo Pomim do Nascimento</p>
+        <p class="cargo">Supervisor</p>
+      </div>
+      <div class="comissoes-do-supervisor">
+        <div class="card-comissao">
+          <div class="titulo">Comissão Sub20</div>
+          <div class="lista">
+            <div class="item"><p class="funcao">Treinador</p><p class="pessoa">Marcelo Pap</p></div>
+            <div class="item"><p class="funcao">Auxiliar Técnico</p><p class="pessoa">Victor Souza Ballassa</p></div>
+            <div class="item"><p class="funcao">Treinador de Goleiro</p><p class="pessoa">Arthus Henrique dos Santos</p></div>
+            <div class="item"><p class="funcao">Fisiologia</p><p class="pessoa">Leandro Gonçalves</p></div>
+            <div class="item"><p class="funcao">Prep. Físico</p><p class="pessoa">Igor Silvério Villela</p></div>
+            <div class="item"><p class="funcao">Psicologia</p><p class="pessoa">Bruno Schwartz Perna</p></div>
+            <div class="item"><p class="funcao">Fisioterapia</p><p class="pessoa">Caio Ferrari</p></div>
+            <div class="item"><p class="funcao">Analista de Desempenho</p><p class="pessoa">Victor Gabriel Santos</p></div>
+            <div class="item"><p class="funcao">Massagista</p><p class="pessoa">Caio Hussein</p></div>
+          </div>
+        </div>
+        <div class="card-comissao">
+          <div class="titulo">Comissão Sub17</div>
+          <div class="lista">
+            <div class="item"><p class="funcao">Treinador</p><p class="pessoa">Charles dos Santos Rocha</p></div>
+            <div class="item"><p class="funcao">Auxiliar Técnico</p><p class="pessoa">Rafael Gonçalves Soares</p></div>
+            <div class="item"><p class="funcao">Treinador de Goleiro</p><p class="pessoa">Hudson Carlos Gomes</p></div>
+            <div class="item"><p class="funcao">Fisiologia</p><p class="pessoa">Leandro Gonçalves</p></div>
+            <div class="item"><p class="funcao">Prep. Físico</p><p class="pessoa">Halamo Icaro Silva</p></div>
+            <div class="item"><p class="funcao">Psicologia</p><p class="pessoa">Bruno Schwartz Perna</p></div>
+            <div class="item"><p class="funcao">Fisioterapia</p><p class="pessoa">Caio Ferrari</p></div>
+            <div class="item"><p class="funcao">Analista de Desempenho</p><p class="pessoa">Gildesson Alves de Sousa</p></div>
+            <div class="item"><p class="funcao">Massagista</p><p class="pessoa">Caio Hussein</p></div>
+          </div>
+        </div>
+        <div class="card-comissao">
+          <div class="titulo">Comissão Sub15</div>
+          <div class="lista">
+            <div class="item"><p class="funcao">Treinador</p><p class="pessoa">Jonathas Prado da Silva</p></div>
+            <div class="item"><p class="funcao">Auxiliar Técnico</p><p class="pessoa vaga">???</p></div>
+            <div class="item"><p class="funcao">Treinador de Goleiro</p><p class="pessoa">Hudson Carlos Gomes</p></div>
+            <div class="item"><p class="funcao">Prep. Físico</p><p class="pessoa">Igor Silvério Villela</p></div>
+            <div class="item"><p class="funcao">Psicologia</p><p class="pessoa">Bruno Schwartz Perna</p></div>
+            <div class="item"><p class="funcao">Fisioterapia</p><p class="pessoa vaga">???</p></div>
+            <div class="item"><p class="funcao">Analista de Desempenho</p><p class="pessoa">Gildesson Alves de Sousa</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloco-supervisor">
+      <div class="caixa-lideranca">
+        <p class="nome">Italo Costa Lima</p>
+        <p class="cargo">Supervisor</p>
+      </div>
+      <div class="comissoes-do-supervisor">
+        <div class="card-comissao">
+          <div class="titulo">Comissão Sub14 e Sub13</div>
+          <div class="lista">
+            <div class="item"><p class="funcao">Treinador</p><p class="pessoa">Rafael Gonçalves Soares</p></div>
+            <div class="item"><p class="funcao">Auxiliar Técnico</p><p class="pessoa">Pedro Ramos Mathiasi</p></div>
+            <div class="item"><p class="funcao">Treinador de Goleiro</p><p class="pessoa">Higor Lemos Dias</p></div>
+          </div>
+        </div>
+        <div class="card-comissao">
+          <div class="titulo">Comissão Sub12 e Sub11</div>
+          <div class="lista">
+            <div class="item"><p class="funcao">Treinador</p><p class="pessoa">Fabio Italo Vicentini</p></div>
+            <div class="item"><p class="funcao">Auxiliar Técnico</p><p class="pessoa">Washington Luiz Zilio</p></div>
+            <div class="item"><p class="funcao">Treinador de Goleiro</p><p class="pessoa">Higor Lemos Dias</p></div>
+            <div class="item"><p class="funcao">Prep. Físico</p><p class="pessoa vaga">???</p></div>
+            <div class="item"><p class="funcao">Fisioterapia</p><p class="pessoa vaga">???</p></div>
+            <div class="item"><p class="funcao">Massagista</p><p class="pessoa vaga">???</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="rodape-nota">
+  Cada comissão vira UM cartão (título = nome da comissão, lista = função → pessoa), em vez da grade
+  com uma coluna por função. Os cartões de cada supervisor ficam agrupados embaixo dele, com a linha
+  ligando os dois. Cartões maiores ou menores conforme quantas funções aquela comissão tem preenchidas
+  — sem grade pra alinhar, cada um usa só a altura que precisa.
+</p>
+</main>
+</body>
+</html>

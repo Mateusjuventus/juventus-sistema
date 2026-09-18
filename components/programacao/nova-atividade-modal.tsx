@@ -6,9 +6,15 @@ import { ModalShell } from "./modal";
 import { useFecharAoSalvar } from "./use-fechar-ao-salvar";
 import { SubmitButton } from "@/components/submit-button";
 import { TextField, SelectField } from "@/components/fields";
-import { criarAtividade, criarAtividadeDeJogo, type ProgramacaoFormState } from "@/lib/programacao/actions";
+import {
+  criarAtividade,
+  criarAtividadeDeJogo,
+  atualizarAtividade,
+  atualizarAtividadeDeJogo,
+  type ProgramacaoFormState,
+} from "@/lib/programacao/actions";
 import { PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS } from "@/lib/validation/schemas";
-import type { JogoResumoAtividade } from "@/lib/programacao/queries";
+import type { AtividadeComDetalhes, JogoResumoAtividade } from "@/lib/programacao/queries";
 import type { CategoriaBase } from "@/lib/auth/categorias-base";
 
 const ESTADO_INICIAL: ProgramacaoFormState = {};
@@ -19,38 +25,65 @@ function formatJogoOpcao(jogo: JogoResumoAtividade): string {
   return `${dia}/${mes} — ${jogo.mandante ? "Juventus" : jogo.adversario_nome} × ${jogo.mandante ? jogo.adversario_nome : "Juventus"} (${lado})`;
 }
 
-/** Formulário pra qualquer tipo que não seja Jogo Oficial/Jogo Treino. */
+/** Formulário pra qualquer tipo que não seja Jogo Oficial/Jogo Treino. O tipo já foi escolhido no
+ * seletor único acima (ver `AtividadeFormModal`) — aqui ele só viaja como campo oculto, nunca um
+ * segundo seletor visível (bug relatado pelo Mateus em 18/09: "Tipo de atividade" aparecia
+ * duplicado, um pra decidir o formulário e outro dentro dele). */
 function FormularioAtividadeGeral({
   categoria,
-  tipoInicial,
+  tipo,
+  action,
+  atividadeId,
+  defaultValues,
   onDone,
 }: {
   categoria: CategoriaBase;
-  tipoInicial: string;
+  tipo: string;
+  action: (prevState: ProgramacaoFormState, formData: FormData) => Promise<ProgramacaoFormState>;
+  /** Presente só ao editar — inclui o `id` como campo oculto pra `atualizarAtividade` saber qual
+   * atividade alterar. */
+  atividadeId?: string;
+  defaultValues?: { nome: string; data: string; horarioInicio: string; horarioTermino: string; local: string };
   onDone: () => void;
 }) {
-  const [state, formAction] = useFormState(criarAtividade, ESTADO_INICIAL);
+  const [state, formAction] = useFormState(action, ESTADO_INICIAL);
   useFecharAoSalvar(state, onDone);
 
   return (
     <form action={formAction} className="space-y-4">
+      {atividadeId ? <input type="hidden" name="id" value={atividadeId} /> : null}
       <input type="hidden" name="categoria" value={categoria} />
-      <TextField label="Nome da atividade" name="nome" required error={state.fieldErrors?.nome} placeholder="Ex.: Treino Técnico/Tático" />
+      <input type="hidden" name="tipo" value={tipo} />
+      <TextField
+        label="Nome da atividade"
+        name="nome"
+        required
+        defaultValue={defaultValues?.nome}
+        error={state.fieldErrors?.nome}
+        placeholder="Ex.: Treino Técnico/Tático"
+      />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SelectField label="Tipo de atividade" name="tipo" defaultValue={tipoInicial} error={state.fieldErrors?.tipo}>
-          {PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </SelectField>
-        <TextField label="Data" name="data" type="date" required error={state.fieldErrors?.data} />
-        <TextField label="Início" name="horarioInicio" type="time" required error={state.fieldErrors?.horarioInicio} />
-        <TextField label="Término" name="horarioTermino" type="time" error={state.fieldErrors?.horarioTermino} />
+        <TextField label="Data" name="data" type="date" required defaultValue={defaultValues?.data} error={state.fieldErrors?.data} />
+        <TextField
+          label="Início"
+          name="horarioInicio"
+          type="time"
+          required
+          defaultValue={defaultValues?.horarioInicio}
+          error={state.fieldErrors?.horarioInicio}
+        />
+        <TextField
+          label="Término"
+          name="horarioTermino"
+          type="time"
+          defaultValue={defaultValues?.horarioTermino}
+          error={state.fieldErrors?.horarioTermino}
+        />
       </div>
       <TextField
         label="Local"
         name="local"
+        defaultValue={defaultValues?.local}
         error={state.fieldErrors?.local}
         placeholder="Ex.: CT Juventus, Sede Social, Rua Javari..."
       />
@@ -59,7 +92,7 @@ function FormularioAtividadeGeral({
         <button type="button" onClick={onDone} className="btn-secondary">
           Cancelar
         </button>
-        <SubmitButton label="Salvar atividade" pendingLabel="Salvando..." />
+        <SubmitButton label={atividadeId ? "Salvar alterações" : "Salvar atividade"} pendingLabel="Salvando..." />
       </div>
     </form>
   );
@@ -71,18 +104,25 @@ function FormularioAtividadeDeJogo({
   categoria,
   tipo,
   jogos,
+  action,
+  atividadeId,
+  defaultJogoId,
   onDone,
 }: {
   categoria: CategoriaBase;
   tipo: "jogo_oficial" | "jogo_treino";
   jogos: JogoResumoAtividade[];
+  action: (prevState: ProgramacaoFormState, formData: FormData) => Promise<ProgramacaoFormState>;
+  atividadeId?: string;
+  defaultJogoId?: string;
   onDone: () => void;
 }) {
-  const [state, formAction] = useFormState(criarAtividadeDeJogo, ESTADO_INICIAL);
+  const [state, formAction] = useFormState(action, ESTADO_INICIAL);
   useFecharAoSalvar(state, onDone);
 
   return (
     <form action={formAction} className="space-y-4">
+      {atividadeId ? <input type="hidden" name="id" value={atividadeId} /> : null}
       <input type="hidden" name="categoria" value={categoria} />
       <input type="hidden" name="tipo" value={tipo} />
       {jogos.length === 0 ? (
@@ -91,7 +131,7 @@ function FormularioAtividadeDeJogo({
           programação.
         </p>
       ) : (
-        <SelectField label="Jogo" name="jogoId" required error={state.fieldErrors?.jogoId}>
+        <SelectField label="Jogo" name="jogoId" required defaultValue={defaultJogoId} error={state.fieldErrors?.jogoId}>
           <option value="">Selecione o jogo</option>
           {jogos.map((jogo) => (
             <option key={jogo.id} value={jogo.id}>
@@ -105,30 +145,44 @@ function FormularioAtividadeDeJogo({
         <button type="button" onClick={onDone} className="btn-secondary">
           Cancelar
         </button>
-        {jogos.length > 0 ? <SubmitButton label="Salvar atividade" pendingLabel="Salvando..." /> : null}
+        {jogos.length > 0 ? (
+          <SubmitButton label={atividadeId ? "Salvar alterações" : "Salvar atividade"} pendingLabel="Salvando..." />
+        ) : null}
       </div>
     </form>
   );
 }
 
 /**
- * "+ Nova Atividade" (ver mockup aprovado) — o tipo escolhido decide qual dos dois formulários (e
- * dos dois Server Actions) aparece: geral, ou Jogo Oficial/Jogo Treino com o seletor de jogo.
+ * "+ Nova Atividade"/"Editar Atividade" (ver mockup aprovado) — o tipo escolhido no seletor único
+ * decide qual dos dois formulários (e dos dois Server Actions, criar ou atualizar) aparece: geral,
+ * ou Jogo Oficial/Jogo Treino com o seletor de jogo. `atividadeExistente` presente = modo editar
+ * (pedido do Mateus de 18/09 — clicar numa atividade da grade agora abre a opção de editar, tanto
+ * em `/treinador` quanto em `/base`, já que os dois usam o mesmo `ProgramacaoView`); ausente = modo
+ * criar, exatamente como antes.
+ *
+ * `key={tipo}` nos dois formulários força remontar o formulário sempre que o tipo muda no seletor
+ * de cima — sem isso, o campo oculto "tipo" de um formulário que ficou montado (ex.: trocar de
+ * "Treino" pra "Regenerativo", os dois caem em `FormularioAtividadeGeral`) continuaria com o valor
+ * antigo até o formulário ser reenviado.
  */
-export function NovaAtividadeModal({
+export function AtividadeFormModal({
   categoria,
   jogosParaSelecao,
+  atividadeExistente,
   onClose,
 }: {
   categoria: CategoriaBase;
   jogosParaSelecao: JogoResumoAtividade[];
+  atividadeExistente?: AtividadeComDetalhes;
   onClose: () => void;
 }) {
-  const [tipo, setTipo] = useState<string>(PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS[0].value);
+  const [tipo, setTipo] = useState<string>(atividadeExistente?.tipo ?? PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS[0].value);
   const ehJogo = tipo === "jogo_oficial" || tipo === "jogo_treino";
+  const ehEdicao = Boolean(atividadeExistente);
 
   return (
-    <ModalShell titulo="Nova Atividade" onClose={onClose}>
+    <ModalShell titulo={ehEdicao ? "Editar Atividade" : "Nova Atividade"} onClose={onClose}>
       <div className="mb-4">
         <label htmlFor="na-tipo-seletor" className="field-label">
           Tipo de atividade
@@ -151,13 +205,35 @@ export function NovaAtividadeModal({
 
       {ehJogo ? (
         <FormularioAtividadeDeJogo
+          key={tipo}
           categoria={categoria}
           tipo={tipo as "jogo_oficial" | "jogo_treino"}
           jogos={jogosParaSelecao}
+          action={ehEdicao ? atualizarAtividadeDeJogo : criarAtividadeDeJogo}
+          atividadeId={atividadeExistente?.id}
+          defaultJogoId={atividadeExistente?.jogo_id ?? undefined}
           onDone={onClose}
         />
       ) : (
-        <FormularioAtividadeGeral categoria={categoria} tipoInicial={tipo} onDone={onClose} />
+        <FormularioAtividadeGeral
+          key={tipo}
+          categoria={categoria}
+          tipo={tipo}
+          action={ehEdicao ? atualizarAtividade : criarAtividade}
+          atividadeId={atividadeExistente?.id}
+          defaultValues={
+            atividadeExistente
+              ? {
+                  nome: atividadeExistente.nome,
+                  data: atividadeExistente.data,
+                  horarioInicio: atividadeExistente.horario_inicio,
+                  horarioTermino: atividadeExistente.horario_termino ?? "",
+                  local: atividadeExistente.local ?? "",
+                }
+              : undefined
+          }
+          onDone={onClose}
+        />
       )}
     </ModalShell>
   );

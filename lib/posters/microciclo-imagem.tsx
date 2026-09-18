@@ -2,6 +2,7 @@ import React from "react";
 import { CORES_POSTER } from "./estilo";
 import { CabecalhoExportacaoImg } from "./poster-imagem-shared";
 import { montarLinhaMicrociclo, type MicrocicloData, type MicrocicloAtividade } from "@/lib/programacao/microciclo-data";
+import { CORES_EXPORT } from "@/lib/programacao/cores-exportacao";
 
 /**
  * Versão em imagem (JPG) do microciclo — mesmo redesenho de `lib/pdf/microciclo-document.tsx`
@@ -11,8 +12,11 @@ import { montarLinhaMicrociclo, type MicrocicloData, type MicrocicloAtividade } 
  * Concentração/Dia de Jogo), por isso não reaproveita `poster-imagem-shared.tsx` além do cabeçalho
  * compartilhado.
  *
- * Alturas fixas abaixo são a mesma proporção (~2×) das usadas no PDF paisagem — ajustar
- * visualmente contra a foto/PDF de referência do Mateus antes de considerar a exportação pronta.
+ * Alturas fixas abaixo são a mesma proporção (~2×) das usadas no PDF paisagem. Cores vêm de
+ * `CORES_EXPORT`/`corExportacaoAtividade` (`lib/programacao/cores-exportacao.ts`) — ver o comentário
+ * lá pro ajuste de 18/09 contra a foto de referência "PROGRAMAÇÃO SEMANAL SUB 20" do Mateus; esta
+ * versão em JPG usava uma cópia local desses valores (já desatualizada, causando divergência com o
+ * PDF) até essa mesma correção passar a importar do módulo compartilhado.
  */
 
 export const MICROCICLO_IMAGEM_LARGURA = 1700;
@@ -21,8 +25,6 @@ export const MICROCICLO_IMAGEM_ALTURA_CANVAS = 1300;
 const ALTURA_MANHA = 280;
 const ALTURA_SEDE_SOCIAL = 24;
 const ALTURA_TARDE = 220;
-
-const CORES_EXPORT = { cabecalho: "#1E3A5F", folgaBg: "#f5f5f5", folgaText: "#a3a3a3" };
 
 function CardJogo({ atividade }: { atividade: MicrocicloAtividade }) {
   const jogo = atividade.jogo;
@@ -218,7 +220,21 @@ export function microcicloImagemJsx(dados: MicrocicloData) {
                   <>
                     <div style={{ display: "flex", flexDirection: "column", height: ALTURA_MANHA, padding: 8 }}>
                       {dia.atividadesPorTurno.manha.length === 0 ? (
-                        <div style={{ display: "flex", fontSize: 11, color: "#d4d4d4" }}>—</div>
+                        <div
+                          style={{
+                            display: "flex",
+                            flex: 1,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: "#a3a3a3",
+                            textTransform: "uppercase",
+                            letterSpacing: 1.5,
+                          }}
+                        >
+                          Descanso
+                        </div>
                       ) : null}
                       {dia.atividadesPorTurno.manha.map((atividade) =>
                         atividade.jogo ? (
@@ -247,7 +263,21 @@ export function microcicloImagemJsx(dados: MicrocicloData) {
 
                     <div style={{ display: "flex", flexDirection: "column", height: ALTURA_TARDE, padding: 8 }}>
                       {atividadesTarde.length === 0 ? (
-                        <div style={{ display: "flex", fontSize: 11, color: "#d4d4d4" }}>—</div>
+                        <div
+                          style={{
+                            display: "flex",
+                            flex: 1,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: "#a3a3a3",
+                            textTransform: "uppercase",
+                            letterSpacing: 1.5,
+                          }}
+                        >
+                          Descanso
+                        </div>
                       ) : null}
                       {atividadesTarde.map((atividade) =>
                         atividade.jogo ? (

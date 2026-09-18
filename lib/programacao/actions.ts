@@ -6,6 +6,8 @@ import { getCategoriasProgramacao } from "./permissoes";
 import {
   criarAtividadeSchema,
   criarAtividadeDeJogoSchema,
+  atualizarAtividadeSchema,
+  atualizarAtividadeDeJogoSchema,
   criarSubatividadeSchema,
   copiarDiaProgramacaoSchema,
 } from "@/lib/validation/schemas";
@@ -22,8 +24,11 @@ import { buscarDia } from "./queries";
  * `app/treinador/actions.ts` (RLS nas tabelas `programacao_*` é só a mesma policy genérica de
  * qualquer usuário autenticado, igual a todas as tabelas `*_base` — não filtra por categoria).
  *
- * Sem edição/remoção de atividade ou subatividade nesta rodada (não estava no mockup aprovado) —
- * só criar e visualizar.
+ * Edição de atividade adicionada em 18/09 (pedido do Mateus — clicar numa atividade da grade agora
+ * abre a opção de editar, tela do treinador e da base) — `atualizarAtividade`/
+ * `atualizarAtividadeDeJogo` espelham exatamente a validação e as regras de `criarAtividade`/
+ * `criarAtividadeDeJogo` acima, só trocando o insert por um update na atividade já existente. Sem
+ * remoção de atividade ou subatividade ainda.
  */
 
 export interface ProgramacaoFormState {
@@ -146,6 +151,114 @@ export async function criarAtividadeDeJogo(
     created_by: user?.id ?? null,
   });
   if (error) return { error: `Não foi possível criar a atividade: ${error.message}` };
+
+  revalidatePath("/treinador");
+  revalidatePath("/base");
+  return {};
+}
+
+/** "Editar Atividade" pra qualquer tipo que não seja jogo — mesmas regras de `criarAtividade`
+ * (categoria liberada, turno recalculado a partir do horário de início, local em branco vira "CT
+ * Juventus"), só que atualiza a atividade em `id` em vez de inserir uma nova. */
+export async function atualizarAtividade(
+  _prevState: ProgramacaoFormState,
+  formData: FormData,
+): Promise<ProgramacaoFormState> {
+  const supabase = createClient();
+
+  const raw = {
+    id: String(formData.get("id") ?? ""),
+    categoria: String(formData.get("categoria") ?? ""),
+    data: String(formData.get("data") ?? ""),
+    nome: String(formData.get("nome") ?? ""),
+    tipo: String(formData.get("tipo") ?? ""),
+    horarioInicio: String(formData.get("horarioInicio") ?? ""),
+    horarioTermino: String(formData.get("horarioTermino") ?? "") || undefined,
+    local: String(formData.get("local") ?? "") || undefined,
+  };
+  const result = atualizarAtividadeSchema.safeParse(raw);
+  if (!result.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
+    return { fieldErrors };
+  }
+  const data = result.data;
+
+  if (!(await categoriaLiberada(supabase, data.categoria))) {
+    return { error: "Você não tem permissão para editar atividades nesta categoria." };
+  }
+
+  const { error } = await supabase
+    .from("programacao_atividades")
+    .update({
+      data: data.data,
+      turno: turnoDoHorarioInicio(data.horarioInicio),
+      nome: data.nome,
+      tipo: data.tipo,
+      horario_inicio: data.horarioInicio,
+      horario_termino: data.horarioTermino ?? null,
+      local: data.local ?? "CT Juventus",
+    })
+    .eq("id", data.id);
+  if (error) return { error: `Não foi possível salvar as alterações: ${error.message}` };
+
+  revalidatePath("/treinador");
+  revalidatePath("/base");
+  return {};
+}
+
+/** "Editar Atividade" quando o tipo é Jogo Oficial/Jogo Treino — mesma resolução de `criarAtividade
+ * DeJogo` (nome automático, horário/data vêm do jogo escolhido), atualizando a atividade em `id`. */
+export async function atualizarAtividadeDeJogo(
+  _prevState: ProgramacaoFormState,
+  formData: FormData,
+): Promise<ProgramacaoFormState> {
+  const supabase = createClient();
+
+  const raw = {
+    id: String(formData.get("id") ?? ""),
+    categoria: String(formData.get("categoria") ?? ""),
+    tipo: String(formData.get("tipo") ?? ""),
+    jogoId: String(formData.get("jogoId") ?? ""),
+  };
+  const result = atualizarAtividadeDeJogoSchema.safeParse(raw);
+  if (!result.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
+    return { fieldErrors };
+  }
+  const data = result.data;
+
+  if (!(await categoriaLiberada(supabase, data.categoria))) {
+    return { error: "Você não tem permissão para editar atividades nesta categoria." };
+  }
+
+  const { data: jogo } = await supabase
+    .from("jogos_base")
+    .select("categoria, data_jogo, horario")
+    .eq("id", data.jogoId)
+    .maybeSingle();
+  if (!jogo || jogo.categoria !== data.categoria) {
+    return { error: "Jogo não encontrado nesta categoria." };
+  }
+
+  const nome = data.tipo === "jogo_oficial" ? "Jogo Oficial" : "Jogo Treino";
+  const horarioInicio = jogo.horario ?? "00:00";
+
+  const { error } = await supabase
+    .from("programacao_atividades")
+    .update({
+      data: jogo.data_jogo,
+      turno: turnoDoHorarioInicio(horarioInicio),
+      nome,
+      tipo: data.tipo,
+      horario_inicio: horarioInicio,
+      horario_termino: null,
+      local: null,
+      jogo_id: data.jogoId,
+    })
+    .eq("id", data.id);
+  if (error) return { error: `Não foi possível salvar as alterações: ${error.message}` };
 
   revalidatePath("/treinador");
   revalidatePath("/base");
