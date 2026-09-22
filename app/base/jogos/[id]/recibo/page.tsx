@@ -3,12 +3,15 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { createClient } from "@/lib/supabase/server";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
+import { staffComVagaConfirmada } from "@/lib/futebol/vagas-confirmadas";
 import type {
   ReciboJogoBaseRow,
   StaffOperacionalBaseComFuncaoRow,
 } from "@/lib/supabase/types";
 import { ReciboFormBase } from "./recibo-form-base";
 import { saveReciboBase } from "../operacao-actions";
+
+const TABELAS_VAGAS = { vagas: "jogo_vagas_staff_base", inscricoes: "jogo_vagas_staff_base_inscricoes" };
 
 /**
  * Espelha `app/jogos/[id]/recibo/page.tsx` para o Futebol de Base. Recibo de Pagamento é só pra
@@ -26,7 +29,7 @@ export default async function ReciboBasePage({
 }) {
   const supabase = createClient();
 
-  const [jogo, { data: recibosData }, { data: staffData }, { data: vagasData }] = await Promise.all([
+  const [jogo, { data: recibosData }, { data: staffData }, staffComVaga] = await Promise.all([
     verificarAcessoJogoBase(supabase, params.id),
     supabase.from("recibos_jogo_base").select("*").eq("jogo_id", params.id),
     supabase
@@ -36,25 +39,15 @@ export default async function ReciboBasePage({
       )
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
-    // Quem pegou vaga na aba "Vagas de Staff" — usado só como sugestão inicial (ver ReciboFormBase).
-    supabase.from("jogo_vagas_staff_base").select("id").eq("jogo_id", params.id).maybeSingle(),
+    // Quem está com vaga confirmada AGORA — ver comentário equivalente em
+    // `app/jogos/[id]/recibo/page.tsx`.
+    staffComVagaConfirmada(supabase, TABELAS_VAGAS, params.id),
   ]);
 
   if (!jogo) notFound();
   const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
   const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
   const temRecibos = recibos.length > 0;
-
-  let staffComVaga: string[] = [];
-  const vagasId = (vagasData?.id as string | undefined) ?? null;
-  if (vagasId) {
-    const { data: inscricoesData } = await supabase
-      .from("jogo_vagas_staff_base_inscricoes")
-      .select("staff_id")
-      .eq("vagas_id", vagasId)
-      .eq("situacao", "confirmado");
-    staffComVaga = ((inscricoesData ?? []) as { staff_id: string }[]).map((i) => i.staff_id);
-  }
 
   return (
     <AppShell departamento="futebol_base">

@@ -4,11 +4,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { TipoQuarto } from "@/lib/supabase/types";
 import { chavePixValida } from "@/lib/validation/chave-pix";
+import { staffComVagaConfirmada } from "@/lib/futebol/vagas-confirmadas";
+import { decidirInclusaoRecibo } from "@/lib/futebol/recibo-inclusao";
 
 /**
  * Espelha `app/jogos/[id]/operacao-actions.ts` para o Futebol de Base: rooming list, ônibus e
  * recibo de pagamento (Credenciamento por zona fica fora de escopo, ver a spec).
  */
+
+const TABELAS_VAGAS_RECIBO_BASE = { vagas: "jogo_vagas_staff_base", inscricoes: "jogo_vagas_staff_base_inscricoes" };
 
 function revalidarAbaBase(jogoId: string, aba: "rooming-list" | "onibus" | "recibo") {
   revalidatePath(`/base/jogos/${jogoId}/${aba}`);
@@ -217,14 +221,24 @@ export interface ReciboFormState {
   success?: boolean;
 }
 
-/** Espelha `saveRecibo` (app/jogos/[id]/operacao-actions.ts) — Recibo de Pagamento é só pra Staff
- * Operacional, Comissão Técnica não entra aqui. */
+/** Espelha `saveRecibo` (app/jogos/[id]/operacao-actions.ts), incluindo a proteção contra vaga
+ * confirmada depois do carregamento da tela — ver o comentário longo lá. */
 export async function saveReciboBase(
   _prevState: ReciboFormState,
   formData: FormData,
 ): Promise<ReciboFormState> {
   const jogoId = String(formData.get("jogoId") ?? "");
   if (!jogoId) return { error: "Jogo não identificado. Recarregue a página e tente novamente." };
+
+  const supabase = createClient();
+  const vagaConfirmadaAgora = new Set(
+    await staffComVagaConfirmada(supabase, TABELAS_VAGAS_RECIBO_BASE, jogoId),
+  );
+
+  const pessoaIds = new Set<string>();
+  for (const [key] of formData.entries()) {
+    if (key.startsWith("nome_staff_")) pessoaIds.add(key.slice("nome_staff_".length));
+  }
 
   const linhas: {
     pessoaTipo: "staff";
@@ -237,13 +251,13 @@ export async function saveReciboBase(
     pago: boolean;
   }[] = [];
 
-  // O checkbox "Incluir" é quem decide quem participa desse jogo — só pessoas marcadas viram
-  // linha em recibos_jogo_base (e por consequência entram nos PDFs). Checkbox desmarcado não é
-  // enviado no FormData, então o loop já pula naturalmente quem foi desmarcado.
-  for (const [key] of formData.entries()) {
-    if (!key.startsWith("incluir_staff_")) continue;
-    const pessoaTipo = "staff";
-    const pessoaId = key.slice(`incluir_${pessoaTipo}_`.length);
+  for (const pessoaId of pessoaIds) {
+    const pessoaTipo = "staff" as const;
+    const marcado = formData.get(`incluir_${pessoaTipo}_${pessoaId}`) === "on";
+    const vagaAoCarregar = formData.get(`vagaCarregada_${pessoaTipo}_${pessoaId}`) === "1";
+    const temVagaAgora = vagaConfirmadaAgora.has(pessoaId);
+    if (!decidirInclusaoRecibo({ marcado, vagaAoCarregar, temVagaAgora })) continue;
+
     const funcaoJogo = String(formData.get(`funcao_${pessoaTipo}_${pessoaId}`) ?? "").trim() || null;
     const valorRaw = String(formData.get(`valor_${pessoaTipo}_${pessoaId}`) ?? "").trim();
     const valor = valorRaw ? Number(valorRaw) : null;
@@ -279,12 +293,31 @@ export async function saveReciboBase(
     }
   }
 
-  const supabase = createClient();
+  const idsParaManter = new Set(linhas.map((l) => l.pessoaId));
+  const { data: existentesData } = await supabase
+    .from("recibos_jogo_base")
+    .select("pessoa_id")
+    .eq("jogo_id", jogoId)
+    .eq("pessoa_tipo", "staff");
+  const idsParaRemover = ((existentesData ?? []) as { pessoa_id: string }[])
+    .map((r) => r.pessoa_id)
+    .filter((id) => !idsParaManter.has(id));
 
-  await supabase.from("recibos_jogo_base").delete().eq("jogo_id", jogoId);
+  if (idsParaRemover.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("recibos_jogo_base")
+      .delete()
+      .eq("jogo_id", jogoId)
+      .eq("pessoa_tipo", "staff")
+      .in("pessoa_id", idsParaRemover);
+    if (deleteError) {
+      console.error("saveReciboBase: falha ao remover de recibos_jogo_base", deleteError);
+      return { error: "Não foi possível salvar os recibos. Tente novamente." };
+    }
+  }
 
   if (linhas.length > 0) {
-    const { error: insertError } = await supabase.from("recibos_jogo_base").insert(
+    const { error: upsertError } = await supabase.from("recibos_jogo_base").upsert(
       linhas.map((l) => ({
         jogo_id: jogoId,
         pessoa_tipo: l.pessoaTipo,
@@ -295,12 +328,13 @@ export async function saveReciboBase(
         chave_pix_tipo: l.chavePixTipo,
         pago: l.pago,
       })),
+      { onConflict: "jogo_id,pessoa_tipo,pessoa_id" },
     );
-    if (insertError) {
-      console.error("saveReciboBase: falha ao inserir em recibos_jogo_base", insertError);
+    if (upsertError) {
+      console.error("saveReciboBase: falha ao salvar em recibos_jogo_base", upsertError);
       // 23514 = violação de check constraint — ver o mesmo tratamento em saveRecibo
       // (app/jogos/[id]/operacao-actions.ts) para detalhes da migração 0039.
-      if (insertError.code === "23514") {
+      if (upsertError.code === "23514") {
         return {
           error:
             "Não foi possível salvar: o tipo de chave PIX de alguém aqui (Telefone, CNPJ ou Aleatória) ainda não é aceito pelo banco de dados. É preciso rodar a migração 0039_chave_pix_aleatoria_e_unificacao_recibo.sql no Supabase antes de salvar recibos com esse tipo.",

@@ -23,8 +23,8 @@ export function ReciboFormBase({
   jogoId: string;
   staff: StaffOperacionalBaseComFuncaoRow[];
   recibos: ReciboJogoBaseRow[];
-  /** Quem pegou vaga neste jogo (aba Vagas de Staff). Serve só pra já vir marcado na PRIMEIRA vez
-   * que a tela é aberta — ver o comentário equivalente em `recibo-form.tsx` do Profissional. */
+  /** Quem está com vaga CONFIRMADA agora neste jogo — ver o comentário equivalente em
+   * `recibo-form.tsx` do Profissional. */
   staffComVaga?: string[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
@@ -45,14 +45,13 @@ export function ReciboFormBase({
 
   const chave = (tipo: "staff", id: string) => `${tipo}-${id}`;
 
+  // Ver o comentário equivalente em `recibo-form.tsx` do Profissional.
+  const comVaga = new Set(staffComVaga);
+
   const [incluidos, setIncluidos] = useState<Record<string, boolean>>(() => {
     const inicial: Record<string, boolean> = {};
-    // Só sugere a partir das vagas enquanto NADA foi salvo ainda — ver o comentário equivalente em
-    // `recibo-form.tsx` do Profissional.
-    const aindaNaoSalvou = recibos.length === 0;
-    const comVaga = new Set(staffComVaga);
     for (const p of pessoas) {
-      inicial[chave(p.tipo, p.id)] = Boolean(reciboDe(p.tipo, p.id)) || (aindaNaoSalvou && comVaga.has(p.id));
+      inicial[chave(p.tipo, p.id)] = Boolean(reciboDe(p.tipo, p.id)) || comVaga.has(p.id);
     }
     return inicial;
   });
@@ -122,6 +121,7 @@ export function ReciboFormBase({
                     pagoDefault={atual?.pago ?? false}
                     incluido={Boolean(incluidos[k])}
                     onToggleIncluido={() => alternarUm(k)}
+                    vagaConfirmadaAoCarregar={comVaga.has(p.id)}
                   />
                 );
               })}

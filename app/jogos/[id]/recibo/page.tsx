@@ -2,9 +2,12 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JogoTabs } from "@/components/jogo-tabs";
 import { createClient } from "@/lib/supabase/server";
+import { staffComVagaConfirmada } from "@/lib/futebol/vagas-confirmadas";
 import type { JogoRow, ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 import { ReciboForm } from "./recibo-form";
 import { saveRecibo } from "../operacao-actions";
+
+const TABELAS_VAGAS = { vagas: "jogo_vagas_staff", inscricoes: "jogo_vagas_staff_inscricoes" };
 
 /**
  * Recibo de Pagamento é só pra Staff Operacional — Comissão Técnica não recebe pagamento por esse
@@ -18,7 +21,7 @@ import { saveRecibo } from "../operacao-actions";
 export default async function ReciboPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const [{ data: jogoData }, { data: recibosData }, { data: staffData }, { data: vagasData }] = await Promise.all([
+  const [{ data: jogoData }, { data: recibosData }, { data: staffData }, staffComVaga] = await Promise.all([
     supabase.from("jogos").select("*").eq("id", params.id).single(),
     supabase.from("recibos_jogo").select("*").eq("jogo_id", params.id),
     supabase
@@ -28,8 +31,10 @@ export default async function ReciboPage({ params }: { params: { id: string } })
       )
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
-    // Quem pegou vaga na aba "Vagas de Staff" — usado só como sugestão inicial (ver ReciboForm).
-    supabase.from("jogo_vagas_staff").select("id").eq("jogo_id", params.id).maybeSingle(),
+    // Quem está com vaga confirmada AGORA (não só na hora em que a tela foi montada) — usado pra
+    // sugerir o "Incluir" e, no salvamento, pra proteger quem confirmou vaga depois da tela ter
+    // carregado (ver comentário em `saveRecibo`, operacao-actions.ts).
+    staffComVagaConfirmada(supabase, TABELAS_VAGAS, params.id),
   ]);
 
   if (!jogoData) notFound();
@@ -37,17 +42,6 @@ export default async function ReciboPage({ params }: { params: { id: string } })
   const recibos = (recibosData ?? []) as ReciboJogoRow[];
   const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
   const temRecibos = recibos.length > 0;
-
-  let staffComVaga: string[] = [];
-  const vagasId = (vagasData?.id as string | undefined) ?? null;
-  if (vagasId) {
-    const { data: inscricoesData } = await supabase
-      .from("jogo_vagas_staff_inscricoes")
-      .select("staff_id")
-      .eq("vagas_id", vagasId)
-      .eq("situacao", "confirmado");
-    staffComVaga = ((inscricoesData ?? []) as { staff_id: string }[]).map((i) => i.staff_id);
-  }
 
   return (
     <AppShell>

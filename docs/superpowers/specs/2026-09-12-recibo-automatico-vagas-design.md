@@ -30,13 +30,24 @@ para os dois departamentos (Profissional e Base):
   linha de recibo pra aquela pessoa quando ela confirma vaga de novo, o valor de `pago` não é
   tocado.
 
-## Limite conhecido
+## Limite conhecido — resolvido em 22/09
 
-A tela de Recibo salva tudo de uma vez (o botão "Salvar recibos" apaga e recria a lista inteira com
-o que está marcado na tela naquele momento). Se uma vaga for confirmada ou perdida bem no instante
-em que o Mateus está com a aba de Recibo aberta sem ter salvado ainda, o próximo "Salvar" dele pode
-sobrescrever essa mudança automática. Aceito como um caso raro (as duas ações normalmente não
-acontecem ao mesmo tempo).
+A tela de Recibo salvava tudo de uma vez (o botão "Salvar recibos" apagava e recriava a lista
+inteira com o que estava marcado na tela naquele momento). Se uma vaga fosse confirmada ou perdida
+enquanto o Mateus estava com a aba de Recibo aberta sem ter salvado ainda, o próximo "Salvar" dele
+sobrescrevia essa mudança automática — na prática, não era um caso raro (a aba costuma ficar aberta
+ou ser reaberta ao longo da semana, enquanto as vagas continuam sendo preenchidas), e foi relatado
+pelo Mateus como "tem pessoas selecionadas e não aparece".
+
+Corrigido: cada linha do formulário agora carrega, num campo oculto, se a pessoa já estava com vaga
+confirmada QUANDO A TELA FOI CARREGADA. `saveRecibo`/`saveReciboBase` comparam isso com uma consulta
+fresca de quem está confirmado DE FATO no momento do salvamento (`staffComVagaConfirmada`, em
+`lib/futebol/vagas-confirmadas.ts`) e decidem inclusão por pessoa (`decidirInclusaoRecibo`, em
+`lib/futebol/recibo-inclusao.ts`) em vez de apagar tudo e recriar só com quem apareceu marcado:
+quem confirmou vaga depois do carregamento entra mesmo desmarcado; quem perdeu a vaga depois do
+carregamento nunca entra, mesmo que ainda apareça marcado; nos outros casos o checkbox manda —
+inclusive pra desmarcar manualmente alguém que tem vaga confirmada, se o Mateus quiser (decisão
+dele: manter o checkbox editável pra todo mundo, não travá-lo pra quem tem vaga).
 
 ## Implementação
 

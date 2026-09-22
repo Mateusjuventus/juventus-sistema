@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { chavePixValida } from "@/lib/validation/chave-pix";
+import { staffComVagaConfirmada } from "@/lib/futebol/vagas-confirmadas";
+import { decidirInclusaoRecibo } from "@/lib/futebol/recibo-inclusao";
 import type { TipoQuarto } from "@/lib/supabase/types";
+
+const TABELAS_VAGAS_RECIBO = { vagas: "jogo_vagas_staff", inscricoes: "jogo_vagas_staff_inscricoes" };
 
 /**
  * Server actions das abas de "Operação de Jogo" (o que antes eram os módulos separados Logística
@@ -296,14 +300,42 @@ export interface ReciboFormState {
   success?: boolean;
 }
 
-/** Recibo de Pagamento é só pra Staff Operacional — Comissão Técnica não entra aqui (ver
- * `recibo-form.tsx`, que só renderiza linhas de staff). */
+/**
+ * Recibo de Pagamento é só pra Staff Operacional — Comissão Técnica não entra aqui (ver
+ * `recibo-form.tsx`, que só renderiza linhas de staff).
+ *
+ * Corrigido em 22/09 (ver docs/superpowers/specs/2026-09-12-recibo-automatico-vagas-design.md,
+ * seção "Limite conhecido"): antes, este salvamento apagava a lista inteira e recriava só com quem
+ * estava marcado NA TELA — se alguém confirmasse vaga (o que cria a linha do recibo sozinho, ver
+ * `lib/futebol/recibo-auto-sync.ts`) depois que a tela de Recibo já tinha sido carregada, o próximo
+ * "Salvar recibos" apagava essa pessoa de volta, porque o checkbox dela nunca tinha sido atualizado.
+ *
+ * Agora cada linha do formulário carrega, num campo oculto (`vagaCarregada_staff_ID`), se a pessoa
+ * já estava com vaga confirmada QUANDO A TELA FOI MONTADA. Comparando isso com quem está confirmado
+ * DE FATO agora (consulta fresca, `staffComVagaConfirmada`), dá pra distinguir os três casos:
+ * - Confirmou vaga depois que a tela abriu (não estava marcada, tela nunca soube) → mantém, mesmo
+ *   desmarcada — o Mateus nunca teve chance de decidir sobre essa pessoa neste salvamento.
+ * - Já estava marcada como vaga confirmada e o Mateus desmarcou mesmo assim → respeita, apaga.
+ * - Perdeu a vaga depois que a tela abriu (estava marcada, não está mais confirmada) → nunca inclui,
+ *   mesmo que o checkbox ainda apareça marcado — mesma regra de sempre: sem vaga, sem recibo
+ *   automático, mesmo que já estivesse pago.
+ */
 export async function saveRecibo(
   _prevState: ReciboFormState,
   formData: FormData,
 ): Promise<ReciboFormState> {
   const jogoId = String(formData.get("jogoId") ?? "");
   if (!jogoId) return { error: "Jogo não identificado. Recarregue a página e tente novamente." };
+
+  const supabase = createClient();
+  const vagaConfirmadaAgora = new Set(await staffComVagaConfirmada(supabase, TABELAS_VAGAS_RECIBO, jogoId));
+
+  // Toda linha da tabela renderiza o campo oculto "nome", inclusive quem está desmarcado — por isso
+  // dá pra descobrir todo mundo que passou pela tela, não só quem ficou marcado.
+  const pessoaIds = new Set<string>();
+  for (const [key] of formData.entries()) {
+    if (key.startsWith("nome_staff_")) pessoaIds.add(key.slice("nome_staff_".length));
+  }
 
   const linhas: {
     pessoaTipo: "staff";
@@ -316,13 +348,13 @@ export async function saveRecibo(
     pago: boolean;
   }[] = [];
 
-  // O checkbox "Incluir" é quem decide quem participa desse jogo — só pessoas marcadas viram
-  // linha em recibos_jogo (e por consequência entram nos PDFs). Checkbox desmarcado não é
-  // enviado no FormData, então o loop já pula naturalmente quem foi desmarcado.
-  for (const [key] of formData.entries()) {
-    if (!key.startsWith("incluir_staff_")) continue;
-    const pessoaTipo = "staff";
-    const pessoaId = key.slice(`incluir_${pessoaTipo}_`.length);
+  for (const pessoaId of pessoaIds) {
+    const pessoaTipo = "staff" as const;
+    const marcado = formData.get(`incluir_${pessoaTipo}_${pessoaId}`) === "on";
+    const vagaAoCarregar = formData.get(`vagaCarregada_${pessoaTipo}_${pessoaId}`) === "1";
+    const temVagaAgora = vagaConfirmadaAgora.has(pessoaId);
+    if (!decidirInclusaoRecibo({ marcado, vagaAoCarregar, temVagaAgora })) continue;
+
     const funcaoJogo = String(formData.get(`funcao_${pessoaTipo}_${pessoaId}`) ?? "").trim() || null;
     const valorRaw = String(formData.get(`valor_${pessoaTipo}_${pessoaId}`) ?? "").trim();
     const valor = valorRaw ? Number(valorRaw) : null;
@@ -358,12 +390,31 @@ export async function saveRecibo(
     }
   }
 
-  const supabase = createClient();
+  const idsParaManter = new Set(linhas.map((l) => l.pessoaId));
+  const { data: existentesData } = await supabase
+    .from("recibos_jogo")
+    .select("pessoa_id")
+    .eq("jogo_id", jogoId)
+    .eq("pessoa_tipo", "staff");
+  const idsParaRemover = ((existentesData ?? []) as { pessoa_id: string }[])
+    .map((r) => r.pessoa_id)
+    .filter((id) => !idsParaManter.has(id));
 
-  await supabase.from("recibos_jogo").delete().eq("jogo_id", jogoId);
+  if (idsParaRemover.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("recibos_jogo")
+      .delete()
+      .eq("jogo_id", jogoId)
+      .eq("pessoa_tipo", "staff")
+      .in("pessoa_id", idsParaRemover);
+    if (deleteError) {
+      console.error("saveRecibo: falha ao remover de recibos_jogo", deleteError);
+      return { error: "Não foi possível salvar os recibos. Tente novamente." };
+    }
+  }
 
   if (linhas.length > 0) {
-    const { error: insertError } = await supabase.from("recibos_jogo").insert(
+    const { error: upsertError } = await supabase.from("recibos_jogo").upsert(
       linhas.map((l) => ({
         jogo_id: jogoId,
         pessoa_tipo: l.pessoaTipo,
@@ -374,14 +425,15 @@ export async function saveRecibo(
         chave_pix_tipo: l.chavePixTipo,
         pago: l.pago,
       })),
+      { onConflict: "jogo_id,pessoa_tipo,pessoa_id" },
     );
-    if (insertError) {
-      console.error("saveRecibo: falha ao inserir em recibos_jogo", insertError);
+    if (upsertError) {
+      console.error("saveRecibo: falha ao salvar em recibos_jogo", upsertError);
       // 23514 = violação de check constraint — o caso mais provável é o banco ainda não ter a
       // migração 0039 (que unificou os tipos de chave PIX aceitos por recibos_jogo com os de Staff
       // Operacional: cpf/cnpj/email/telefone/aleatoria). Sem essa migração, salvar um recibo com
       // tipo "telefone" ou "cnpj" falha aqui.
-      if (insertError.code === "23514") {
+      if (upsertError.code === "23514") {
         return {
           error:
             "Não foi possível salvar: o tipo de chave PIX de alguém aqui (Telefone, CNPJ ou Aleatória) ainda não é aceito pelo banco de dados. É preciso rodar a migração 0039_chave_pix_aleatoria_e_unificacao_recibo.sql no Supabase antes de salvar recibos com esse tipo.",

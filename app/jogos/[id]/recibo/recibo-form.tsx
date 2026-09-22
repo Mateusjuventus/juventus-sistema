@@ -22,9 +22,9 @@ export function ReciboForm({
   jogoId: string;
   staff: StaffOperacionalComFuncaoRow[];
   recibos: ReciboJogoRow[];
-  /** Quem pegou vaga neste jogo (aba Vagas de Staff). Serve só pra já vir marcado na PRIMEIRA vez
-   * que a tela é aberta — quem trabalhou é exatamente quem pegou vaga, e remarcar todo mundo na mão
-   * era digitar duas vezes a mesma informação. */
+  /** Quem está com vaga CONFIRMADA agora neste jogo (aba Vagas de Staff) — sempre sugerido como
+   * incluído (não só na primeira vez que a tela é aberta), e usado por `saveRecibo` pra proteger
+   * quem confirmou vaga depois deste carregamento (ver comentário lá). */
   staffComVaga?: string[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
@@ -47,14 +47,16 @@ export function ReciboForm({
 
   const chave = (tipo: "staff", id: string) => `${tipo}-${id}`;
 
+  // Quem está com vaga confirmada AGORA (não só na primeira vez que a tela foi aberta) — sempre
+  // sugerida como incluída, e enviada como campo oculto por linha (ver `ReciboLinha`) pra
+  // `saveRecibo` conseguir proteger quem confirmou vaga depois deste carregamento, mesmo que o
+  // checkbox aqui ainda não tenha sido atualizado.
+  const comVaga = new Set(staffComVaga);
+
   const [incluidos, setIncluidos] = useState<Record<string, boolean>>(() => {
     const inicial: Record<string, boolean> = {};
-    // Só sugere a partir das vagas enquanto NADA foi salvo ainda. Depois do primeiro salvamento a
-    // escolha do usuário manda — senão quem ele tirou da mão voltaria marcado a cada visita.
-    const aindaNaoSalvou = recibos.length === 0;
-    const comVaga = new Set(staffComVaga);
     for (const p of pessoas) {
-      inicial[chave(p.tipo, p.id)] = Boolean(reciboDe(p.tipo, p.id)) || (aindaNaoSalvou && comVaga.has(p.id));
+      inicial[chave(p.tipo, p.id)] = Boolean(reciboDe(p.tipo, p.id)) || comVaga.has(p.id);
     }
     return inicial;
   });
@@ -124,6 +126,7 @@ export function ReciboForm({
                     pagoDefault={atual?.pago ?? false}
                     incluido={Boolean(incluidos[k])}
                     onToggleIncluido={() => alternarUm(k)}
+                    vagaConfirmadaAoCarregar={comVaga.has(p.id)}
                   />
                 );
               })}

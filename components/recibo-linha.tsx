@@ -25,6 +25,7 @@ export function ReciboLinha({
   pagoDefault,
   incluido,
   onToggleIncluido,
+  vagaConfirmadaAoCarregar,
 }: {
   pessoaTipo: string;
   pessoaId: string;
@@ -38,6 +39,12 @@ export function ReciboLinha({
   /** Se a pessoa participa desse jogo — controla se a linha é salva e entra nos PDFs. */
   incluido: boolean;
   onToggleIncluido: () => void;
+  /** Se a pessoa já estava com vaga confirmada quando a tela carregou (aba "Vagas de Staff") — vai
+   * junto no formulário (campo oculto) pra `saveRecibo`/`saveReciboBase` conseguirem distinguir "o
+   * Mateus desmarcou essa pessoa de propósito" de "a vaga foi confirmada depois que a tela abriu, o
+   * checkbox nunca refletiu isso" — ver o comentário em cima de `saveRecibo`. Só exibida como selo
+   * informativo; o checkbox continua editável pra qualquer pessoa. */
+  vagaConfirmadaAoCarregar: boolean;
 }) {
   const [tipo, setTipo] = useState(chavePixTipoDefault);
   const [chave, setChave] = useState(() => formatarChavePix(chavePixDefault, chavePixTipoDefault));
@@ -52,10 +59,20 @@ export function ReciboLinha({
           onChange={onToggleIncluido}
           className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
         />
+        <input
+          type="hidden"
+          name={`vagaCarregada_${pessoaTipo}_${pessoaId}`}
+          value={vagaConfirmadaAoCarregar ? "1" : "0"}
+        />
       </td>
       <td className="py-2 pr-3 font-medium text-neutral-800">
         <input type="hidden" name={`nome_${pessoaTipo}_${pessoaId}`} value={nome} />
         {nome} <span className="text-neutral-400">— {extra}</span>
+        {vagaConfirmadaAoCarregar ? (
+          <span className="ml-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+            Vaga confirmada
+          </span>
+        ) : null}
       </td>
       <td className="py-2 pr-3">
         <input
