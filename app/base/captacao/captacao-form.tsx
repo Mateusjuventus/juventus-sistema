@@ -174,6 +174,8 @@ export function CaptacaoForm({
             name="altura"
             type="number"
             step="0.01"
+            min={1}
+            max={2.5}
             defaultValue={values.altura}
             error={errors.altura}
             placeholder="Ex: 1.75"

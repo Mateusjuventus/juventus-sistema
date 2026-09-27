@@ -326,6 +326,8 @@ export function InscricaoCaptacaoForm({
             name="altura"
             type="number"
             step="0.01"
+            min={1}
+            max={2.5}
             required
             defaultValue={values.altura}
             error={errors.altura}

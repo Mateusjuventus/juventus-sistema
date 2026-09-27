@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { captacaoInscricaoSchema } from "./schemas";
+import { captacaoBaseSchema, captacaoInscricaoSchema } from "./schemas";
 
 /** Ficha completa e válida da inscrição pública de Captação — base pra cada teste variar só o
  * campo que interessa (ver spec 2026-09-11-captacao-documentos-termo-auto-cadastro-design.md). */
@@ -66,6 +66,17 @@ describe("captacaoInscricaoSchema", () => {
     expect(captacaoInscricaoSchema.safeParse(fichaValida({ altura: "0" })).success).toBe(false);
   });
 
+  it("rejeita altura digitada em centímetros em vez de metros (bug relatado em 27/09)", () => {
+    // "168" (cm) passava (168 > 0) e só quebrava ao gravar, com erro cru de banco ("numeric field
+    // overflow") — a coluna `captacao_base.altura` é `numeric(3,2)`, cabe até 9,99.
+    expect(captacaoInscricaoSchema.safeParse(fichaValida({ altura: "168" })).success).toBe(false);
+    expect(captacaoInscricaoSchema.safeParse(fichaValida({ altura: "188" })).success).toBe(false);
+    // Ainda aceita alturas plausíveis em metros, incluindo os extremos da faixa.
+    expect(captacaoInscricaoSchema.safeParse(fichaValida({ altura: "1" })).success).toBe(true);
+    expect(captacaoInscricaoSchema.safeParse(fichaValida({ altura: "2.5" })).success).toBe(true);
+    expect(captacaoInscricaoSchema.safeParse(fichaValida({ altura: "2.51" })).success).toBe(false);
+  });
+
   it("exige planoSaudeQual só quando possuiPlanoSaude é 'sim'", () => {
     expect(captacaoInscricaoSchema.safeParse(fichaValida({ possuiPlanoSaude: "sim" })).success).toBe(false);
     const resultado = captacaoInscricaoSchema.safeParse(
@@ -96,5 +107,16 @@ describe("captacaoInscricaoSchema", () => {
   it("segundaPosicao continua opcional (nem todo atleta tem uma)", () => {
     const resultado = captacaoInscricaoSchema.safeParse(fichaValida({ segundaPosicao: "" }));
     expect(resultado.success).toBe(true);
+  });
+});
+
+describe("captacaoBaseSchema", () => {
+  it("continua com altura/peso opcionais (cadastro interno pode chegar incompleto)", () => {
+    expect(captacaoBaseSchema.safeParse({ nomeCompleto: "João" }).success).toBe(true);
+  });
+
+  it("rejeita altura digitada em centímetros, mesmo sendo opcional (mesma proteção do formulário público)", () => {
+    expect(captacaoBaseSchema.safeParse({ nomeCompleto: "João", altura: "168" }).success).toBe(false);
+    expect(captacaoBaseSchema.safeParse({ nomeCompleto: "João", altura: "1.75" }).success).toBe(true);
   });
 });

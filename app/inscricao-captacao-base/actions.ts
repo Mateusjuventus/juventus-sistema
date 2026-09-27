@@ -299,10 +299,15 @@ export async function inscreverCaptacao(
       .select("id")
       .single();
     if (error || !atualizado) {
-      return {
-        error: "Não foi possível completar esse cadastro (ele pode ter sido decidido nesse meio tempo). Recarregue a página e tente novamente.",
-        values: valuesTexto,
-      };
+      console.error("inscreverCaptacao: falha ao completar cadastro em captacao_base", error);
+      // 22003 = numeric_value_out_of_range (ver comentário equivalente no caminho de inscrição
+      // nova, abaixo) — nada a ver com o candidato ter sido decidido nesse meio tempo, então merece
+      // mensagem própria em vez da genérica de corrida.
+      const mensagem =
+        error?.code === "22003"
+          ? "Um dos valores numéricos (altura ou peso) está fora do esperado. Confira se a altura está em metros (ex.: 1.75) e o peso em kg, e tente novamente."
+          : "Não foi possível completar esse cadastro (ele pode ter sido decidido nesse meio tempo). Recarregue a página e tente novamente.";
+      return { error: mensagem, values: valuesTexto };
     }
     candidatoId = atualizado.id as string;
   } else {
@@ -312,7 +317,16 @@ export async function inscreverCaptacao(
       .select("id")
       .single();
     if (error || !inserted) {
-      return { error: `Não foi possível enviar a inscrição: ${error?.message}`, values: valuesTexto };
+      console.error("inscreverCaptacao: falha ao inserir em captacao_base", error);
+      // 22003 = numeric_value_out_of_range — o caso mais comum é altura/peso fora da faixa esperada
+      // pelas colunas (`altura numeric(3,2)`, `peso numeric(5,2)`); a validação em
+      // `alturaMetrosField` já bloqueia isso antes de chegar aqui, mas esse aviso específico fica
+      // como rede de segurança em vez de deixar o erro cru do banco aparecer pra família.
+      const mensagem =
+        error?.code === "22003"
+          ? "Um dos valores numéricos (altura ou peso) está fora do esperado. Confira se a altura está em metros (ex.: 1.75) e o peso em kg, e tente novamente."
+          : "Não foi possível enviar a inscrição. Tente novamente.";
+      return { error: mensagem, values: valuesTexto };
     }
     candidatoId = inserted.id as string;
   }
@@ -367,6 +381,7 @@ export async function inscreverCaptacao(
       .from("captacao_documentos")
       .upsert({ captacao_id: candidatoId, tipo, arquivo_path: documentoResultado.path }, { onConflict: "captacao_id,tipo" });
     if (docError) {
+      console.error("inscreverCaptacao: falha ao registrar em captacao_documentos", tipo, docError);
       await desfazerInscricao();
       return {
         error: `Não foi possível registrar o documento "${DOCUMENTOS_OBRIGATORIOS[tipo]}". Tente novamente.`,

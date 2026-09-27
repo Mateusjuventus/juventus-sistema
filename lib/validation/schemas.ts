@@ -267,7 +267,17 @@ export const captacaoBaseSchema = z
     cpf: z.string().optional().or(z.literal("")),
     segundaPosicao: z.string().optional().or(z.literal("")),
     peDominante: z.enum(["destro", "canhoto", "ambidestro"]).optional().nullable().or(z.literal("")),
-    altura: z.coerce.number().positive().optional().nullable(),
+    // Mesma faixa plausível de `alturaMetrosField` (formulário público) — ver o comentário lá. Aqui
+    // continua opcional (cadastro interno pode chegar incompleto), só ganha o teto de segurança pra
+    // não estourar `captacao_base.altura numeric(3,2)` se alguém da equipe digitar em centímetros.
+    altura: z.coerce
+      .number()
+      .positive()
+      .refine((v) => v <= 2.5, {
+        message: "Altura deve ser em metros, até 2.5 (ex.: 1.75) — parece que foi digitada em centímetros.",
+      })
+      .optional()
+      .nullable(),
     peso: z.coerce.number().positive().optional().nullable(),
     email: emailField,
     possuiPlanoSaude: z.boolean().default(false),
@@ -317,6 +327,27 @@ function medidaRequiredField(mensagem: string, mensagemInvalida: string) {
     .transform((v) => Number(v));
 }
 
+/** Altura em metros, com faixa plausível (1 a 2,5m — cobre qualquer categoria de base ou o
+ * Profissional, com folga) — sem esse limite, alguém digitando a altura em centímetros (ex.: "168"
+ * em vez de "1.68") passava pela validação (168 > 0) e só quebrava na hora de gravar, com um erro
+ * cru de banco ("numeric field overflow", já que `captacao_base.altura` é `numeric(3,2)`, cabe até
+ * 9,99) aparecendo pra família no meio da inscrição, sem entender o que fazer (relatado pelo Mateus
+ * em 27/09, com vídeo mostrando "168" digitado). Mesmo raciocínio de `medidaRequiredField`, mas com
+ * mensagem e faixa específicas — não reaproveita `medidaRequiredField` porque `peso` (kg) não tem
+ * essa restrição (a coluna é `numeric(5,2)`, cabe até 999,99, sem risco de estouro). */
+function alturaMetrosField(mensagem: string) {
+  return z
+    .string()
+    .min(1, { message: mensagem })
+    .refine((v) => !Number.isNaN(Number(v)) && Number(v) > 0, {
+      message: "Informe uma altura válida, em metros (ex.: 1.75)",
+    })
+    .refine((v) => Number(v) >= 1 && Number(v) <= 2.5, {
+      message: "Altura deve ser em metros, entre 1 e 2.5 (ex.: 1.75) — parece que foi digitada em centímetros.",
+    })
+    .transform((v) => Number(v));
+}
+
 /** Checkbox "Li e concordo" do Termo de Responsabilidade (ver spec 2026-09-11, seção 3) — precisa
  * estar marcado, não é só um boolean qualquer (por isso o `.refine` em vez de aceitar `false`). Um
  * pro Atleta e um pro Responsável Legal, separados de propósito. */
@@ -357,7 +388,7 @@ export const captacaoInscricaoSchema = z
     peDominante: z.enum(["destro", "canhoto", "ambidestro"], {
       errorMap: () => ({ message: "Pé dominante é obrigatório" }),
     }),
-    altura: medidaRequiredField("Altura é obrigatória", "Informe uma altura válida (em metros, ex. 1.75)"),
+    altura: alturaMetrosField("Altura é obrigatória"),
     peso: medidaRequiredField("Peso é obrigatório", "Informe um peso válido (em kg, ex. 68.5)"),
     categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
       errorMap: () => ({ message: "Categoria é obrigatória" }),

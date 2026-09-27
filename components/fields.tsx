@@ -10,6 +10,7 @@ export function TextField({
   error,
   placeholder,
   min,
+  max,
   maxLength,
   step,
   autoComplete,
@@ -26,6 +27,7 @@ export function TextField({
   error?: string;
   placeholder?: string;
   min?: number;
+  max?: number;
   maxLength?: number;
   step?: string | number;
   autoComplete?: string;
@@ -45,6 +47,7 @@ export function TextField({
         required={required}
         placeholder={placeholder}
         min={min}
+        max={max}
         maxLength={maxLength}
         step={step}
         autoComplete={autoComplete}
