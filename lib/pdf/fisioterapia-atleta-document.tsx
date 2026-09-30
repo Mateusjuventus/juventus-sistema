@@ -95,16 +95,7 @@ export interface FisioterapiaRelatorioAtleta {
   posicao: string | null;
 }
 
-export function FisioterapiaAtletaDocument({
-  juventusLogoSrc,
-  fotoSrc,
-  atleta,
-  historico,
-  lesoes,
-  queixas,
-  atendimentos,
-  emitidoEm,
-}: {
+export interface FisioterapiaAtletaConteudoProps {
   juventusLogoSrc: LogoSrc;
   fotoSrc: LogoSrc;
   atleta: FisioterapiaRelatorioAtleta;
@@ -113,10 +104,25 @@ export function FisioterapiaAtletaDocument({
   queixas: FisioterapiaRelatorioQueixa[];
   atendimentos: FisioterapiaRelatorioAtendimento[];
   emitidoEm: Date;
-}) {
+}
+
+/**
+ * Conteúdo de uma página de Fisioterapia — extraído do `FisioterapiaAtletaDocument` pra ser
+ * reaproveitado também pelo Relatório Completo (todos os atletas, um por página, mesmo `<Document>`
+ * — ver `fisioterapia-relatorio-completo-document.tsx`), sem duplicar o JSX.
+ */
+export function FisioterapiaAtletaConteudo({
+  juventusLogoSrc,
+  fotoSrc,
+  atleta,
+  historico,
+  lesoes,
+  queixas,
+  atendimentos,
+  emitidoEm,
+}: FisioterapiaAtletaConteudoProps) {
   return (
-    <Document>
-      <Page size="A4" style={sharedStyles.page}>
+    <>
         <View style={styles.headerRow}>
           {fotoSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
@@ -141,13 +147,12 @@ export function FisioterapiaAtletaDocument({
 
         {historico.length > 0 ? (
           <View style={styles.historicoBox} wrap={false}>
-            <Text style={styles.historicoLabel}>Histórico anterior ao sistema</Text>
+            <Text style={styles.historicoLabel}>Histórico</Text>
             <Text style={styles.historicoNota}>
               Importado do relatório em papel do departamento — sem data exata de cada evento, só como referência.
             </Text>
             {historico.map((item, i) => (
               <View style={i === 0 ? styles.historicoItem : styles.historicoItemComDivisor} key={i}>
-                <Text style={styles.historicoTitulo}>{item.titulo}</Text>
                 <Text style={styles.historicoResumo}>{item.resumo}</Text>
               </View>
             ))}
@@ -222,6 +227,17 @@ export function FisioterapiaAtletaDocument({
           Emitido em {formatCarimbo(emitidoEm)}
         </Text>
         <DocumentoFooter geradoEm={emitidoEm} />
+    </>
+  );
+}
+
+/** Documento individual (1 atleta, 1 página) — mesmo molde de sempre, agora só uma casca fina em
+ * torno de `FisioterapiaAtletaConteudo`. */
+export function FisioterapiaAtletaDocument(props: FisioterapiaAtletaConteudoProps) {
+  return (
+    <Document>
+      <Page size="A4" style={sharedStyles.page}>
+        <FisioterapiaAtletaConteudo {...props} />
       </Page>
     </Document>
   );

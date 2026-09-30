@@ -59,9 +59,18 @@ export default async function FisioterapiaListagemPage() {
         <Link href="/departamento-medico" className="text-sm font-medium text-grena hover:underline">
           ← Voltar
         </Link>
-        <Link href="/departamento-medico/fisioterapia/relatorio" className="btn-secondary btn-sm">
-          Relatório geral
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/departamento-medico/fisioterapia/relatorio" className="btn-secondary btn-sm">
+            Relatório geral
+          </Link>
+          <a
+            href="/departamento-medico/fisioterapia/relatorio-completo/pdf"
+            className="btn-secondary btn-sm"
+            target="_blank"
+          >
+            Gerar todos os relatórios
+          </a>
+        </div>
       </div>
       <PageHeader title="Fisioterapia" />
       <p className="mt-1 text-center text-sm text-neutral-500">

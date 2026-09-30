@@ -103,8 +103,7 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
           <ul className="mt-3 space-y-3">
             {historico.map((item) => (
               <li key={item.id} className="border-t border-neutral-200 pt-2">
-                <p className="text-sm font-medium text-neutral-700">{item.titulo}</p>
-                <p className="mt-1 whitespace-pre-line text-sm text-neutral-600">{item.resumo}</p>
+                <p className="whitespace-pre-line text-sm text-neutral-600">{item.resumo}</p>
               </li>
             ))}
           </ul>
