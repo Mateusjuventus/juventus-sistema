@@ -91,3 +91,42 @@ export async function renderizarPosterComoJpeg(
 
   return sharp(cortado).jpeg({ quality: 92 }).toBuffer();
 }
+
+/**
+ * Mesmo raciocínio de `renderizarPosterComoJpeg` acima (canvas generoso + corte só da sobra
+ * vertical, nunca da largura), mas pra um layout LARGO/paisagem em vez do pôster retrato — usado
+ * hoje só pela exportação em JPG do Microciclo (`lib/posters/microciclo-imagem.tsx`, ver o
+ * comentário lá), que é uma tabela, não um pôster com título. Por isso `width`/`alturaCanvas` vêm
+ * por parâmetro (cada layout largo pode ter um tamanho de canvas diferente, ao contrário dos 3
+ * pôsteres retrato que sempre usam `POSTER_IMAGEM_LARGURA`/`ALTURA_CANVAS_GENEROSA` fixos) e sem
+ * fonte customizada nem moldura lateral (nenhum dos dois existe nesse layout).
+ */
+export async function renderizarImagemLargaComoJpeg(
+  jsx: ReactElement,
+  options: { width: number; alturaCanvas: number },
+): Promise<Buffer> {
+  const response = new ImageResponse(jsx, {
+    width: options.width,
+    height: options.alturaCanvas,
+  });
+
+  const arrayBuffer = await response.arrayBuffer();
+  const pngBuffer = Buffer.from(arrayBuffer);
+
+  // Mesmos dois motivos do `renderizarPosterComoJpeg` acima: achatar a transparência antes do
+  // corte (senão `.trim()` não acha a borda, e o JPEG final preencheria de preto), e cortar só a
+  // sobra vertical com `.extract()` — nunca a largura, que aqui já vem exata do parâmetro `width`.
+  const achatado = await sharp(pngBuffer).flatten({ background: "#ffffff" }).toBuffer();
+
+  const { info } = await sharp(achatado)
+    .trim({ background: "#ffffff" })
+    .toBuffer({ resolveWithObject: true });
+  const topoCortado = Math.max(0, -(info.trimOffsetTop ?? 0));
+  const alturaFinal = info.height;
+
+  const cortado = await sharp(achatado)
+    .extract({ left: 0, top: topoCortado, width: options.width, height: alturaFinal })
+    .toBuffer();
+
+  return sharp(cortado).jpeg({ quality: 92 }).toBuffer();
+}
