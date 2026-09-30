@@ -3,8 +3,11 @@
 import { useFormState } from "react-dom";
 import { FieldGroup, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
-import { QUEIXA_TIPO_OPTIONS } from "@/lib/futebol/fisioterapia";
+import { FISIOTERAPIA_TIPO_OPTIONS } from "@/lib/futebol/fisioterapia";
+import type { FisioterapiaTipo } from "@/lib/supabase/types";
 import {
+  atualizarTipoLesao,
+  atualizarTipoQueixa,
   encerrarLesao,
   registrarAtendimento,
   registrarLesao,
@@ -32,14 +35,22 @@ export function NovaLesaoForm({ atletaId }: { atletaId: string }) {
         <input type="hidden" name="atletaId" value={atletaId} />
         <TextAreaField label="Descrição da lesão" name="descricao" error={errors.descricao} required rows={2} />
         <FieldGroup>
+          <SelectField label="Tipo" name="tipo" error={errors.tipo} required>
+            <option value="">Selecione</option>
+            {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
+              <option key={op.value} value={op.value}>
+                {op.label}
+              </option>
+            ))}
+          </SelectField>
           <TextField label="Data de início" name="dataInicio" type="date" error={errors.dataInicio} required />
-          <TextField
-            label="Data de fim (deixe em branco se ainda estiver em andamento)"
-            name="dataFim"
-            type="date"
-            error={errors.dataFim}
-          />
         </FieldGroup>
+        <TextField
+          label="Data de fim (deixe em branco se ainda estiver em andamento)"
+          name="dataFim"
+          type="date"
+          error={errors.dataFim}
+        />
         <TextAreaField label="Observações" name="observacoes" rows={2} />
         {state.error || state.success ? <Feedback state={state} /> : null}
         <SubmitButton label="Salvar lesão" pendingLabel="Salvando..." className="btn-secondary btn-sm" />
@@ -68,6 +79,75 @@ export function EncerrarLesaoForm({ atletaId, lesaoId, dataInicio }: { atletaId:
   );
 }
 
+/** Corrigir o tipo de uma lesão já lançada, sem precisar apagar e relançar — pedido explícito do
+ * Mateus ao trazer a classificação certa do relatório em papel: "deixar no sistema tipo editável
+ * essas caso precise". Um `<select>` que já salva sozinho ao trocar, sem botão "Salvar" separado
+ * (o próprio `onChange` dispara o form — menos fricção que abrir um `<details>` pra um campo só). */
+export function EditarTipoLesaoForm({
+  atletaId,
+  lesaoId,
+  tipoAtual,
+}: {
+  atletaId: string;
+  lesaoId: string;
+  tipoAtual: FisioterapiaTipo;
+}) {
+  const [state, formAction] = useFormState(atualizarTipoLesao, initialState);
+
+  return (
+    <form action={formAction} className="mt-1 inline-flex items-center gap-2">
+      <input type="hidden" name="atletaId" value={atletaId} />
+      <input type="hidden" name="lesaoId" value={lesaoId} />
+      <select
+        name="tipo"
+        defaultValue={tipoAtual}
+        className="field-input h-auto w-auto py-0.5 text-xs"
+        onChange={(e) => e.currentTarget.form?.requestSubmit()}
+      >
+        {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
+          <option key={op.value} value={op.value}>
+            {op.label}
+          </option>
+        ))}
+      </select>
+      {state.error ? <span className="text-xs text-red-700">{state.error}</span> : null}
+    </form>
+  );
+}
+
+/** Mesma ideia de `EditarTipoLesaoForm`, pras Queixas. */
+export function EditarTipoQueixaForm({
+  atletaId,
+  queixaId,
+  tipoAtual,
+}: {
+  atletaId: string;
+  queixaId: string;
+  tipoAtual: FisioterapiaTipo;
+}) {
+  const [state, formAction] = useFormState(atualizarTipoQueixa, initialState);
+
+  return (
+    <form action={formAction} className="mt-1 inline-flex items-center gap-2">
+      <input type="hidden" name="atletaId" value={atletaId} />
+      <input type="hidden" name="queixaId" value={queixaId} />
+      <select
+        name="tipo"
+        defaultValue={tipoAtual}
+        className="field-input h-auto w-auto py-0.5 text-xs"
+        onChange={(e) => e.currentTarget.form?.requestSubmit()}
+      >
+        {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
+          <option key={op.value} value={op.value}>
+            {op.label}
+          </option>
+        ))}
+      </select>
+      {state.error ? <span className="text-xs text-red-700">{state.error}</span> : null}
+    </form>
+  );
+}
+
 export function NovaQueixaForm({ atletaId }: { atletaId: string }) {
   const [state, formAction] = useFormState(registrarQueixa, initialState);
   const errors = state.fieldErrors ?? {};
@@ -80,7 +160,7 @@ export function NovaQueixaForm({ atletaId }: { atletaId: string }) {
         <FieldGroup>
           <SelectField label="Tipo" name="tipo" error={errors.tipo} required>
             <option value="">Selecione</option>
-            {QUEIXA_TIPO_OPTIONS.map((op) => (
+            {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
               <option key={op.value} value={op.value}>
                 {op.label}
               </option>

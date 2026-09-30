@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { diasAfastados, queixaTipoLabel } from "@/lib/futebol/fisioterapia";
+import { diasAfastados, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { FisioterapiaAtletaDocument } from "@/lib/pdf/fisioterapia-atleta-document";
 import type {
@@ -74,9 +74,10 @@ export async function GET(_request: Request, { params }: { params: { atletaId: s
         dataFim: l.data_fim,
         diasAfastados: diasAfastados(l.data_inicio, l.data_fim, hojeStr),
         descricao: l.descricao,
+        tipo: fisioterapiaTipoLabel(l.tipo),
         observacoes: l.observacoes,
       }))}
-      queixas={queixas.map((q) => ({ data: q.data, tipo: queixaTipoLabel(q.tipo), descricao: q.descricao }))}
+      queixas={queixas.map((q) => ({ data: q.data, tipo: fisioterapiaTipoLabel(q.tipo), descricao: q.descricao }))}
       atendimentos={atendimentos.map((a) => ({
         data: a.data,
         descricao: a.descricao,

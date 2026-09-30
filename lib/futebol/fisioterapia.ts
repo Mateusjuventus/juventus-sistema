@@ -3,7 +3,7 @@ import type {
   FisioterapiaAtendimentoRow,
   FisioterapiaLesaoRow,
   FisioterapiaQueixaRow,
-  FisioterapiaQueixaTipo,
+  FisioterapiaTipo,
 } from "@/lib/supabase/types";
 
 /**
@@ -14,18 +14,28 @@ import type {
  * `lib/futebol/classificacao-atleta.ts`/`lib/programacao/permissoes.ts`).
  */
 
-export const QUEIXA_TIPO_OPTIONS: { value: FisioterapiaQueixaTipo; label: string }[] = [
+/** As 6 categorias do relatório em papel do departamento (ver migração 0116) — a mesma lista serve
+ * pro formulário de Lesões e pro de Queixas, já que agora é uma classificação só. */
+export const FISIOTERAPIA_TIPO_OPTIONS: { value: FisioterapiaTipo; label: string }[] = [
   { value: "muscular", label: "Muscular" },
-  { value: "articular", label: "Articular" },
+  { value: "articular", label: "Dor articular" },
+  { value: "tendinea_fascial", label: "Dor tendínea/fascial" },
+  { value: "ligamentar", label: "Lesão ligamentar" },
+  { value: "osseo", label: "Ósseo" },
+  { value: "trauma", label: "Trauma" },
 ];
 
-const QUEIXA_TIPO_LABEL: Record<FisioterapiaQueixaTipo, string> = {
+const FISIOTERAPIA_TIPO_LABEL: Record<FisioterapiaTipo, string> = {
   muscular: "Muscular",
-  articular: "Articular",
+  articular: "Dor articular",
+  tendinea_fascial: "Dor tendínea/fascial",
+  ligamentar: "Lesão ligamentar",
+  osseo: "Ósseo",
+  trauma: "Trauma",
 };
 
-export function queixaTipoLabel(tipo: FisioterapiaQueixaTipo): string {
-  return QUEIXA_TIPO_LABEL[tipo];
+export function fisioterapiaTipoLabel(tipo: FisioterapiaTipo): string {
+  return FISIOTERAPIA_TIPO_LABEL[tipo];
 }
 
 /**

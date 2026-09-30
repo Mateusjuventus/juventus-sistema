@@ -2052,7 +2052,17 @@ export interface ConfiguracaoProgramacaoBaseRow {
 // ===== Departamento Médico — sub-área Fisioterapia (Futebol Profissional) — ver docs/superpowers/
 // specs/2026-09-30-fisioterapia-design.md =====
 
-export type FisioterapiaQueixaTipo = "muscular" | "articular";
+/** Classificação clínica única, compartilhada por Lesões e Queixas — ver migração 0116. Reproduz
+ * as 6 categorias do relatório em papel do departamento (Relatorio_Fisioterapia_2.pdf), não mais
+ * o antigo "muscular"/"articular" genérico (que só existia em Queixas e não correspondia ao que o
+ * Mateus realmente usa — ex.: "Tendinite patelar joelho" é DOR TENDÍNEA/FASCIAL, não articular). */
+export type FisioterapiaTipo =
+  | "muscular"
+  | "articular"
+  | "tendinea_fascial"
+  | "ligamentar"
+  | "osseo"
+  | "trauma";
 
 /** Uma lesão formal, com afastamento. "Dias afastados" nunca é gravado — sempre calculado a partir
  * de `data_inicio`/`data_fim` (ver `lib/futebol/fisioterapia.ts`). `data_fim` vazio = lesão ainda
@@ -2063,6 +2073,7 @@ export interface FisioterapiaLesaoRow {
   id: string;
   atleta_id: string;
   descricao: string;
+  tipo: FisioterapiaTipo;
   data_inicio: string | null;
   data_fim: string | null;
   observacoes: string | null;
@@ -2071,12 +2082,12 @@ export interface FisioterapiaLesaoRow {
   updated_at: string;
 }
 
-/** Queixa pontual (muscular/articular), sem afastamento — mais leve que uma lesão formal. `data`
- * nula só ocorre em registros trazidos do histórico importado (ver `FisioterapiaLesaoRow`). */
+/** Queixa pontual, sem afastamento — mais leve que uma lesão formal. `data` nula só ocorre em
+ * registros trazidos do histórico importado (ver `FisioterapiaLesaoRow`). */
 export interface FisioterapiaQueixaRow {
   id: string;
   atleta_id: string;
-  tipo: FisioterapiaQueixaTipo;
+  tipo: FisioterapiaTipo;
   data: string | null;
   descricao: string;
   created_by: string | null;

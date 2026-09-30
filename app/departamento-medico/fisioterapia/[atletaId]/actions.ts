@@ -4,7 +4,21 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getFisioterapiaPodeEditar } from "@/lib/auth/role";
 import { statusFisioterapiaAtleta } from "@/lib/futebol/fisioterapia";
-import type { FisioterapiaQueixaTipo } from "@/lib/supabase/types";
+import type { FisioterapiaTipo } from "@/lib/supabase/types";
+
+const TIPOS_VALIDOS: FisioterapiaTipo[] = [
+  "muscular",
+  "articular",
+  "tendinea_fascial",
+  "ligamentar",
+  "osseo",
+  "trauma",
+];
+
+function parseTipo(raw: FormDataEntryValue | null): FisioterapiaTipo | null {
+  const valor = String(raw ?? "");
+  return (TIPOS_VALIDOS as string[]).includes(valor) ? (valor as FisioterapiaTipo) : null;
+}
 
 export interface FisioterapiaFormState {
   error?: string;
@@ -57,6 +71,7 @@ export async function registrarLesao(
 
   const atletaId = String(formData.get("atletaId") ?? "");
   const descricao = String(formData.get("descricao") ?? "").trim();
+  const tipo = parseTipo(formData.get("tipo"));
   const dataInicio = String(formData.get("dataInicio") ?? "");
   const dataFim = String(formData.get("dataFim") ?? "").trim() || null;
   const observacoes = String(formData.get("observacoes") ?? "").trim() || null;
@@ -64,6 +79,7 @@ export async function registrarLesao(
   const fieldErrors: Record<string, string> = {};
   if (!atletaId) fieldErrors.atletaId = "Atleta inválido.";
   if (!descricao) fieldErrors.descricao = "Descreva a lesão.";
+  if (!tipo) fieldErrors.tipo = "Escolha o tipo da lesão.";
   if (!dataInicio) fieldErrors.dataInicio = "Data de início é obrigatória.";
   if (dataFim && dataInicio && dataFim < dataInicio) {
     fieldErrors.dataFim = "Data de fim não pode ser antes da data de início.";
@@ -77,6 +93,7 @@ export async function registrarLesao(
   const { error } = await supabase.from("fisioterapia_lesoes").insert({
     atleta_id: atletaId,
     descricao,
+    tipo,
     data_inicio: dataInicio,
     data_fim: dataFim,
     observacoes,
@@ -135,8 +152,7 @@ export async function registrarQueixa(
   }
 
   const atletaId = String(formData.get("atletaId") ?? "");
-  const tipoRaw = String(formData.get("tipo") ?? "");
-  const tipo: FisioterapiaQueixaTipo | null = tipoRaw === "muscular" || tipoRaw === "articular" ? tipoRaw : null;
+  const tipo = parseTipo(formData.get("tipo"));
   const data = String(formData.get("data") ?? "");
   const descricao = String(formData.get("descricao") ?? "").trim();
 
@@ -199,4 +215,53 @@ export async function registrarAtendimento(
 
   revalidarFicha(atletaId);
   return { success: "Atendimento registrado." };
+}
+
+/** Corrige o tipo de uma lesão já lançada (inclusive as reclassificadas pela migração 0116) — a
+ * classificação pode ter sido chutada errado na hora, ou o critério mudar depois; o Mateus pediu
+ * explicitamente pra isso ficar editável, não só no lançamento. Não mexe em mais nenhum campo. */
+export async function atualizarTipoLesao(
+  _prevState: FisioterapiaFormState,
+  formData: FormData,
+): Promise<FisioterapiaFormState> {
+  const supabase = createClient();
+  if (!(await getFisioterapiaPodeEditar(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const atletaId = String(formData.get("atletaId") ?? "");
+  const lesaoId = String(formData.get("lesaoId") ?? "");
+  const tipo = parseTipo(formData.get("tipo"));
+  if (!atletaId || !lesaoId || !tipo) return { error: "Não foi possível identificar a lesão." };
+
+  const { error } = await supabase
+    .from("fisioterapia_lesoes")
+    .update({ tipo, updated_at: new Date().toISOString() })
+    .eq("id", lesaoId);
+  if (error) return { error: `Não foi possível atualizar o tipo. Tente novamente. (${error.message})` };
+
+  revalidarFicha(atletaId);
+  return { success: "Tipo atualizado." };
+}
+
+/** Mesma ideia de `atualizarTipoLesao`, pras Queixas. */
+export async function atualizarTipoQueixa(
+  _prevState: FisioterapiaFormState,
+  formData: FormData,
+): Promise<FisioterapiaFormState> {
+  const supabase = createClient();
+  if (!(await getFisioterapiaPodeEditar(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const atletaId = String(formData.get("atletaId") ?? "");
+  const queixaId = String(formData.get("queixaId") ?? "");
+  const tipo = parseTipo(formData.get("tipo"));
+  if (!atletaId || !queixaId || !tipo) return { error: "Não foi possível identificar a queixa." };
+
+  const { error } = await supabase.from("fisioterapia_queixas").update({ tipo }).eq("id", queixaId);
+  if (error) return { error: `Não foi possível atualizar o tipo. Tente novamente. (${error.message})` };
+
+  revalidarFicha(atletaId);
+  return { success: "Tipo atualizado." };
 }

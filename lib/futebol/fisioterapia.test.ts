@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasAfastados, montarResumoGeralFisioterapia, queixaTipoLabel, statusFisioterapiaAtleta } from "./fisioterapia";
+import { diasAfastados, fisioterapiaTipoLabel, montarResumoGeralFisioterapia, statusFisioterapiaAtleta } from "./fisioterapia";
 
 describe("diasAfastados", () => {
   it("conta o mesmo dia como 1 dia afastado", () => {
@@ -23,10 +23,14 @@ describe("diasAfastados", () => {
   });
 });
 
-describe("queixaTipoLabel", () => {
-  it("traduz os dois tipos", () => {
-    expect(queixaTipoLabel("muscular")).toBe("Muscular");
-    expect(queixaTipoLabel("articular")).toBe("Articular");
+describe("fisioterapiaTipoLabel", () => {
+  it("traduz as 6 categorias do relatório em papel", () => {
+    expect(fisioterapiaTipoLabel("muscular")).toBe("Muscular");
+    expect(fisioterapiaTipoLabel("articular")).toBe("Dor articular");
+    expect(fisioterapiaTipoLabel("tendinea_fascial")).toBe("Dor tendínea/fascial");
+    expect(fisioterapiaTipoLabel("ligamentar")).toBe("Lesão ligamentar");
+    expect(fisioterapiaTipoLabel("osseo")).toBe("Ósseo");
+    expect(fisioterapiaTipoLabel("trauma")).toBe("Trauma");
   });
 });
 

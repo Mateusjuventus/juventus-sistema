@@ -34,11 +34,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 14,
   },
-  colData: { width: "12%" },
-  colDataFim: { width: "12%" },
-  colDias: { width: "14%" },
-  colDescricaoLesao: { width: "34%" },
-  colObs: { width: "28%" },
+  colData: { width: "11%" },
+  colDataFim: { width: "11%" },
+  colDias: { width: "12%" },
+  colTipoLesao: { width: "16%" },
+  colDescricaoLesao: { width: "27%" },
+  colObs: { width: "23%" },
   colTipo: { width: "16%" },
   colDataQueixa: { width: "14%" },
   colDescricaoQueixa: { width: "70%" },
@@ -73,6 +74,7 @@ export interface FisioterapiaRelatorioLesao {
   dataFim: string | null;
   diasAfastados: number | null;
   descricao: string;
+  tipo: string;
   observacoes: string | null;
 }
 
@@ -168,6 +170,7 @@ export function FisioterapiaAtletaConteudo({
               <Text style={[styles.colData, sharedStyles.headerCell]}>Início</Text>
               <Text style={[styles.colDataFim, sharedStyles.headerCell]}>Fim</Text>
               <Text style={[styles.colDias, sharedStyles.headerCell]}>Dias afastado</Text>
+              <Text style={[styles.colTipoLesao, sharedStyles.headerCell]}>Tipo</Text>
               <Text style={[styles.colDescricaoLesao, sharedStyles.headerCell]}>Descrição</Text>
               <Text style={[styles.colObs, sharedStyles.headerCell]}>Observações</Text>
             </View>
@@ -178,6 +181,7 @@ export function FisioterapiaAtletaConteudo({
                   {!lesao.dataInicio ? "—" : lesao.dataFim ? formatDataBr(lesao.dataFim) : "Em andamento"}
                 </Text>
                 <Text style={[styles.colDias, styles.cell]}>{lesao.diasAfastados ?? "—"}</Text>
+                <Text style={[styles.colTipoLesao, styles.cell]}>{lesao.tipo}</Text>
                 <Text style={[styles.colDescricaoLesao, styles.cell]}>{lesao.descricao}</Text>
                 <Text style={[styles.colObs, styles.cell]}>{lesao.observacoes ?? "—"}</Text>
               </View>

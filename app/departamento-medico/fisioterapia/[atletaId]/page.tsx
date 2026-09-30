@@ -5,7 +5,7 @@ import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getFisioterapiaPodeEditar } from "@/lib/auth/role";
-import { diasAfastados, queixaTipoLabel } from "@/lib/futebol/fisioterapia";
+import { diasAfastados, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type {
@@ -15,7 +15,14 @@ import type {
   FisioterapiaLesaoRow,
   FisioterapiaQueixaRow,
 } from "@/lib/supabase/types";
-import { EncerrarLesaoForm, NovaLesaoForm, NovaQueixaForm, NovoAtendimentoForm } from "./fisioterapia-forms";
+import {
+  EditarTipoLesaoForm,
+  EditarTipoQueixaForm,
+  EncerrarLesaoForm,
+  NovaLesaoForm,
+  NovaQueixaForm,
+  NovoAtendimentoForm,
+} from "./fisioterapia-forms";
 
 /**
  * Ficha do atleta na sub-área Fisioterapia — três seções cronológicas (Lesões, Queixas,
@@ -125,6 +132,7 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
                 return (
                   <li key={lesao.id} className="border-t border-neutral-100 pt-2">
                     <p className="text-sm font-medium text-neutral-800">{lesao.descricao}</p>
+                    <p className="mt-0.5 text-xs font-semibold text-grena">{fisioterapiaTipoLabel(lesao.tipo)}</p>
                     {lesao.data_inicio ? (
                       <p className="text-xs text-neutral-500">
                         {formatDataBr(lesao.data_inicio)} até {lesao.data_fim ? formatDataBr(lesao.data_fim) : "hoje"} ·{" "}
@@ -139,6 +147,9 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
                       </span>
                     ) : null}
                     {lesao.observacoes ? <p className="mt-1 text-xs text-neutral-500">{lesao.observacoes}</p> : null}
+                    {podeEditar ? (
+                      <EditarTipoLesaoForm atletaId={atleta.id} lesaoId={lesao.id} tipoAtual={lesao.tipo} />
+                    ) : null}
                     {podeEditar && lesao.data_inicio && !lesao.data_fim ? (
                       <EncerrarLesaoForm atletaId={atleta.id} lesaoId={lesao.id} dataInicio={lesao.data_inicio} />
                     ) : null}
@@ -159,10 +170,13 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
               {queixas.map((queixa) => (
                 <li key={queixa.id} className="border-t border-neutral-100 pt-2">
                   <p className="text-sm font-medium text-neutral-800">
-                    {queixaTipoLabel(queixa.tipo)} ·{" "}
+                    {fisioterapiaTipoLabel(queixa.tipo)} ·{" "}
                     {queixa.data ? formatDataBr(queixa.data) : "histórico, sem data exata"}
                   </p>
                   <p className="text-xs text-neutral-500">{queixa.descricao}</p>
+                  {podeEditar ? (
+                    <EditarTipoQueixaForm atletaId={atleta.id} queixaId={queixa.id} tipoAtual={queixa.tipo} />
+                  ) : null}
                 </li>
               ))}
             </ul>
