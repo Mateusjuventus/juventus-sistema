@@ -2056,12 +2056,14 @@ export type FisioterapiaQueixaTipo = "muscular" | "articular";
 
 /** Uma lesão formal, com afastamento. "Dias afastados" nunca é gravado — sempre calculado a partir
  * de `data_inicio`/`data_fim` (ver `lib/futebol/fisioterapia.ts`). `data_fim` vazio = lesão ainda
- * ativa (e é o que decide `atletas.status`, ver a mesma lib). */
+ * ativa (e é o que decide `atletas.status`, ver a mesma lib). `data_inicio` nulo só ocorre em
+ * registros trazidos do histórico importado (relatório em papel, sem data exata) — a tela nunca
+ * deixa lançar uma lesão nova sem data. */
 export interface FisioterapiaLesaoRow {
   id: string;
   atleta_id: string;
   descricao: string;
-  data_inicio: string;
+  data_inicio: string | null;
   data_fim: string | null;
   observacoes: string | null;
   created_by: string | null;
@@ -2069,25 +2071,29 @@ export interface FisioterapiaLesaoRow {
   updated_at: string;
 }
 
-/** Queixa pontual (muscular/articular), sem afastamento — mais leve que uma lesão formal. */
+/** Queixa pontual (muscular/articular), sem afastamento — mais leve que uma lesão formal. `data`
+ * nula só ocorre em registros trazidos do histórico importado (ver `FisioterapiaLesaoRow`). */
 export interface FisioterapiaQueixaRow {
   id: string;
   atleta_id: string;
   tipo: FisioterapiaQueixaTipo;
-  data: string;
+  data: string | null;
   descricao: string;
   created_by: string | null;
   created_at: string;
 }
 
 /** Uma sessão de fisioterapia — solta (ex.: sessão preventiva) ou ligada a uma lesão em andamento
- * via `lesao_id`. */
+ * via `lesao_id`. `data` nula só ocorre em registros trazidos do histórico importado (ver
+ * `FisioterapiaLesaoRow`); nesse caso `quantidade` guarda quantos atendimentos aquele registro
+ * único representa (ex.: 57) — nulo em qualquer atendimento normal, lançado pela tela, que vale 1. */
 export interface FisioterapiaAtendimentoRow {
   id: string;
   atleta_id: string;
   lesao_id: string | null;
-  data: string;
+  data: string | null;
   descricao: string;
+  quantidade: number | null;
   created_by: string | null;
   created_at: string;
 }

@@ -34,8 +34,11 @@ export function queixaTipoLabel(tipo: FisioterapiaQueixaTipo): string {
  * raciocínio de `calcularIdade` em `app/atletas/page.tsx`: computado no código, não guardado
  * desatualizável). `hojeStr` é sempre "YYYY-MM-DD" (ver `hojeBrasilia()`), igual `dataInicio`/
  * `dataFim` — comparação em texto ISO, sem depender do fuso horário de onde o código roda.
+ * `dataInicio` nula (registro vindo do histórico importado, sem data exata) devolve `null` — nunca
+ * inventa uma contagem a partir de uma data que não existe.
  */
-export function diasAfastados(dataInicio: string, dataFim: string | null, hojeStr: string): number {
+export function diasAfastados(dataInicio: string | null, dataFim: string | null, hojeStr: string): number | null {
+  if (!dataInicio) return null;
   const fim = dataFim ?? hojeStr;
   const inicio = new Date(`${dataInicio}T00:00:00Z`).getTime();
   const fimMs = new Date(`${fim}T00:00:00Z`).getTime();
@@ -76,26 +79,36 @@ export function montarResumoGeralFisioterapia(
   atletas: { id: string; nome: string }[],
   lesoes: Pick<FisioterapiaLesaoRow, "atleta_id" | "data_inicio" | "data_fim">[],
   queixas: Pick<FisioterapiaQueixaRow, "atleta_id" | "data">[],
-  atendimentos: Pick<FisioterapiaAtendimentoRow, "atleta_id">[],
+  atendimentos: Pick<FisioterapiaAtendimentoRow, "atleta_id" | "quantidade">[],
   hojeStr: string,
 ): FisioterapiaResumoLinha[] {
   const linhas: FisioterapiaResumoLinha[] = [];
 
   for (const atleta of atletas) {
     const lesoesDoAtleta = lesoes.filter((l) => l.atleta_id === atleta.id);
-    const queixasDoAtleta = queixas.filter((q) => q.atleta_id === atleta.id);
+    const queixasComData = queixas.filter((q) => q.atleta_id === atleta.id && q.data !== null) as {
+      atleta_id: string;
+      data: string;
+    }[];
     const atendimentosDoAtleta = atendimentos.filter((a) => a.atleta_id === atleta.id);
+    const queixasDoAtleta = queixas.filter((q) => q.atleta_id === atleta.id);
     if (lesoesDoAtleta.length === 0 && queixasDoAtleta.length === 0 && atendimentosDoAtleta.length === 0) continue;
 
     const emTratamento = lesoesDoAtleta.some((l) => !l.data_fim);
+    // Registros do histórico importado (sem data_inicio) não entram na soma — não dá pra contar
+    // dias afastados sem data, e inventar um valor seria pior do que não somar.
     const totalDiasAfastados = lesoesDoAtleta.reduce(
-      (soma, l) => soma + diasAfastados(l.data_inicio, l.data_fim, hojeStr),
+      (soma, l) => soma + (diasAfastados(l.data_inicio, l.data_fim, hojeStr) ?? 0),
       0,
     );
     const ultimaQueixaData =
-      queixasDoAtleta.length > 0
-        ? queixasDoAtleta.reduce((maisRecente, q) => (q.data > maisRecente ? q.data : maisRecente), queixasDoAtleta[0].data)
+      queixasComData.length > 0
+        ? queixasComData.reduce((maisRecente, q) => (q.data > maisRecente ? q.data : maisRecente), queixasComData[0].data)
         : null;
+    // `quantidade` cobre o registro único importado do histórico (ex.: "57 atendimentos" viram 1
+    // registro com quantidade 57, não 57 linhas) — qualquer atendimento lançado pela tela vale 1
+    // (quantidade nula).
+    const totalAtendimentos = atendimentosDoAtleta.reduce((soma, a) => soma + (a.quantidade ?? 1), 0);
 
     linhas.push({
       atletaId: atleta.id,
@@ -103,7 +116,7 @@ export function montarResumoGeralFisioterapia(
       emTratamento,
       totalDiasAfastados,
       ultimaQueixaData,
-      totalAtendimentos: atendimentosDoAtleta.length,
+      totalAtendimentos,
     });
   }
 

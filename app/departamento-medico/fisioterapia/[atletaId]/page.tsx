@@ -38,17 +38,17 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
       .from("fisioterapia_lesoes")
       .select("*")
       .eq("atleta_id", params.atletaId)
-      .order("data_inicio", { ascending: false }),
+      .order("data_inicio", { ascending: false, nullsFirst: false }),
     supabase
       .from("fisioterapia_queixas")
       .select("*")
       .eq("atleta_id", params.atletaId)
-      .order("data", { ascending: false }),
+      .order("data", { ascending: false, nullsFirst: false }),
     supabase
       .from("fisioterapia_atendimentos")
       .select("*")
       .eq("atleta_id", params.atletaId)
-      .order("data", { ascending: false }),
+      .order("data", { ascending: false, nullsFirst: false }),
     supabase
       .from("fisioterapia_historico_importado")
       .select("*")
@@ -117,25 +117,31 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
             <p className="mt-2 text-sm text-neutral-400">Nenhuma lesão registrada.</p>
           ) : (
             <ul className="mt-2 space-y-3">
-              {lesoes.map((lesao) => (
-                <li key={lesao.id} className="border-t border-neutral-100 pt-2">
-                  <p className="text-sm font-medium text-neutral-800">{lesao.descricao}</p>
-                  <p className="text-xs text-neutral-500">
-                    {formatDataBr(lesao.data_inicio)} até {lesao.data_fim ? formatDataBr(lesao.data_fim) : "hoje"} ·{" "}
-                    {diasAfastados(lesao.data_inicio, lesao.data_fim, hojeStr)} dia
-                    {diasAfastados(lesao.data_inicio, lesao.data_fim, hojeStr) === 1 ? "" : "s"} afastado
-                  </p>
-                  {!lesao.data_fim ? (
-                    <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                      Em andamento
-                    </span>
-                  ) : null}
-                  {lesao.observacoes ? <p className="mt-1 text-xs text-neutral-500">{lesao.observacoes}</p> : null}
-                  {podeEditar && !lesao.data_fim ? (
-                    <EncerrarLesaoForm atletaId={atleta.id} lesaoId={lesao.id} dataInicio={lesao.data_inicio} />
-                  ) : null}
-                </li>
-              ))}
+              {lesoes.map((lesao) => {
+                const dias = diasAfastados(lesao.data_inicio, lesao.data_fim, hojeStr);
+                return (
+                  <li key={lesao.id} className="border-t border-neutral-100 pt-2">
+                    <p className="text-sm font-medium text-neutral-800">{lesao.descricao}</p>
+                    {lesao.data_inicio ? (
+                      <p className="text-xs text-neutral-500">
+                        {formatDataBr(lesao.data_inicio)} até {lesao.data_fim ? formatDataBr(lesao.data_fim) : "hoje"} ·{" "}
+                        {dias} dia{dias === 1 ? "" : "s"} afastado
+                      </p>
+                    ) : (
+                      <p className="text-xs text-neutral-400">Histórico anterior ao sistema — sem data exata.</p>
+                    )}
+                    {lesao.data_inicio && !lesao.data_fim ? (
+                      <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                        Em andamento
+                      </span>
+                    ) : null}
+                    {lesao.observacoes ? <p className="mt-1 text-xs text-neutral-500">{lesao.observacoes}</p> : null}
+                    {podeEditar && lesao.data_inicio && !lesao.data_fim ? (
+                      <EncerrarLesaoForm atletaId={atleta.id} lesaoId={lesao.id} dataInicio={lesao.data_inicio} />
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           )}
           {podeEditar ? <NovaLesaoForm atletaId={atleta.id} /> : null}
@@ -150,7 +156,8 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
               {queixas.map((queixa) => (
                 <li key={queixa.id} className="border-t border-neutral-100 pt-2">
                   <p className="text-sm font-medium text-neutral-800">
-                    {queixaTipoLabel(queixa.tipo)} · {formatDataBr(queixa.data)}
+                    {queixaTipoLabel(queixa.tipo)} ·{" "}
+                    {queixa.data ? formatDataBr(queixa.data) : "histórico, sem data exata"}
                   </p>
                   <p className="text-xs text-neutral-500">{queixa.descricao}</p>
                 </li>
@@ -170,7 +177,9 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
                 const lesaoVinculada = atendimento.lesao_id ? lesaoPorId.get(atendimento.lesao_id) : null;
                 return (
                   <li key={atendimento.id} className="border-t border-neutral-100 pt-2">
-                    <p className="text-sm font-medium text-neutral-800">{formatDataBr(atendimento.data)}</p>
+                    <p className="text-sm font-medium text-neutral-800">
+                      {atendimento.data ? formatDataBr(atendimento.data) : "Histórico, sem data exata"}
+                    </p>
                     <p className="text-xs text-neutral-500">{atendimento.descricao}</p>
                     {lesaoVinculada ? (
                       <p className="mt-0.5 text-xs text-neutral-400">Ligado à lesão: {lesaoVinculada.descricao}</p>

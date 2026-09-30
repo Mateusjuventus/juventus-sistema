@@ -69,21 +69,21 @@ export interface FisioterapiaRelatorioHistoricoItem {
 }
 
 export interface FisioterapiaRelatorioLesao {
-  dataInicio: string;
+  dataInicio: string | null;
   dataFim: string | null;
-  diasAfastados: number;
+  diasAfastados: number | null;
   descricao: string;
   observacoes: string | null;
 }
 
 export interface FisioterapiaRelatorioQueixa {
-  data: string;
+  data: string | null;
   tipo: string;
   descricao: string;
 }
 
 export interface FisioterapiaRelatorioAtendimento {
-  data: string;
+  data: string | null;
   descricao: string;
   lesaoDescricao: string | null;
 }
@@ -174,8 +174,10 @@ export function FisioterapiaAtletaConteudo({
             {lesoes.map((lesao, i) => (
               <View style={sharedStyles.tableRow} key={i} wrap={false}>
                 <Text style={[styles.colData, styles.cell]}>{formatDataBr(lesao.dataInicio)}</Text>
-                <Text style={[styles.colDataFim, styles.cell]}>{lesao.dataFim ? formatDataBr(lesao.dataFim) : "Em andamento"}</Text>
-                <Text style={[styles.colDias, styles.cell]}>{lesao.diasAfastados}</Text>
+                <Text style={[styles.colDataFim, styles.cell]}>
+                  {!lesao.dataInicio ? "—" : lesao.dataFim ? formatDataBr(lesao.dataFim) : "Em andamento"}
+                </Text>
+                <Text style={[styles.colDias, styles.cell]}>{lesao.diasAfastados ?? "—"}</Text>
                 <Text style={[styles.colDescricaoLesao, styles.cell]}>{lesao.descricao}</Text>
                 <Text style={[styles.colObs, styles.cell]}>{lesao.observacoes ?? "—"}</Text>
               </View>

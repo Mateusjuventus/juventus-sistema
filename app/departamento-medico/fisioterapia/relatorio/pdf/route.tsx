@@ -32,7 +32,7 @@ export async function GET() {
     supabase.from("atletas").select("id, nome_completo, apelido"),
     supabase.from("fisioterapia_lesoes").select("atleta_id, data_inicio, data_fim"),
     supabase.from("fisioterapia_queixas").select("atleta_id, data"),
-    supabase.from("fisioterapia_atendimentos").select("atleta_id"),
+    supabase.from("fisioterapia_atendimentos").select("atleta_id, quantidade"),
     supabase.from("fisioterapia_historico_importado").select("*").is("atleta_id", null).order("created_at", { ascending: true }),
   ]);
 
@@ -43,7 +43,7 @@ export async function GET() {
     atletas.map((a) => ({ id: a.id, nome: nomeExibido({ apelido: a.apelido, nome_completo: a.nome_completo }) })),
     (lesoesData ?? []) as Pick<FisioterapiaLesaoRow, "atleta_id" | "data_inicio" | "data_fim">[],
     (queixasData ?? []) as Pick<FisioterapiaQueixaRow, "atleta_id" | "data">[],
-    (atendimentosData ?? []) as Pick<FisioterapiaAtendimentoRow, "atleta_id">[],
+    (atendimentosData ?? []) as Pick<FisioterapiaAtendimentoRow, "atleta_id" | "quantidade">[],
     hojeBrasilia(),
   );
 
