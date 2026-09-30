@@ -25,7 +25,11 @@ export default async function FisioterapiaListagemPage() {
       .select("*")
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
-    supabase.from("fisioterapia_lesoes").select("atleta_id").is("data_fim", null),
+    // `.not("data_inicio", "is", null)`: uma lesão do histórico importado (sem data, ver migração
+    // 0115) também tem `data_fim` nulo, mas não é uma lesão ATIVA agora — sem esse filtro, todo
+    // atleta com histórico importado ficava marcado como "em tratamento" (borda vermelha) por
+    // engano.
+    supabase.from("fisioterapia_lesoes").select("atleta_id").is("data_fim", null).not("data_inicio", "is", null),
     getFisioterapiaPodeEditar(supabase),
   ]);
 

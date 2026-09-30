@@ -94,7 +94,9 @@ export function montarResumoGeralFisioterapia(
     const queixasDoAtleta = queixas.filter((q) => q.atleta_id === atleta.id);
     if (lesoesDoAtleta.length === 0 && queixasDoAtleta.length === 0 && atendimentosDoAtleta.length === 0) continue;
 
-    const emTratamento = lesoesDoAtleta.some((l) => !l.data_fim);
+    // Uma lesão do histórico importado (sem data_inicio, ver migração 0115) também tem data_fim
+    // nula, mas não conta como "em tratamento" agora — só lesões com data_inicio real e sem fim.
+    const emTratamento = lesoesDoAtleta.some((l) => l.data_inicio && !l.data_fim);
     // Registros do histórico importado (sem data_inicio) não entram na soma — não dá pra contar
     // dias afastados sem data, e inventar um valor seria pior do que não somar.
     const totalDiasAfastados = lesoesDoAtleta.reduce(

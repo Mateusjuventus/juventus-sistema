@@ -20,11 +20,16 @@ async function sincronizarStatusAtleta(
   supabase: ReturnType<typeof createClient>,
   atletaId: string,
 ): Promise<void> {
+  // `.not("data_inicio", "is", null)`: uma lesão do histórico importado (sem data, ver migração
+  // 0115) também tem `data_fim` nula, mas não é uma lesão ativa agora — sem esse filtro, encerrar
+  // a última lesão de verdade de um atleta com histórico importado não voltaria o status pra
+  // "Apto".
   const { count } = await supabase
     .from("fisioterapia_lesoes")
     .select("*", { count: "exact", head: true })
     .eq("atleta_id", atletaId)
-    .is("data_fim", null);
+    .is("data_fim", null)
+    .not("data_inicio", "is", null);
 
   const status = statusFisioterapiaAtleta((count ?? 0) > 0);
   await supabase.from("atletas").update({ status }).eq("id", atletaId);

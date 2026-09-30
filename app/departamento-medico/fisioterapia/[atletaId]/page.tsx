@@ -64,7 +64,10 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
   const queixas = (queixasData ?? []) as FisioterapiaQueixaRow[];
   const atendimentos = (atendimentosData ?? []) as FisioterapiaAtendimentoRow[];
   const historico = (historicoData ?? []) as FisioterapiaHistoricoImportadoRow[];
-  const lesoesAtivas = lesoes.filter((l) => !l.data_fim);
+  // `l.data_inicio &&`: uma lesão do histórico importado (sem data, ver migração 0115) também tem
+  // `data_fim` nula, mas não é uma lesão ativa agora — não faz sentido oferecer ela no "ligar a uma
+  // lesão em andamento" do formulário de atendimento.
+  const lesoesAtivas = lesoes.filter((l) => l.data_inicio && !l.data_fim);
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const hojeStr = hojeBrasilia();

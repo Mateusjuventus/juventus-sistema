@@ -39,7 +39,11 @@ export function FisioterapiaListagem({ atletas }: { atletas: FisioterapiaAtletaI
           {atletas.length === 0 ? "Nenhum atleta ativo cadastrado no Profissional ainda." : "Nenhum atleta encontrado com esse nome."}
         </p>
       ) : (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        // Mesma grade compacta já usada na listagem principal de Atletas
+        // (`components/atletas/atletas-resumo-filtros.tsx`) — cards menores, preenchendo a linha
+        // conforme cabe, em vez da grade de 2-a-6 colunas fixas que deixava cada card grande
+        // demais (pedido do Mateus em 2026-09-30).
+        <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
           {atletasFiltrados.map((atleta) => (
             <AtletaCard
               key={atleta.id}
