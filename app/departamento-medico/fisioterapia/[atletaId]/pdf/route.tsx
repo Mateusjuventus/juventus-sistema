@@ -9,7 +9,13 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { diasAfastados, queixaTipoLabel } from "@/lib/futebol/fisioterapia";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { FisioterapiaAtletaDocument } from "@/lib/pdf/fisioterapia-atleta-document";
-import type { AtletaRow, FisioterapiaAtendimentoRow, FisioterapiaLesaoRow, FisioterapiaQueixaRow } from "@/lib/supabase/types";
+import type {
+  AtletaRow,
+  FisioterapiaAtendimentoRow,
+  FisioterapiaHistoricoImportadoRow,
+  FisioterapiaLesaoRow,
+  FisioterapiaQueixaRow,
+} from "@/lib/supabase/types";
 
 /** Rota do PDF individual de Fisioterapia — mesmo molde de `.../dispensa/pdf/route.tsx`: busca os
  * dados, monta o buffer, devolve `application/pdf`. Nenhum arquivo é guardado — o PDF é sempre
@@ -21,23 +27,30 @@ export async function GET(_request: Request, { params }: { params: { atletaId: s
   if (!atletaData) return new NextResponse("Atleta não encontrado.", { status: 404 });
   const atleta = atletaData as AtletaRow;
 
-  const [{ data: lesoesData }, { data: queixasData }, { data: atendimentosData }] = await Promise.all([
-    supabase
-      .from("fisioterapia_lesoes")
-      .select("*")
-      .eq("atleta_id", atleta.id)
-      .order("data_inicio", { ascending: false }),
-    supabase.from("fisioterapia_queixas").select("*").eq("atleta_id", atleta.id).order("data", { ascending: false }),
-    supabase
-      .from("fisioterapia_atendimentos")
-      .select("*")
-      .eq("atleta_id", atleta.id)
-      .order("data", { ascending: false }),
-  ]);
+  const [{ data: lesoesData }, { data: queixasData }, { data: atendimentosData }, { data: historicoData }] =
+    await Promise.all([
+      supabase
+        .from("fisioterapia_lesoes")
+        .select("*")
+        .eq("atleta_id", atleta.id)
+        .order("data_inicio", { ascending: false }),
+      supabase.from("fisioterapia_queixas").select("*").eq("atleta_id", atleta.id).order("data", { ascending: false }),
+      supabase
+        .from("fisioterapia_atendimentos")
+        .select("*")
+        .eq("atleta_id", atleta.id)
+        .order("data", { ascending: false }),
+      supabase
+        .from("fisioterapia_historico_importado")
+        .select("*")
+        .eq("atleta_id", atleta.id)
+        .order("created_at", { ascending: true }),
+    ]);
 
   const lesoes = (lesoesData ?? []) as FisioterapiaLesaoRow[];
   const queixas = (queixasData ?? []) as FisioterapiaQueixaRow[];
   const atendimentos = (atendimentosData ?? []) as FisioterapiaAtendimentoRow[];
+  const historico = (historicoData ?? []) as FisioterapiaHistoricoImportadoRow[];
   const lesaoPorId = new Map(lesoes.map((l) => [l.id, l]));
   const hojeStr = hojeBrasilia();
 
@@ -55,6 +68,7 @@ export async function GET(_request: Request, { params }: { params: { atletaId: s
         dataNascimento: atleta.data_nascimento,
         posicao: atleta.posicao,
       }}
+      historico={historico.map((h) => ({ titulo: h.titulo, resumo: h.resumo }))}
       lesoes={lesoes.map((l) => ({
         dataInicio: l.data_inicio,
         dataFim: l.data_fim,

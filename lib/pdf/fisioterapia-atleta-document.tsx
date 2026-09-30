@@ -46,7 +46,27 @@ const styles = StyleSheet.create({
   colDescricaoAtend: { width: "56%" },
   colLesaoLigada: { width: "30%" },
   cell: { fontSize: 8, color: "#262626" },
+  historicoBox: {
+    borderWidth: 0.75,
+    borderStyle: "dashed",
+    borderColor: "#d4d4d4",
+    backgroundColor: "#fafafa",
+    padding: 8,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  historicoLabel: { fontSize: 9, fontWeight: 700, color: "#737373", textTransform: "uppercase", letterSpacing: 0.5 },
+  historicoNota: { fontSize: 7.5, color: "#a3a3a3", marginTop: 2 },
+  historicoItem: { marginTop: 8 },
+  historicoItemComDivisor: { marginTop: 8, borderTopWidth: 0.5, borderTopColor: "#e5e5e5", paddingTop: 8 },
+  historicoTitulo: { fontSize: 8.5, fontWeight: 700, color: "#404040" },
+  historicoResumo: { fontSize: 8, color: "#525252", marginTop: 2, lineHeight: 1.4 },
 });
+
+export interface FisioterapiaRelatorioHistoricoItem {
+  titulo: string;
+  resumo: string;
+}
 
 export interface FisioterapiaRelatorioLesao {
   dataInicio: string;
@@ -79,6 +99,7 @@ export function FisioterapiaAtletaDocument({
   juventusLogoSrc,
   fotoSrc,
   atleta,
+  historico,
   lesoes,
   queixas,
   atendimentos,
@@ -87,6 +108,7 @@ export function FisioterapiaAtletaDocument({
   juventusLogoSrc: LogoSrc;
   fotoSrc: LogoSrc;
   atleta: FisioterapiaRelatorioAtleta;
+  historico: FisioterapiaRelatorioHistoricoItem[];
   lesoes: FisioterapiaRelatorioLesao[];
   queixas: FisioterapiaRelatorioQueixa[];
   atendimentos: FisioterapiaRelatorioAtendimento[];
@@ -116,6 +138,21 @@ export function FisioterapiaAtletaDocument({
         </View>
 
         <Text style={styles.tituloTexto}>Relatório de Fisioterapia</Text>
+
+        {historico.length > 0 ? (
+          <View style={styles.historicoBox} wrap={false}>
+            <Text style={styles.historicoLabel}>Histórico anterior ao sistema</Text>
+            <Text style={styles.historicoNota}>
+              Importado do relatório em papel do departamento — sem data exata de cada evento, só como referência.
+            </Text>
+            {historico.map((item, i) => (
+              <View style={i === 0 ? styles.historicoItem : styles.historicoItemComDivisor} key={i}>
+                <Text style={styles.historicoTitulo}>{item.titulo}</Text>
+                <Text style={styles.historicoResumo}>{item.resumo}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <Text style={sharedStyles.sectionTitulo}>Lesões</Text>
         {lesoes.length === 0 ? (

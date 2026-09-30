@@ -28,6 +28,20 @@ const styles = StyleSheet.create({
   cell: { fontSize: 8, color: "#262626" },
   cellNome: { fontSize: 8.5, fontWeight: 700, color: "#1f1f1f" },
   emTratamentoTag: { fontSize: 7.5, fontWeight: 700, color: "#b91c1c" },
+  historicoBox: {
+    borderWidth: 0.75,
+    borderStyle: "dashed",
+    borderColor: "#d4d4d4",
+    backgroundColor: "#fafafa",
+    padding: 8,
+    marginBottom: 14,
+  },
+  historicoLabel: { fontSize: 9, fontWeight: 700, color: "#737373", textTransform: "uppercase", letterSpacing: 0.5 },
+  historicoNota: { fontSize: 7.5, color: "#a3a3a3", marginTop: 2 },
+  historicoItem: { marginTop: 8 },
+  historicoItemComDivisor: { marginTop: 8, borderTopWidth: 0.5, borderTopColor: "#e5e5e5", paddingTop: 8 },
+  historicoTitulo: { fontSize: 8.5, fontWeight: 700, color: "#404040" },
+  historicoResumo: { fontSize: 8, color: "#525252", marginTop: 2, lineHeight: 1.4 },
 });
 
 export interface FisioterapiaRelatorioGeralLinha {
@@ -38,12 +52,19 @@ export interface FisioterapiaRelatorioGeralLinha {
   totalAtendimentos: number;
 }
 
+export interface FisioterapiaRelatorioHistoricoItem {
+  titulo: string;
+  resumo: string;
+}
+
 export function FisioterapiaRelatorioGeralDocument({
   juventusLogoSrc,
+  historicoGeral,
   linhas,
   geradoEm,
 }: {
   juventusLogoSrc: LogoSrc;
+  historicoGeral: FisioterapiaRelatorioHistoricoItem[];
   linhas: FisioterapiaRelatorioGeralLinha[];
   geradoEm: Date;
 }) {
@@ -56,6 +77,21 @@ export function FisioterapiaRelatorioGeralDocument({
         ) : null}
         <Text style={styles.titulo}>Relatório Geral de Fisioterapia</Text>
         <Text style={styles.subtitulo}>Futebol Profissional</Text>
+
+        {historicoGeral.length > 0 ? (
+          <View style={styles.historicoBox} wrap={false}>
+            <Text style={styles.historicoLabel}>Histórico anterior ao sistema</Text>
+            <Text style={styles.historicoNota}>
+              Importado do relatório em papel do departamento — sem data exata de cada evento, só como referência.
+            </Text>
+            {historicoGeral.map((item, i) => (
+              <View style={i === 0 ? styles.historicoItem : styles.historicoItemComDivisor} key={i}>
+                <Text style={styles.historicoTitulo}>{item.titulo}</Text>
+                <Text style={styles.historicoResumo}>{item.resumo}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {linhas.length === 0 ? (
           <Text style={sharedStyles.emptyState}>Nenhum atleta com registro de Fisioterapia ainda.</Text>

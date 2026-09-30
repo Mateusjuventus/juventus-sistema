@@ -12,6 +12,7 @@ import { FisioterapiaRelatorioGeralDocument } from "@/lib/pdf/fisioterapia-relat
 import type {
   AtletaRow,
   FisioterapiaAtendimentoRow,
+  FisioterapiaHistoricoImportadoRow,
   FisioterapiaLesaoRow,
   FisioterapiaQueixaRow,
 } from "@/lib/supabase/types";
@@ -21,13 +22,21 @@ import type {
 export async function GET() {
   const supabase = createClient();
 
-  const [{ data: atletasData }, { data: lesoesData }, { data: queixasData }, { data: atendimentosData }] =
-    await Promise.all([
-      supabase.from("atletas").select("id, nome_completo, apelido"),
-      supabase.from("fisioterapia_lesoes").select("atleta_id, data_inicio, data_fim"),
-      supabase.from("fisioterapia_queixas").select("atleta_id, data"),
-      supabase.from("fisioterapia_atendimentos").select("atleta_id"),
-    ]);
+  const [
+    { data: atletasData },
+    { data: lesoesData },
+    { data: queixasData },
+    { data: atendimentosData },
+    { data: historicoGeralData },
+  ] = await Promise.all([
+    supabase.from("atletas").select("id, nome_completo, apelido"),
+    supabase.from("fisioterapia_lesoes").select("atleta_id, data_inicio, data_fim"),
+    supabase.from("fisioterapia_queixas").select("atleta_id, data"),
+    supabase.from("fisioterapia_atendimentos").select("atleta_id"),
+    supabase.from("fisioterapia_historico_importado").select("*").is("atleta_id", null).order("created_at", { ascending: true }),
+  ]);
+
+  const historicoGeral = (historicoGeralData ?? []) as FisioterapiaHistoricoImportadoRow[];
 
   const atletas = (atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "apelido">[];
   const linhas = montarResumoGeralFisioterapia(
@@ -44,6 +53,7 @@ export async function GET() {
   const buffer = await renderToBuffer(
     <FisioterapiaRelatorioGeralDocument
       juventusLogoSrc={juventusLogoSrc}
+      historicoGeral={historicoGeral.map((h) => ({ titulo: h.titulo, resumo: h.resumo }))}
       linhas={linhas.map((l) => ({
         nome: l.nome,
         emTratamento: l.emTratamento,
