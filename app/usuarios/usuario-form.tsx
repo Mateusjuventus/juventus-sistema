@@ -176,6 +176,25 @@ export function UsuarioForm({
                   </div>
                 ) : null}
 
+                {modulosMarcados.includes("departamento_medico") ? (
+                  <div className="ml-4 border-l-2 border-neutral-100 pl-4">
+                    <p className="field-label">Departamento Médico</p>
+                    <p className="-mt-0.5 text-xs text-neutral-400">
+                      Sem marcar, essa pessoa só visualiza os registros de Fisioterapia — não
+                      aparecem os botões de lançar lesão, queixa ou atendimento.
+                    </p>
+                    <label className="mt-1 flex items-center gap-2 text-sm text-neutral-700">
+                      <input
+                        type="checkbox"
+                        name="fisioterapiaPodeEditar"
+                        value="sim"
+                        className={CHECKBOX_CLASS}
+                      />
+                      Pode inserir e editar registros de Fisioterapia (é o fisioterapeuta)
+                    </label>
+                  </div>
+                ) : null}
+
                 {modulosMarcados.includes("estoque") ? (
                   <div className="ml-4 border-l-2 border-neutral-100 pl-4">
                     <p className="field-label">Estoque: ramificações liberadas</p>

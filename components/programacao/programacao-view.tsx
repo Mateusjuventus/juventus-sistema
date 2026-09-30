@@ -147,14 +147,6 @@ export function ProgramacaoView({
           >
             Exportar PDF
           </a>
-          <a
-            href={`/programacao/${categoriaAtiva}/exportar/jpg?semana=${inicioSemana}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-          >
-            Exportar JPG
-          </a>
           {permitirProgramacaoGeral ? (
             <a
               href={`/programacao/geral/exportar/pdf?semana=${inicioSemana}`}

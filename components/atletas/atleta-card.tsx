@@ -51,6 +51,7 @@ export function AtletaCard({
   hoje = new Date(),
   mostrarCpf = true,
   mostrarContrato = true,
+  corBordaExtra,
 }: {
   atleta: AtletaCardDados;
   href: string;
@@ -62,6 +63,11 @@ export function AtletaCard({
    * sem passar essas props. */
   mostrarCpf?: boolean;
   mostrarContrato?: boolean;
+  /** Sobrescreve a borda de classificação (G1/G2/G3, só existe na Base) — usado por telas fora
+   * desse contexto que precisam de um indicador próprio de borda, ex.: "em tratamento" na
+   * Fisioterapia (Departamento Médico, ver docs/superpowers/specs/2026-09-30-fisioterapia-
+   * design.md). Quando presente, tem prioridade sobre `anelClassificacaoAtleta`. */
+  corBordaExtra?: string;
 }) {
   const sigla = siglaCategoriaPosicao(categoriaDaPosicao(atleta.posicao));
   const inativo = atleta.ativo === false;
@@ -86,7 +92,7 @@ export function AtletaCard({
       // pra ver de longe quem está de fora da operação normal.
       className={`flex flex-col overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
         inativo ? "grayscale opacity-70" : ""
-      } ${anelClassificacaoAtleta(atleta.classificacao)}`}
+      } ${corBordaExtra ?? anelClassificacaoAtleta(atleta.classificacao)}`}
     >
       <div className="relative">
         <AtletaAvatarBloco

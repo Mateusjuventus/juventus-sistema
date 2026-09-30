@@ -51,6 +51,16 @@ function parseComissaoTecnicaBaseId(formData: FormData): string | null {
   return id || null;
 }
 
+/** Checkbox único "Pode inserir e editar registros de Fisioterapia" (sub-área do módulo
+ * Departamento Médico) — ver docs/superpowers/specs/2026-09-30-fisioterapia-design.md. Vale pra
+ * qualquer papel "regular" (só faz sentido de fato pra quem tem o módulo liberado, mas gravar sem
+ * essa checagem aqui não causa problema — `getFisioterapiaPodeEditar` já ignora isso pra quem não
+ * tem "departamento_medico" em `modulos_permitidos`). "Master" nunca precisa disso (já pode editar
+ * sempre, independente da coluna). */
+function parseFisioterapiaPodeEditar(formData: FormData): boolean {
+  return formData.getAll("fisioterapiaPodeEditar").includes("sim");
+}
+
 /** Categorias do Futebol de Base marcadas manualmente — só é lida de verdade quando NÃO há vínculo
  * com a Comissão Técnica da Base (o vínculo, quando existe, sempre tem prioridade em
  * `getCategoriasBasePermitidas`). Vale pra qualquer papel (diferente de `categoriasTreinador`, que
@@ -129,6 +139,7 @@ export async function criarUsuario(
   const categoriasBasePermitidas = comissaoTecnicaBaseId
     ? TODAS_CATEGORIAS_BASE
     : parseCategoriasBasePermitidas(formData);
+  const fisioterapiaPodeEditar = parseFisioterapiaPodeEditar(formData);
   const raw = { email, role };
 
   const fieldErrors: Record<string, string> = {};
@@ -163,6 +174,7 @@ export async function criarUsuario(
     comissao_tecnica_id: comissaoTecnicaId,
     comissao_tecnica_base_id: comissaoTecnicaBaseId,
     categorias_base_permitidas: categoriasBasePermitidas,
+    fisioterapia_pode_editar: fisioterapiaPodeEditar,
   });
   if (perfilError) {
     return {
@@ -347,6 +359,31 @@ export async function atualizarEstoqueCategorias(
 
   revalidatePath("/usuarios");
   return { success: "Ramificações de estoque salvas." };
+}
+
+/** Salva o checkbox "Pode inserir e editar registros de Fisioterapia" de um usuário "regular" já
+ * existente — espelha `atualizarEstoqueCategorias`, só que pra um único booleano em vez de uma
+ * lista. Só master pode chamar. */
+export async function atualizarFisioterapiaPodeEditar(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+  const fisioterapiaPodeEditar = parseFisioterapiaPodeEditar(formData);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("perfis")
+    .update({ fisioterapia_pode_editar: fisioterapiaPodeEditar })
+    .eq("id", id);
+  if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
+
+  revalidatePath("/usuarios");
+  return { success: "Salvo." };
 }
 
 /**

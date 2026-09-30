@@ -16,6 +16,7 @@ import {
   atualizarCategoriasTreinador,
   atualizarDepartamentos,
   atualizarEstoqueCategorias,
+  atualizarFisioterapiaPodeEditar,
   atualizarModulos,
   atualizarModulosBase,
   atualizarPapel,
@@ -193,6 +194,25 @@ export default async function UsuariosPage() {
                         submitLabel="Salvar módulos"
                         className="border-t border-neutral-100 pt-3"
                       />
+
+                      {modulosPermitidos.includes("departamento_medico") ? (
+                        <PermissaoCheckboxesForm
+                          id={perfil.id}
+                          fieldName="fisioterapiaPodeEditar"
+                          titulo="Departamento Médico"
+                          ajuda="Sem marcar, essa pessoa só visualiza os registros de Fisioterapia."
+                          opcoes={[
+                            {
+                              value: "sim",
+                              label: "Pode inserir e editar registros de Fisioterapia (é o fisioterapeuta)",
+                            },
+                          ]}
+                          valoresIniciais={perfil.fisioterapia_pode_editar ? ["sim"] : []}
+                          action={atualizarFisioterapiaPodeEditar}
+                          submitLabel="Salvar"
+                          className="ml-4 border-l-2 border-neutral-100 pl-4"
+                        />
+                      ) : null}
 
                       {modulosPermitidos.includes("estoque") ? (
                         <PermissaoCheckboxesForm

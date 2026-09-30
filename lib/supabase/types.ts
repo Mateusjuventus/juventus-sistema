@@ -1405,6 +1405,12 @@ export interface PerfilRow {
    * mesma convenção de todo o resto de `perfis`: "not null default <lista completa>", nunca "vazio
    * = tudo liberado". */
   categorias_base_permitidas: string[];
+  /** Sub-área Fisioterapia do módulo Departamento Médico (Futebol Profissional) — ver docs/
+   * superpowers/specs/2026-09-30-fisioterapia-design.md. "Master" sempre pode editar independente
+   * desta coluna (regra geral do sistema); "regular" só grava lesões/queixas/atendimentos quando
+   * isto é `true` (o fisioterapeuta) — os demais com o módulo liberado só visualizam. `false` por
+   * padrão: liberar o módulo pra alguém não dá poder de edição sozinho. */
+  fisioterapia_pode_editar: boolean;
   created_at: string;
 }
 
@@ -2041,4 +2047,47 @@ export interface ConfiguracaoProgramacaoBaseRow {
    * `microciclo_atual` continua existindo sem mudança, só deixou de ser usado na exportação. */
   microciclo_texto: string | null;
   updated_at: string;
+}
+
+// ===== Departamento Médico — sub-área Fisioterapia (Futebol Profissional) — ver docs/superpowers/
+// specs/2026-09-30-fisioterapia-design.md =====
+
+export type FisioterapiaQueixaTipo = "muscular" | "articular";
+
+/** Uma lesão formal, com afastamento. "Dias afastados" nunca é gravado — sempre calculado a partir
+ * de `data_inicio`/`data_fim` (ver `lib/futebol/fisioterapia.ts`). `data_fim` vazio = lesão ainda
+ * ativa (e é o que decide `atletas.status`, ver a mesma lib). */
+export interface FisioterapiaLesaoRow {
+  id: string;
+  atleta_id: string;
+  descricao: string;
+  data_inicio: string;
+  data_fim: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Queixa pontual (muscular/articular), sem afastamento — mais leve que uma lesão formal. */
+export interface FisioterapiaQueixaRow {
+  id: string;
+  atleta_id: string;
+  tipo: FisioterapiaQueixaTipo;
+  data: string;
+  descricao: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+/** Uma sessão de fisioterapia — solta (ex.: sessão preventiva) ou ligada a uma lesão em andamento
+ * via `lesao_id`. */
+export interface FisioterapiaAtendimentoRow {
+  id: string;
+  atleta_id: string;
+  lesao_id: string | null;
+  data: string;
+  descricao: string;
+  created_by: string | null;
+  created_at: string;
 }

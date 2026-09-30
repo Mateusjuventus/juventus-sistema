@@ -55,10 +55,10 @@ const TIPO_COR: Record<ProgramacaoAtividadeTipo, { cartao: string; ponto: string
 };
 
 /** Mesmas cores de `TIPO_COR` acima, só que em hex — `corCartaoAtividade`/`corPontoAtividade`
- * devolvem classes Tailwind, que não existem fora do HTML (react-pdf e o next/og usam objetos de
- * estilo/hex puro). Usado só pela exportação do microciclo (`lib/pdf/microciclo-document.tsx` e
- * `lib/posters/microciclo-imagem.tsx`) — valores tirados direto da paleta do Tailwind pra ficar
- * visualmente idêntico ao que já aparece na grade em tela. */
+ * devolvem classes Tailwind, que não existem fora do HTML (react-pdf usa objetos de estilo/hex
+ * puro). Usado só pela exportação do microciclo (`lib/pdf/microciclo-document.tsx`, só em PDF desde
+ * 18/09 — a versão em JPG foi removida a pedido do Mateus) — valores tirados direto da paleta do
+ * Tailwind pra ficar visualmente idêntico ao que já aparece na grade em tela. */
 const TIPO_COR_HEX: Record<ProgramacaoAtividadeTipo, { bg: string; text: string }> = {
   programacao: { bg: "#E5E5E5", text: "#404040" },
   refeicao: { bg: "#FEF3C7", text: "#92400E" },

@@ -33,6 +33,9 @@ export interface PerfilPermissoes {
    * tecnica-design.md). Resolvido no mesmo round-trip da query de `buscarPerfilPermissoes`, sem
    * query adicional nem quebra da memoização por request. */
   comissao_tecnica_base: { categorias: string[] } | null;
+  /** Sub-área Fisioterapia do módulo Departamento Médico — ver
+   * docs/superpowers/specs/2026-09-30-fisioterapia-design.md e `getFisioterapiaPodeEditar` abaixo. */
+  fisioterapia_pode_editar: boolean | null;
 }
 
 /** Uma única leitura de `perfis` com tudo que as funções abaixo precisam — evita repetir a mesma
@@ -72,6 +75,7 @@ const buscarPerfilPermissoes = cache(async (): Promise<PerfilPermissoes | null> 
       "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, " +
         "tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador, " +
         "comissao_tecnica_id, comissao_tecnica_base_id, categorias_base_permitidas, " +
+        "fisioterapia_pode_editar, " +
         "comissao_tecnica_base:comissao_tecnica_base_id(categorias)",
     )
     .eq("id", user.id)
@@ -226,4 +230,22 @@ export async function getCategoriasBasePermitidas(
 ): Promise<CategoriaBase[]> {
   const perfil = await getPerfilPermissoes(supabase);
   return resolverCategoriasBasePermitidas(perfil);
+}
+
+/**
+ * Pode inserir/editar registros da sub-área Fisioterapia (Departamento Médico) — ver
+ * docs/superpowers/specs/2026-09-30-fisioterapia-design.md, seção 1. "Master" sempre pode, sem
+ * exceção (regra geral do sistema); "regular" só quando `fisioterapia_pode_editar` está marcado
+ * pra ele (é o fisioterapeuta) — os demais com o módulo liberado só visualizam. Quem não está
+ * logado, ou não tem o módulo liberado (não é checado aqui — isso é papel do middleware), continua
+ * recebendo `false`. Toda rota de gravação (as `actions.ts` de `app/departamento-medico/fisioterapia`)
+ * chama isto no servidor antes de escrever, nunca confiando só no formulário estar oculto no client.
+ */
+export async function getFisioterapiaPodeEditar(
+  supabase: ReturnType<typeof createClient>,
+): Promise<boolean> {
+  const perfil = await getPerfilPermissoes(supabase);
+  if (!perfil) return false;
+  if (perfil.role === "master") return true;
+  return perfil.fisioterapia_pode_editar ?? false;
 }

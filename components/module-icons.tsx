@@ -175,3 +175,14 @@ export function IconAssinaturaPendente({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Departamento Médico (Fisioterapia e futuras sub-áreas) — cruz médica dentro de um escudo, pra
+ * diferenciar tanto de Estoque (caixa) quanto de Comissão Técnica (retângulo com linhas). */
+export function IconDepartamentoMedico({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z" />
+      <path d="M12 8.5v7M8.5 12h7" />
+    </svg>
+  );
+}

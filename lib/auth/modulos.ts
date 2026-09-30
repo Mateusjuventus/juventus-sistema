@@ -22,7 +22,8 @@ export type ModuloChave =
   | "hoteis"
   | "veiculos"
   | "financeiro"
-  | "relatorios_avulso";
+  | "relatorios_avulso"
+  | "departamento_medico";
 
 export interface ModuloInfo {
   chave: ModuloChave;
@@ -48,6 +49,11 @@ export const MODULOS: ModuloInfo[] = [
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/estoque" },
   { chave: "financeiro", label: "Financeiro", prefixo: "/financeiro" },
+  {
+    chave: "departamento_medico",
+    label: "Departamento Médico",
+    prefixo: "/departamento-medico",
+  },
   { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "veiculos", label: "Veículos / Placas", prefixo: "/veiculos", grupo: GRUPO_ADMINISTRATIVO },
