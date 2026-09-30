@@ -3,7 +3,7 @@
 import { useFormState } from "react-dom";
 import { FieldGroup, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
-import { FISIOTERAPIA_TIPO_OPTIONS } from "@/lib/futebol/fisioterapia";
+import { FISIOTERAPIA_TIPO_OPTIONS, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia";
 import type { FisioterapiaTipo } from "@/lib/supabase/types";
 import {
   atualizarTipoLesao,
@@ -81,8 +81,29 @@ export function EncerrarLesaoForm({ atletaId, lesaoId, dataInicio }: { atletaId:
 
 /** Corrigir o tipo de uma lesão já lançada, sem precisar apagar e relançar — pedido explícito do
  * Mateus ao trazer a classificação certa do relatório em papel: "deixar no sistema tipo editável
- * essas caso precise". Um `<select>` que já salva sozinho ao trocar, sem botão "Salvar" separado
- * (o próprio `onChange` dispara o form — menos fricção que abrir um `<details>` pra um campo só). */
+ * essas caso precise". O tipo em si É o gatilho: fica exibido normalmente (fechado) e só abre o
+ * seletor ao clicar nele — mesmo padrão de "Encerrar lesão" logo abaixo, pra não deixar a tela com
+ * um `<select>` sempre visível em cada lesão/queixa. */
+/** Pílula de uma opção de tipo — preenchida (grena) quando é o tipo atual, contorno quando não é.
+ * Cada pílula é o próprio botão de submit (sem campo de formulário nenhum) — clicou, salvou. */
+function PilulaTipo({ value, label, selecionado }: { value: FisioterapiaTipo; label: string; selecionado: boolean }) {
+  return (
+    <button
+      type="submit"
+      name="tipo"
+      value={value}
+      disabled={selecionado}
+      className={
+        selecionado
+          ? "rounded-full bg-grena px-2 py-0.5 text-[11px] font-semibold text-white"
+          : "rounded-full border border-grena/30 px-2 py-0.5 text-[11px] font-semibold text-grena hover:bg-grena/10"
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
 export function EditarTipoLesaoForm({
   atletaId,
   lesaoId,
@@ -95,23 +116,19 @@ export function EditarTipoLesaoForm({
   const [state, formAction] = useFormState(atualizarTipoLesao, initialState);
 
   return (
-    <form action={formAction} className="mt-1 inline-flex items-center gap-2">
-      <input type="hidden" name="atletaId" value={atletaId} />
-      <input type="hidden" name="lesaoId" value={lesaoId} />
-      <select
-        name="tipo"
-        defaultValue={tipoAtual}
-        className="field-input h-auto w-auto py-0.5 text-xs"
-        onChange={(e) => e.currentTarget.form?.requestSubmit()}
-      >
+    <details className="mt-0.5">
+      <summary className="inline-block cursor-pointer select-none rounded-full bg-grena px-2 py-0.5 text-[11px] font-semibold text-white">
+        {fisioterapiaTipoLabel(tipoAtual)}
+      </summary>
+      <form action={formAction} className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <input type="hidden" name="atletaId" value={atletaId} />
+        <input type="hidden" name="lesaoId" value={lesaoId} />
         {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
-          <option key={op.value} value={op.value}>
-            {op.label}
-          </option>
+          <PilulaTipo key={op.value} value={op.value} label={op.label} selecionado={op.value === tipoAtual} />
         ))}
-      </select>
-      {state.error ? <span className="text-xs text-red-700">{state.error}</span> : null}
-    </form>
+        {state.error ? <span className="text-xs text-red-700">{state.error}</span> : null}
+      </form>
+    </details>
   );
 }
 
@@ -128,23 +145,19 @@ export function EditarTipoQueixaForm({
   const [state, formAction] = useFormState(atualizarTipoQueixa, initialState);
 
   return (
-    <form action={formAction} className="mt-1 inline-flex items-center gap-2">
-      <input type="hidden" name="atletaId" value={atletaId} />
-      <input type="hidden" name="queixaId" value={queixaId} />
-      <select
-        name="tipo"
-        defaultValue={tipoAtual}
-        className="field-input h-auto w-auto py-0.5 text-xs"
-        onChange={(e) => e.currentTarget.form?.requestSubmit()}
-      >
+    <details className="mt-0.5">
+      <summary className="inline-block cursor-pointer select-none rounded-full bg-grena px-2 py-0.5 text-[11px] font-semibold text-white">
+        {fisioterapiaTipoLabel(tipoAtual)}
+      </summary>
+      <form action={formAction} className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <input type="hidden" name="atletaId" value={atletaId} />
+        <input type="hidden" name="queixaId" value={queixaId} />
         {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
-          <option key={op.value} value={op.value}>
-            {op.label}
-          </option>
+          <PilulaTipo key={op.value} value={op.value} label={op.label} selecionado={op.value === tipoAtual} />
         ))}
-      </select>
-      {state.error ? <span className="text-xs text-red-700">{state.error}</span> : null}
-    </form>
+        {state.error ? <span className="text-xs text-red-700">{state.error}</span> : null}
+      </form>
+    </details>
   );
 }
 
