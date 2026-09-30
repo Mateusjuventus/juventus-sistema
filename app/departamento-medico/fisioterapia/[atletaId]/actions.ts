@@ -217,10 +217,12 @@ export async function registrarAtendimento(
   return { success: "Atendimento registrado." };
 }
 
-/** Corrige o tipo de uma lesão já lançada (inclusive as reclassificadas pela migração 0116) — a
- * classificação pode ter sido chutada errado na hora, ou o critério mudar depois; o Mateus pediu
- * explicitamente pra isso ficar editável, não só no lançamento. Não mexe em mais nenhum campo. */
-export async function atualizarTipoLesao(
+/** Corrige qualquer campo de uma lesão já lançada — descrição, tipo, datas ou observações. Antes só
+ * dava pra corrigir o tipo (pedido original do Mateus ao trazer a classificação do relatório em
+ * papel); ele pediu depois pra abrir pra qualquer campo, editando ao clicar na própria lesão em vez
+ * de um controle à parte. Recalcula o status do atleta em seguida, já que corrigir as datas pode
+ * mudar se a lesão conta como em andamento. */
+export async function atualizarLesao(
   _prevState: FisioterapiaFormState,
   formData: FormData,
 ): Promise<FisioterapiaFormState> {
@@ -231,21 +233,41 @@ export async function atualizarTipoLesao(
 
   const atletaId = String(formData.get("atletaId") ?? "");
   const lesaoId = String(formData.get("lesaoId") ?? "");
+  if (!atletaId || !lesaoId) return { error: "Não foi possível identificar a lesão." };
+
+  const descricao = String(formData.get("descricao") ?? "").trim();
   const tipo = parseTipo(formData.get("tipo"));
-  if (!atletaId || !lesaoId || !tipo) return { error: "Não foi possível identificar a lesão." };
+  const dataInicio = String(formData.get("dataInicio") ?? "").trim() || null;
+  const dataFim = String(formData.get("dataFim") ?? "").trim() || null;
+  const observacoes = String(formData.get("observacoes") ?? "").trim() || null;
+
+  if (!descricao) return { error: "Descreva a lesão." };
+  if (!tipo) return { error: "Escolha o tipo da lesão." };
+  if (dataFim && dataInicio && dataFim < dataInicio) {
+    return { error: "Data de fim não pode ser antes da data de início." };
+  }
 
   const { error } = await supabase
     .from("fisioterapia_lesoes")
-    .update({ tipo, updated_at: new Date().toISOString() })
+    .update({
+      descricao,
+      tipo,
+      data_inicio: dataInicio,
+      data_fim: dataFim,
+      observacoes,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", lesaoId);
-  if (error) return { error: `Não foi possível atualizar o tipo. Tente novamente. (${error.message})` };
+  if (error) return { error: `Não foi possível salvar a lesão. Tente novamente. (${error.message})` };
 
+  await sincronizarStatusAtleta(supabase, atletaId);
   revalidarFicha(atletaId);
-  return { success: "Tipo atualizado." };
+  return { success: "Lesão atualizada." };
 }
 
-/** Mesma ideia de `atualizarTipoLesao`, pras Queixas. */
-export async function atualizarTipoQueixa(
+/** Mesma ideia de `atualizarLesao`, pras Queixas (sem `data_inicio`/`data_fim`/`observacoes` — a
+ * queixa só tem descrição, tipo e data; e sem `updated_at`, coluna que não existe nessa tabela). */
+export async function atualizarQueixa(
   _prevState: FisioterapiaFormState,
   formData: FormData,
 ): Promise<FisioterapiaFormState> {
@@ -256,12 +278,18 @@ export async function atualizarTipoQueixa(
 
   const atletaId = String(formData.get("atletaId") ?? "");
   const queixaId = String(formData.get("queixaId") ?? "");
-  const tipo = parseTipo(formData.get("tipo"));
-  if (!atletaId || !queixaId || !tipo) return { error: "Não foi possível identificar a queixa." };
+  if (!atletaId || !queixaId) return { error: "Não foi possível identificar a queixa." };
 
-  const { error } = await supabase.from("fisioterapia_queixas").update({ tipo }).eq("id", queixaId);
-  if (error) return { error: `Não foi possível atualizar o tipo. Tente novamente. (${error.message})` };
+  const descricao = String(formData.get("descricao") ?? "").trim();
+  const tipo = parseTipo(formData.get("tipo"));
+  const data = String(formData.get("data") ?? "").trim() || null;
+
+  if (!descricao) return { error: "Descreva a queixa." };
+  if (!tipo) return { error: "Escolha o tipo da queixa." };
+
+  const { error } = await supabase.from("fisioterapia_queixas").update({ descricao, tipo, data }).eq("id", queixaId);
+  if (error) return { error: `Não foi possível salvar a queixa. Tente novamente. (${error.message})` };
 
   revalidarFicha(atletaId);
-  return { success: "Tipo atualizado." };
+  return { success: "Queixa atualizada." };
 }

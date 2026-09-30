@@ -16,12 +16,12 @@ import type {
   FisioterapiaQueixaRow,
 } from "@/lib/supabase/types";
 import {
-  EditarTipoLesaoForm,
-  EditarTipoQueixaForm,
   EncerrarLesaoForm,
+  LesaoItem,
   NovaLesaoForm,
   NovaQueixaForm,
   NovoAtendimentoForm,
+  QueixaItem,
 } from "./fisioterapia-forms";
 
 /**
@@ -131,25 +131,29 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
                 const dias = diasAfastados(lesao.data_inicio, lesao.data_fim, hojeStr);
                 return (
                   <li key={lesao.id} className="border-t border-neutral-100 pt-2">
-                    <p className="text-sm font-medium text-neutral-800">{lesao.descricao}</p>
-                    <p className="mt-0.5 text-xs font-semibold text-grena">{fisioterapiaTipoLabel(lesao.tipo)}</p>
-                    {lesao.data_inicio ? (
-                      <p className="text-xs text-neutral-500">
-                        {formatDataBr(lesao.data_inicio)} até {lesao.data_fim ? formatDataBr(lesao.data_fim) : "hoje"} ·{" "}
-                        {dias} dia{dias === 1 ? "" : "s"} afastado
-                      </p>
-                    ) : (
-                      <p className="text-xs text-neutral-400">Histórico anterior ao sistema — sem data exata.</p>
-                    )}
-                    {lesao.data_inicio && !lesao.data_fim ? (
-                      <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                        Em andamento
-                      </span>
-                    ) : null}
-                    {lesao.observacoes ? <p className="mt-1 text-xs text-neutral-500">{lesao.observacoes}</p> : null}
                     {podeEditar ? (
-                      <EditarTipoLesaoForm atletaId={atleta.id} lesaoId={lesao.id} tipoAtual={lesao.tipo} />
-                    ) : null}
+                      <LesaoItem atletaId={atleta.id} lesao={lesao} hojeStr={hojeStr} />
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-neutral-800">{lesao.descricao}</p>
+                        <p className="mt-0.5 text-xs font-semibold text-grena">{fisioterapiaTipoLabel(lesao.tipo)}</p>
+                        {lesao.data_inicio ? (
+                          <p className="text-xs text-neutral-500">
+                            {formatDataBr(lesao.data_inicio)} até{" "}
+                            {lesao.data_fim ? formatDataBr(lesao.data_fim) : "hoje"} · {dias} dia
+                            {dias === 1 ? "" : "s"} afastado
+                          </p>
+                        ) : (
+                          <p className="text-xs text-neutral-400">Histórico anterior ao sistema — sem data exata.</p>
+                        )}
+                        {lesao.data_inicio && !lesao.data_fim ? (
+                          <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                            Em andamento
+                          </span>
+                        ) : null}
+                        {lesao.observacoes ? <p className="mt-1 text-xs text-neutral-500">{lesao.observacoes}</p> : null}
+                      </>
+                    )}
                     {podeEditar && lesao.data_inicio && !lesao.data_fim ? (
                       <EncerrarLesaoForm atletaId={atleta.id} lesaoId={lesao.id} dataInicio={lesao.data_inicio} />
                     ) : null}
@@ -167,18 +171,21 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
             <p className="mt-2 text-sm text-neutral-400">Nenhuma queixa registrada.</p>
           ) : (
             <ul className="mt-2 space-y-3">
-              {queixas.map((queixa) => (
-                <li key={queixa.id} className="border-t border-neutral-100 pt-2">
-                  <p className="text-sm font-medium text-neutral-800">
-                    {fisioterapiaTipoLabel(queixa.tipo)} ·{" "}
-                    {queixa.data ? formatDataBr(queixa.data) : "histórico, sem data exata"}
-                  </p>
-                  <p className="text-xs text-neutral-500">{queixa.descricao}</p>
-                  {podeEditar ? (
-                    <EditarTipoQueixaForm atletaId={atleta.id} queixaId={queixa.id} tipoAtual={queixa.tipo} />
-                  ) : null}
-                </li>
-              ))}
+              {queixas.map((queixa) =>
+                podeEditar ? (
+                  <li key={queixa.id} className="border-t border-neutral-100 pt-2">
+                    <QueixaItem atletaId={atleta.id} queixa={queixa} />
+                  </li>
+                ) : (
+                  <li key={queixa.id} className="border-t border-neutral-100 pt-2">
+                    <p className="text-sm font-medium text-neutral-800">{queixa.descricao}</p>
+                    <p className="mt-0.5 text-xs font-semibold text-grena">{fisioterapiaTipoLabel(queixa.tipo)}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500">
+                      {queixa.data ? formatDataBr(queixa.data) : "histórico, sem data exata"}
+                    </p>
+                  </li>
+                ),
+              )}
             </ul>
           )}
           {podeEditar ? <NovaQueixaForm atletaId={atleta.id} /> : null}

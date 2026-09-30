@@ -1,13 +1,15 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useEffect, useState } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { FieldGroup, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
-import { FISIOTERAPIA_TIPO_OPTIONS, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia";
-import type { FisioterapiaTipo } from "@/lib/supabase/types";
+import { FISIOTERAPIA_TIPO_OPTIONS, diasAfastados, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia";
+import { formatDataBr } from "@/lib/pdf/logistica-shared";
+import type { FisioterapiaLesaoRow, FisioterapiaQueixaRow, FisioterapiaTipo } from "@/lib/supabase/types";
 import {
-  atualizarTipoLesao,
-  atualizarTipoQueixa,
+  atualizarLesao,
+  atualizarQueixa,
   encerrarLesao,
   registrarAtendimento,
   registrarLesao,
@@ -84,15 +86,31 @@ export function EncerrarLesaoForm({ atletaId, lesaoId, dataInicio }: { atletaId:
  * essas caso precise". O tipo em si É o gatilho: fica exibido normalmente (fechado) e só abre o
  * seletor ao clicar nele — mesmo padrão de "Encerrar lesão" logo abaixo, pra não deixar a tela com
  * um `<select>` sempre visível em cada lesão/queixa. */
-/** Pílula de uma opção de tipo — preenchida (grena) quando é o tipo atual, contorno quando não é.
- * Cada pílula é o próprio botão de submit (sem campo de formulário nenhum) — clicou, salvou. */
-function PilulaTipo({ value, label, selecionado }: { value: FisioterapiaTipo; label: string; selecionado: boolean }) {
+function SalvarEdicaoButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="btn-primary text-xs" disabled={pending}>
+      {pending ? "Salvando..." : "Salvar"}
+    </button>
+  );
+}
+
+/** Pílula de uma opção de tipo dentro do formulário de edição — preenchida (grena) quando é a
+ * escolhida no momento, contorno quando não é. Só troca o estado local do formulário (`onTipo`); o
+ * submit em si continua sendo o botão "Salvar" do formulário inteiro. */
+function PilulaTipo({
+  label,
+  selecionado,
+  onClick,
+}: {
+  label: string;
+  selecionado: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
-      type="submit"
-      name="tipo"
-      value={value}
-      disabled={selecionado}
+      type="button"
+      onClick={onClick}
       className={
         selecionado
           ? "rounded-full bg-grena px-2 py-0.5 text-[11px] font-semibold text-white"
@@ -104,60 +122,192 @@ function PilulaTipo({ value, label, selecionado }: { value: FisioterapiaTipo; la
   );
 }
 
-export function EditarTipoLesaoForm({
+/** Uma lesão da ficha, com edição no lugar: passando o mouse por cima ela fica destacada como um
+ * card clicável (com "Editar" aparecendo), e clicando ela vira um formulário com TODOS os campos —
+ * descrição, tipo, datas e observações — não só o tipo. Mesmo princípio de edição-no-lugar já usado
+ * na Programação (`ProgramacaoLinha`): a correção acontece ali mesmo, sem abrir outra tela nem
+ * apagar e relançar. Pedido explícito do Mateus: "quero que... clicar ele abre pra editar". */
+export function LesaoItem({
   atletaId,
-  lesaoId,
-  tipoAtual,
+  lesao,
+  hojeStr,
 }: {
   atletaId: string;
-  lesaoId: string;
-  tipoAtual: FisioterapiaTipo;
+  lesao: FisioterapiaLesaoRow;
+  hojeStr: string;
 }) {
-  const [state, formAction] = useFormState(atualizarTipoLesao, initialState);
+  const [editando, setEditando] = useState(false);
+  const [tipo, setTipo] = useState<FisioterapiaTipo>(lesao.tipo);
+  const [state, formAction] = useFormState(atualizarLesao, initialState);
+
+  useEffect(() => {
+    if (state.success) setEditando(false);
+  }, [state]);
+
+  if (!editando) {
+    const dias = diasAfastados(lesao.data_inicio, lesao.data_fim, hojeStr);
+    return (
+      <button
+        type="button"
+        onClick={() => setEditando(true)}
+        className="group -mx-2 flex w-[calc(100%+1rem)] flex-col items-start rounded-md px-2 py-1 text-left transition hover:bg-neutral-50"
+      >
+        <span className="flex w-full items-center justify-between gap-2">
+          <span className="text-sm font-medium text-neutral-800">{lesao.descricao}</span>
+          <span className="shrink-0 text-[11px] font-semibold text-grena opacity-0 transition group-hover:opacity-100">
+            Editar
+          </span>
+        </span>
+        <span className="mt-0.5 inline-block rounded-full bg-grena px-2 py-0.5 text-[11px] font-semibold text-white">
+          {fisioterapiaTipoLabel(lesao.tipo)}
+        </span>
+        {lesao.data_inicio ? (
+          <span className="mt-1 text-xs text-neutral-500">
+            {formatDataBr(lesao.data_inicio)} até {lesao.data_fim ? formatDataBr(lesao.data_fim) : "hoje"} ·{" "}
+            {dias} dia{dias === 1 ? "" : "s"} afastado
+          </span>
+        ) : (
+          <span className="mt-1 text-xs text-neutral-400">Histórico anterior ao sistema — sem data exata.</span>
+        )}
+        {lesao.data_inicio && !lesao.data_fim ? (
+          <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+            Em andamento
+          </span>
+        ) : null}
+        {lesao.observacoes ? <span className="mt-1 text-xs text-neutral-500">{lesao.observacoes}</span> : null}
+      </button>
+    );
+  }
 
   return (
-    <details className="mt-0.5">
-      <summary className="inline-block cursor-pointer select-none rounded-full bg-grena px-2 py-0.5 text-[11px] font-semibold text-white">
-        {fisioterapiaTipoLabel(tipoAtual)}
-      </summary>
-      <form action={formAction} className="mt-1.5 flex flex-wrap items-center gap-1.5">
+    <div className="rounded-md border border-grena/30 bg-white p-3">
+      <form action={formAction} className="space-y-2">
         <input type="hidden" name="atletaId" value={atletaId} />
-        <input type="hidden" name="lesaoId" value={lesaoId} />
-        {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
-          <PilulaTipo key={op.value} value={op.value} label={op.label} selecionado={op.value === tipoAtual} />
-        ))}
-        {state.error ? <span className="text-xs text-red-700">{state.error}</span> : null}
+        <input type="hidden" name="lesaoId" value={lesao.id} />
+        <input type="hidden" name="tipo" value={tipo} />
+        <div>
+          <label className="field-label">Descrição</label>
+          <textarea name="descricao" defaultValue={lesao.descricao} required rows={2} className="field-input" />
+        </div>
+        <div>
+          <label className="field-label">Tipo</label>
+          <div className="flex flex-wrap gap-1.5">
+            {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
+              <PilulaTipo key={op.value} label={op.label} selecionado={op.value === tipo} onClick={() => setTipo(op.value)} />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <div>
+            <label className="field-label">Data de início</label>
+            <input type="date" name="dataInicio" defaultValue={lesao.data_inicio ?? ""} className="field-input" />
+          </div>
+          <div>
+            <label className="field-label">Data de fim</label>
+            <input type="date" name="dataFim" defaultValue={lesao.data_fim ?? ""} className="field-input" />
+          </div>
+        </div>
+        <div>
+          <label className="field-label">Observações</label>
+          <textarea name="observacoes" defaultValue={lesao.observacoes ?? ""} rows={2} className="field-input" />
+        </div>
+        {state.error ? <p className="field-error">{state.error}</p> : null}
+        <div className="flex items-center gap-2">
+          <SalvarEdicaoButton />
+          <button
+            type="button"
+            onClick={() => {
+              setEditando(false);
+              setTipo(lesao.tipo);
+            }}
+            className="btn-secondary text-xs"
+          >
+            Cancelar
+          </button>
+        </div>
       </form>
-    </details>
+    </div>
   );
 }
 
-/** Mesma ideia de `EditarTipoLesaoForm`, pras Queixas. */
-export function EditarTipoQueixaForm({
+/** Mesma ideia de `LesaoItem`, pras Queixas — sem datas de início/fim nem observações, que não
+ * existem nesse registro (só descrição, tipo e data). */
+export function QueixaItem({
   atletaId,
-  queixaId,
-  tipoAtual,
+  queixa,
 }: {
   atletaId: string;
-  queixaId: string;
-  tipoAtual: FisioterapiaTipo;
+  queixa: FisioterapiaQueixaRow;
 }) {
-  const [state, formAction] = useFormState(atualizarTipoQueixa, initialState);
+  const [editando, setEditando] = useState(false);
+  const [tipo, setTipo] = useState<FisioterapiaTipo>(queixa.tipo);
+  const [state, formAction] = useFormState(atualizarQueixa, initialState);
+
+  useEffect(() => {
+    if (state.success) setEditando(false);
+  }, [state]);
+
+  if (!editando) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditando(true)}
+        className="group -mx-2 flex w-[calc(100%+1rem)] flex-col items-start rounded-md px-2 py-1 text-left transition hover:bg-neutral-50"
+      >
+        <span className="flex w-full items-center justify-between gap-2">
+          <span className="text-sm font-medium text-neutral-800">{queixa.descricao}</span>
+          <span className="shrink-0 text-[11px] font-semibold text-grena opacity-0 transition group-hover:opacity-100">
+            Editar
+          </span>
+        </span>
+        <span className="mt-0.5 inline-block rounded-full bg-grena px-2 py-0.5 text-[11px] font-semibold text-white">
+          {fisioterapiaTipoLabel(queixa.tipo)}
+        </span>
+        <span className="mt-0.5 text-xs text-neutral-500">
+          {queixa.data ? formatDataBr(queixa.data) : "histórico, sem data exata"}
+        </span>
+      </button>
+    );
+  }
 
   return (
-    <details className="mt-0.5">
-      <summary className="inline-block cursor-pointer select-none rounded-full bg-grena px-2 py-0.5 text-[11px] font-semibold text-white">
-        {fisioterapiaTipoLabel(tipoAtual)}
-      </summary>
-      <form action={formAction} className="mt-1.5 flex flex-wrap items-center gap-1.5">
+    <div className="rounded-md border border-grena/30 bg-white p-3">
+      <form action={formAction} className="space-y-2">
         <input type="hidden" name="atletaId" value={atletaId} />
-        <input type="hidden" name="queixaId" value={queixaId} />
-        {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
-          <PilulaTipo key={op.value} value={op.value} label={op.label} selecionado={op.value === tipoAtual} />
-        ))}
-        {state.error ? <span className="text-xs text-red-700">{state.error}</span> : null}
+        <input type="hidden" name="queixaId" value={queixa.id} />
+        <input type="hidden" name="tipo" value={tipo} />
+        <div>
+          <label className="field-label">Descrição</label>
+          <textarea name="descricao" defaultValue={queixa.descricao} required rows={2} className="field-input" />
+        </div>
+        <div>
+          <label className="field-label">Tipo</label>
+          <div className="flex flex-wrap gap-1.5">
+            {FISIOTERAPIA_TIPO_OPTIONS.map((op) => (
+              <PilulaTipo key={op.value} label={op.label} selecionado={op.value === tipo} onClick={() => setTipo(op.value)} />
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="field-label">Data</label>
+          <input type="date" name="data" defaultValue={queixa.data ?? ""} className="field-input w-40" />
+        </div>
+        {state.error ? <p className="field-error">{state.error}</p> : null}
+        <div className="flex items-center gap-2">
+          <SalvarEdicaoButton />
+          <button
+            type="button"
+            onClick={() => {
+              setEditando(false);
+              setTipo(queixa.tipo);
+            }}
+            className="btn-secondary text-xs"
+          >
+            Cancelar
+          </button>
+        </div>
       </form>
-    </details>
+    </div>
   );
 }
 
