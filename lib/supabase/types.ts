@@ -2091,3 +2091,19 @@ export interface FisioterapiaAtendimentoRow {
   created_by: string | null;
   created_at: string;
 }
+
+/** Resumo em texto livre de um período ANTES da existência deste módulo — não é uma lesão/queixa/
+ * atendimento estruturada (ver docs/superpowers/specs/2026-09-30-fisioterapia-design.md e a
+ * migração 0112). Existe porque o relatório em papel que o Mateus já tinha (ex.: Copa Paulista
+ * 2026) só registrava totais e listas de queixas em texto, sem data exata de cada evento — em vez
+ * de fabricar datas, esse histórico entra como referência. `atleta_id` nulo = resumo GERAL do
+ * período (agregados do departamento), usado no Relatório Geral. Dados novos sempre entram pelas 3
+ * tabelas estruturadas acima. */
+export interface FisioterapiaHistoricoImportadoRow {
+  id: string;
+  atleta_id: string | null;
+  titulo: string;
+  resumo: string;
+  created_by: string | null;
+  created_at: string;
+}

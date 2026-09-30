@@ -11,6 +11,7 @@ import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaRow,
   FisioterapiaAtendimentoRow,
+  FisioterapiaHistoricoImportadoRow,
   FisioterapiaLesaoRow,
   FisioterapiaQueixaRow,
 } from "@/lib/supabase/types";
@@ -24,26 +25,37 @@ import { EncerrarLesaoForm, NovaLesaoForm, NovaQueixaForm, NovoAtendimentoForm }
 export default async function FisioterapiaAtletaPage({ params }: { params: { atletaId: string } }) {
   const supabase = createClient();
 
-  const [{ data: atletaData }, { data: lesoesData }, { data: queixasData }, { data: atendimentosData }, podeEditar] =
-    await Promise.all([
-      supabase.from("atletas").select("*").eq("id", params.atletaId).maybeSingle(),
-      supabase
-        .from("fisioterapia_lesoes")
-        .select("*")
-        .eq("atleta_id", params.atletaId)
-        .order("data_inicio", { ascending: false }),
-      supabase
-        .from("fisioterapia_queixas")
-        .select("*")
-        .eq("atleta_id", params.atletaId)
-        .order("data", { ascending: false }),
-      supabase
-        .from("fisioterapia_atendimentos")
-        .select("*")
-        .eq("atleta_id", params.atletaId)
-        .order("data", { ascending: false }),
-      getFisioterapiaPodeEditar(supabase),
-    ]);
+  const [
+    { data: atletaData },
+    { data: lesoesData },
+    { data: queixasData },
+    { data: atendimentosData },
+    { data: historicoData },
+    podeEditar,
+  ] = await Promise.all([
+    supabase.from("atletas").select("*").eq("id", params.atletaId).maybeSingle(),
+    supabase
+      .from("fisioterapia_lesoes")
+      .select("*")
+      .eq("atleta_id", params.atletaId)
+      .order("data_inicio", { ascending: false }),
+    supabase
+      .from("fisioterapia_queixas")
+      .select("*")
+      .eq("atleta_id", params.atletaId)
+      .order("data", { ascending: false }),
+    supabase
+      .from("fisioterapia_atendimentos")
+      .select("*")
+      .eq("atleta_id", params.atletaId)
+      .order("data", { ascending: false }),
+    supabase
+      .from("fisioterapia_historico_importado")
+      .select("*")
+      .eq("atleta_id", params.atletaId)
+      .order("created_at", { ascending: true }),
+    getFisioterapiaPodeEditar(supabase),
+  ]);
 
   if (!atletaData) notFound();
 
@@ -51,6 +63,7 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
   const lesoes = (lesoesData ?? []) as FisioterapiaLesaoRow[];
   const queixas = (queixasData ?? []) as FisioterapiaQueixaRow[];
   const atendimentos = (atendimentosData ?? []) as FisioterapiaAtendimentoRow[];
+  const historico = (historicoData ?? []) as FisioterapiaHistoricoImportadoRow[];
   const lesoesAtivas = lesoes.filter((l) => !l.data_fim);
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
@@ -78,6 +91,25 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
           Gerar relatório em PDF
         </a>
       </div>
+
+      {historico.length > 0 ? (
+        <section className="card mt-4 border border-dashed border-neutral-300 bg-neutral-50 p-4">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+            Histórico anterior ao sistema
+          </h2>
+          <p className="mt-0.5 text-xs text-neutral-400">
+            Importado do relatório em papel do departamento — sem data exata de cada evento, só como referência.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {historico.map((item) => (
+              <li key={item.id} className="border-t border-neutral-200 pt-2">
+                <p className="text-sm font-medium text-neutral-700">{item.titulo}</p>
+                <p className="mt-1 whitespace-pre-line text-sm text-neutral-600">{item.resumo}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section className="card p-4">

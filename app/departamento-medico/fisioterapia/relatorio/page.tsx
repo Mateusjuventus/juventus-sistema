@@ -8,6 +8,7 @@ import { nomeExibido } from "@/lib/futebol/nome-atleta";
 import type {
   AtletaRow,
   FisioterapiaAtendimentoRow,
+  FisioterapiaHistoricoImportadoRow,
   FisioterapiaLesaoRow,
   FisioterapiaQueixaRow,
 } from "@/lib/supabase/types";
@@ -26,14 +27,16 @@ function formatDataBr(iso: string | null): string {
 export default async function FisioterapiaRelatorioPage() {
   const supabase = createClient();
 
-  const [{ data: atletasData }, { data: lesoesData }, { data: queixasData }, { data: atendimentosData }] =
+  const [{ data: atletasData }, { data: lesoesData }, { data: queixasData }, { data: atendimentosData }, { data: historicoGeralData }] =
     await Promise.all([
       supabase.from("atletas").select("id, nome_completo, apelido"),
       supabase.from("fisioterapia_lesoes").select("atleta_id, data_inicio, data_fim"),
       supabase.from("fisioterapia_queixas").select("atleta_id, data"),
       supabase.from("fisioterapia_atendimentos").select("atleta_id"),
+      supabase.from("fisioterapia_historico_importado").select("*").is("atleta_id", null).order("created_at", { ascending: true }),
     ]);
 
+  const historicoGeral = (historicoGeralData ?? []) as FisioterapiaHistoricoImportadoRow[];
   const atletas = (atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "apelido">[];
   const linhas = montarResumoGeralFisioterapia(
     atletas.map((a) => ({ id: a.id, nome: nomeExibido({ apelido: a.apelido, nome_completo: a.nome_completo }) })),
@@ -56,6 +59,25 @@ export default async function FisioterapiaRelatorioPage() {
           Gerar relatório em PDF
         </a>
       </div>
+
+      {historicoGeral.length > 0 ? (
+        <section className="card mt-6 border border-dashed border-neutral-300 bg-neutral-50 p-4">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+            Histórico anterior ao sistema
+          </h2>
+          <p className="mt-0.5 text-xs text-neutral-400">
+            Importado do relatório em papel do departamento — sem data exata de cada evento, só como referência.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {historicoGeral.map((item) => (
+              <li key={item.id} className="border-t border-neutral-200 pt-2">
+                <p className="text-sm font-medium text-neutral-700">{item.titulo}</p>
+                <p className="mt-1 whitespace-pre-line text-sm text-neutral-600">{item.resumo}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="card mt-6 overflow-x-auto p-0">
         {linhas.length === 0 ? (
