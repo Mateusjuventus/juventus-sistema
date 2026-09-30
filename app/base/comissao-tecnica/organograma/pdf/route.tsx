@@ -10,7 +10,7 @@ import type { ComissaoTecnicaBaseRow, OrganogramaBaseLinhaRow, OrganogramaBaseRo
 
 /** PDF do Organograma da Base — mesma resolução de nome/cargo (pessoa vinculada > texto livre >
  * "???") da tela (`app/base/comissao-tecnica/organograma/page.tsx`), mesma logo usada nos outros
- * documentos oficiais do sistema (`public/brand/juventus-escudo-mark.png`). */
+ * documentos oficiais do sistema (`public/brand/juventus-escudo.png`). */
 export async function GET() {
   const supabase = createClient();
 
@@ -54,7 +54,7 @@ export async function GET() {
     posManual: l.pos_manual,
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(

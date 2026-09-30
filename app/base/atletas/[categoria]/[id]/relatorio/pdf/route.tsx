@@ -50,7 +50,7 @@ export async function GET(request: Request, { params }: { params: { categoria: s
   ].filter(Boolean);
   const periodoTexto = periodoPartes.join(" · ");
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const dadosPessoais = incluirDadosPessoais

@@ -84,7 +84,7 @@ export async function GET() {
 
   const grade = gradeDoMes(ano, mes);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(

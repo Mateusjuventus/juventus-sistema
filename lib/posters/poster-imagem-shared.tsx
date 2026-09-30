@@ -20,7 +20,7 @@ import {
 let juventusEscudoDataUri: string | null = null;
 export function getJuventusEscudoDataUri(): string {
   if (!juventusEscudoDataUri) {
-    const buf = readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo-mark.png"));
+    const buf = readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png"));
     juventusEscudoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
   }
   return juventusEscudoDataUri;
@@ -28,19 +28,6 @@ export function getJuventusEscudoDataUri(): string {
 
 export function getAntonFontBuffer(): Buffer {
   return readFileSync(path.join(process.cwd(), "public/fonts/anton.ttf"));
-}
-
-// Estrela desenhada em SVG (em vez do caractere "★") porque a fonte padrão do Satori/@vercel-og
-// não tem esse glifo — aparecia como um quadradinho com "X" dentro no lugar da estrela.
-function Estrela({ cor, tamanho = 22 }: { cor: string; tamanho?: number }) {
-  return (
-    <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" style={{ display: "flex" }}>
-      <path
-        fill={cor}
-        d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 17.27l-6.18 3.24L7 13.63l-5-4.87 6.91-1L12 1.5z"
-      />
-    </svg>
-  );
 }
 
 export function PosterCabecalhoImg({
@@ -61,35 +48,26 @@ export function PosterCabecalhoImg({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-      <div
-        style={{
-          display: "flex",
-          backgroundColor: CORES_POSTER.grena,
-          paddingTop: 22,
-          paddingBottom: 22,
-          justifyContent: "center",
-        }}
-      >
-        <div style={{ display: "flex", gap: 10 }}>
-          <Estrela cor={CORES_POSTER.prata} />
-          <Estrela cor={CORES_POSTER.dourado} />
-        </div>
-      </div>
+      <div style={{ display: "flex", backgroundColor: CORES_POSTER.grena, paddingTop: 22, paddingBottom: 22 }} />
       <div style={{ display: "flex", backgroundColor: CORES_POSTER.grena, height: 10, width: "100%" }} />
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 34 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
+          {/* Proporção 773:1008 do brasão completo (círculo + as duas estrelas acima) — ver
+              public/brand/juventus-escudo.png e a mesma observação em lib/pdf/poster-shared.tsx.
+              Antes usava o recorte sem estrelas com as estrelas desenhadas à parte na faixa vinho
+              acima — duplicado e parecia errado (pedido do Mateus em 2026-09-30). */}
           {primeiro ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={primeiro} width={110} height={110} style={{ objectFit: "contain" }} />
+            <img src={primeiro} width={110} height={143} style={{ objectFit: "contain" }} />
           ) : (
-            <div style={{ display: "flex", width: 110, height: 110 }} />
+            <div style={{ display: "flex", width: 110, height: 143 }} />
           )}
           {segundo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={segundo} width={110} height={110} style={{ objectFit: "contain" }} />
+            <img src={segundo} width={110} height={143} style={{ objectFit: "contain" }} />
           ) : (
-            <div style={{ display: "flex", width: 110, height: 110 }} />
+            <div style={{ display: "flex", width: 110, height: 143 }} />
           )}
         </div>
         {mostrarCompeticao ? (
@@ -138,12 +116,9 @@ export function CabecalhoExportacaoImg({
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 90 }}>
-        <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-          <Estrela cor="#B9B9B9" tamanho={14} />
-          <Estrela cor={CORES_POSTER.dourado} tamanho={14} />
-        </div>
+        {/* Brasão completo (já traz as duas estrelas) — ver observação em PosterCabecalhoImg acima. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={juventus} width={48} height={48} style={{ objectFit: "contain" }} />
+        <img src={juventus} width={48} height={63} style={{ objectFit: "contain" }} />
       </div>
       <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center" }}>
         <div
@@ -424,22 +399,18 @@ export function PosterCabecalhoLateralImg({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-      <div style={{ display: "flex", width: "100%", justifyContent: "center", paddingTop: 40, gap: 10 }}>
-        <Estrela cor={CORES_POSTER.prata} />
-        <Estrela cor={CORES_POSTER.dourado} />
-      </div>
-      <div style={{ display: "flex", width: "100%", justifyContent: "center", alignItems: "center", paddingTop: 26, gap: 26 }}>
+      <div style={{ display: "flex", width: "100%", justifyContent: "center", alignItems: "center", paddingTop: 40, gap: 26 }}>
         {primeiro ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={primeiro} width={110} height={110} style={{ objectFit: "contain" }} />
+          <img src={primeiro} width={110} height={143} style={{ objectFit: "contain" }} />
         ) : (
-          <div style={{ display: "flex", width: 110, height: 110 }} />
+          <div style={{ display: "flex", width: 110, height: 143 }} />
         )}
         {segundo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={segundo} width={110} height={110} style={{ objectFit: "contain" }} />
+          <img src={segundo} width={110} height={143} style={{ objectFit: "contain" }} />
         ) : (
-          <div style={{ display: "flex", width: 110, height: 110 }} />
+          <div style={{ display: "flex", width: 110, height: 143 }} />
         )}
       </div>
     </div>

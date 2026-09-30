@@ -109,7 +109,7 @@ export async function GET(request: Request) {
     .map(([nome, despesasDaCategoria]) => ({ nome, despesas: despesasDaCategoria }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(

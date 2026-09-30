@@ -53,7 +53,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   );
   const totalGeral = gastos.reduce((soma, g) => soma + (g.valor_efetuado as number), 0);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(

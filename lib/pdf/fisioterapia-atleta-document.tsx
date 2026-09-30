@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
-import { CORES, DocumentoFooter, formatCarimbo, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
 
 /**
  * Relatório individual de Fisioterapia (Departamento Médico, Futebol Profissional) — ver
@@ -225,9 +225,6 @@ export function FisioterapiaAtletaConteudo({
           </View>
         )}
 
-        <Text style={{ fontSize: 7, color: "#a3a3a3", textAlign: "center", marginTop: 10 }}>
-          Emitido em {formatCarimbo(emitidoEm)}
-        </Text>
         <DocumentoFooter geradoEm={emitidoEm} />
     </>
   );

@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
-import { CORES, DocumentoFooter, formatCarimbo, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
 
 /**
  * Relatório geral (consolidado) de Fisioterapia — visão do elenco inteiro: quem está com lesão
@@ -117,9 +117,6 @@ export function FisioterapiaRelatorioGeralDocument({
           </View>
         )}
 
-        <Text style={{ fontSize: 7, color: "#a3a3a3", textAlign: "center", marginTop: 10 }}>
-          Emitido em {formatCarimbo(geradoEm)}
-        </Text>
         <DocumentoFooter geradoEm={geradoEm} />
       </Page>
     </Document>

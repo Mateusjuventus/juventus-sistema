@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import React from "react";
-import { Font, Image, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { Font, Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { CORES_POSTER, HASHTAG_RODAPE } from "@/lib/posters/estilo";
 
 // Mesma correção de hifenização do restante dos PDFs (ver lib/pdf/logistica-shared.tsx) — sem
@@ -14,7 +14,7 @@ Font.register({
 });
 
 const juventusEscudoSrc = {
-  data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo-mark.png")),
+  data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
   format: "png" as const,
 };
 
@@ -31,13 +31,17 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
   },
-  estrelas: { flexDirection: "row", gap: 6 },
-  estrela: { fontSize: 12 },
   barraTopoFina: { backgroundColor: CORES_POSTER.grena, height: 6 },
   corpo: { padding: 26, paddingTop: 14, paddingBottom: 72 },
   rodapeFixo: { position: "absolute", bottom: 0, left: 0, right: 0 },
   escudosLinha: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 14 },
-  escudo: { width: 50, height: 50, objectFit: "contain" },
+  // Proporção 773:1008 do brasão completo (círculo + as duas estrelas acima) — largura fixa em
+  // 60pt, altura calculada pra não espremer nem cortar as estrelas (ver public/brand/juventus-
+  // escudo.png). Antes disso o escudo usava o recorte sem estrelas (juventus-escudo-mark.png) e as
+  // estrelas eram desenhadas à parte na faixa vinho do topo — duplicado e, junto de um escudo
+  // adversário que já vem com seu próprio desenho completo, parecia errado (pedido do Mateus em
+  // 2026-09-30). Agora as estrelas vêm só do brasão em si.
+  escudo: { width: 60, height: 78, objectFit: "contain" },
   competicaoTexto: {
     fontFamily: "Anton",
     fontSize: 19,
@@ -190,17 +194,11 @@ export const styles = StyleSheet.create({
     paddingRight: 96,
     paddingBottom: 50,
   },
-  cabecalhoLateralEstrelas: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 24,
-  },
   cabecalhoLateralEscudos: {
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 16,
+    paddingTop: 30,
   },
   rodapeLateralHashtag: {
     fontFamily: "Anton",
@@ -210,20 +208,6 @@ export const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 });
-
-// Estrela desenhada em SVG (em vez do caractere "★") — as fontes padrão do react-pdf (Helvetica)
-// não têm esse glifo Unicode, então o <Text>★</Text> simplesmente não desenhava nada (mesmo bug
-// já corrigido na versão em imagem/Satori, ver `lib/posters/poster-imagem-shared.tsx`).
-function Estrela({ cor, tamanho = 12 }: { cor: string; tamanho?: number }) {
-  return (
-    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24">
-      <Path
-        fill={cor}
-        d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 17.27l-6.18 3.24L7 13.63l-5-4.87 6.91-1L12 1.5z"
-      />
-    </Svg>
-  );
-}
 
 /**
  * Cabeçalho compartilhado pelos 3 pôsteres: as duas faixas vinho do topo, os escudos (Juventus +
@@ -248,12 +232,7 @@ export function PosterCabecalho({
 
   return (
     <>
-      <View style={styles.barraTopoGrossa}>
-        <View style={styles.estrelas}>
-          <Estrela cor={CORES_POSTER.prata} />
-          <Estrela cor={CORES_POSTER.dourado} />
-        </View>
-      </View>
+      <View style={styles.barraTopoGrossa} />
       <View style={styles.barraTopoFina} />
 
       <View style={{ paddingTop: 12 }}>
@@ -380,12 +359,6 @@ export function PosterCabecalhoLateral({
 
   return (
     <>
-      <View style={styles.cabecalhoLateralEstrelas}>
-        <View style={styles.estrelas}>
-          <Estrela cor={CORES_POSTER.prata} />
-          <Estrela cor={CORES_POSTER.dourado} />
-        </View>
-      </View>
       <View style={styles.cabecalhoLateralEscudos}>
         <View style={styles.escudosLinha}>
           {primeiro ? (

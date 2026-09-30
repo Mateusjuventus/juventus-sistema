@@ -25,7 +25,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const atleta = data as AtletaBaseRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const assinaturasSalvas = await resolverImagensAssinaturas(supabase, await buscarAssinaturas("dispensa_base", atleta.id));

@@ -17,7 +17,7 @@ export async function carregarParaPdf(competicaoId: string): Promise<{
   const carregada = await carregarCompeticao(supabase, competicaoId);
   if (!carregada) return null;
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc: LogoSrc = { data: readFileSync(juventusLogoPath), format: "png" };
 
   const { competicao } = carregada;

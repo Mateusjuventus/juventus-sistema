@@ -8,7 +8,7 @@ import { EstoqueFichaDocument } from "@/lib/pdf/estoque-ficha-document";
 
 /** Espelha `app/estoque/[categoria]/ficha-branca/pdf/route.tsx` para o Futebol de Base. */
 export async function GET() {
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(

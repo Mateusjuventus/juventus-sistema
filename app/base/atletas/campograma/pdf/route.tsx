@@ -59,7 +59,7 @@ export async function GET(request: Request) {
   const grupos = agruparPorPosicaoEspecifica(paraCampograma);
 
   const juventusLogoSrc = {
-    data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo-mark.png")),
+    data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
     format: "png" as const,
   };
   const juventusWatermarkSrc = {

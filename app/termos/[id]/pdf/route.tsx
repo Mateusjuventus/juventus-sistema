@@ -21,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const termo = termoData as TermoRetiradaRow;
   const itens = (itensData ?? []) as TermoRetiradaItemRow[];
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(

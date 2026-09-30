@@ -81,7 +81,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     passageiros: passageiros.filter((p) => p.onibus_lista_id === o.id).map(passageiroDe),
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(

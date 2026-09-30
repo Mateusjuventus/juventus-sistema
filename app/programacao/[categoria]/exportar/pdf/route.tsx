@@ -37,7 +37,7 @@ export async function GET(request: Request, { params }: { params: { categoria: s
 
   const dados = await buscarMicrocicloData(supabase, params.categoria, inicioSemana);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
   const buffer = await renderToBuffer(<MicrocicloDocument dados={dados} juventusLogoSrc={juventusLogoSrc} />);

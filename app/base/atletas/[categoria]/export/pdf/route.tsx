@@ -92,7 +92,7 @@ export async function GET(request: NextRequest, { params }: { params: { categori
   }));
 
   const juventusLogoSrc = {
-    data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo-mark.png")),
+    data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
     format: "png" as const,
   };
 

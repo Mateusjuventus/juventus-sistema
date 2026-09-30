@@ -67,7 +67,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     ? TIPO_CONTA_BANCARIA.find((t) => t.value === s.tipo_conta)?.label ?? null
     : null;
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo-mark.png");
+  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
   const assinaturas = montarAssinaturasSolicitacao(
     await resolverImagensAssinaturas(supabase, assinaturasSalvas),
