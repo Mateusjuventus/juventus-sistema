@@ -187,8 +187,17 @@ export function buildCaptacaoDocumentoPath(
 }
 
 /**
- * Envia um documento da inscrição de Captação — sem redimensionar (pode ser PDF ou foto do
- * documento), com `upsert: true` porque o path é fixo por tipo (ver `buildCaptacaoDocumentoPath`).
+ * Envia um documento da inscrição de Captação. Quando é uma FOTO do documento (o caso mais comum —
+ * "a maioria das famílias vai fotografar com o celular em vez de escanear", ver `DocumentoField` em
+ * inscricao-form.tsx), comprime antes com o mesmo tratamento de `uploadFotoRedimensionada` (1600px no
+ * lado maior, JPEG qualidade 82): uma foto de celular sem comprimir costuma vir com vários MB, e são
+ * 5 documentos obrigatórios por candidato — pedido do Mateus em 2026-10-01 ("são muitos documentos",
+ * pensando em ~100 atletas passando pela Captação). Um PDF de verdade não passa por essa compressão
+ * (`sharp` não lê PDF, e comprimir PDF é uma operação diferente, fora de escopo aqui) — sobe sem
+ * alteração, igual sempre foi. Se a compressão falhar por qualquer motivo (arquivo corrompido, formato
+ * que o `sharp` não lê), cai pro envio original sem comprimir, mesma rede de segurança de
+ * `uploadFotoRedimensionada`. Com `upsert: true` porque o path é fixo por tipo (ver
+ * `buildCaptacaoDocumentoPath`).
  */
 export async function uploadCaptacaoDocumento(
   cliente: SupabaseClient,
@@ -196,6 +205,25 @@ export async function uploadCaptacaoDocumento(
   captacaoId: string,
   tipo: CaptacaoDocumentoTipo,
 ): Promise<{ path?: string; error?: boolean }> {
+  if (file.type.startsWith("image/")) {
+    try {
+      const bufferOriginal = Buffer.from(await file.arrayBuffer());
+      const bufferComprimido = await sharp(bufferOriginal)
+        .rotate()
+        .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 82 })
+        .toBuffer();
+
+      const path = buildCaptacaoDocumentoPath(captacaoId, tipo, "arquivo.jpg");
+      const { error } = await cliente.storage
+        .from(CAPTACAO_DOCUMENTOS_BUCKET)
+        .upload(path, bufferComprimido, { upsert: true, contentType: "image/jpeg" });
+      return error ? { error: true } : { path };
+    } catch {
+      // cai pro envio original sem comprimir, abaixo.
+    }
+  }
+
   const path = buildCaptacaoDocumentoPath(captacaoId, tipo, file.name);
   const { error } = await cliente.storage
     .from(CAPTACAO_DOCUMENTOS_BUCKET)
