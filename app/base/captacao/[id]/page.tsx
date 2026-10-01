@@ -48,7 +48,9 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
   );
   // Sempre os 5 slots da ficha física, na mesma ordem — inclusive os que ainda não foram enviados
   // (candidato de origem "interno", ou inscrição de antes deste recurso existir), pra equipe ver de
-  // cara o que falta, não só o que já chegou.
+  // cara o que falta, não só o que já chegou. Desde 2026-10-01 a inscrição pública não envia mais
+  // documento nenhum (o Mateus recolhe fisicamente), então isso só deve ter conteúdo pra candidatos
+  // antigos — a seção inteira (abaixo) só aparece quando pelo menos um documento existe de verdade.
   const documentos = await Promise.all(
     (Object.keys(CAPTACAO_DOCUMENTO_LABEL) as CaptacaoDocumentoTipo[]).map(async (tipo) => {
       const doc = documentosPorTipo.get(tipo);
@@ -56,6 +58,7 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
       return { tipo, label: CAPTACAO_DOCUMENTO_LABEL[tipo], url };
     }),
   );
+  const possuiAlgumDocumento = documentos.some((doc) => doc.url);
 
   // Outros períodos do mesmo atleta no clube (mesmo CPF, qualquer status) — seção "Histórico" (ver
   // spec 2026-09-11-captacao-completar-cadastro-cpf-design.md, seção 5). Só busca quando o
@@ -292,30 +295,33 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
         </section>
       ) : null}
 
-      <section className="card mt-4 space-y-3 p-5">
-        <h2 className="font-display text-lg font-semibold text-neutral-900">Documentos</h2>
-        <p className="text-sm text-neutral-600">
-          Os 5 documentos obrigatórios da ficha, enviados pelo próprio candidato na inscrição — a
-          foto fica no formulário abaixo, junto com os demais dados.
-        </p>
-        <div className="space-y-2">
-          {documentos.map((doc) => (
-            <div
-              key={doc.tipo}
-              className="flex flex-wrap items-center gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm"
-            >
-              <span className="min-w-[220px] flex-1 font-medium text-neutral-800">{doc.label}</span>
-              {doc.url ? (
-                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                  Abrir
-                </a>
-              ) : (
-                <span className="text-xs font-medium text-neutral-400">Não enviado</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+      {possuiAlgumDocumento ? (
+        <section className="card mt-4 space-y-3 p-5">
+          <h2 className="font-display text-lg font-semibold text-neutral-900">Documentos</h2>
+          <p className="text-sm text-neutral-600">
+            Documentos da ficha enviados pelo próprio candidato na inscrição (recurso descontinuado
+            em 2026-10-01 — candidatos novos não têm mais essa opção, a equipe recolhe os documentos
+            pessoalmente).
+          </p>
+          <div className="space-y-2">
+            {documentos.map((doc) => (
+              <div
+                key={doc.tipo}
+                className="flex flex-wrap items-center gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm"
+              >
+                <span className="min-w-[220px] flex-1 font-medium text-neutral-800">{doc.label}</span>
+                {doc.url ? (
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+                    Abrir
+                  </a>
+                ) : (
+                  <span className="text-xs font-medium text-neutral-400">Não enviado</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="card mt-4 p-6">
         <CaptacaoForm

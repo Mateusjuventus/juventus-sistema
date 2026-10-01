@@ -3,16 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { captacaoInscricaoSchema } from "@/lib/validation/schemas";
-import {
-  uploadFotoRedimensionada,
-  uploadCaptacaoDocumento,
-  getSignedPhotoUrl,
-  ENTITY_PHOTOS_BUCKET,
-  CAPTACAO_DOCUMENTOS_BUCKET,
-} from "@/lib/supabase/storage";
-import { CAPTACAO_DOCUMENTO_LABEL, camposComunsCaptacao, encontrarCandidatoParaCompletar } from "@/lib/futebol/captacao";
+import { uploadFotoRedimensionada, getSignedPhotoUrl, ENTITY_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { camposComunsCaptacao, encontrarCandidatoParaCompletar } from "@/lib/futebol/captacao";
 import { isValidCPF } from "@/lib/validation/cpf";
-import type { CaptacaoBaseRow, CaptacaoDocumentoTipo } from "@/lib/supabase/types";
+import type { CaptacaoBaseRow } from "@/lib/supabase/types";
 
 /**
  * Inscrição pública pro teste/avaliação do Futebol de Base (link sem login, ver
@@ -24,10 +18,17 @@ import type { CaptacaoBaseRow, CaptacaoDocumentoTipo } from "@/lib/supabase/type
  * (esse é o link da Ficha de Cadastro, `/cadastro-atleta-base`, coisa totalmente separada).
  *
  * Desde 2026-09-11 (ver spec 2026-09-11-captacao-documentos-termo-auto-cadastro-design.md) também
- * exige a foto do candidato e os 5 documentos obrigatórios (PDF ou foto), e grava o Termo de
- * Responsabilidade (consentimento digital). Como os arquivos não são cobertos pelo
- * `captacaoInscricaoSchema` (Zod não valida File de FormData bem), são conferidos à parte, depois da
- * validação dos campos de texto — só então o registro é criado.
+ * exige a foto do candidato e grava o Termo de Responsabilidade (consentimento digital). Como o
+ * arquivo da foto não é coberto pelo `captacaoInscricaoSchema` (Zod não valida File de FormData
+ * bem), é conferido à parte, depois da validação dos campos de texto — só então o registro é
+ * criado.
+ *
+ * Os 5 documentos obrigatórios (RG, declaração escolar, atestado médico, eletrocardiograma) NÃO são
+ * mais coletados por aqui — pedido do Mateus em 2026-10-01: ele recolhe fisicamente com a família,
+ * em vez de guardar cópia digital no Supabase (volume de ~100 atletas pesava rápido no armazenamento/
+ * egress do plano gratuito). A tabela `captacao_documentos` e o bucket `captacao-documentos`
+ * continuam existindo (candidatos antigos podem ter documento registrado), só não recebem mais
+ * envio novo daqui.
  *
  * Roda inteiro com o cliente admin (service_role) — mesma razão de `cadastrarStaffPublicoBase`:
  * quem preenche não tem sessão.
@@ -38,12 +39,6 @@ export interface InscricaoCaptacaoState {
   values?: Record<string, string | undefined>;
   success?: boolean;
 }
-
-/** Rótulos dos 5 documentos obrigatórios (ver seção 2 do spec) — usados aqui só pra montar a
- * mensagem de erro de campo faltando; a lista em si vive em `lib/futebol/captacao.ts`
- * (`CAPTACAO_DOCUMENTO_LABEL`), compartilhada com a exibição pra equipe em
- * `app/base/captacao/[id]/page.tsx`. */
-const DOCUMENTOS_OBRIGATORIOS = CAPTACAO_DOCUMENTO_LABEL;
 
 function parseForm(formData: FormData) {
   const raw = {
@@ -95,9 +90,9 @@ function parseForm(formData: FormData) {
   return { raw, valuesTexto, result };
 }
 
-/** Confere se todos os documentos obrigatórios (mais a foto) vieram como arquivo de verdade — um
- * `<input type="file">` vazio ainda manda um File com `size === 0`, então isso cobre tanto "campo
- * não enviado" quanto "campo enviado sem escolher arquivo". */
+/** Confere se a foto do atleta veio como arquivo de verdade — um `<input type="file">` vazio ainda
+ * manda um File com `size === 0`, então isso cobre tanto "campo não enviado" quanto "campo enviado
+ * sem escolher arquivo". */
 function arquivoValido(value: FormDataEntryValue | null): value is File {
   return value instanceof File && value.size > 0;
 }
@@ -168,14 +163,15 @@ export async function inscreverCaptacao(
   formData: FormData,
 ): Promise<InscricaoCaptacaoState> {
   const { valuesTexto, result } = parseForm(formData);
+
+  // Junta os erros de texto (Zod) com os de arquivo (conferidos mais abaixo) num aviso só — antes,
+  // um reenvio revelava um tipo de erro por vez (texto primeiro, arquivo só depois de corrigir o
+  // texto), fazendo a pessoa reenviar várias vezes até descobrir tudo que faltava. Pedido do Mateus,
+  // 27/09: "quero que ao enviar... aparecer pra pessoa o que está faltando" — de uma vez, não aos
+  // poucos.
+  const fieldErrors: Record<string, string> = {};
   if (!result.success) {
-    const fieldErrors: Record<string, string> = {};
     for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
-    return {
-      error: "Existem campos com erro. Revise os campos destacados em vermelho acima.",
-      fieldErrors,
-      values: valuesTexto,
-    };
   }
 
   const admin = createAdminClient();
@@ -208,26 +204,21 @@ export async function inscreverCaptacao(
   // às vezes já anexa) — inscrição nova continua sempre exigindo.
   const fotoJaExistente = !!candidatoExistente?.foto_path;
 
-  // Arquivos não passam pelo Zod (`captacaoInscricaoSchema` só cobre texto) — conferidos aqui, num
-  // segundo passo, juntando todos num só aviso pra pessoa ver de uma vez tudo que falta anexar.
-  // Mesmo padrão de `cadastrarAtletaBasePublico` (foto obrigatória), estendido aos 5 documentos.
+  // Arquivo não passa pelo Zod (`captacaoInscricaoSchema` só cobre texto) — conferido aqui, num
+  // segundo passo, mas juntado ao mesmo `fieldErrors` de cima (não um aviso à parte) — mesmo padrão
+  // de `cadastrarAtletaBasePublico` (foto obrigatória).
   const foto = formData.get("foto");
   const fotoValida = arquivoValido(foto);
-  const documentosEnviados: Partial<Record<CaptacaoDocumentoTipo, File>> = {};
-  const fieldErrorsArquivos: Record<string, string> = {};
-  if (!fotoValida && !fotoJaExistente) fieldErrorsArquivos.foto = "A foto do atleta é obrigatória.";
-  for (const tipo of Object.keys(DOCUMENTOS_OBRIGATORIOS) as CaptacaoDocumentoTipo[]) {
-    const arquivo = formData.get(tipo);
-    if (!arquivoValido(arquivo)) {
-      fieldErrorsArquivos[tipo] = `${DOCUMENTOS_OBRIGATORIOS[tipo]} é obrigatório.`;
-    } else {
-      documentosEnviados[tipo] = arquivo;
-    }
-  }
-  if (Object.keys(fieldErrorsArquivos).length > 0) {
+  if (!fotoValida && !fotoJaExistente) fieldErrors.foto = "A foto do atleta é obrigatória.";
+
+  // Um só ponto de saída pra qualquer campo de texto ou arquivo com problema — cobre também o caso
+  // de `!result.success` sem nenhum `fieldErrors` (não deveria acontecer, já que todo issue do Zod
+  // vira uma entrada, mas serve de rede de segurança pro TypeScript conseguir estreitar `result`
+  // pra `result.success: true` dali pra frente).
+  if (Object.keys(fieldErrors).length > 0 || !result.success) {
     return {
       error: "Existem campos com erro. Revise os campos destacados em vermelho acima.",
-      fieldErrors: fieldErrorsArquivos,
+      fieldErrors,
       values: valuesTexto,
     };
   }
@@ -331,23 +322,16 @@ export async function inscreverCaptacao(
     candidatoId = inserted.id as string;
   }
 
-  const caminhosDocumentosEnviados: string[] = [];
   let fotoPathNovo: string | undefined;
 
-  /** Desfaz o registro e os arquivos enviados NESTA submissão — só quando é uma inscrição NOVA.
-   * Completando um cadastro que já existia antes desta submissão, nunca desfaz nada aqui: cada
-   * documento usa um path fixo por tipo (upsert), então uma falha no meio não deixa nada órfão —
-   * um documento que já tinha subido com sucesso (storage + `captacao_documentos`) continua válido
-   * mesmo se um documento seguinte falhar; a pessoa só reenvia o que faltou numa próxima tentativa.
-   * Apagar o registro (ou os arquivos já commitados) desfaria trabalho legítimo e, pior, apagaria
-   * um candidato que o Mateus criou manualmente só porque um upload posterior deu erro. */
+  /** Desfaz o registro e a foto enviada NESTA submissão — só quando é uma inscrição NOVA.
+   * Completando um cadastro que já existia antes desta submissão, nunca desfaz nada aqui: apagar o
+   * registro desfaria trabalho legítimo e, pior, apagaria um candidato que o Mateus criou
+   * manualmente só porque o upload da foto deu erro. */
   async function desfazerInscricao() {
     if (candidatoExistente) return;
-    await admin.from("captacao_base").delete().eq("id", candidatoId); // cascade apaga captacao_documentos
+    await admin.from("captacao_base").delete().eq("id", candidatoId);
     if (fotoPathNovo) await admin.storage.from(ENTITY_PHOTOS_BUCKET).remove([fotoPathNovo]);
-    if (caminhosDocumentosEnviados.length > 0) {
-      await admin.storage.from(CAPTACAO_DOCUMENTOS_BUCKET).remove(caminhosDocumentosEnviados);
-    }
   }
 
   // Foto: só sobe se uma nova foi enviada (`fotoValida`) — completando um cadastro que já tem foto,
@@ -362,32 +346,6 @@ export async function inscreverCaptacao(
     }
     fotoPathNovo = fotoResultado.path;
     await admin.from("captacao_base").update({ foto_path: fotoResultado.path }).eq("id", candidatoId);
-  }
-
-  for (const [tipo, arquivo] of Object.entries(documentosEnviados) as [CaptacaoDocumentoTipo, File][]) {
-    const documentoResultado = await uploadCaptacaoDocumento(admin, arquivo, candidatoId, tipo);
-    if (documentoResultado.error || !documentoResultado.path) {
-      await desfazerInscricao();
-      return {
-        error: `Não foi possível enviar o documento "${DOCUMENTOS_OBRIGATORIOS[tipo]}". Tente novamente.`,
-        values: valuesTexto,
-      };
-    }
-    caminhosDocumentosEnviados.push(documentoResultado.path);
-    // Upsert (não insert simples): a constraint única é (captacao_id, tipo) — permite reenviar
-    // depois de uma tentativa anterior que falhou no meio (novo cadastro ou completar existente),
-    // sem esbarrar num conflito de chave.
-    const { error: docError } = await admin
-      .from("captacao_documentos")
-      .upsert({ captacao_id: candidatoId, tipo, arquivo_path: documentoResultado.path }, { onConflict: "captacao_id,tipo" });
-    if (docError) {
-      console.error("inscreverCaptacao: falha ao registrar em captacao_documentos", tipo, docError);
-      await desfazerInscricao();
-      return {
-        error: `Não foi possível registrar o documento "${DOCUMENTOS_OBRIGATORIOS[tipo]}". Tente novamente.`,
-        values: valuesTexto,
-      };
-    }
   }
 
   revalidatePath("/base/captacao");

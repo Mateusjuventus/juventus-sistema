@@ -114,23 +114,6 @@ function VerificacaoCpfStep({
   );
 }
 
-/** Campo de upload de um documento obrigatório (RG, declaração escolar etc.) — sem preview (não é
- * foto), aceita PDF ou imagem porque a maioria das famílias vai fotografar com o celular em vez de
- * escanear (ver spec 2026-09-11, seção 2). */
-function DocumentoField({ label, name, error }: { label: string; name: string; error?: string }) {
-  return (
-    <div>
-      <label htmlFor={name} className="field-label">
-        {label}
-        <span className="text-red-700"> *</span>
-      </label>
-      <input id={name} name={name} type="file" accept="application/pdf,image/*" className="field-input" />
-      <p className="mt-1 text-xs text-neutral-400">Aceita PDF ou foto do documento.</p>
-      {error ? <p className="field-error">{error}</p> : null}
-    </div>
-  );
-}
-
 /**
  * Formulário público de inscrição pro teste/avaliação (ver app/inscricao-captacao-base/actions.ts).
  * Mesmos campos do cadastro interno de Captação, exceto Data de início/término e Status — o Mateus
@@ -138,8 +121,10 @@ function DocumentoField({ label, name, error }: { label: string; name: string; e
  * são obrigatórios (pedido de 19/08) — ver `captacaoInscricaoSchema`.
  *
  * Desde 2026-09-11 (ver spec 2026-09-11-captacao-documentos-termo-auto-cadastro-design.md) também
- * pede foto + 5 documentos obrigatórios e o aceite do Termo de Responsabilidade (consentimento
- * digital, sem assinatura desenhada).
+ * pede foto e o aceite do Termo de Responsabilidade (consentimento digital, sem assinatura
+ * desenhada). Os 5 documentos obrigatórios (RG, declaração escolar etc.) que esse mesmo formulário
+ * chegou a pedir pra anexar NÃO são mais coletados por aqui — pedido do Mateus em 2026-10-01: ele
+ * recolhe fisicamente com a família em vez de guardar cópia digital no Supabase.
  */
 export function InscricaoCaptacaoForm({
   action,
@@ -161,13 +146,19 @@ export function InscricaoCaptacaoForm({
 
   // Mesmo ajuste feito na Ficha de Cadastro de Atleta (bug de 25/08: formulário longo, quem envia
   // costuma estar rolado lá embaixo perto do botão) — rola até o primeiro erro pra pessoa ver na
-  // hora o que falta corrigir, em vez de parecer que o envio não fez nada.
+  // hora o que falta corrigir, em vez de parecer que o envio não fez nada. Estendido em 27/09 pra
+  // cobrir também um `state.error` GERAL (inscrições fechadas, os avisos de 22003, "não foi possível
+  // registrar o documento..." etc.) — antes só rolava pra campos de texto/arquivo em vermelho
+  // (`.field-error`), deixando esse aviso (renderizado bem no fim, acima do botão de um formulário de
+  // 8 seções) fora da tela em quem enviou rolado lá de cima. Prioriza `.field-error` quando os dois
+  // existem (aparece antes no documento), já que corrigir os campos costuma vir primeiro.
   useEffect(() => {
-    if (!state.fieldErrors || Object.keys(state.fieldErrors).length === 0) return;
-    const primeiroErro = formRef.current?.querySelector(".field-error");
-    primeiroErro?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const temErro = state.error || (state.fieldErrors && Object.keys(state.fieldErrors).length > 0);
+    if (!temErro) return;
+    const alvo = formRef.current?.querySelector<HTMLElement>(".field-error, [data-erro-geral]");
+    alvo?.scrollIntoView({ behavior: "smooth", block: "center" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.fieldErrors]);
+  }, [state.error, state.fieldErrors]);
 
   // `possuiPlanoSaude`/`federado` são estado local (pra reagir ao <select> em tempo real) — sem
   // isso, o pré-preenchimento vindo da verificação (que só chega depois da montagem inicial do
@@ -209,10 +200,11 @@ export function InscricaoCaptacaoForm({
             </p>
           </div>
           <div className="rounded-md border border-linha bg-cinzaPagina/60 p-4">
-            <p className="text-sm font-semibold text-grena-escuro">Leve os documentos originais</p>
+            <p className="text-sm font-semibold text-grena-escuro">Leve os documentos no dia</p>
             <p className="mt-1 text-sm text-neutral-600">
-              Mesmo já tendo enviado cópia digital nesta inscrição, os documentos originais precisam
-              ser apresentados fisicamente no dia da avaliação pra liberar a participação do atleta.
+              RG do atleta, RG do(s) responsável(is), declaração escolar, atestado médico e
+              eletrocardiograma com laudo — a equipe recolhe esses documentos pessoalmente no dia da
+              avaliação, pra liberar a participação do atleta.
             </p>
           </div>
           <div className="rounded-md border border-linha bg-cinzaPagina/60 p-4">
@@ -487,28 +479,7 @@ export function InscricaoCaptacaoForm({
         />
       </FormSection>
 
-      <FormSection title="7. Documentos obrigatórios">
-        <p className="text-sm text-neutral-500">
-          Todos os itens abaixo são obrigatórios pra enviar a inscrição.
-        </p>
-        <FieldGroup>
-          <DocumentoField label="Cópia do RG do atleta" name="rg_atleta" error={errors.rg_atleta} />
-          <DocumentoField
-            label="Cópia do RG do(s) responsável(is)"
-            name="rg_responsavel"
-            error={errors.rg_responsavel}
-          />
-          <DocumentoField label="Declaração escolar" name="declaracao_escolar" error={errors.declaracao_escolar} />
-          <DocumentoField label="Atestado médico" name="atestado_medico" error={errors.atestado_medico} />
-          <DocumentoField
-            label="Eletrocardiograma com laudo"
-            name="eletrocardiograma"
-            error={errors.eletrocardiograma}
-          />
-        </FieldGroup>
-      </FormSection>
-
-      <FormSection title="8. Termo de Responsabilidade">
+      <FormSection title="7. Termo de Responsabilidade">
         <div className="space-y-3 rounded-md bg-cinzaPagina p-4 text-sm text-neutral-700">
           <p>
             Este documento estabelece as normas a serem cumpridas para a participação do Atleta no
@@ -596,7 +567,11 @@ export function InscricaoCaptacaoForm({
         </div>
       </FormSection>
 
-      {state.error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p> : null}
+      {state.error ? (
+        <p data-erro-geral className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          {state.error}
+        </p>
+      ) : null}
 
       <SubmitButton label="Enviar inscrição" pendingLabel="Enviando..." />
     </form>
