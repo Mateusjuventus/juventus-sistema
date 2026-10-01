@@ -16,6 +16,7 @@ import type {
   FisioterapiaQueixaRow,
 } from "@/lib/supabase/types";
 import {
+  AtendimentoItem,
   EncerrarLesaoForm,
   LesaoItem,
   NovaLesaoForm,
@@ -107,9 +108,6 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
           <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
             Histórico anterior ao sistema
           </h2>
-          <p className="mt-0.5 text-xs text-neutral-400">
-            Importado do relatório em papel do departamento — sem data exata de cada evento, só como referência.
-          </p>
           <ul className="mt-3 space-y-3">
             {historico.map((item) => (
               <li key={item.id} className="border-t border-neutral-200 pt-2">
@@ -201,13 +199,23 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
                 const lesaoVinculada = atendimento.lesao_id ? lesaoPorId.get(atendimento.lesao_id) : null;
                 return (
                   <li key={atendimento.id} className="border-t border-neutral-100 pt-2">
-                    <p className="text-sm font-medium text-neutral-800">
-                      {atendimento.data ? formatDataBr(atendimento.data) : "Histórico, sem data exata"}
-                    </p>
-                    <p className="text-xs text-neutral-500">{atendimento.descricao}</p>
-                    {lesaoVinculada ? (
-                      <p className="mt-0.5 text-xs text-neutral-400">Ligado à lesão: {lesaoVinculada.descricao}</p>
-                    ) : null}
+                    {podeEditar ? (
+                      <AtendimentoItem
+                        atletaId={atleta.id}
+                        atendimento={atendimento}
+                        lesoes={lesoes.map((l) => ({ id: l.id, descricao: l.descricao }))}
+                      />
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-neutral-800">
+                          {atendimento.data ? formatDataBr(atendimento.data) : "Histórico, sem data exata"}
+                        </p>
+                        <p className="text-xs text-neutral-500">{atendimento.descricao}</p>
+                        {lesaoVinculada ? (
+                          <p className="mt-0.5 text-xs text-neutral-400">Ligado à lesão: {lesaoVinculada.descricao}</p>
+                        ) : null}
+                      </>
+                    )}
                   </li>
                 );
               })}

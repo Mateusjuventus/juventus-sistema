@@ -65,9 +65,6 @@ export default async function FisioterapiaRelatorioPage() {
           <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
             Histórico anterior ao sistema
           </h2>
-          <p className="mt-0.5 text-xs text-neutral-400">
-            Importado do relatório em papel do departamento — sem data exata de cada evento, só como referência.
-          </p>
           <ul className="mt-3 space-y-3">
             {historicoGeral.map((item) => (
               <li key={item.id} className="border-t border-neutral-200 pt-2">

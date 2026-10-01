@@ -193,6 +193,74 @@ export async function registrarQueixa(
   return { success: "Queixa registrada." };
 }
 
+export interface DeleteFisioterapiaState {
+  error?: string;
+}
+
+/** Exclui uma lesão lançada por engano — antes só dava pra corrigir (`atualizarLesao`), sem jeito de
+ * tirar um registro errado da ficha (pedido do Mateus em 2026-10-01). Busca o atleta pela própria
+ * lesão em vez de receber no formulário, porque o `DeleteButton` (confirmação em duas etapas, ver
+ * `components/delete-button.tsx`) só manda o `id` do registro. Recalcula o status do atleta em
+ * seguida, mesma lógica de `encerrarLesao`/`atualizarLesao` — excluir uma lesão só pode levar o
+ * status de "Depto. Médico" de volta pra "Liberado" (nunca o contrário, já que apagar nunca cria uma
+ * lesão nova em aberto), então quando o status muda a data do lançamento é sempre "hoje". */
+export async function excluirLesao(
+  _prevState: DeleteFisioterapiaState,
+  formData: FormData,
+): Promise<DeleteFisioterapiaState> {
+  const supabase = createClient();
+  if (!(await getFisioterapiaPodeEditar(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Não foi possível identificar a lesão." };
+
+  const { data: lesaoAtual } = await supabase
+    .from("fisioterapia_lesoes")
+    .select("atleta_id")
+    .eq("id", id)
+    .maybeSingle();
+  const atletaId = (lesaoAtual as { atleta_id: string } | null)?.atleta_id;
+  if (!atletaId) return { error: "Lesão não encontrada." };
+
+  const { error } = await supabase.from("fisioterapia_lesoes").delete().eq("id", id);
+  if (error) return { error: `Não foi possível excluir a lesão. Tente novamente. (${error.message})` };
+
+  await sincronizarStatusAtleta(supabase, atletaId, hojeBrasilia(), null);
+  revalidarFicha(atletaId);
+  return {};
+}
+
+/** Mesma ideia de `excluirLesao`, pras Queixas — sem recálculo de status (só lesão afeta o status do
+ * atleta). */
+export async function excluirQueixa(
+  _prevState: DeleteFisioterapiaState,
+  formData: FormData,
+): Promise<DeleteFisioterapiaState> {
+  const supabase = createClient();
+  if (!(await getFisioterapiaPodeEditar(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Não foi possível identificar a queixa." };
+
+  const { data: queixaAtual } = await supabase
+    .from("fisioterapia_queixas")
+    .select("atleta_id")
+    .eq("id", id)
+    .maybeSingle();
+  const atletaId = (queixaAtual as { atleta_id: string } | null)?.atleta_id;
+  if (!atletaId) return { error: "Queixa não encontrada." };
+
+  const { error } = await supabase.from("fisioterapia_queixas").delete().eq("id", id);
+  if (error) return { error: `Não foi possível excluir a queixa. Tente novamente. (${error.message})` };
+
+  revalidarFicha(atletaId);
+  return {};
+}
+
 export async function registrarAtendimento(
   _prevState: FisioterapiaFormState,
   formData: FormData,
@@ -228,6 +296,68 @@ export async function registrarAtendimento(
 
   revalidarFicha(atletaId);
   return { success: "Atendimento registrado." };
+}
+
+/** Mesma ideia de `atualizarLesao`/`atualizarQueixa`, pros Atendimentos — sem `updated_at`, coluna
+ * que não existe nessa tabela (ver 0111). Antes não existia jeito nenhum de corrigir um atendimento
+ * já lançado (pedido do Mateus em 2026-10-01: "colocar a opção de editar ali também no atendimento
+ * que não possui"). */
+export async function atualizarAtendimento(
+  _prevState: FisioterapiaFormState,
+  formData: FormData,
+): Promise<FisioterapiaFormState> {
+  const supabase = createClient();
+  if (!(await getFisioterapiaPodeEditar(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const atletaId = String(formData.get("atletaId") ?? "");
+  const atendimentoId = String(formData.get("atendimentoId") ?? "");
+  if (!atletaId || !atendimentoId) return { error: "Não foi possível identificar o atendimento." };
+
+  const data = String(formData.get("data") ?? "").trim();
+  const descricao = String(formData.get("descricao") ?? "").trim();
+  const lesaoId = String(formData.get("lesaoId") ?? "").trim() || null;
+
+  if (!data) return { error: "Data é obrigatória." };
+  if (!descricao) return { error: "Descreva o atendimento." };
+
+  const { error } = await supabase
+    .from("fisioterapia_atendimentos")
+    .update({ data, descricao, lesao_id: lesaoId })
+    .eq("id", atendimentoId);
+  if (error) return { error: `Não foi possível salvar o atendimento. Tente novamente. (${error.message})` };
+
+  revalidarFicha(atletaId);
+  return { success: "Atendimento atualizado." };
+}
+
+/** Mesma ideia de `excluirLesao`/`excluirQueixa`, pros Atendimentos. */
+export async function excluirAtendimento(
+  _prevState: DeleteFisioterapiaState,
+  formData: FormData,
+): Promise<DeleteFisioterapiaState> {
+  const supabase = createClient();
+  if (!(await getFisioterapiaPodeEditar(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Não foi possível identificar o atendimento." };
+
+  const { data: atendimentoAtual } = await supabase
+    .from("fisioterapia_atendimentos")
+    .select("atleta_id")
+    .eq("id", id)
+    .maybeSingle();
+  const atletaId = (atendimentoAtual as { atleta_id: string } | null)?.atleta_id;
+  if (!atletaId) return { error: "Atendimento não encontrado." };
+
+  const { error } = await supabase.from("fisioterapia_atendimentos").delete().eq("id", id);
+  if (error) return { error: `Não foi possível excluir o atendimento. Tente novamente. (${error.message})` };
+
+  revalidarFicha(atletaId);
+  return {};
 }
 
 /** Corrige qualquer campo de uma lesão já lançada — descrição, tipo, datas ou observações. Antes só

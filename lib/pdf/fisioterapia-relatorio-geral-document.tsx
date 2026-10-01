@@ -81,9 +81,6 @@ export function FisioterapiaRelatorioGeralDocument({
         {historicoGeral.length > 0 ? (
           <View style={styles.historicoBox} wrap={false}>
             <Text style={styles.historicoLabel}>Histórico</Text>
-            <Text style={styles.historicoNota}>
-              Importado do relatório em papel do departamento — sem data exata de cada evento, só como referência.
-            </Text>
             {historicoGeral.map((item, i) => (
               <View style={i === 0 ? styles.historicoItem : styles.historicoItemComDivisor} key={i}>
                 <Text style={styles.historicoResumo}>{item.resumo}</Text>

@@ -2,15 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
+import { DeleteButton } from "@/components/delete-button";
 import { FieldGroup, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
 import { FISIOTERAPIA_TIPO_OPTIONS, diasAfastados, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
-import type { FisioterapiaLesaoRow, FisioterapiaQueixaRow, FisioterapiaTipo } from "@/lib/supabase/types";
+import type { FisioterapiaAtendimentoRow, FisioterapiaLesaoRow, FisioterapiaQueixaRow, FisioterapiaTipo } from "@/lib/supabase/types";
 import {
+  atualizarAtendimento,
   atualizarLesao,
   atualizarQueixa,
   encerrarLesao,
+  excluirAtendimento,
+  excluirLesao,
+  excluirQueixa,
   registrarAtendimento,
   registrarLesao,
   registrarQueixa,
@@ -226,6 +231,11 @@ export function LesaoItem({
           </button>
         </div>
       </form>
+      {/* `DeleteButton` fica fora do `<form>` acima de propósito — ele é o próprio um `<form>` por
+       * dentro (ver `components/delete-button.tsx`), e `<form>` dentro de `<form>` não é válido. */}
+      <div className="mt-2 flex justify-end">
+        <DeleteButton errorAction={excluirLesao} id={lesao.id} entityLabel="lesão" />
+      </div>
     </div>
   );
 }
@@ -307,6 +317,9 @@ export function QueixaItem({
           </button>
         </div>
       </form>
+      <div className="mt-2 flex justify-end">
+        <DeleteButton errorAction={excluirQueixa} id={queixa.id} entityLabel="queixa" />
+      </div>
     </div>
   );
 }
@@ -370,5 +383,90 @@ export function NovoAtendimentoForm({
         <SubmitButton label="Salvar atendimento" pendingLabel="Salvando..." className="btn-secondary btn-sm" />
       </form>
     </details>
+  );
+}
+
+/** Mesma ideia de `QueixaItem`, pros Atendimentos — antes só dava pra criar, sem jeito de corrigir
+ * ou apagar um já lançado (pedido do Mateus em 2026-10-01). O vínculo com lesão aceita qualquer
+ * lesão do atleta (não só as "em andamento", diferente do formulário de criação) pra não perder o
+ * vínculo de um atendimento antigo ligado a uma lesão que já foi encerrada. */
+export function AtendimentoItem({
+  atletaId,
+  atendimento,
+  lesoes,
+}: {
+  atletaId: string;
+  atendimento: FisioterapiaAtendimentoRow;
+  lesoes: { id: string; descricao: string }[];
+}) {
+  const [editando, setEditando] = useState(false);
+  const [state, formAction] = useFormState(atualizarAtendimento, initialState);
+
+  useEffect(() => {
+    if (state.success) setEditando(false);
+  }, [state]);
+
+  if (!editando) {
+    const lesaoVinculada = atendimento.lesao_id ? lesoes.find((l) => l.id === atendimento.lesao_id) : null;
+    return (
+      <button
+        type="button"
+        onClick={() => setEditando(true)}
+        className="group -mx-2 flex w-[calc(100%+1rem)] flex-col items-start rounded-md px-2 py-1 text-left transition hover:bg-neutral-50"
+      >
+        <span className="flex w-full items-center justify-between gap-2">
+          <span className="text-sm font-medium text-neutral-800">
+            {atendimento.data ? formatDataBr(atendimento.data) : "Histórico, sem data exata"}
+          </span>
+          <span className="shrink-0 text-[11px] font-semibold text-grena opacity-0 transition group-hover:opacity-100">
+            Editar
+          </span>
+        </span>
+        <span className="text-xs text-neutral-500">{atendimento.descricao}</span>
+        {lesaoVinculada ? (
+          <span className="mt-0.5 text-xs text-neutral-400">Ligado à lesão: {lesaoVinculada.descricao}</span>
+        ) : null}
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-grena/30 bg-white p-3">
+      <form action={formAction} className="space-y-2">
+        <input type="hidden" name="atletaId" value={atletaId} />
+        <input type="hidden" name="atendimentoId" value={atendimento.id} />
+        <div className="flex flex-wrap gap-2">
+          <div>
+            <label className="field-label">Data</label>
+            <input type="date" name="data" defaultValue={atendimento.data ?? ""} className="field-input" />
+          </div>
+          <div className="min-w-[200px] flex-1">
+            <label className="field-label">Ligar a uma lesão (opcional)</label>
+            <select name="lesaoId" defaultValue={atendimento.lesao_id ?? ""} className="field-input">
+              <option value="">Sessão solta (sem lesão vinculada)</option>
+              {lesoes.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.descricao}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="field-label">O que foi feito na sessão</label>
+          <textarea name="descricao" defaultValue={atendimento.descricao} required rows={2} className="field-input" />
+        </div>
+        {state.error ? <p className="field-error">{state.error}</p> : null}
+        <div className="flex items-center gap-2">
+          <SalvarEdicaoButton />
+          <button type="button" onClick={() => setEditando(false)} className="btn-secondary text-xs">
+            Cancelar
+          </button>
+        </div>
+      </form>
+      <div className="mt-2 flex justify-end">
+        <DeleteButton errorAction={excluirAtendimento} id={atendimento.id} entityLabel="atendimento" />
+      </div>
+    </div>
   );
 }
