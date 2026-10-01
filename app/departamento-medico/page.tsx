@@ -12,7 +12,15 @@ import type { FisioterapiaLesaoRow } from "@/lib/supabase/types";
  */
 export default async function DepartamentoMedicoPage() {
   const supabase = createClient();
-  const { data } = await supabase.from("fisioterapia_lesoes").select("atleta_id").is("data_fim", null);
+  // `.not("data_inicio", "is", null)`: uma lesão do histórico importado (sem data, ver migração
+  // 0115) também tem `data_fim` nula, mas não é uma lesão ativa agora — sem esse filtro, cada lesão
+  // antiga sem data nenhuma contava como "em tratamento" (mesma regra já aplicada em
+  // `montarResumoGeralFisioterapia`, lib/futebol/fisioterapia.ts).
+  const { data } = await supabase
+    .from("fisioterapia_lesoes")
+    .select("atleta_id")
+    .is("data_fim", null)
+    .not("data_inicio", "is", null);
   const lesoesAtivas = (data ?? []) as Pick<FisioterapiaLesaoRow, "atleta_id">[];
   const atletasEmTratamento = new Set(lesoesAtivas.map((l) => l.atleta_id)).size;
 
