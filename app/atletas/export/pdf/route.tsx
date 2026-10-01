@@ -19,18 +19,19 @@ import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
-// Mesmos rótulos "Apto"/"Não apto"/"Depto. Médico" de `app/atletas/page.tsx` (ver item 7 do ajuste
-// de 2026-09-10) — o resumo do PDF precisa bater com o que a tela mostra.
+// Mesmo rótulo "Apto" de `app/atletas/page.tsx` (ver item 7 do ajuste de 2026-09-10) — o resumo do
+// PDF precisa bater com o que a tela mostra. "Não apto" (de "suspenso") saiu do vocabulário em
+// 01/10/2026 (ver docs/superpowers/specs/2026-10-01-departamento-medico-historico-status-design.md).
 const STATUS_LABEL: Record<AtletaStatus, string> = {
   liberado: "Apto",
-  suspenso: "Não apto",
   departamento_medico: "Depto. Médico",
+  transicao: "Transição",
 };
 
 const STATUS_OPTIONS = [
   { value: "liberado", label: STATUS_LABEL.liberado },
-  { value: "suspenso", label: STATUS_LABEL.suspenso },
   { value: "departamento_medico", label: STATUS_LABEL.departamento_medico },
+  { value: "transicao", label: STATUS_LABEL.transicao },
 ];
 
 const CONTRATO_OPTIONS_PROFISSIONAL = ["definitivo", "emprestimo", "amador", "formacao"] as const;

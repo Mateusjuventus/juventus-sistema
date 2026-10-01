@@ -186,14 +186,16 @@ export function ConvocacaoForm({
     if (capitaoId === atletaId) setCapitaoId("");
   }
 
-  // Disponíveis = não convocados ainda. Departamento Médico fica escondido por padrão (revelado
-  // por "Ver Lesionados"); Liberado e Suspenso aparecem direto — suspensão não impede convocar,
-  // só o Departamento Médico é tratado como "fora de combate" nesta grade.
+  // Disponíveis = não convocados ainda e Liberado — ver docs/superpowers/specs/
+  // 2026-10-01-departamento-medico-historico-status-design.md, seção 5. Depto. Médico e Transição
+  // ficam os dois escondidos por padrão (revelados por "Ver Lesionados"); antes só Depto. Médico
+  // era tratado como "fora de combate" aqui (Suspenso aparecia direto) — "Suspenso" não existe mais
+  // no vocabulário de status do Profissional.
   const disponiveis = ordenarPorNomeExibido(
-    atletas.filter((a) => !convocados.has(a.id) && a.status !== "departamento_medico"),
+    atletas.filter((a) => !convocados.has(a.id) && a.status === "liberado"),
   );
   const lesionadosDisponiveis = ordenarPorNomeExibido(
-    atletas.filter((a) => !convocados.has(a.id) && a.status === "departamento_medico"),
+    atletas.filter((a) => !convocados.has(a.id) && a.status !== "liberado"),
   );
 
   const convocadosCandidatosCapitao = [...titularesList, ...reservasList];

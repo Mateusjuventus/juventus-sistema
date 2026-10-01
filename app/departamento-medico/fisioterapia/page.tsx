@@ -60,7 +60,11 @@ export default async function FisioterapiaListagemPage() {
   return (
     <AppShell largura="total">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/departamento-medico" className="text-sm font-medium text-grena hover:underline">
+        {/* A tela-hub de Departamento Médico foi removida (ver docs/superpowers/specs/
+            2026-10-01-departamento-medico-historico-status-design.md, seção 1) — "Fisioterapia"
+            agora é acessada direto pela sidebar, então "Voltar" segue o mesmo padrão dos outros
+            módulos de topo (ex.: Atletas, Financeiro): volta pro Início. */}
+        <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
           ← Voltar
         </Link>
         <div className="flex flex-wrap gap-2">
@@ -84,7 +88,7 @@ export default async function FisioterapiaListagemPage() {
       </p>
 
       <div className="mt-6">
-        <FisioterapiaListagem atletas={itens} />
+        <FisioterapiaListagem atletas={itens} podeEditar={podeEditar} />
       </div>
     </AppShell>
   );

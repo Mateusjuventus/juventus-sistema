@@ -5,20 +5,21 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
-// Rótulos "Apto"/"Não apto"/"Depto. Médico" (em vez de Liberado/Suspenso/Departamento Médico) —
-// pedido do Mateus pra bater com o layout antigo de antes do redesign (ver item 7 do ajuste de
-// 2026-09-10). O valor gravado no banco continua "liberado"/"suspenso"/"departamento_medico"; só o
-// rótulo exibido nos chips de Status muda.
+// Rótulo "Apto" (em vez de "Liberado") — pedido do Mateus pra bater com o layout antigo de antes
+// do redesign (ver item 7 do ajuste de 2026-09-10). O valor gravado no banco continua "liberado";
+// só o rótulo exibido nos chips de Status muda. "Não apto" (de "suspenso") saiu do vocabulário em
+// 01/10/2026 (ver docs/superpowers/specs/2026-10-01-departamento-medico-historico-status-design.md)
+// — "Transição" é novo e não tem um equivalente nesse estilo antigo, então usa o nome mesmo.
 const STATUS_LABEL: Record<AtletaStatus, string> = {
   liberado: "Apto",
-  suspenso: "Não apto",
   departamento_medico: "Depto. Médico",
+  transicao: "Transição",
 };
 
 const STATUS_OPTIONS: StatusFiltroOpcao[] = [
   { value: "liberado", label: STATUS_LABEL.liberado },
-  { value: "suspenso", label: STATUS_LABEL.suspenso },
   { value: "departamento_medico", label: STATUS_LABEL.departamento_medico },
+  { value: "transicao", label: STATUS_LABEL.transicao },
 ];
 
 // Sem "iniciacao" aqui — só existe na Base (ver docs/superpowers/specs/

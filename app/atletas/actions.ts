@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import { atletaSchema } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
+import { hojeBrasilia } from "@/lib/data-brasil";
+import { registrarStatusAtleta } from "@/lib/futebol/status-historico";
+import type { AtletaStatus } from "@/lib/supabase/types";
 
 export interface AtletaFormState {
   error?: string;
@@ -142,6 +145,12 @@ export async function createAtleta(
     return { error: friendlyDbError(error), values: raw };
   }
 
+  // Semeia a primeira linha da linha do tempo de status (ver docs/superpowers/specs/
+  // 2026-10-01-departamento-medico-historico-status-design.md, seção 3) — sem isso, um atleta
+  // cadastrado direto com status "Depto. Médico"/"Transição" apareceria sem nenhum lançamento no
+  // histórico até a próxima mudança.
+  await registrarStatusAtleta(supabase, id, data.status, hojeBrasilia());
+
   revalidatePath("/atletas");
   redirect("/atletas");
 }
@@ -163,6 +172,13 @@ export async function updateAtleta(
 
   const supabase = createClient();
   const data = result.data;
+
+  // Status muda por fora do `updatePayload` abaixo (ver depois do update) — precisa do valor DE
+  // ANTES pra saber se precisa lançar uma linha nova no histórico (ver docs/superpowers/specs/
+  // 2026-10-01-departamento-medico-historico-status-design.md, seção 3): editar qualquer outro
+  // campo do atleta não deve criar um lançamento repetido se o status não mudou.
+  const { data: atletaAntes } = await supabase.from("atletas").select("status").eq("id", id).maybeSingle();
+  const statusAntes = (atletaAntes as { status: AtletaStatus } | null)?.status;
 
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
@@ -205,6 +221,12 @@ export async function updateAtleta(
 
   if (error) {
     return { error: friendlyDbError(error), values: raw };
+  }
+
+  // Lança uma linha no histórico só quando o status muda de verdade — editar qualquer outro campo
+  // do cadastro não deve criar um lançamento repetido (ver comentário acima de `statusAntes`).
+  if (statusAntes !== data.status) {
+    await registrarStatusAtleta(supabase, id, data.status, hojeBrasilia());
   }
 
   revalidatePath("/atletas");

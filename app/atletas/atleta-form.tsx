@@ -198,8 +198,8 @@ export function AtletaForm({
             error={errors.status}
           >
             <option value="liberado">Liberado</option>
-            <option value="suspenso">Suspenso</option>
-            <option value="departamento_medico">Departamento Médico</option>
+            <option value="departamento_medico">Depto. Médico</option>
+            <option value="transicao">Transição</option>
           </SelectField>
           <SelectField
             label="Tipo de contrato"

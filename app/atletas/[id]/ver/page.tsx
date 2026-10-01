@@ -9,14 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { ATLETA_STATUS_LABEL } from "@/lib/futebol/fisioterapia";
 import { alternarAtletaAtivo } from "../../actions";
-import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
-
-const STATUS_LABEL: Record<AtletaStatus, string> = {
-  liberado: "Liberado",
-  suspenso: "Suspenso",
-  departamento_medico: "Departamento Médico",
-};
+import type { AtletaRow } from "@/lib/supabase/types";
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -118,7 +113,7 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
               label="Pé dominante"
               value={atleta.pe_dominante ? PE_DOMINANTE_LABEL[atleta.pe_dominante] : null}
             />
-            <DetailField label="Status" value={STATUS_LABEL[atleta.status]} />
+            <DetailField label="Status" value={ATLETA_STATUS_LABEL[atleta.status]} />
             <DetailField
               label="Tipo de contrato"
               value={atleta.tipo_contrato ? TIPO_CONTRATO_LABEL[atleta.tipo_contrato] : null}

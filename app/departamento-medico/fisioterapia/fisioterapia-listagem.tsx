@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { AtletaCard } from "@/components/atletas/atleta-card";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
+import { HistoricoStatusModal } from "./historico-status-modal";
 import type { FisioterapiaAtletaItem } from "./page";
 
 /** Cor do indicador "em tratamento" (lesão ativa agora) — só uma cor, sem níveis (diferente da
@@ -11,10 +12,20 @@ import type { FisioterapiaAtletaItem } from "./page";
 const BORDA_EM_TRATAMENTO = "border-red-500";
 
 /** Grade de cards + busca por nome da listagem de Fisioterapia — mesmo padrão de busca client-side
- * já usado em `app/treinador/atletas/treinador-atletas-view.tsx`. */
-export function FisioterapiaListagem({ atletas }: { atletas: FisioterapiaAtletaItem[] }) {
+ * já usado em `app/treinador/atletas/treinador-atletas-view.tsx`. Clicar num card abre o modal
+ * "Histórico de Status" (ver docs/superpowers/specs/2026-10-01-departamento-medico-historico-
+ * status-design.md, seção 4) em vez de navegar direto pra ficha — a ficha completa continua a um
+ * clique de distância, pelo link no rodapé do modal. */
+export function FisioterapiaListagem({
+  atletas,
+  podeEditar,
+}: {
+  atletas: FisioterapiaAtletaItem[];
+  podeEditar: boolean;
+}) {
   const [busca, setBusca] = useState("");
   const buscaNormalizada = busca.trim().toLowerCase();
+  const [selecionado, setSelecionado] = useState<FisioterapiaAtletaItem | null>(null);
 
   const atletasFiltrados = useMemo(
     () =>
@@ -45,17 +56,31 @@ export function FisioterapiaListagem({ atletas }: { atletas: FisioterapiaAtletaI
         // demais (pedido do Mateus em 2026-09-30).
         <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
           {atletasFiltrados.map((atleta) => (
-            <AtletaCard
-              key={atleta.id}
-              atleta={atleta}
-              href={atleta.href}
-              mostrarCpf={false}
-              mostrarContrato={false}
-              corBordaExtra={atleta.emTratamento ? BORDA_EM_TRATAMENTO : undefined}
-            />
+            // `preventDefault` no clique cancela a navegação do `Link` dentro do `AtletaCard` (não
+            // dá pra passar um `onClick` pra esse componente compartilhado sem acoplar ele a essa
+            // tela específica) — abre o modal no lugar; a ficha completa continua acessível pelo
+            // link no rodapé do modal.
+            <div key={atleta.id} onClick={(e) => { e.preventDefault(); setSelecionado(atleta); }}>
+              <AtletaCard
+                atleta={atleta}
+                href={atleta.href}
+                mostrarCpf={false}
+                mostrarContrato={false}
+                corBordaExtra={atleta.emTratamento ? BORDA_EM_TRATAMENTO : undefined}
+              />
+            </div>
           ))}
         </div>
       )}
+
+      {selecionado ? (
+        <HistoricoStatusModal
+          atletaId={selecionado.id}
+          nome={nomeExibido({ apelido: selecionado.apelido, nome_completo: selecionado.nome })}
+          podeEditar={podeEditar}
+          onClose={() => setSelecionado(null)}
+        />
+      ) : null}
     </div>
   );
 }

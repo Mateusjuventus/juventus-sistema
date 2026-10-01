@@ -68,7 +68,9 @@ export async function AppShell({
       ]);
       navItems = MODULOS.filter((m) => modulosPermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
-        label: m.label,
+        // `subLabel` só existe quando o nome do link precisa ser diferente do nome da permissão
+        // (ver `departamento_medico` em `lib/auth/modulos.ts`) — os demais módulos caem pra `label`.
+        label: m.subLabel ?? m.label,
         icone: m.chave,
         // Bloco recolhível da sidebar, quando o módulo pertence a um (ver `lib/auth/modulos.ts`).
         grupo: m.grupo,

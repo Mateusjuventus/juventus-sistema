@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getFisioterapiaPodeEditar } from "@/lib/auth/role";
 import { statusFisioterapiaAtleta } from "@/lib/futebol/fisioterapia";
-import type { FisioterapiaTipo } from "@/lib/supabase/types";
+import { hojeBrasilia } from "@/lib/data-brasil";
+import { recomputarStatusAtual, registrarStatusAtleta } from "@/lib/futebol/status-historico";
+import type { AtletaStatus, AtletaStatusHistoricoRow, FisioterapiaTipo } from "@/lib/supabase/types";
 
 const TIPOS_VALIDOS: FisioterapiaTipo[] = [
   "muscular",
@@ -27,12 +29,18 @@ export interface FisioterapiaFormState {
 }
 
 /** Recalcula `atletas.status` a partir das lesões que sobraram sem `data_fim` pra esse atleta — ver
- * docs/superpowers/specs/2026-09-30-fisioterapia-design.md, seção 5. Roda dentro da mesma Server
+ * docs/superpowers/specs/2026-09-30-fisioterapia-design.md, seção 5, e docs/superpowers/specs/
+ * 2026-10-01-departamento-medico-historico-status-design.md, seção 3. Roda dentro da mesma Server
  * Action que salva/encerra uma lesão, nunca como trigger de banco (mesmo padrão do resto do
- * sistema: regra de negócio no código da aplicação). */
+ * sistema: regra de negócio no código da aplicação). Só lança uma linha nova no histórico quando o
+ * status realmente muda (editar uma lesão sem mudar o resultado — ex.: duas lesões abertas ao
+ * mesmo tempo, fechar uma delas — não deve criar uma linha repetida). `dataInicio`/`dataFim` são as
+ * datas da lesão que disparou a chamada, usadas como data do lançamento quando o status muda. */
 async function sincronizarStatusAtleta(
   supabase: ReturnType<typeof createClient>,
   atletaId: string,
+  dataInicio: string,
+  dataFim: string | null,
 ): Promise<void> {
   // `.not("data_inicio", "is", null)`: uma lesão do histórico importado (sem data, ver migração
   // 0115) também tem `data_fim` nula, mas não é uma lesão ativa agora — sem esse filtro, encerrar
@@ -45,8 +53,13 @@ async function sincronizarStatusAtleta(
     .is("data_fim", null)
     .not("data_inicio", "is", null);
 
-  const status = statusFisioterapiaAtleta((count ?? 0) > 0);
-  await supabase.from("atletas").update({ status }).eq("id", atletaId);
+  const novoStatus: AtletaStatus = statusFisioterapiaAtleta((count ?? 0) > 0);
+
+  const { data: atletaAtual } = await supabase.from("atletas").select("status").eq("id", atletaId).maybeSingle();
+  if ((atletaAtual as { status: AtletaStatus } | null)?.status === novoStatus) return;
+
+  const dataEvento = novoStatus === "departamento_medico" ? dataInicio : (dataFim ?? hojeBrasilia());
+  await registrarStatusAtleta(supabase, atletaId, novoStatus, dataEvento);
 }
 
 function revalidarFicha(atletaId: string): void {
@@ -101,7 +114,7 @@ export async function registrarLesao(
   });
   if (error) return { error: `Não foi possível salvar a lesão. Tente novamente. (${error.message})` };
 
-  await sincronizarStatusAtleta(supabase, atletaId);
+  await sincronizarStatusAtleta(supabase, atletaId, dataInicio, dataFim);
   revalidarFicha(atletaId);
   return { success: "Lesão registrada." };
 }
@@ -137,7 +150,7 @@ export async function encerrarLesao(
     .eq("id", lesaoId);
   if (error) return { error: `Não foi possível encerrar a lesão. Tente novamente. (${error.message})` };
 
-  await sincronizarStatusAtleta(supabase, atletaId);
+  await sincronizarStatusAtleta(supabase, atletaId, dataInicio, dataFim);
   revalidarFicha(atletaId);
   return { success: "Lesão encerrada." };
 }
@@ -260,7 +273,7 @@ export async function atualizarLesao(
     .eq("id", lesaoId);
   if (error) return { error: `Não foi possível salvar a lesão. Tente novamente. (${error.message})` };
 
-  await sincronizarStatusAtleta(supabase, atletaId);
+  await sincronizarStatusAtleta(supabase, atletaId, dataInicio ?? "", dataFim);
   revalidarFicha(atletaId);
   return { success: "Lesão atualizada." };
 }
@@ -292,4 +305,89 @@ export async function atualizarQueixa(
 
   revalidarFicha(atletaId);
   return { success: "Queixa atualizada." };
+}
+
+const STATUS_VALIDOS: AtletaStatus[] = ["liberado", "departamento_medico", "transicao"];
+
+function parseStatusAtleta(raw: FormDataEntryValue | null): AtletaStatus | null {
+  const valor = String(raw ?? "");
+  return (STATUS_VALIDOS as string[]).includes(valor) ? (valor as AtletaStatus) : null;
+}
+
+export interface HistoricoStatusFormState {
+  error?: string;
+  success?: string;
+  fieldErrors?: Record<string, string>;
+}
+
+/** Lança uma linha manual na linha do tempo de status (ex.: marcar "Transição" sem precisar de uma
+ * lesão associada) — ver docs/superpowers/specs/2026-10-01-departamento-medico-historico-status-
+ * design.md, seção 4. Mesma permissão de editar a Fisioterapia; não existe uma permissão própria
+ * pro histórico de status. */
+export async function lancarStatusManual(
+  _prevState: HistoricoStatusFormState,
+  formData: FormData,
+): Promise<HistoricoStatusFormState> {
+  const supabase = createClient();
+  if (!(await getFisioterapiaPodeEditar(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const atletaId = String(formData.get("atletaId") ?? "");
+  const status = parseStatusAtleta(formData.get("status"));
+  const data = String(formData.get("data") ?? "");
+
+  const fieldErrors: Record<string, string> = {};
+  if (!atletaId) fieldErrors.atletaId = "Atleta inválido.";
+  if (!status) fieldErrors.status = "Escolha o status.";
+  if (!data) fieldErrors.data = "Data é obrigatória.";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const { error } = await registrarStatusAtleta(supabase, atletaId, status as AtletaStatus, data);
+  if (error) return { error };
+
+  revalidarFicha(atletaId);
+  return { success: "Status lançado." };
+}
+
+/** Corrige uma linha já lançada (status e/ou data) — recalcula `atletas.status` em seguida, só
+ * mudando-o se a linha editada for (ou deixar de ser) a mais recente depois da correção. */
+export async function editarLancamentoStatus(
+  _prevState: HistoricoStatusFormState,
+  formData: FormData,
+): Promise<HistoricoStatusFormState> {
+  const supabase = createClient();
+  if (!(await getFisioterapiaPodeEditar(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const historicoId = String(formData.get("historicoId") ?? "");
+  const atletaId = String(formData.get("atletaId") ?? "");
+  const status = parseStatusAtleta(formData.get("status"));
+  const data = String(formData.get("data") ?? "");
+  if (!historicoId || !atletaId) return { error: "Não foi possível identificar o lançamento." };
+
+  const fieldErrors: Record<string, string> = {};
+  if (!status) fieldErrors.status = "Escolha o status.";
+  if (!data) fieldErrors.data = "Data é obrigatória.";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const { error } = await supabase.from("atletas_status_historico").update({ status, data }).eq("id", historicoId);
+  if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
+
+  await recomputarStatusAtual(supabase, atletaId);
+  revalidarFicha(atletaId);
+  return { success: "Lançamento atualizado." };
+}
+
+/** Linha do tempo de status completa de um atleta — usada pelo modal "Histórico de Status", que
+ * busca sob demanda ao abrir (não vem pré-carregada na listagem). */
+export async function buscarHistoricoStatus(atletaId: string): Promise<AtletaStatusHistoricoRow[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("atletas_status_historico")
+    .select("*")
+    .eq("atleta_id", atletaId)
+    .order("data", { ascending: false });
+  return (data ?? []) as AtletaStatusHistoricoRow[];
 }

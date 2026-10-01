@@ -10,15 +10,10 @@ import {
   mostrarInativosDaQueryString,
 } from "@/lib/futebol/atletas-filtro";
 import { filtrarLinhaPorGrupos, gruposCampoExportDaQueryString } from "@/lib/futebol/export-colunas";
-import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
+import { ATLETA_STATUS_LABEL } from "@/lib/futebol/fisioterapia";
+import type { AtletaRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABEL: Record<AtletaStatus, string> = {
-  liberado: "Liberado",
-  suspenso: "Suspenso",
-  departamento_medico: "Departamento Médico",
-};
 
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
   ATLETA_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
@@ -106,7 +101,7 @@ export async function GET(request: NextRequest) {
         "Endereço atual": a.endereco_atual ?? "",
         "Início no clube": formatData(a.data_inicio_clube),
         Empresário: a.empresario_nome ?? "",
-        Status: STATUS_LABEL[a.status],
+        Status: ATLETA_STATUS_LABEL[a.status],
         "Fim do contrato": formatData(a.data_fim_contrato),
         "Tipo de contrato": a.tipo_contrato ? TIPO_CONTRATO_LABEL[a.tipo_contrato] ?? a.tipo_contrato : "",
         "Contrato de formação": a.tipo_contrato === "amador" ? (a.possui_contrato_formacao ? "Sim" : "Não") : "",

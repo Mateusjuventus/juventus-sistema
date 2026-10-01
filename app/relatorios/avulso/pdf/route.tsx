@@ -12,18 +12,13 @@ import {
   type RelatorioAvulsoPessoa,
 } from "@/lib/pdf/relatorio-avulso-document";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { ATLETA_STATUS_LABEL } from "@/lib/futebol/fisioterapia";
 import type { AtletaRow, ComissaoTecnicaRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
   canhoto: "Canhoto",
   ambidestro: "Ambidestro",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  liberado: "Liberado",
-  suspenso: "Suspenso",
-  departamento_medico: "Departamento Médico",
 };
 
 function naturalidade(cidade: string | null, uf: string | null): string | null {
@@ -145,7 +140,7 @@ export async function POST(request: Request) {
       dataFimContrato: a.data_fim_contrato,
       contratoFormacao: a.possui_contrato_formacao,
       empresarioNome: a.empresario_nome,
-      status: STATUS_LABEL[a.status] ?? a.status,
+      status: ATLETA_STATUS_LABEL[a.status] ?? a.status,
       categoria: null,
     }));
 

@@ -33,12 +33,25 @@ export interface ModuloInfo {
    * que se usa toda semana); com `grupo`, ele desce pro bloco de mesmo nome, que abre e fecha
    * numa setinha — ver `components/app-sidebar.tsx`. A ordem dentro do bloco é a ordem daqui. */
   grupo?: string;
+  /** Rótulo do link da sidebar quando PRECISA ser diferente do rótulo da permissão (`label`) — ver
+   * `departamento_medico` abaixo: a permissão/checkbox de `/usuarios` chama-se "Departamento
+   * Médico" (a área inteira), mas dentro do grupo o link mostra "Fisioterapia" (a sub-área em si).
+   * Ausente em todo o resto dos módulos — a sidebar cai pra `label` (comportamento de sempre). */
+  subLabel?: string;
 }
 
 /** Único grupo por ora: o que se abre de vez em quando (documento de retirada, cadastro de hotel,
  * placa de carro, relatório solto). Deixar esses quatro soltos empurrava Atletas e Jogos pro meio
  * de uma lista de 13 itens. */
 export const GRUPO_ADMINISTRATIVO = "Administrativo";
+
+/** Departamento Médico vira um grupo recolhível com suas sub-áreas por baixo (hoje só
+ * Fisioterapia) em vez de link direto pra uma tela-hub — ver docs/superpowers/specs/
+ * 2026-10-01-departamento-medico-historico-status-design.md, seção 1. Continua sendo UM módulo só
+ * (uma permissão/checkbox em `/usuarios`); uma segunda sub-área no futuro (ex.: "Médico",
+ * "Nutrição") precisa de um ajuste em `components/app-shell.tsx` pra virar mais de um item de
+ * sidebar a partir do mesmo módulo — não construído agora, só uma sub-área existe. */
+export const GRUPO_DEPARTAMENTO_MEDICO = "Departamento Médico";
 
 export const MODULOS: ModuloInfo[] = [
   { chave: "atletas", label: "Atletas", prefixo: "/atletas" },
@@ -52,7 +65,9 @@ export const MODULOS: ModuloInfo[] = [
   {
     chave: "departamento_medico",
     label: "Departamento Médico",
-    prefixo: "/departamento-medico",
+    subLabel: "Fisioterapia",
+    prefixo: "/departamento-medico/fisioterapia",
+    grupo: GRUPO_DEPARTAMENTO_MEDICO,
   },
   { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis", grupo: GRUPO_ADMINISTRATIVO },

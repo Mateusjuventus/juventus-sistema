@@ -5,7 +5,14 @@
  */
 
 export type PeDominante = "destro" | "canhoto" | "ambidestro";
-export type AtletaStatus = "liberado" | "suspenso" | "departamento_medico";
+
+/** Status do atleta no Futebol Profissional — ver docs/superpowers/specs/
+ * 2026-10-01-departamento-medico-historico-status-design.md. Até 01/10/2026 estes mesmos 3
+ * valores (com "suspenso" no lugar de "transicao") eram compartilhados com `AtletaBaseStatus`
+ * (`AtletaBaseStatus = AtletaStatus | "dispensado"`); os dois tipos foram desacoplados nessa troca
+ * — a Base continua com "suspenso" (fora de escopo, constraint própria em `atletas_base`, sem
+ * mudança), só o Profissional ganhou "transicao" no lugar. */
+export type AtletaStatus = "liberado" | "departamento_medico" | "transicao";
 export type TipoQuarto = "single" | "duplo" | "triplo";
 
 /** Classificação fixa de posição, usada pra gerar a tag colorida (GOL/ZAG/LAT/MEI/ATA) na grade de
@@ -115,11 +122,13 @@ export type CategoriaBase = "sub20" | "sub17" | "sub15" | "sub14" | "sub13" | "s
  * "formacao"), mais "Iniciação" (categorias mais jovens, sem vínculo formal ainda). */
 export type AtletaBaseTipoContrato = "definitivo" | "emprestimo" | "amador" | "formacao" | "iniciacao";
 
-/** Status do atleta no Futebol de Base — mesmas opções de `AtletaStatus`, mais "dispensado" (ver
- * docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md e
- * 0087_atleta_base_classificacao_dispensa.sql). Só existe pra atletas da Base: o Profissional não
- * ganha esse status nesta rodada — mesmo padrão já usado por `AtletaBaseTipoContrato`. */
-export type AtletaBaseStatus = AtletaStatus | "dispensado";
+/** Status do atleta no Futebol de Base (ver docs/superpowers/specs/
+ * 2026-08-25-classificacao-dispensa-atleta-base-design.md e
+ * 0087_atleta_base_classificacao_dispensa.sql) — tipo próprio, independente de `AtletaStatus`
+ * desde 01/10/2026 (ver docs/superpowers/specs/2026-10-01-departamento-medico-historico-status-
+ * design.md): a Base continua com "suspenso" e sem "transicao", então os dois nunca mais devem
+ * derivar um do outro. */
+export type AtletaBaseStatus = "liberado" | "suspenso" | "departamento_medico" | "dispensado";
 
 /** Classificação G1/G2/G3 do atleta da Base — rótulo livre, sem significado fixo documentado no
  * sistema (cabe ao clube decidir o que cada grupo representa); o sistema só guarda e mostra a cor
@@ -2106,6 +2115,20 @@ export interface FisioterapiaAtendimentoRow {
   descricao: string;
   quantidade: number | null;
   created_by: string | null;
+  created_at: string;
+}
+
+/** Uma linha da linha do tempo de status do atleta (ver docs/superpowers/specs/
+ * 2026-10-01-departamento-medico-historico-status-design.md) — lançada automaticamente (abrir/
+ * fechar lesão) ou manualmente (tela "Histórico de Status"). `criado_por_nome` é um retrato (não
+ * muda se a pessoa renomear a conta depois), igual `assinaturas_documento`. */
+export interface AtletaStatusHistoricoRow {
+  id: string;
+  atleta_id: string;
+  status: AtletaStatus;
+  data: string;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
   created_at: string;
 }
 

@@ -150,7 +150,10 @@ const atletaCamposBase = z.object({
   // raciocínio dos demais campos administrativos de contrato.
   dataInicioContrato: z.string().optional().or(z.literal("")),
   empresarioNome: z.string().optional().or(z.literal("")),
-  status: z.enum(["liberado", "suspenso", "departamento_medico"]).default("liberado"),
+  // "suspenso" saiu do vocabulário em 01/10/2026 e "transicao" é novo (ver docs/superpowers/specs/
+  // 2026-10-01-departamento-medico-historico-status-design.md) — só o Profissional; a Base
+  // continua com seu próprio enum (`atletaBaseSchema`, mais abaixo), sem mudança.
+  status: z.enum(["liberado", "departamento_medico", "transicao"]).default("liberado"),
   dataFimContrato: z.string().optional().or(z.literal("")),
   tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "formacao"]).optional().nullable(),
   possuiContratoFormacao: z.boolean().default(false),

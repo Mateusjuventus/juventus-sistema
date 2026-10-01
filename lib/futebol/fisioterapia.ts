@@ -38,6 +38,17 @@ export function fisioterapiaTipoLabel(tipo: FisioterapiaTipo): string {
   return FISIOTERAPIA_TIPO_LABEL[tipo];
 }
 
+/** Rótulo único dos 3 status do atleta do Profissional (ver docs/superpowers/specs/
+ * 2026-10-01-departamento-medico-historico-status-design.md) — substitui os `STATUS_LABEL`
+ * duplicados em cada tela/export do Profissional. Duas telas (`app/atletas/page.tsx` e
+ * `app/atletas/export/pdf/route.tsx`) mantêm seu próprio mapa à parte de propósito: usam "Apto"/
+ * "Não apto" em vez de "Liberado" por um pedido específico de 2026-09-10, que não se aplica aqui. */
+export const ATLETA_STATUS_LABEL: Record<AtletaStatus, string> = {
+  liberado: "Liberado",
+  departamento_medico: "Depto. Médico",
+  transicao: "Transição",
+};
+
 /**
  * Dias afastados de uma lesão — nunca gravado no banco, sempre calculado na hora de exibir:
  * `data_fim − data_inicio + 1` quando encerrada, ou `hoje − data_inicio + 1` enquanto ativa (mesmo
