@@ -8,7 +8,7 @@ import { captacaoBaseSchema } from "@/lib/validation/schemas";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { payloadMudancaStatusCaptacao, type CaptacaoStatusDecidido } from "@/lib/futebol/captacao";
 import { normalizeCPF } from "@/lib/validation/cpf";
-import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
+import { uploadFotoRedimensionada, ENTITY_PHOTOS_BUCKET, CAPTACAO_DOCUMENTOS_BUCKET } from "@/lib/supabase/storage";
 import type { CaptacaoStatus } from "@/lib/supabase/types";
 
 /**
@@ -282,6 +282,74 @@ export async function aprovarInscricaoCaptacao(
   revalidatePath("/base/captacao");
   revalidatePath("/base/captacao/aprovacoes");
   revalidatePath(`/base/captacao/${id}`);
+  return {};
+}
+
+/**
+ * Recusa uma INSCRIÇÃO (status "inscricao") direto da fila de Aprovações, sem pedir Data de Início
+ * (diferente de aprovar) — ação própria, separada de `mudarStatusCaptacao`. Aquela função de
+ * propósito NUNCA mexe em candidatos "inscricao" (ver o comentário dela: "'Inscrição enviada' nunca
+ * passa por aqui"), então o botão "Recusar" desta fila estar ligado nela era exatamente o bug por
+ * trás de "não consigo recusar" (relatado pelo Mateus em 2026-10-01) — o clique não fazia nada,
+ * silenciosamente, porque a guarda `atual.status === "inscricao"` sempre barrava o update.
+ */
+export async function recusarInscricao(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("captacao_base")
+    .update({ status: "dispensado", data_termino: hojeBrasilia() })
+    .eq("id", id)
+    .eq("status", "inscricao");
+  if (error) return;
+
+  revalidatePath("/base/captacao");
+  revalidatePath("/base/captacao/aprovacoes");
+  revalidatePath(`/base/captacao/${id}`);
+}
+
+export interface ExcluirInscricaoState {
+  error?: string;
+}
+
+/**
+ * Exclui de vez uma inscrição ainda não decidida (status "inscricao") — pra tirar duplicatas de
+ * quem se inscreveu mais de uma vez pelo link público (relatado pelo Mateus em 2026-10-01: "um
+ * monte fez a inscrição, ficou duplicado e não consigo recusar, excluir"). Diferente de "Recusar"
+ * (manda pra Dispensado, mantendo o histórico pra quem é um candidato de verdade), aqui o registro
+ * some por completo — junto com a foto e os documentos anexados no Storage (mesmo cuidado de
+ * `desfazerInscricao` em app/inscricao-captacao-base/actions.ts), pra uma duplicata não continuar
+ * ocupando espaço depois de apagada. Só mexe em quem ainda está "inscricao"; pra excluir um
+ * candidato já decidido, a tela completa dele (`/base/captacao/[id]`) já tem `excluirCaptacao`.
+ */
+export async function excluirInscricao(
+  _prevState: ExcluirInscricaoState,
+  formData: FormData,
+): Promise<ExcluirInscricaoState> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Inscrição inválida." };
+
+  const supabase = createClient();
+  const [{ data: candidato }, { data: documentos }] = await Promise.all([
+    supabase.from("captacao_base").select("foto_path").eq("id", id).eq("status", "inscricao").maybeSingle(),
+    supabase.from("captacao_documentos").select("arquivo_path").eq("captacao_id", id),
+  ]);
+  if (!candidato) return { error: "Inscrição não encontrada (pode já ter sido decidida nesse meio tempo)." };
+
+  const { error } = await supabase.from("captacao_base").delete().eq("id", id).eq("status", "inscricao");
+  if (error) return { error: `Não foi possível excluir. Tente novamente. (${error.message})` };
+
+  const fotoPath = (candidato as { foto_path: string | null }).foto_path;
+  if (fotoPath) await supabase.storage.from(ENTITY_PHOTOS_BUCKET).remove([fotoPath]);
+  const caminhosDocumentos = ((documentos ?? []) as { arquivo_path: string }[]).map((d) => d.arquivo_path);
+  if (caminhosDocumentos.length > 0) {
+    await supabase.storage.from(CAPTACAO_DOCUMENTOS_BUCKET).remove(caminhosDocumentos);
+  }
+
+  revalidatePath("/base/captacao");
+  revalidatePath("/base/captacao/aprovacoes");
   return {};
 }
 
