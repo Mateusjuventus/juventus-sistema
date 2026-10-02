@@ -55,6 +55,8 @@ export function AtletaCard({
   corBordaExtra,
   as = "link",
   rodape,
+  indicador,
+  aoClicarCabecalho,
 }: {
   atleta: AtletaCardDados;
   /** Obrigatório quando `as` é "link" (o padrão) — sem efeito com `as="div"`. */
@@ -80,8 +82,20 @@ export function AtletaCard({
   as?: "link" | "div";
   /** Conteúdo extra abaixo do bloco escuro de sempre, numa faixa clara própria — ex.: o select de
    * classificação G1/G2/G3 e o link de Relatório de Dispensa na Área do Treinador. Só faz sentido
-   * junto de `as="div"` (ver comentário acima). */
+   * junto de `as="div"` (ver comentário acima). Quem chama decide se isso aparece ou não (ex.:
+   * passar `undefined` enquanto o card estiver "fechado" — ver `aoClicarCabecalho`). */
   rodape?: ReactNode;
+  /** Faixa fina sempre visível, logo abaixo do bloco escuro — pra sinalizar que o card é clicável
+   * (ex.: "Classificar ▾"/"Ocultar ▲") sem precisar aumentar o `rodape` em si. Opcional, só faz
+   * sentido junto de `aoClicarCabecalho`. */
+  indicador?: ReactNode;
+  /** Quando presente (e `as="div"`), a foto/faixa/bloco escuro (tudo MENOS o `rodape`) viram um
+   * `<button>` que dispara isso ao clicar — pedido do Mateus em 2026-10-02: o card do Elenco do
+   * Treinador ficava grande demais com o select de classificação + botão de relatório sempre
+   * visíveis, então eles ficam escondidos (`rodape` só entra quando quem chama decide mostrar) atrás
+   * desse "botão" de abrir/fechar. O `rodape` fica FORA do `<button>` (irmão dele, não filho) —
+   * assim um clique no select/link do rodapé não borbulha pra cá e fecha o card sem querer. */
+  aoClicarCabecalho?: () => void;
 }) {
   const sigla = siglaCategoriaPosicao(categoriaDaPosicao(atleta.posicao));
   const inativo = atleta.ativo === false;
@@ -105,7 +119,7 @@ export function AtletaCard({
     inativo ? "grayscale opacity-70" : ""
   } ${corBordaExtra ?? anelClassificacaoAtleta(atleta.classificacao)}`;
 
-  const conteudo = (
+  const corpo = (
     <>
       <div className="relative">
         <AtletaAvatarBloco
@@ -200,6 +214,23 @@ export function AtletaCard({
         ) : null}
       </div>
 
+      {indicador}
+    </>
+  );
+
+  // `aoClicarCabecalho` embrulha só o `corpo` (foto/faixa/bloco escuro + `indicador`) num
+  // `<button>` — o `rodape` fica FORA, como irmão, nunca dentro (ver doc-comment da prop).
+  const cabecalho = aoClicarCabecalho ? (
+    <button type="button" onClick={aoClicarCabecalho} className="flex w-full flex-col text-left">
+      {corpo}
+    </button>
+  ) : (
+    corpo
+  );
+
+  const conteudo = (
+    <>
+      {cabecalho}
       {rodape ? <div className="border-t border-linha bg-white p-2">{rodape}</div> : null}
     </>
   );
