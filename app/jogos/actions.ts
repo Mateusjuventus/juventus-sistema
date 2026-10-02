@@ -47,7 +47,11 @@ async function uploadLogoIfPresent(
   const file = formData.get("adversarioLogo");
   if (!(file instanceof File) || file.size === 0) return {};
 
-  const { path, error } = await uploadFotoRedimensionada(supabase, file, "jogos", id, "adversario-logo");
+  // `formato: "png"` preserva a transparência do escudo (ver doc-comment de `uploadFotoRedimensionada`)
+  // — sem isso, o fundo transparente do PNG enviado saía preto sólido nos documentos/PDFs.
+  const { path, error } = await uploadFotoRedimensionada(supabase, file, "jogos", id, "adversario-logo", {
+    formato: "png",
+  });
 
   if (error) return { error: "Não foi possível enviar o logo. O restante dos dados não foi salvo." };
   return { path };
