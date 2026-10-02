@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { AtletaAvatarBloco } from "@/components/atleta-avatar";
 import { formatCPF } from "@/lib/validation/cpf";
@@ -52,9 +53,12 @@ export function AtletaCard({
   mostrarCpf = true,
   mostrarContrato = true,
   corBordaExtra,
+  as = "link",
+  rodape,
 }: {
   atleta: AtletaCardDados;
-  href: string;
+  /** Obrigatório quando `as` é "link" (o padrão) — sem efeito com `as="div"`. */
+  href?: string;
   /** Injetável só pra teste — no app real é sempre "agora". */
   hoje?: Date;
   /** Checkbox "Mostrar no card" de `AtletasResumoFiltros` (pedido do Mateus em 2026-09-10) — CPF é
@@ -68,6 +72,16 @@ export function AtletaCard({
    * Fisioterapia (Departamento Médico, ver docs/superpowers/specs/2026-09-30-fisioterapia-
    * design.md). Quando presente, tem prioridade sobre `anelClassificacaoAtleta`. */
   corBordaExtra?: string;
+  /** "link" (padrão, de sempre): o card inteiro é um `<Link href>`, navegando pro perfil do atleta.
+   * "div": mesmo card, sem o `<Link>` por fora — pra telas que precisam colocar controles
+   * interativos PRÓPRIOS dentro dele (`rodape` abaixo), já que um `<a>` não pode envolver outro
+   * elemento interativo (`<select>`/`<button>`/outro `<a>`) sem quebrar o HTML/acessibilidade. Usado
+   * pela aba "Elenco" da Área do Treinador (ver `treinador-atletas-view.tsx`). */
+  as?: "link" | "div";
+  /** Conteúdo extra abaixo do bloco escuro de sempre, numa faixa clara própria — ex.: o select de
+   * classificação G1/G2/G3 e o link de Relatório de Dispensa na Área do Treinador. Só faz sentido
+   * junto de `as="div"` (ver comentário acima). */
+  rodape?: ReactNode;
 }) {
   const sigla = siglaCategoriaPosicao(categoriaDaPosicao(atleta.posicao));
   const inativo = atleta.ativo === false;
@@ -77,23 +91,22 @@ export function AtletaCard({
   const diasParaVencer = diasParaVencerContrato(atleta.dataFimContrato, hoje);
   const apelidoOuNome = nomeExibido({ apelido: atleta.apelido, nome_completo: atleta.nome });
 
-  return (
-    <Link
-      href={href}
-      // `flex flex-col`: o nome completo lá embaixo não corta mais (ver bloco escuro), então a
-      // altura "natural" do card varia com o comprimento do nome — o grid (`align-items: stretch`
-      // por padrão) ainda estica todo card até a altura do maior vizinho na mesma linha, só que
-      // agora quem absorve esse espaço extra é o bloco escuro (`flex-1` nele, mais abaixo), que
-      // continua com o fundo grená até o fim do card. Sem isso, o espaço esticado sobrava como uma
-      // faixa branca vazia (fundo do próprio `Link`) embaixo dos cards mais curtos da linha — bug já
-      // visto antes com o mesmo sintoma (nomes/textos de tamanho variável entre atletas).
-      // `grayscale opacity-70`: mesmo tratamento visual do atleta inativo (ver 0098_atleta_ativo.sql)
-      // — só aparece quando "Mostrar inativos" está marcado em `AtletasResumoFiltros`, então já dá
-      // pra ver de longe quem está de fora da operação normal.
-      className={`flex flex-col overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-        inativo ? "grayscale opacity-70" : ""
-      } ${corBordaExtra ?? anelClassificacaoAtleta(atleta.classificacao)}`}
-    >
+  // `flex flex-col`: o nome completo lá embaixo não corta mais (ver bloco escuro), então a
+  // altura "natural" do card varia com o comprimento do nome — o grid (`align-items: stretch`
+  // por padrão) ainda estica todo card até a altura do maior vizinho na mesma linha, só que
+  // agora quem absorve esse espaço extra é o bloco escuro (`flex-1` nele, mais abaixo), que
+  // continua com o fundo grená até o fim do card. Sem isso, o espaço esticado sobrava como uma
+  // faixa branca vazia (fundo do próprio wrapper) embaixo dos cards mais curtos da linha — bug já
+  // visto antes com o mesmo sintoma (nomes/textos de tamanho variável entre atletas).
+  // `grayscale opacity-70`: mesmo tratamento visual do atleta inativo (ver 0098_atleta_ativo.sql)
+  // — só aparece quando "Mostrar inativos" está marcado em `AtletasResumoFiltros`, então já dá
+  // pra ver de longe quem está de fora da operação normal.
+  const classeCard = `flex flex-col overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+    inativo ? "grayscale opacity-70" : ""
+  } ${corBordaExtra ?? anelClassificacaoAtleta(atleta.classificacao)}`;
+
+  const conteudo = (
+    <>
       <div className="relative">
         <AtletaAvatarBloco
           nome={atleta.nome}
@@ -186,6 +199,17 @@ export function AtletaCard({
           </p>
         ) : null}
       </div>
+
+      {rodape ? <div className="border-t border-linha bg-white p-2">{rodape}</div> : null}
+    </>
+  );
+
+  if (as === "div") {
+    return <div className={classeCard}>{conteudo}</div>;
+  }
+  return (
+    <Link href={href ?? "#"} className={classeCard}>
+      {conteudo}
     </Link>
   );
 }

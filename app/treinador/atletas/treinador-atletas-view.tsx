@@ -3,12 +3,43 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AtletaAvatarBloco } from "@/components/atleta-avatar";
+import { AtletaCard, type AtletaCardDados } from "@/components/atletas/atleta-card";
 import { ClassificacaoSelectTreinador } from "@/components/classificacao-select-treinador";
 import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
-import { anelClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
+import { alternarNoConjunto, atletaPassaFiltro, type AtletaFiltravel, type FiltrosAtletas } from "@/lib/futebol/atletas-filtro";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
-import type { AtletaBaseRow, CaptacaoBaseRow } from "@/lib/supabase/types";
+import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
+import type { AtletaBaseRow, AtletaBaseStatus, CaptacaoBaseRow } from "@/lib/supabase/types";
+
+// Rótulos "Apto"/"Não apto"/"Depto. Médico" — mesmos usados em `/base/atletas/[categoria]`
+// (ver STATUS_LABEL lá). "Dispensado" fica de fora dos chips aqui de propósito: o elenco do
+// Treinador já exclui esse status na própria query (`.neq("status", "dispensado")`, ver
+// `app/treinador/atletas/page.tsx`), então um chip "Dispensado" nunca teria ninguém pra mostrar.
+const STATUS_LABEL_ELENCO: Record<Exclude<AtletaBaseStatus, "dispensado">, string> = {
+  liberado: "Apto",
+  suspenso: "Não apto",
+  departamento_medico: "Depto. Médico",
+};
+const STATUS_OPTIONS_ELENCO = (Object.keys(STATUS_LABEL_ELENCO) as Exclude<AtletaBaseStatus, "dispensado">[]).map(
+  (value) => ({ value, label: STATUS_LABEL_ELENCO[value] }),
+);
+
+function chipClasse(ativo: boolean): string {
+  return `rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+    ativo ? "border-grena bg-grena/10 text-grena-escuro" : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
+  }`;
+}
+
+function atletaParaFiltravel(atleta: AtletaComFoto): AtletaFiltravel {
+  return {
+    status: atleta.status,
+    posicao: atleta.posicao,
+    tipoContrato: atleta.tipo_contrato,
+    nome: nomeExibido(atleta),
+    dataNascimento: atleta.data_nascimento,
+  };
+}
 
 export type CandidatoComFoto = CaptacaoBaseRow & { fotoUrl: string | null };
 export type AtletaComFoto = AtletaBaseRow & { fotoUrl: string | null };
@@ -93,6 +124,10 @@ export function TreinadorAtletasView({
 }) {
   const [aba, setAba] = useState<Aba>("avaliacao");
   const [busca, setBusca] = useState("");
+  // Chips de Status/Posição — só filtram a aba "Elenco" (ver abaixo); "Avaliação"/"Avaliados" não
+  // pediram isso e os candidatos de lá nem têm status/posição no mesmo formato do elenco.
+  const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
+  const [posicoesSel, setPosicoesSel] = useState<Set<string>>(new Set());
 
   const buscaNormalizada = busca.trim().toLowerCase();
 
@@ -110,13 +145,34 @@ export function TreinadorAtletasView({
         : decididos,
     [decididos, buscaNormalizada],
   );
-  const atletasFiltrados = useMemo(
-    () =>
-      buscaNormalizada
-        ? atletas.filter((a) => nomeExibido(a).toLowerCase().includes(buscaNormalizada))
-        : atletas,
-    [atletas, buscaNormalizada],
+  const filtrosElenco: FiltrosAtletas = useMemo(
+    () => ({
+      status: statusSel,
+      posicoes: posicoesSel,
+      contratos: new Set(),
+      anos: new Set(),
+      buscaNormalizada,
+    }),
+    [statusSel, posicoesSel, buscaNormalizada],
   );
+  const atletasFiltrados = useMemo(
+    () => atletas.filter((a) => atletaPassaFiltro(atletaParaFiltravel(a), filtrosElenco)),
+    [atletas, filtrosElenco],
+  );
+
+  // Contagens dos chips — sempre contra o elenco inteiro (não o já filtrado pelos outros chips),
+  // mesmo padrão de `AtletasResumoFiltros`: o número de cada chip não muda só porque outro chip foi
+  // marcado, só a grade embaixo muda.
+  const contagensStatus = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const a of atletas) mapa.set(a.status, (mapa.get(a.status) ?? 0) + 1);
+    return mapa;
+  }, [atletas]);
+  const contagensPosicao = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const a of atletas) mapa.set(a.posicao, (mapa.get(a.posicao) ?? 0) + 1);
+    return mapa;
+  }, [atletas]);
 
   // Agrupado por categoria (Sub-20 → Sub-11) — pra quando o treinador cobre mais de uma, ver
   // docs/superpowers/specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. Um
@@ -249,53 +305,114 @@ export function TreinadorAtletasView({
       ) : null}
 
       {aba === "elenco" ? (
-        atletasFiltrados.length === 0 ? (
-          <p className="mt-6 rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
-            {atletas.length === 0 ? "Nenhum atleta cadastrado nas suas categorias ainda." : "Nenhum atleta encontrado com esse nome."}
-          </p>
-        ) : (
-          <div className="mt-4 space-y-6">
-            {atletasPorCategoria.map((grupo) => (
-              <div key={grupo.categoria}>
-                {atletasPorCategoria.length > 1 ? (
-                  <h3 className="mb-2 text-sm font-semibold text-neutral-600">
-                    {grupo.categoriaLabel}{" "}
-                    <span className="font-normal text-neutral-400">({grupo.itens.length})</span>
-                  </h3>
-                ) : null}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                  {grupo.itens.map((atleta) => (
-                    <CardBase
-                      key={atleta.id}
-                      nome={nomeExibido(atleta)}
-                      fotoUrl={atleta.fotoUrl}
-                      corBorda={anelClassificacaoAtleta(atleta.classificacao)}
-                    >
-                      <p className="truncate text-sm font-semibold text-neutral-800">{nomeExibido(atleta)}</p>
-                      <p className="mt-0.5 truncate text-xs text-neutral-500">
-                        {categoriaBaseLabel(atleta.categoria)} · {atleta.posicao}
-                      </p>
-                      <div className="mt-2">
-                        <ClassificacaoSelectTreinador
-                          atletaId={atleta.id}
-                          defaultValue={atleta.classificacao}
-                          action={salvarClassificacaoTreinador}
-                          className="w-full"
-                        />
-                      </div>
-                      <Link
-                        href={`/treinador/atletas/${atleta.id}/dispensa`}
-                        className="btn-secondary btn-sm mt-2 block text-center"
-                      >
-                        {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
-                      </Link>
-                    </CardBase>
-                  ))}
-                </div>
+        <>
+          {/* Status e Posição — mesmo visual de chip usado em `AtletasResumoFiltros` (Atletas da
+              Base/Profissional), só que reduzido a essas duas (sem Contrato/Ano/exportação: não
+              foram pedidos aqui e esta tela já é deliberadamente mais simples, ver spec). */}
+          <div className="card mt-3 flex flex-col gap-3 p-3 sm:flex-row sm:flex-wrap sm:items-start sm:gap-6">
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+                Status · clique para filtrar
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {STATUS_OPTIONS_ELENCO.map((opcao) => (
+                  <button
+                    key={opcao.value}
+                    type="button"
+                    onClick={() => setStatusSel((atual) => alternarNoConjunto(atual, opcao.value))}
+                    className={chipClasse(statusSel.has(opcao.value))}
+                  >
+                    <span className="font-bold tabular-nums">{contagensStatus.get(opcao.value) ?? 0}</span>{" "}
+                    {opcao.label}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+                Posição · clique para filtrar (uma ou mais)
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {ATLETA_POSICAO_OPTIONS.map((posicao) => (
+                  <button
+                    key={posicao}
+                    type="button"
+                    onClick={() => setPosicoesSel((atual) => alternarNoConjunto(atual, posicao))}
+                    className={chipClasse(posicoesSel.has(posicao))}
+                  >
+                    <span className="font-bold tabular-nums">{contagensPosicao.get(posicao) ?? 0}</span> {posicao}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        )
+
+          {atletasFiltrados.length === 0 ? (
+            <p className="mt-4 rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+              {atletas.length === 0
+                ? "Nenhum atleta cadastrado nas suas categorias ainda."
+                : "Nenhum atleta encontrado com esses filtros."}
+            </p>
+          ) : (
+            <div className="mt-4 space-y-6">
+              {atletasPorCategoria.map((grupo) => (
+                <div key={grupo.categoria}>
+                  {atletasPorCategoria.length > 1 ? (
+                    <h3 className="mb-2 text-sm font-semibold text-neutral-600">
+                      {grupo.categoriaLabel}{" "}
+                      <span className="font-normal text-neutral-400">({grupo.itens.length})</span>
+                    </h3>
+                  ) : null}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                    {grupo.itens.map((atleta) => {
+                      const dados: AtletaCardDados = {
+                        id: atleta.id,
+                        nome: atleta.nome_completo,
+                        apelido: atleta.apelido,
+                        cpf: atleta.cpf,
+                        fotoUrl: atleta.fotoUrl,
+                        dataNascimento: atleta.data_nascimento,
+                        dataFimContrato: atleta.data_fim_contrato,
+                        tipoContrato: atleta.tipo_contrato,
+                        posicao: atleta.posicao,
+                        numeroCamisa: atleta.numero_camisa,
+                        dispensado: atleta.status === "dispensado",
+                        classificacao: atleta.classificacao,
+                        ativo: atleta.ativo,
+                      };
+                      return (
+                        <AtletaCard
+                          key={atleta.id}
+                          atleta={dados}
+                          as="div"
+                          mostrarCpf={false}
+                          mostrarContrato={false}
+                          rodape={
+                            <div className="space-y-1.5">
+                              <p className="truncate text-center text-xs text-neutral-500">{atleta.posicao}</p>
+                              <ClassificacaoSelectTreinador
+                                atletaId={atleta.id}
+                                defaultValue={atleta.classificacao}
+                                action={salvarClassificacaoTreinador}
+                                className="w-full"
+                              />
+                              <Link
+                                href={`/treinador/atletas/${atleta.id}/dispensa`}
+                                className="btn-secondary btn-sm block text-center"
+                              >
+                                {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
+                              </Link>
+                            </div>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       ) : null}
     </div>
   );

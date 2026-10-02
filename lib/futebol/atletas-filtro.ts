@@ -32,6 +32,17 @@ export interface FiltrosAtletas {
   buscaNormalizada: string;
 }
 
+/** Liga/desliga um valor num `Set` sem mutar o original — mesmo padrão usado pelos chips de
+ * Status/Posição/Contrato de `AtletasResumoFiltros` e, agora, pelos chips (menores, só Status e
+ * Posição) da aba "Elenco" da Área do Treinador (ver `treinador-atletas-view.tsx`). Extraído aqui
+ * (não duplicado de novo) por ser puro e já pertencer ao módulo de filtragem de atletas. */
+export function alternarNoConjunto<T>(atual: Set<T>, valor: T): Set<T> {
+  const novo = new Set(atual);
+  if (novo.has(valor)) novo.delete(valor);
+  else novo.add(valor);
+  return novo;
+}
+
 export function nenhumFiltroAtivo(filtros: FiltrosAtletas): boolean {
   return (
     filtros.status.size === 0 &&
