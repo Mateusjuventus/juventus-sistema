@@ -5,17 +5,19 @@ import { NomeCargoForm } from "@/components/nome-cargo-form";
 import { MinhaAssinaturaForm } from "@/components/minha-assinatura-form";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedAssinaturaUrl } from "@/lib/supabase/storage";
-import { getDepartamentosPermitidos, getModulosPermitidos, getModulosBasePermitidos, getUserRole } from "@/lib/auth/role";
-import { resolverNomeCargoParaAssinatura } from "@/lib/assinaturas/nome-cargo";
-import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
-import { MODULOS } from "@/lib/auth/modulos";
-import { MODULOS_BASE } from "@/lib/auth/modulos-base";
+import { getUserRole } from "@/lib/auth/role";
+import { resolverNomeCargoParaAssinatura, treinadorPossuiVinculoObrigatorio } from "@/lib/assinaturas/nome-cargo";
 import { trocarMinhaSenha, salvarMeuNomeCargo, salvarMinhaAssinatura } from "./actions";
 
 /**
- * Autoatendimento da própria conta — e-mail, papel e o que a pessoa tem liberado (só leitura), mais
- * o formulário de trocar a própria senha. Diferente de `/usuarios` (só master, edita OUTROS
- * usuários), esta tela é sobre a própria conta de quem está logado, disponível pra qualquer papel.
+ * Autoatendimento da própria conta — e-mail, papel, nome/função (vinculado à Comissão Técnica ou
+ * preenchido na mão), assinatura e o formulário de trocar a própria senha. Diferente de `/usuarios`
+ * (só master, edita OUTROS usuários), esta tela é sobre a própria conta de quem está logado,
+ * disponível pra qualquer papel — inclusive Treinador, que só chega até aqui por uma exceção no
+ * middleware (ver docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md).
+ *
+ * Não mostra mais Departamentos/Módulos liberados (tirados daqui a pedido do Mateus — informação
+ * que já aparece em `/usuarios`, pra quem administra; aqui não precisa) — ver a mesma spec.
  */
 export default async function MinhaContaPage() {
   const supabase = createClient();
@@ -24,16 +26,7 @@ export default async function MinhaContaPage() {
       data: { user },
     },
     role,
-    departamentosPermitidos,
-    modulosPermitidos,
-    modulosBasePermitidos,
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    getUserRole(supabase),
-    getDepartamentosPermitidos(supabase),
-    getModulosPermitidos(supabase),
-    getModulosBasePermitidos(supabase),
-  ]);
+  ] = await Promise.all([supabase.auth.getUser(), getUserRole(supabase)]);
 
   const { data: perfil } = user
     ? await supabase
@@ -49,7 +42,11 @@ export default async function MinhaContaPage() {
     ? await resolverNomeCargoParaAssinatura(supabase, perfil)
     : { nome: null, cargo: null };
 
-  const master = role === "master";
+  const roleLabel = role === "master" ? "Master" : role === "treinador" ? "Treinador" : "Regular";
+  // Pro Treinador o vínculo é obrigatório (ver a spec) — um login criado antes dessa mudança pode
+  // ainda estar sem vínculo; nesse caso não mostra o formulário manual de nome/cargo (nunca se
+  // aplica a esse papel), avisa que falta alguém vincular.
+  const treinadorSemVinculo = role === "treinador" && perfil && !treinadorPossuiVinculoObrigatorio(perfil);
 
   return (
     <AppShell>
@@ -64,57 +61,8 @@ export default async function MinhaContaPage() {
 
           <div>
             <p className="field-label">Papel</p>
-            <p className="text-sm text-neutral-800">{master ? "Master" : "Regular"}</p>
+            <p className="text-sm text-neutral-800">{roleLabel}</p>
           </div>
-
-          <div>
-            <p className="field-label">Departamentos liberados</p>
-            {master ? (
-              <p className="text-sm text-neutral-800">Todos</p>
-            ) : (
-              <p className="text-sm text-neutral-800">
-                {departamentosPermitidos.length > 0
-                  ? DEPARTAMENTOS.filter((d) => departamentosPermitidos.includes(d.chave))
-                      .map((d) => d.label)
-                      .join(", ")
-                  : "Nenhum"}
-              </p>
-            )}
-          </div>
-
-          {departamentosPermitidos.includes("futebol_profissional") ? (
-            <div>
-              <p className="field-label">Módulos liberados (Futebol Profissional)</p>
-              {master ? (
-                <p className="text-sm text-neutral-800">Todos</p>
-              ) : (
-                <p className="text-sm text-neutral-800">
-                  {modulosPermitidos.length > 0
-                    ? MODULOS.filter((m) => modulosPermitidos.includes(m.chave))
-                        .map((m) => m.label)
-                        .join(", ")
-                    : "Nenhum"}
-                </p>
-              )}
-            </div>
-          ) : null}
-
-          {departamentosPermitidos.includes("futebol_base") ? (
-            <div>
-              <p className="field-label">Módulos liberados (Futebol de Base)</p>
-              {master ? (
-                <p className="text-sm text-neutral-800">Todos</p>
-              ) : (
-                <p className="text-sm text-neutral-800">
-                  {modulosBasePermitidos.length > 0
-                    ? MODULOS_BASE.filter((m) => modulosBasePermitidos.includes(m.chave))
-                        .map((m) => m.label)
-                        .join(", ")
-                    : "Nenhum"}
-                </p>
-              )}
-            </div>
-          ) : null}
         </div>
 
         <div className="card p-5">
@@ -128,6 +76,11 @@ export default async function MinhaContaPage() {
                 Vinculado ao cadastro da Comissão Técnica — pra alterar, atualize o cadastro lá.
               </p>
             </div>
+          ) : treinadorSemVinculo ? (
+            <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Seu cadastro ainda não foi vinculado a ninguém da Comissão Técnica — fale com o
+              responsável antes de cadastrar a assinatura.
+            </p>
           ) : (
             <NomeCargoForm action={salvarMeuNomeCargo} nome={perfil?.nome ?? null} cargo={perfil?.cargo ?? null} />
           )}

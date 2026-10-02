@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { SinoNotificacoes, type NotificacaoResumo } from "@/components/sino-notificacoes";
@@ -33,6 +34,12 @@ export function TreinadorHeader({
           </div>
           <div className="flex items-center gap-2">
             <SinoNotificacoes notificacoes={notificacoes} caminhoAtual="/treinador" abrirPara="baixo" />
+            <Link
+              href="/minha-conta"
+              className="rounded-md border border-white/25 px-3 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
+            >
+              Minha Conta
+            </Link>
             <form action={logout}>
               <button
                 type="submit"

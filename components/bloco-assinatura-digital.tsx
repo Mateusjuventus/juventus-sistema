@@ -58,6 +58,7 @@ export function BlocoAssinaturaDigital({
   assinaturas,
   papeisQuePossoAssinar,
   minhaAssinaturaCadastrada,
+  mensagemBloqueioExtra,
 }: {
   tipoDocumento: TipoDocumento;
   documentoId: string;
@@ -69,6 +70,11 @@ export function BlocoAssinaturaDigital({
    * 2026-09-13-assinatura-desenhada-design.md) — sem isso, o botão "Assinar" nem aparece pra quem
    * teria permissão de assinar, evita clicar e só então descobrir o bloqueio. */
   minhaAssinaturaCadastrada: boolean;
+  /** Impedimento extra, além da assinatura — hoje só usado pelo Treinador sem vínculo obrigatório
+   * com a Comissão Técnica (Base), ver docs/superpowers/specs/2026-10-02-assinatura-treinador-
+   * design.md. Quando preenchido, o botão "Assinar" também não aparece, mesmo com assinatura
+   * cadastrada — mostra esta mensagem em vez da de "cadastre sua assinatura". */
+  mensagemBloqueioExtra?: string;
 }) {
   return (
     <div className="rounded-md border border-linha p-3">
@@ -95,20 +101,22 @@ export function BlocoAssinaturaDigital({
                 <>
                   <p className="text-neutral-400">Pendente de assinatura.</p>
                   {papeisQuePossoAssinar.includes(p.papel) ? (
-                    minhaAssinaturaCadastrada ? (
+                    minhaAssinaturaCadastrada && !mensagemBloqueioExtra ? (
                       <FormularioAssinar
                         tipoDocumento={tipoDocumento}
                         documentoId={documentoId}
                         papel={p.papel}
                         caminhoRevalidar={caminhoRevalidar}
                       />
-                    ) : (
+                    ) : !minhaAssinaturaCadastrada ? (
                       <p className="mt-1 text-xs text-amber-700">
                         <Link href="/minha-conta" className="underline">
                           Cadastre sua assinatura em Minha Conta
                         </Link>{" "}
                         antes de assinar.
                       </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-amber-700">{mensagemBloqueioExtra}</p>
                     )
                   ) : null}
                 </>

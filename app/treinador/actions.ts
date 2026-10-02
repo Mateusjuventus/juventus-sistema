@@ -7,7 +7,8 @@ import { getCategoriasTreinador } from "@/lib/auth/role";
 import { parecerCaptacaoSchema } from "@/lib/validation/schemas";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { payloadMudancaStatusCaptacao, type CaptacaoStatusDecidido } from "@/lib/futebol/captacao";
-import { autoAssinarComoCreator, possuiAssinaturaCadastrada } from "@/lib/assinaturas/actions";
+import { autoAssinarComoCreator } from "@/lib/assinaturas/actions";
+import { treinadorPossuiVinculoObrigatorio } from "@/lib/assinaturas/nome-cargo";
 import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
 import { criarAtletaBaseAPartirDeCaptacao } from "@/lib/futebol/captacao-para-atleta";
 import type { ConfiguracaoParecerCaptacaoBaseRow } from "@/lib/supabase/types";
@@ -74,12 +75,23 @@ export async function salvarParecerCaptacao(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
   // Quando o Treinador é um dos signatários configurados do Parecer, enviar assina esse papel
-  // automaticamente (ver `assinarComoTreinadorEAvisarDemais` abaixo) — sem assinatura cadastrada,
-  // isso geraria um parecer sem imagem de assinatura de verdade, por isso o envio já é bloqueado
-  // aqui pra qualquer Treinador (ver docs/superpowers/specs/2026-09-13-assinatura-desenhada-
-  // design.md).
-  if (!(await possuiAssinaturaCadastrada(supabase, user.id))) {
+  // automaticamente (ver `assinarComoTreinadorEAvisarDemais` abaixo) — sem assinatura cadastrada E
+  // sem vínculo com a Comissão Técnica (Base), isso geraria um parecer sem imagem de assinatura de
+  // verdade (ou assinado com o e-mail no lugar do nome), por isso o envio já é bloqueado aqui pra
+  // qualquer Treinador (ver docs/superpowers/specs/2026-09-13-assinatura-desenhada-design.md e
+  // docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md).
+  const { data: perfilTreinador } = await supabase
+    .from("perfis")
+    .select("assinatura_path, comissao_tecnica_base_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!perfilTreinador?.assinatura_path) {
     return { error: "Cadastre sua assinatura em Minha Conta antes de enviar o parecer." };
+  }
+  if (!treinadorPossuiVinculoObrigatorio(perfilTreinador)) {
+    return {
+      error: "Seu cadastro ainda não foi vinculado a ninguém da Comissão Técnica. Fale com o responsável.",
+    };
   }
 
   const data = result.data;

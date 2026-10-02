@@ -83,7 +83,27 @@ export function UsuarioForm({
 
         {role === "treinador" ? (
           <div className="border-t border-neutral-100 pt-3">
-            <p className="field-label">Categorias que esse Treinador acompanha</p>
+            <SelectField
+              label="Comissão Técnica (Base)"
+              name="comissaoTecnicaBaseId"
+              defaultValue=""
+              required
+              error={errors.comissaoTecnicaBaseId}
+            >
+              <option value="">Selecione</option>
+              {comissaoTecnicaBase.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.rotulo}
+                </option>
+              ))}
+            </SelectField>
+            <p className="-mt-0.5 text-xs text-neutral-400">
+              Quem essa pessoa é, pra nome e função saírem certos nos documentos que ela assinar —
+              esse vínculo é obrigatório pro Treinador (ele não tem campo de nome próprio). Precisa
+              já estar cadastrado em Comissão Técnica do Futebol de Base.
+            </p>
+
+            <p className="field-label mt-4">Categorias que esse Treinador acompanha</p>
             <p className="-mt-0.5 text-xs text-neutral-400">
               O Treinador só vê, na tela dele, os candidatos das categorias marcadas aqui — dá pra
               marcar mais de uma (ex.: um Treinador que cobre Sub-11 e Sub-12 ao mesmo tempo). Ele

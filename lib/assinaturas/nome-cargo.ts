@@ -52,3 +52,20 @@ export async function resolverNomeCargoParaAssinatura(
 
   return { nome: perfil.nome, cargo: perfil.cargo };
 }
+
+/**
+ * Pro papel "treinador", o vínculo com a Comissão Técnica (Base) é OBRIGATÓRIO pra assinar
+ * qualquer coisa — ver docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md. Diferente
+ * dos outros papéis (que caem num nome preenchido na mão em `/minha-conta` quando não vinculados),
+ * a conta de um Treinador nunca tem campo de nome manual, então sem vínculo ela nunca resolve nome
+ * nenhum — `app/usuarios` já impede criar/editar um login de Treinador sem escolher essa pessoa,
+ * mas quem já existia antes dessa mudança pode estar sem vínculo, por isso as telas que deixam o
+ * Treinador assinar (`app/treinador/actions.ts`, `app/treinador/atletas/[id]/dispensa/page.tsx`)
+ * conferem isto antes, com uma mensagem clara em vez de deixar sair um documento assinado com o
+ * e-mail no lugar do nome.
+ */
+export function treinadorPossuiVinculoObrigatorio(perfil: {
+  comissao_tecnica_base_id: string | null;
+}): boolean {
+  return Boolean(perfil.comissao_tecnica_base_id);
+}

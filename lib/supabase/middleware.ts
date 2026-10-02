@@ -84,6 +84,13 @@ export async function updateSession(request: NextRequest) {
   // liberar o caminho aqui não abre nada que a rota não fosse já checar sozinha.
   const isExportacaoProgramacao = request.nextUrl.pathname.startsWith("/programacao/");
 
+  // Exceção: "/minha-conta" — ver docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md.
+  // O Treinador precisa chegar lá pra cadastrar a assinatura e trocar a própria senha (sem isso, ele
+  // nunca consegue assinar o Parecer de Avaliação nem o Relatório de Dispensa, que já exigem
+  // assinatura cadastrada). A própria página esconde, só pra esse papel, o que não se aplica
+  // (departamentos/módulos, que já saem da tela pra todo mundo — ver a spec).
+  const isMinhaConta = request.nextUrl.pathname.startsWith("/minha-conta");
+
   // Uma leitura só de `perfis` com tudo que os dois blocos abaixo (treinador e departamento/
   // módulo) precisam — antes eram duas queries sequenciais (uma só pra `role`, outra com o resto),
   // uma atrás da outra em toda navegação; juntar num select só corta essa ida a mais ao banco em
@@ -113,7 +120,8 @@ export async function updateSession(request: NextRequest) {
     user &&
     roleDoUsuario === "treinador" &&
     !request.nextUrl.pathname.startsWith("/treinador") &&
-    !isExportacaoProgramacao
+    !isExportacaoProgramacao &&
+    !isMinhaConta
   ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/treinador";

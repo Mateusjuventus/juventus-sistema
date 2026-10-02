@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolverNomeCargoParaAssinatura } from "./nome-cargo";
+import { resolverNomeCargoParaAssinatura, treinadorPossuiVinculoObrigatorio } from "./nome-cargo";
 
 /**
  * Fake mínimo do client do Supabase, só o suficiente pra simular
@@ -93,5 +93,15 @@ describe("resolverNomeCargoParaAssinatura", () => {
       comissao_tecnica_base_id: "ctb-excluido",
     });
     expect(resultado).toEqual({ nome: "Mateus dos Santos", cargo: "Supervisor de Futebol" });
+  });
+});
+
+describe("treinadorPossuiVinculoObrigatorio", () => {
+  it("sem vínculo (conta de Treinador criada antes da trava obrigatória), devolve false", () => {
+    expect(treinadorPossuiVinculoObrigatorio({ comissao_tecnica_base_id: null })).toBe(false);
+  });
+
+  it("com vínculo, devolve true", () => {
+    expect(treinadorPossuiVinculoObrigatorio({ comissao_tecnica_base_id: "ctb-1" })).toBe(true);
   });
 });

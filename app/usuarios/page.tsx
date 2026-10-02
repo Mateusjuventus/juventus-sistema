@@ -12,6 +12,7 @@ import { ESTOQUE_CATEGORIAS, TAREFA_CATEGORIAS } from "@/lib/validation/schemas"
 import { buscarComissaoTecnicaParaSelecao, buscarComissaoTecnicaBaseParaSelecao } from "@/lib/auth/perfis";
 import type { PerfilRow } from "@/lib/supabase/types";
 import {
+  alterarEmail,
   atualizarCategoriasTarefas,
   atualizarCategoriasTreinador,
   atualizarDepartamentos,
@@ -21,11 +22,14 @@ import {
   atualizarModulosBase,
   atualizarPapel,
   atualizarVinculoComissaoTecnica,
+  atualizarVinculoTreinador,
   redefinirSenha,
 } from "./actions";
 import { VinculoComissaoTecnicaForm } from "@/components/vinculo-comissao-tecnica-form";
+import { VinculoTreinadorForm } from "@/components/vinculo-treinador-form";
 import { PermissaoCheckboxesForm } from "@/components/permissao-checkboxes-form";
 import { RedefinirSenhaForm } from "@/components/redefinir-senha-form";
+import { AlterarEmailForm } from "@/components/alterar-email-form";
 import { UsuarioForm } from "./usuario-form";
 
 function formatDataHora(iso: string): string {
@@ -136,6 +140,17 @@ export default async function UsuariosPage() {
 
               <details className="border-t border-neutral-100 pt-3">
                 <summary className="cursor-pointer select-none text-sm font-medium text-grena">
+                  Alterar e-mail
+                </summary>
+                <p className="-mt-0.5 mb-2 mt-2 text-xs text-neutral-400">
+                  Muda o e-mail de login dessa pessoa (e o cadastro aqui) — ela passa a entrar com o
+                  endereço novo.
+                </p>
+                <AlterarEmailForm id={perfil.id} emailAtual={perfil.email} action={alterarEmail} />
+              </details>
+
+              <details className="border-t border-neutral-100 pt-3">
+                <summary className="cursor-pointer select-none text-sm font-medium text-grena">
                   Redefinir senha
                 </summary>
                 <p className="-mt-0.5 mb-2 mt-2 text-xs text-neutral-400">
@@ -170,6 +185,12 @@ export default async function UsuariosPage() {
                         valoresIniciais={categoriasTreinador}
                         action={atualizarCategoriasTreinador}
                         submitLabel="Salvar categorias"
+                      />
+                      <VinculoTreinadorForm
+                        id={perfil.id}
+                        comissaoTecnicaBase={comissaoTecnicaBase}
+                        comissaoTecnicaBaseIdAtual={perfil.comissao_tecnica_base_id}
+                        action={atualizarVinculoTreinador}
                       />
                     </>
                   ) : (

@@ -145,6 +145,12 @@ export async function criarUsuario(
   const fieldErrors: Record<string, string> = {};
   if (!email) fieldErrors.email = "E-mail é obrigatório";
   if (senha.length < 6) fieldErrors.senha = "A senha provisória precisa ter pelo menos 6 caracteres";
+  // Vínculo com a Comissão Técnica (Base) é obrigatório pro Treinador — diferente do mesmo select
+  // pros outros papéis, que é opcional (ver docs/superpowers/specs/2026-10-02-assinatura-treinador-
+  // design.md). Sem isso o Treinador nunca consegue assinar nada com o nome certo.
+  if (role === "treinador" && !comissaoTecnicaBaseId) {
+    fieldErrors.comissaoTecnicaBaseId = "Escolha quem esse Treinador é na Comissão Técnica.";
+  }
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values: raw };
 
   const admin = createAdminClient();
@@ -423,6 +429,84 @@ export async function atualizarVinculoComissaoTecnica(
 
   revalidatePath("/usuarios");
   return { success: "Vínculo salvo." };
+}
+
+/**
+ * Salva o vínculo com a Comissão Técnica (Base) de um usuário "treinador" já existente —
+ * diferente de `atualizarVinculoComissaoTecnica` (pros papéis Regular/Master, onde o vínculo é
+ * opcional e cobre também o Profissional), aqui é SÓ a Base e é obrigatório: recusa salvar vazio.
+ * Ver docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md. Só master pode chamar.
+ */
+export async function atualizarVinculoTreinador(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+
+  const comissaoTecnicaBaseId = parseComissaoTecnicaBaseId(formData);
+  if (!comissaoTecnicaBaseId) {
+    return { error: "Escolha quem esse Treinador é na Comissão Técnica." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("perfis")
+    .update({ comissao_tecnica_base_id: comissaoTecnicaBaseId })
+    .eq("id", id);
+  if (error) return { error: `Não foi possível salvar o vínculo. Tente novamente. (${error.message})` };
+
+  revalidatePath("/usuarios");
+  return { success: "Vínculo salvo." };
+}
+
+/**
+ * Altera o e-mail de login de um usuário já existente — mesma trava e mesmo espírito de
+ * `redefinirSenha` (o sistema não usa recuperação/confirmação por e-mail, então o master mexe
+ * direto). Atualiza tanto o login (Supabase Auth) quanto `perfis.email`, que hoje é uma cópia
+ * salva só na criação (`criarUsuario`) e nunca mais atualizada sozinha — sem isso aqui, login e
+ * cadastro ficariam com e-mails diferentes. `email_confirm: true` evita que o Supabase dispare um
+ * fluxo de confirmação por e-mail pro endereço novo (mesmo motivo que `criarUsuario` já usa isso).
+ * Só master pode chamar.
+ */
+export async function alterarEmail(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  const novoEmail = String(formData.get("novoEmail") ?? "").trim().toLowerCase();
+  if (!id) return { error: "Usuário inválido." };
+  if (!novoEmail || !novoEmail.includes("@")) return { error: "Informe um e-mail válido." };
+
+  const admin = createAdminClient();
+  const { error: authError } = await admin.auth.admin.updateUserById(id, {
+    email: novoEmail,
+    email_confirm: true,
+  });
+  if (authError) {
+    const jaExiste = authError.message?.toLowerCase().includes("already") ?? false;
+    return {
+      error: jaExiste
+        ? "Já existe um usuário cadastrado com esse e-mail."
+        : `Não foi possível alterar o e-mail. Tente novamente. (${authError.message})`,
+    };
+  }
+
+  const { error: perfilError } = await admin.from("perfis").update({ email: novoEmail }).eq("id", id);
+  if (perfilError) {
+    return {
+      error: "O e-mail de login foi alterado, mas houve um problema ao salvar o cadastro. Avise o suporte.",
+    };
+  }
+
+  revalidatePath("/usuarios");
+  return { success: "E-mail alterado." };
 }
 
 /**

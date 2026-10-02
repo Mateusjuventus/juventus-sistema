@@ -6,7 +6,8 @@ import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { RelatorioDispensaForm } from "@/components/relatorio-dispensa-form";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { papeisEsperados } from "@/lib/assinaturas/config";
-import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
+import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
+import { treinadorPossuiVinculoObrigatorio } from "@/lib/assinaturas/nome-cargo";
 import type { AtletaBaseRow } from "@/lib/supabase/types";
 import { salvarRelatorioDispensaTreinador } from "./actions";
 
@@ -32,10 +33,19 @@ export default async function DispensaAtletaTreinadorPage({ params }: { params: 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [assinaturas, minhaAssinaturaCadastrada] = await Promise.all([
+  const [assinaturas, { data: perfilTreinador }] = await Promise.all([
     resolverImagensAssinaturas(supabase, assinaturasSalvas),
-    user ? possuiAssinaturaCadastrada(supabase, user.id) : Promise.resolve(false),
+    user
+      ? supabase.from("perfis").select("assinatura_path, comissao_tecnica_base_id").eq("id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
+  const minhaAssinaturaCadastrada = Boolean(perfilTreinador?.assinatura_path);
+  // Vínculo com a Comissão Técnica (Base) é obrigatório pro Treinador assinar — ver
+  // docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md. Um Treinador criado antes
+  // dessa mudança pode ainda estar sem vínculo.
+  const mensagemBloqueioExtra = perfilTreinador && !treinadorPossuiVinculoObrigatorio(perfilTreinador)
+    ? "Seu cadastro ainda não foi vinculado a ninguém da Comissão Técnica — fale com o responsável."
+    : undefined;
 
   return (
     <div className="min-h-screen bg-pagina">
@@ -82,6 +92,7 @@ export default async function DispensaAtletaTreinadorPage({ params }: { params: 
                 assinaturas={assinaturas}
                 papeisQuePossoAssinar={["treinador"]}
                 minhaAssinaturaCadastrada={minhaAssinaturaCadastrada}
+                mensagemBloqueioExtra={mensagemBloqueioExtra}
               />
             </div>
           ) : (
