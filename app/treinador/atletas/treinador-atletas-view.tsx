@@ -128,6 +128,10 @@ export function TreinadorAtletasView({
   // pediram isso e os candidatos de lá nem têm status/posição no mesmo formato do elenco.
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
   const [posicoesSel, setPosicoesSel] = useState<Set<string>>(new Set());
+  // Card do Elenco começa "fechado" (só foto/nome) — classificação e Relatório de Dispensa só
+  // aparecem depois de clicar nele (pedido do Mateus em 2026-10-02: com os dois sempre visíveis o
+  // card ficava grande demais numa grade de 20+ atletas). `Set` dos ids abertos no momento.
+  const [elencoAberto, setElencoAberto] = useState<Set<string>>(new Set());
 
   const buscaNormalizada = busca.trim().toLowerCase();
 
@@ -363,7 +367,7 @@ export function TreinadorAtletasView({
                       <span className="font-normal text-neutral-400">({grupo.itens.length})</span>
                     </h3>
                   ) : null}
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
                     {grupo.itens.map((atleta) => {
                       const dados: AtletaCardDados = {
                         id: atleta.id,
@@ -380,6 +384,7 @@ export function TreinadorAtletasView({
                         classificacao: atleta.classificacao,
                         ativo: atleta.ativo,
                       };
+                      const aberto = elencoAberto.has(atleta.id);
                       return (
                         <AtletaCard
                           key={atleta.id}
@@ -387,22 +392,30 @@ export function TreinadorAtletasView({
                           as="div"
                           mostrarCpf={false}
                           mostrarContrato={false}
-                          rodape={
-                            <div className="space-y-1.5">
-                              <p className="truncate text-center text-xs text-neutral-500">{atleta.posicao}</p>
-                              <ClassificacaoSelectTreinador
-                                atletaId={atleta.id}
-                                defaultValue={atleta.classificacao}
-                                action={salvarClassificacaoTreinador}
-                                className="w-full"
-                              />
-                              <Link
-                                href={`/treinador/atletas/${atleta.id}/dispensa`}
-                                className="btn-secondary btn-sm block text-center"
-                              >
-                                {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
-                              </Link>
+                          aoClicarCabecalho={() => setElencoAberto((atual) => alternarNoConjunto(atual, atleta.id))}
+                          indicador={
+                            <div className="flex items-center justify-between gap-1 bg-neutral-50 px-1.5 py-1">
+                              <span className="truncate text-[9px] font-medium text-neutral-500">{atleta.posicao}</span>
+                              <span className="shrink-0 text-[9px] font-bold text-grena">{aberto ? "Ocultar ▲" : "Classificar ▾"}</span>
                             </div>
+                          }
+                          rodape={
+                            aberto ? (
+                              <div className="space-y-1.5">
+                                <ClassificacaoSelectTreinador
+                                  atletaId={atleta.id}
+                                  defaultValue={atleta.classificacao}
+                                  action={salvarClassificacaoTreinador}
+                                  className="w-full"
+                                />
+                                <Link
+                                  href={`/treinador/atletas/${atleta.id}/dispensa`}
+                                  className="btn-secondary btn-sm block text-center"
+                                >
+                                  {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
+                                </Link>
+                              </div>
+                            ) : undefined
                           }
                         />
                       );
