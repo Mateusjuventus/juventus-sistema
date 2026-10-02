@@ -7,6 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getAssinaturasFinanceiroBase } from "@/lib/pdf/assinaturas";
 import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { podeVerCampoSensivel } from "@/lib/auth/role";
 import { calcularGeralBase, tipoPagamentoAtletaBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
 import {
   RelatorioGeralBaseDocument,
@@ -27,17 +28,23 @@ import type {
 export async function GET() {
   const supabase = createClient();
 
-  const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }, { assinatura1, assinatura2 }] =
-    await Promise.all([
-      supabase.from("comissao_tecnica_base").select("*").order("nome_completo", { ascending: true }),
-      supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
-      supabase
-        .from("despesas_avulsas_base")
-        .select("*, categoria_gasto:categorias_gasto(nome)")
-        .order("data", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-      getAssinaturasFinanceiroBase(supabase),
-    ]);
+  const [
+    { data: comissaoData },
+    { data: atletasData },
+    { data: despesasData },
+    { assinatura1, assinatura2 },
+    podeVerSalario,
+  ] = await Promise.all([
+    supabase.from("comissao_tecnica_base").select("*").order("nome_completo", { ascending: true }),
+    supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
+    supabase
+      .from("despesas_avulsas_base")
+      .select("*, categoria_gasto:categorias_gasto(nome)")
+      .order("data", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false }),
+    getAssinaturasFinanceiroBase(supabase),
+    podeVerCampoSensivel(supabase, "salario"),
+  ]);
 
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
@@ -107,6 +114,7 @@ export async function GET() {
       despesas={despesasPdf}
       assinatura1={assinatura1}
       assinatura2={assinatura2}
+      podeVerSalario={podeVerSalario}
     />,
   );
 

@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/server";
+import { podeVerCampoSensivel } from "@/lib/auth/role";
 import { ComissaoForm } from "../comissao-form";
 import { createComissao } from "../actions";
 
-export default function NovaComissaoPage() {
+export default async function NovaComissaoPage() {
+  const podeVerSalario = await podeVerCampoSensivel(createClient(), "salario");
+
   return (
     <AppShell>
       <Link href="/comissao-tecnica" className="text-sm font-medium text-grena hover:underline">
@@ -11,7 +15,7 @@ export default function NovaComissaoPage() {
       </Link>
       <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Nova pessoa — Comissão Técnica/Diretoria</h1>
       <div className="mt-4">
-        <ComissaoForm action={createComissao} submitLabel="Cadastrar" />
+        <ComissaoForm action={createComissao} submitLabel="Cadastrar" podeVerSalario={podeVerSalario} />
       </div>
     </AppShell>
   );

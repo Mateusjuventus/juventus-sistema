@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AtletaAvatarBloco } from "@/components/atleta-avatar";
 import { ClassificacaoSelectTreinador } from "@/components/classificacao-select-treinador";
-import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
 import { anelClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
@@ -19,6 +19,27 @@ function formatDataBr(iso: string | null): string {
   if (!iso) return "—";
   const [ano, mes, dia] = iso.split("-");
   return `${dia}/${mes}/${ano}`;
+}
+
+export interface GrupoPorCategoria<T> {
+  categoria: string;
+  categoriaLabel: string;
+  itens: T[];
+}
+
+/**
+ * Agrupa uma lista por categoria do Futebol de Base, na ordem fixa de `CATEGORIAS_BASE` (Sub-20 →
+ * Sub-11) — não na ordem em que o treinador cobre as categorias, que pode estar em qualquer
+ * sequência no cadastro dele. Só devolve grupos com pelo menos 1 item (nenhum cabeçalho vazio) —
+ * ver docs/superpowers/specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. Um
+ * treinador de categoria só nunca chega a ter mais de 1 grupo aqui.
+ */
+export function agruparPorCategoria<T extends { categoria: string | null }>(itens: T[]): GrupoPorCategoria<T>[] {
+  return CATEGORIAS_BASE.map((cat) => ({
+    categoria: cat.value,
+    categoriaLabel: cat.label,
+    itens: itens.filter((item) => item.categoria === cat.value),
+  })).filter((grupo) => grupo.itens.length > 0);
 }
 
 /** Moldura base de um card da grade — só o corpo (texto) muda por aba; o retrato no topo
@@ -91,6 +112,15 @@ export function TreinadorAtletasView({
     [atletas, buscaNormalizada],
   );
 
+  // Agrupado por categoria (Sub-20 → Sub-11) — pra quando o treinador cobre mais de uma, ver
+  // docs/superpowers/specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. Um
+  // treinador de categoria só (ou uma aba com item em só uma categoria) nunca chega a 2 grupos, e
+  // o cabeçalho de categoria só aparece quando há mais de 1 — ver `mostrarCabecalho` nos 3 renders
+  // abaixo.
+  const pendentesPorCategoria = useMemo(() => agruparPorCategoria(pendentesFiltrados), [pendentesFiltrados]);
+  const decididosPorCategoria = useMemo(() => agruparPorCategoria(decididosFiltrados), [decididosFiltrados]);
+  const atletasPorCategoria = useMemo(() => agruparPorCategoria(atletasFiltrados), [atletasFiltrados]);
+
   const abas: { key: Aba; labelCurto: string; labelLongo: string; total: number }[] = [
     { key: "avaliacao", labelCurto: "Avaliação", labelLongo: "Aguardando avaliação", total: pendentes.length },
     { key: "avaliados", labelCurto: "Avaliados", labelLongo: "Já avaliados", total: decididos.length },
@@ -132,19 +162,33 @@ export function TreinadorAtletasView({
               : "Nenhum candidato encontrado com esse nome."}
           </p>
         ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {pendentesFiltrados.map((candidato) => (
-              <Link key={candidato.id} href={`/treinador/${candidato.id}`} className="block">
-                <CardBase nome={candidato.nome_completo} fotoUrl={candidato.fotoUrl} corBorda="border-linha">
-                  <p className="truncate text-sm font-semibold text-neutral-800">{candidato.nome_completo}</p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-500">
-                    {candidato.posicao ?? "Posição não informada"}
-                    {candidato.categoria ? ` · ${categoriaBaseLabel(candidato.categoria)}` : ""}
-                  </p>
-                  <p className="mt-0.5 text-xs text-neutral-400">Nasc. {formatDataBr(candidato.data_nascimento)}</p>
-                  <p className="mt-1.5 text-xs font-bold text-grena">Avaliar →</p>
-                </CardBase>
-              </Link>
+          <div className="mt-4 space-y-6">
+            {pendentesPorCategoria.map((grupo) => (
+              <div key={grupo.categoria}>
+                {pendentesPorCategoria.length > 1 ? (
+                  <h3 className="mb-2 text-sm font-semibold text-neutral-600">
+                    {grupo.categoriaLabel}{" "}
+                    <span className="font-normal text-neutral-400">({grupo.itens.length})</span>
+                  </h3>
+                ) : null}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {grupo.itens.map((candidato) => (
+                    <Link key={candidato.id} href={`/treinador/${candidato.id}`} className="block">
+                      <CardBase nome={candidato.nome_completo} fotoUrl={candidato.fotoUrl} corBorda="border-linha">
+                        <p className="truncate text-sm font-semibold text-neutral-800">{candidato.nome_completo}</p>
+                        <p className="mt-0.5 truncate text-xs text-neutral-500">
+                          {candidato.posicao ?? "Posição não informada"}
+                          {candidato.categoria ? ` · ${categoriaBaseLabel(candidato.categoria)}` : ""}
+                        </p>
+                        <p className="mt-0.5 text-xs text-neutral-400">
+                          Nasc. {formatDataBr(candidato.data_nascimento)}
+                        </p>
+                        <p className="mt-1.5 text-xs font-bold text-grena">Avaliar →</p>
+                      </CardBase>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )
@@ -156,26 +200,43 @@ export function TreinadorAtletasView({
             {decididos.length === 0 ? "Nenhum candidato avaliado ainda." : "Nenhum candidato encontrado com esse nome."}
           </p>
         ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {decididosFiltrados.map((candidato) => (
-              <CardBase key={candidato.id} nome={candidato.nome_completo} fotoUrl={candidato.fotoUrl} corBorda="border-linha">
-                <p className="truncate text-sm font-semibold text-neutral-800">{candidato.nome_completo}</p>
-                <p className="mt-0.5 truncate text-xs text-neutral-500">
-                  {candidato.posicao ?? "Posição não informada"}
-                  {candidato.categoria ? ` · ${categoriaBaseLabel(candidato.categoria)}` : ""}
-                </p>
-                <span
-                  className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${corCaptacaoStatus(candidato.status)}`}
-                >
-                  {captacaoStatusLabel(candidato.status)}
-                </span>
-                {candidato.nota_tecnica !== null ? (
-                  <p className="mt-1 text-[11px] text-neutral-500">
-                    Téc {candidato.nota_tecnica} · Fís {candidato.nota_fisica} · Tát {candidato.nota_tatica} · Comp{" "}
-                    {candidato.nota_comportamental}
-                  </p>
+          <div className="mt-4 space-y-6">
+            {decididosPorCategoria.map((grupo) => (
+              <div key={grupo.categoria}>
+                {decididosPorCategoria.length > 1 ? (
+                  <h3 className="mb-2 text-sm font-semibold text-neutral-600">
+                    {grupo.categoriaLabel}{" "}
+                    <span className="font-normal text-neutral-400">({grupo.itens.length})</span>
+                  </h3>
                 ) : null}
-              </CardBase>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {grupo.itens.map((candidato) => (
+                    <CardBase
+                      key={candidato.id}
+                      nome={candidato.nome_completo}
+                      fotoUrl={candidato.fotoUrl}
+                      corBorda="border-linha"
+                    >
+                      <p className="truncate text-sm font-semibold text-neutral-800">{candidato.nome_completo}</p>
+                      <p className="mt-0.5 truncate text-xs text-neutral-500">
+                        {candidato.posicao ?? "Posição não informada"}
+                        {candidato.categoria ? ` · ${categoriaBaseLabel(candidato.categoria)}` : ""}
+                      </p>
+                      <span
+                        className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${corCaptacaoStatus(candidato.status)}`}
+                      >
+                        {captacaoStatusLabel(candidato.status)}
+                      </span>
+                      {candidato.nota_tecnica !== null ? (
+                        <p className="mt-1 text-[11px] text-neutral-500">
+                          Téc {candidato.nota_tecnica} · Fís {candidato.nota_fisica} · Tát {candidato.nota_tatica} ·
+                          Comp {candidato.nota_comportamental}
+                        </p>
+                      ) : null}
+                    </CardBase>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )
@@ -187,33 +248,45 @@ export function TreinadorAtletasView({
             {atletas.length === 0 ? "Nenhum atleta cadastrado nas suas categorias ainda." : "Nenhum atleta encontrado com esse nome."}
           </p>
         ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {atletasFiltrados.map((atleta) => (
-              <CardBase
-                key={atleta.id}
-                nome={nomeExibido(atleta)}
-                fotoUrl={atleta.fotoUrl}
-                corBorda={anelClassificacaoAtleta(atleta.classificacao)}
-              >
-                <p className="truncate text-sm font-semibold text-neutral-800">{nomeExibido(atleta)}</p>
-                <p className="mt-0.5 truncate text-xs text-neutral-500">
-                  {categoriaBaseLabel(atleta.categoria)} · {atleta.posicao}
-                </p>
-                <div className="mt-2">
-                  <ClassificacaoSelectTreinador
-                    atletaId={atleta.id}
-                    defaultValue={atleta.classificacao}
-                    action={salvarClassificacaoTreinador}
-                    className="w-full"
-                  />
+          <div className="mt-4 space-y-6">
+            {atletasPorCategoria.map((grupo) => (
+              <div key={grupo.categoria}>
+                {atletasPorCategoria.length > 1 ? (
+                  <h3 className="mb-2 text-sm font-semibold text-neutral-600">
+                    {grupo.categoriaLabel}{" "}
+                    <span className="font-normal text-neutral-400">({grupo.itens.length})</span>
+                  </h3>
+                ) : null}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {grupo.itens.map((atleta) => (
+                    <CardBase
+                      key={atleta.id}
+                      nome={nomeExibido(atleta)}
+                      fotoUrl={atleta.fotoUrl}
+                      corBorda={anelClassificacaoAtleta(atleta.classificacao)}
+                    >
+                      <p className="truncate text-sm font-semibold text-neutral-800">{nomeExibido(atleta)}</p>
+                      <p className="mt-0.5 truncate text-xs text-neutral-500">
+                        {categoriaBaseLabel(atleta.categoria)} · {atleta.posicao}
+                      </p>
+                      <div className="mt-2">
+                        <ClassificacaoSelectTreinador
+                          atletaId={atleta.id}
+                          defaultValue={atleta.classificacao}
+                          action={salvarClassificacaoTreinador}
+                          className="w-full"
+                        />
+                      </div>
+                      <Link
+                        href={`/treinador/atletas/${atleta.id}/dispensa`}
+                        className="btn-secondary btn-sm mt-2 block text-center"
+                      >
+                        {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
+                      </Link>
+                    </CardBase>
+                  ))}
                 </div>
-                <Link
-                  href={`/treinador/atletas/${atleta.id}/dispensa`}
-                  className="btn-secondary btn-sm mt-2 block text-center"
-                >
-                  {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
-                </Link>
-              </CardBase>
+              </div>
             ))}
           </div>
         )

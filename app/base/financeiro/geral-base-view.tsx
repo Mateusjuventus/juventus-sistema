@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { podeVerCampoSensivel } from "@/lib/auth/role";
 import { calcularGeralBase, tipoPagamentoAtletaBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
 import { DonutComposicao, type FatiaComposicao } from "@/components/charts/donut-composicao";
 import { BarrasCategoria } from "@/components/charts/barras-categoria";
@@ -43,15 +44,17 @@ function StatCard({ label, valor, ajuda }: { label: string; valor: string; ajuda
 export async function GeralBaseView() {
   const supabase = createClient();
 
-  const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }] = await Promise.all([
-    supabase.from("comissao_tecnica_base").select("*").order("nome_completo", { ascending: true }),
-    supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
-    supabase
-      .from("despesas_avulsas_base")
-      .select("*, categoria_gasto:categorias_gasto(nome)")
-      .order("data", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }, podeVerSalario] =
+    await Promise.all([
+      supabase.from("comissao_tecnica_base").select("*").order("nome_completo", { ascending: true }),
+      supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
+      supabase
+        .from("despesas_avulsas_base")
+        .select("*, categoria_gasto:categorias_gasto(nome)")
+        .order("data", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false }),
+      podeVerCampoSensivel(supabase, "salario"),
+    ]);
 
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
@@ -91,77 +94,83 @@ export async function GeralBaseView() {
         </a>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard
-          label="Custo mensal fixo"
-          valor={formatMoeda(custoMensalFixo)}
-          ajuda="Salários da Comissão Técnica + pagamentos aos atletas (salário, ajuda de custo ou empréstimo) cadastrados agora"
-        />
+      <div className={`mt-4 grid grid-cols-1 gap-3 ${podeVerSalario ? "sm:grid-cols-3" : "sm:grid-cols-1"}`}>
+        {podeVerSalario ? (
+          <StatCard
+            label="Custo mensal fixo"
+            valor={formatMoeda(custoMensalFixo)}
+            ajuda="Salários da Comissão Técnica + pagamentos aos atletas (salário, ajuda de custo ou empréstimo) cadastrados agora"
+          />
+        ) : null}
         <StatCard
           label="Despesas avulsas"
           valor={formatMoeda(despesasTotal)}
           ajuda="Soma de tudo lançado na lista abaixo"
         />
-        <StatCard label="Total geral da Base" valor={formatMoeda(totalGeral)} />
+        {podeVerSalario ? <StatCard label="Total geral da Base" valor={formatMoeda(totalGeral)} /> : null}
       </div>
 
-      <h2 className="mt-8 text-lg font-bold text-grena-escuro">Composição do gasto</h2>
-      <p className="mt-1 text-sm text-neutral-500">
-        Passe o mouse numa fatia ou na legenda pra ver o valor exato.
-      </p>
-      <div className="card mt-3 p-5">
-        <DonutComposicao fatias={composicao} total={totalGeral} />
-      </div>
+      {podeVerSalario ? (
+        <>
+          <h2 className="mt-8 text-lg font-bold text-grena-escuro">Composição do gasto</h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Passe o mouse numa fatia ou na legenda pra ver o valor exato.
+          </p>
+          <div className="card mt-3 p-5">
+            <DonutComposicao fatias={composicao} total={totalGeral} />
+          </div>
 
-      <h2 className="mt-8 text-lg font-bold text-grena-escuro">Por categoria</h2>
-      <p className="mt-1 text-sm text-neutral-500">
-        Quem atua em mais de uma categoria tem o salário dividido igual entre elas aqui. Passe o
-        mouse numa barra pra ver o % do total geral.
-      </p>
-      <div className="card mt-3 p-4">
-        <BarrasCategoria linhas={linhasCategoria} />
-      </div>
+          <h2 className="mt-8 text-lg font-bold text-grena-escuro">Por categoria</h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Quem atua em mais de uma categoria tem o salário dividido igual entre elas aqui. Passe o
+            mouse numa barra pra ver o % do total geral.
+          </p>
+          <div className="card mt-3 p-4">
+            <BarrasCategoria linhas={linhasCategoria} />
+          </div>
 
-      <h2 className="mt-8 text-lg font-bold text-grena-escuro">Comissão Técnica</h2>
-      <div className="card tabela-rolavel mt-3">
-        <table className="w-full min-w-[620px] text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3">Função</th>
-              <th className="px-4 py-3">Categoria(s)</th>
-              <th className="px-4 py-3">Salário mensal</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {comissao.map((c) => (
-              <tr key={c.id}>
-                <td className="px-4 py-3 font-medium text-neutral-800">{c.nome_completo}</td>
-                <td className="px-4 py-3">{c.funcao}</td>
-                <td className="px-4 py-3">{c.categorias.map(categoriaBaseLabel).join(" · ")}</td>
-                <td className="px-4 py-3">{c.valor_salario ? formatMoeda(c.valor_salario) : "—"}</td>
-              </tr>
-            ))}
-            {comissao.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-neutral-400">
-                  Nenhum integrante da Comissão Técnica cadastrado ainda.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-          {comissao.length > 0 ? (
-            <tfoot>
-              <tr className="border-t-2 border-neutral-200 bg-neutral-50 font-semibold text-neutral-800">
-                <td className="px-4 py-3" colSpan={3}>
-                  Total
-                </td>
-                <td className="px-4 py-3">{formatMoeda(custoComissao)}</td>
-              </tr>
-            </tfoot>
-          ) : null}
-        </table>
-      </div>
+          <h2 className="mt-8 text-lg font-bold text-grena-escuro">Comissão Técnica</h2>
+          <div className="card tabela-rolavel mt-3">
+            <table className="w-full min-w-[620px] text-left text-sm">
+              <thead className="bg-neutral-50 text-neutral-600">
+                <tr>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">Função</th>
+                  <th className="px-4 py-3">Categoria(s)</th>
+                  <th className="px-4 py-3">Salário mensal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {comissao.map((c) => (
+                  <tr key={c.id}>
+                    <td className="px-4 py-3 font-medium text-neutral-800">{c.nome_completo}</td>
+                    <td className="px-4 py-3">{c.funcao}</td>
+                    <td className="px-4 py-3">{c.categorias.map(categoriaBaseLabel).join(" · ")}</td>
+                    <td className="px-4 py-3">{c.valor_salario ? formatMoeda(c.valor_salario) : "—"}</td>
+                  </tr>
+                ))}
+                {comissao.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-neutral-400">
+                      Nenhum integrante da Comissão Técnica cadastrado ainda.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+              {comissao.length > 0 ? (
+                <tfoot>
+                  <tr className="border-t-2 border-neutral-200 bg-neutral-50 font-semibold text-neutral-800">
+                    <td className="px-4 py-3" colSpan={3}>
+                      Total
+                    </td>
+                    <td className="px-4 py-3">{formatMoeda(custoComissao)}</td>
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
+          </div>
+        </>
+      ) : null}
 
       <h2 className="mt-8 text-lg font-bold text-grena-escuro">Atletas</h2>
       <p className="mt-1 text-sm text-neutral-500">

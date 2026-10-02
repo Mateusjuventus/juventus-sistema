@@ -24,6 +24,7 @@ export function ComissaoBaseForm({
   categoriasIniciais,
   fotoUrl,
   submitLabel,
+  podeVerSalario = true,
 }: {
   action: (prevState: ComissaoBaseFormState, formData: FormData) => Promise<ComissaoBaseFormState>;
   entityId?: string;
@@ -31,6 +32,9 @@ export function ComissaoBaseForm({
   categoriasIniciais?: string[];
   fotoUrl?: string | null;
   submitLabel: string;
+  /** `false` quando este usuário tem "Salário" marcado como campo escondido — ver docs/
+   * superpowers/specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. */
+  podeVerSalario?: boolean;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
@@ -128,12 +132,14 @@ export function ComissaoBaseForm({
               </option>
             ))}
           </SelectField>
-          <CurrencyField
-            label="Salário mensal"
-            name="valorSalario"
-            defaultValue={values.valorSalario}
-            error={errors.valorSalario}
-          />
+          {podeVerSalario ? (
+            <CurrencyField
+              label="Salário mensal"
+              name="valorSalario"
+              defaultValue={values.valorSalario}
+              error={errors.valorSalario}
+            />
+          ) : null}
           <TextField
             label="Quando iniciou"
             name="dataInicio"

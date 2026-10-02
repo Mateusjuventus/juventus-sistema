@@ -8,6 +8,7 @@ import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
 import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { CAMPOS_SENSIVEIS } from "@/lib/auth/campos-sensiveis";
 import { TAREFA_CATEGORIAS, ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import type { ComissaoTecnicaParaSelecao } from "@/lib/auth/perfis";
 import { criarUsuario, type UsuarioFormState } from "./actions";
@@ -310,6 +311,27 @@ export function UsuarioForm({
                 ) : null}
               </>
             )}
+
+            <div className="border-t border-neutral-100 pt-3">
+              <p className="field-label">Campos que esta pessoa NÃO pode ver</p>
+              <p className="-mt-0.5 text-xs text-neutral-400">
+                Mesmo com o módulo correspondente liberado, os campos marcados abaixo ficam
+                escondidos pra essa pessoa (ex.: salário da Comissão Técnica).
+              </p>
+              <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {CAMPOS_SENSIVEIS.map((campo) => (
+                  <label key={campo.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                    <input
+                      type="checkbox"
+                      name="camposSensiveisBloqueados"
+                      value={campo.value}
+                      className={CHECKBOX_CLASS}
+                    />
+                    {campo.label}
+                  </label>
+                ))}
+              </div>
+            </div>
 
             <div>
               <p className="field-label">Categorias de Tarefas visíveis</p>

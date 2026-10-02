@@ -18,12 +18,18 @@ export function ComissaoForm({
   defaultValues,
   fotoUrl,
   submitLabel,
+  podeVerSalario = true,
 }: {
   action: (prevState: ComissaoFormState, formData: FormData) => Promise<ComissaoFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
   fotoUrl?: string | null;
   submitLabel: string;
+  /** `false` quando este usuário tem "Salário" marcado como campo escondido (ver docs/superpowers/
+   * specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md) — o campo some do
+   * formulário (nem o valor atual é passado em `defaultValues` por quem chama) e, por não ser
+   * enviado no `formData`, o salário salvo no banco não é alterado ao gravar o resto do cadastro. */
+  podeVerSalario?: boolean;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
@@ -95,12 +101,14 @@ export function ComissaoForm({
               </option>
             ))}
           </SelectField>
-          <CurrencyField
-            label="Salário mensal"
-            name="valorSalario"
-            defaultValue={values.valorSalario}
-            error={errors.valorSalario}
-          />
+          {podeVerSalario ? (
+            <CurrencyField
+              label="Salário mensal"
+              name="valorSalario"
+              defaultValue={values.valorSalario}
+              error={errors.valorSalario}
+            />
+          ) : null}
           <TextField
             label="Quando iniciou"
             name="dataInicio"

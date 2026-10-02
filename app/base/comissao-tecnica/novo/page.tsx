@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/server";
+import { podeVerCampoSensivel } from "@/lib/auth/role";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { ComissaoBaseForm } from "../comissao-base-form";
 import { createComissaoBase } from "../actions";
 
 /** `?categoria=` só pré-marca o checkbox correspondente (ex.: veio do filtro da lista) — não é
  * mais uma exigência de rota, a pessoa pode marcar quantas quiser no formulário. */
-export default function NovaComissaoBasePage({
+export default async function NovaComissaoBasePage({
   searchParams,
 }: {
   searchParams: { categoria?: string };
@@ -14,6 +16,7 @@ export default function NovaComissaoBasePage({
   const categoriaInicial = ehCategoriaBaseValida(searchParams.categoria ?? "")
     ? [searchParams.categoria!]
     : [];
+  const podeVerSalario = await podeVerCampoSensivel(createClient(), "salario");
 
   return (
     <AppShell departamento="futebol_base">
@@ -26,6 +29,7 @@ export default function NovaComissaoBasePage({
           action={createComissaoBase}
           categoriasIniciais={categoriaInicial}
           submitLabel="Cadastrar"
+          podeVerSalario={podeVerSalario}
         />
       </div>
     </AppShell>

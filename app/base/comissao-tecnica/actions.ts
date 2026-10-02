@@ -136,10 +136,13 @@ export async function updateComissaoBase(
     telefone: data.telefone ? normalizeTelefone(data.telefone) : null,
     email: data.email || null,
     tipo_contrato: data.tipoContrato || null,
-    valor_salario: data.valorSalario ?? null,
     data_inicio: data.dataInicio || null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
+  // Mesmo raciocínio de `app/comissao-tecnica/actions.ts` — campo escondido pra quem tem "Salário"
+  // bloqueado (ver docs/superpowers/specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-
+  // design.md) não chega no `formData`, então não grava por cima do valor já salvo.
+  if (formData.has("valorSalario")) updatePayload.valor_salario = data.valorSalario ?? null;
 
   const { error } = await supabase.from("comissao_tecnica_base").update(updatePayload).eq("id", id);
 

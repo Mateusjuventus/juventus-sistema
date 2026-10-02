@@ -4,6 +4,7 @@ import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import { podeVerCampoSensivel } from "@/lib/auth/role";
 import type { ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,9 @@ export async function GET(request: NextRequest) {
 
   const { data } = await query;
   const pessoas = (data ?? []) as ComissaoTecnicaBaseRow[];
+  // Mesmo bloqueio do formulário de edição — ver docs/superpowers/specs/2026-10-02-campos-
+  // sensiveis-e-atletas-por-categoria-design.md.
+  const podeVerSalario = await podeVerCampoSensivel(supabase, "salario");
 
   const linhas = pessoas.map((p) => ({
     "Nome completo": p.nome_completo,
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest) {
     Telefone: p.telefone ?? "",
     "E-mail": p.email ?? "",
     "Tipo de contrato": tipoContratoLabel(p.tipo_contrato),
-    "Salário mensal": formatMoeda(p.valor_salario),
+    ...(podeVerSalario ? { "Salário mensal": formatMoeda(p.valor_salario) } : {}),
     "Quando iniciou": formatData(p.data_inicio),
   }));
 

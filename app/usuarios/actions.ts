@@ -10,6 +10,7 @@ import { TODOS_DEPARTAMENTOS, ehDepartamentoValido } from "@/lib/auth/departamen
 import { ehTarefaCategoriaValida } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS, ehEstoqueCategoriaValida } from "@/lib/auth/estoque-categorias";
 import { ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { ehCampoSensivelValido } from "@/lib/auth/campos-sensiveis";
 import type { PerfilRole } from "@/lib/supabase/types";
 import type { PermissaoActionState } from "@/components/permissao-checkboxes-form";
 
@@ -59,6 +60,14 @@ function parseComissaoTecnicaBaseId(formData: FormData): string | null {
  * sempre, independente da coluna). */
 function parseFisioterapiaPodeEditar(formData: FormData): boolean {
   return formData.getAll("fisioterapiaPodeEditar").includes("sim");
+}
+
+/** Campos sensíveis (catálogo em `lib/auth/campos-sensiveis.ts`, hoje só "salario") que esta
+ * pessoa NÃO pode ver, mesmo com o módulo correspondente liberado — ver docs/superpowers/specs/
+ * 2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. Vale pra qualquer papel não-
+ * master (master nunca tem nada escondido — a tela nem mostra os checkboxes pra ele). */
+function parseCamposSensiveisBloqueados(formData: FormData): string[] {
+  return formData.getAll("camposSensiveisBloqueados").map(String).filter(ehCampoSensivelValido);
 }
 
 /** Categorias do Futebol de Base marcadas manualmente — só é lida de verdade quando NÃO há vínculo
@@ -140,6 +149,7 @@ export async function criarUsuario(
     ? TODAS_CATEGORIAS_BASE
     : parseCategoriasBasePermitidas(formData);
   const fisioterapiaPodeEditar = parseFisioterapiaPodeEditar(formData);
+  const camposSensiveisBloqueados = parseCamposSensiveisBloqueados(formData);
   const raw = { email, role };
 
   const fieldErrors: Record<string, string> = {};
@@ -181,6 +191,7 @@ export async function criarUsuario(
     comissao_tecnica_base_id: comissaoTecnicaBaseId,
     categorias_base_permitidas: categoriasBasePermitidas,
     fisioterapia_pode_editar: fisioterapiaPodeEditar,
+    campos_sensiveis_bloqueados: camposSensiveisBloqueados,
   });
   if (perfilError) {
     return {
@@ -385,6 +396,32 @@ export async function atualizarFisioterapiaPodeEditar(
   const { error } = await admin
     .from("perfis")
     .update({ fisioterapia_pode_editar: fisioterapiaPodeEditar })
+    .eq("id", id);
+  if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
+
+  revalidatePath("/usuarios");
+  return { success: "Salvo." };
+}
+
+/** Salva os campos sensíveis (ex.: salário) escondidos de um usuário "regular" ou "treinador" já
+ * existente — espelha `atualizarEstoqueCategorias`. Só master pode chamar; não faz sentido pra
+ * quem é master (a tela nem mostra os checkboxes nesse caso, e `getCamposSensiveisBloqueados`
+ * ignora isso pra ele de qualquer forma). */
+export async function atualizarCamposSensiveisBloqueados(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+  const camposSensiveisBloqueados = parseCamposSensiveisBloqueados(formData);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("perfis")
+    .update({ campos_sensiveis_bloqueados: camposSensiveisBloqueados })
     .eq("id", id);
   if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
 

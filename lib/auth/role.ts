@@ -16,6 +16,7 @@ import { TODOS_DEPARTAMENTOS, type DepartamentoChave } from "@/lib/auth/departam
 import { TODAS_TAREFA_CATEGORIAS } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
 import { TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
+import type { CampoSensivel } from "@/lib/auth/campos-sensiveis";
 
 export interface PerfilPermissoes {
   role: PerfilRole;
@@ -36,6 +37,10 @@ export interface PerfilPermissoes {
   /** Sub-área Fisioterapia do módulo Departamento Médico — ver
    * docs/superpowers/specs/2026-09-30-fisioterapia-design.md e `getFisioterapiaPodeEditar` abaixo. */
   fisioterapia_pode_editar: boolean | null;
+  /** Campos sensíveis (ex.: salário) escondidos desta pessoa mesmo com o módulo liberado — ver
+   * docs/superpowers/specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md e
+   * `getCamposSensiveisBloqueados`/`podeVerCampoSensivel` abaixo. */
+  campos_sensiveis_bloqueados: string[] | null;
 }
 
 /** Uma única leitura de `perfis` com tudo que as funções abaixo precisam — evita repetir a mesma
@@ -75,7 +80,7 @@ const buscarPerfilPermissoes = cache(async (): Promise<PerfilPermissoes | null> 
       "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, " +
         "tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador, " +
         "comissao_tecnica_id, comissao_tecnica_base_id, categorias_base_permitidas, " +
-        "fisioterapia_pode_editar, " +
+        "fisioterapia_pode_editar, campos_sensiveis_bloqueados, " +
         "comissao_tecnica_base:comissao_tecnica_base_id(categorias)",
     )
     .eq("id", user.id)
@@ -248,4 +253,36 @@ export async function getFisioterapiaPodeEditar(
   if (!perfil) return false;
   if (perfil.role === "master") return true;
   return perfil.fisioterapia_pode_editar ?? false;
+}
+
+/**
+ * Campos sensíveis (catálogo em `lib/auth/campos-sensiveis.ts`, hoje só "salario") escondidos
+ * deste perfil, mesmo que ele tenha o módulo liberado — ver docs/superpowers/specs/2026-10-02-
+ * campos-sensiveis-e-atletas-por-categoria-design.md. "Master" nunca tem nada escondido, qualquer
+ * que seja o valor gravado em `perfis` (nem a opção aparece pra ele em `/usuarios`). Sem perfil
+ * (deslogado), também nada escondido — quem decide se a pessoa pode ou não acessar a tela em
+ * primeiro lugar é o middleware/módulo, não esta função.
+ */
+export function resolverCamposSensiveisBloqueados(perfil: PerfilPermissoes | null): CampoSensivel[] {
+  if (!perfil || perfil.role === "master") return [];
+  return (perfil.campos_sensiveis_bloqueados ?? []) as CampoSensivel[];
+}
+
+/** Versão de `resolverCamposSensiveisBloqueados` que já busca o perfil do usuário logado — usada
+ * pelas páginas/actions de verdade. */
+export async function getCamposSensiveisBloqueados(
+  supabase: ReturnType<typeof createClient>,
+): Promise<CampoSensivel[]> {
+  const perfil = await getPerfilPermissoes(supabase);
+  return resolverCamposSensiveisBloqueados(perfil);
+}
+
+/** Atalho pra checar um campo sensível específico — `!bloqueados.includes(campo)`, mas evita
+ * repetir esse `!includes` em todo lugar que precisa checar só um campo. */
+export async function podeVerCampoSensivel(
+  supabase: ReturnType<typeof createClient>,
+  campo: CampoSensivel,
+): Promise<boolean> {
+  const bloqueados = await getCamposSensiveisBloqueados(supabase);
+  return !bloqueados.includes(campo);
 }

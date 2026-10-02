@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolverCategoriasBasePermitidas } from "./role";
+import { resolverCamposSensiveisBloqueados, resolverCategoriasBasePermitidas } from "./role";
 import { TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type { PerfilPermissoes } from "./role";
 
@@ -17,6 +17,7 @@ function perfil(overrides: Partial<PerfilPermissoes>): PerfilPermissoes {
     categorias_base_permitidas: null,
     comissao_tecnica_base: null,
     fisioterapia_pode_editar: null,
+    campos_sensiveis_bloqueados: null,
     ...overrides,
   };
 }
@@ -80,5 +81,26 @@ describe("resolverCategoriasBasePermitidas", () => {
   it("regular com departamentos_permitidos nulo (grandfathered = todos) e sem vínculo enxerga as 7", () => {
     const p = perfil({ role: "regular", departamentos_permitidos: null, categorias_base_permitidas: null });
     expect(resolverCategoriasBasePermitidas(p)).toEqual(TODAS_CATEGORIAS_BASE);
+  });
+});
+
+describe("resolverCamposSensiveisBloqueados", () => {
+  it("sem perfil (não logado), nada bloqueado", () => {
+    expect(resolverCamposSensiveisBloqueados(null)).toEqual([]);
+  });
+
+  it("master nunca tem nada bloqueado, mesmo com a coluna preenchida", () => {
+    const p = perfil({ role: "master", campos_sensiveis_bloqueados: ["salario"] });
+    expect(resolverCamposSensiveisBloqueados(p)).toEqual([]);
+  });
+
+  it("regular com salário bloqueado", () => {
+    const p = perfil({ role: "regular", campos_sensiveis_bloqueados: ["salario"] });
+    expect(resolverCamposSensiveisBloqueados(p)).toEqual(["salario"]);
+  });
+
+  it("regular sem nada bloqueado (coluna vazia ou nula) enxerga tudo", () => {
+    expect(resolverCamposSensiveisBloqueados(perfil({ campos_sensiveis_bloqueados: [] }))).toEqual([]);
+    expect(resolverCamposSensiveisBloqueados(perfil({ campos_sensiveis_bloqueados: null }))).toEqual([]);
   });
 });

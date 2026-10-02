@@ -127,10 +127,14 @@ export async function updateComissao(
     telefone: data.telefone ? normalizeTelefone(data.telefone) : null,
     email: data.email || null,
     tipo_contrato: data.tipoContrato || null,
-    valor_salario: data.valorSalario ?? null,
     data_inicio: data.dataInicio || null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
+  // O campo "Salário mensal" some do formulário pra quem tem isso marcado como campo escondido
+  // (ver docs/superpowers/specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md) — e
+  // por isso não chega no `formData`. Só grava `valor_salario` quando o campo veio preenchido no
+  // envio, pra não zerar um valor já salvo quando quem está editando não pode nem ver o campo.
+  if (formData.has("valorSalario")) updatePayload.valor_salario = data.valorSalario ?? null;
 
   const { error } = await supabase.from("comissao_tecnica").update(updatePayload).eq("id", id);
 

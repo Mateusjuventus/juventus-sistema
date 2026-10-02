@@ -4,13 +4,17 @@ import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
+import { podeVerCampoSensivel } from "@/lib/auth/role";
 import type { ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
 import { ComissaoBaseForm } from "../comissao-base-form";
 import { updateComissaoBase } from "../actions";
 
 export default async function EditarComissaoBasePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const { data } = await supabase.from("comissao_tecnica_base").select("*").eq("id", params.id).single();
+  const [{ data }, podeVerSalario] = await Promise.all([
+    supabase.from("comissao_tecnica_base").select("*").eq("id", params.id).single(),
+    podeVerCampoSensivel(supabase, "salario"),
+  ]);
 
   if (!data) notFound();
 
@@ -27,7 +31,9 @@ export default async function EditarComissaoBasePage({ params }: { params: { id:
     telefone: pessoa.telefone ?? "",
     email: pessoa.email ?? "",
     tipoContrato: pessoa.tipo_contrato ?? "",
-    valorSalario: pessoa.valor_salario?.toString() ?? "",
+    // Só preenche o valor pra quem pode ver o campo — ver docs/superpowers/specs/2026-10-02-
+    // campos-sensiveis-e-atletas-por-categoria-design.md.
+    valorSalario: podeVerSalario ? pessoa.valor_salario?.toString() ?? "" : "",
     dataInicio: pessoa.data_inicio ?? "",
   };
 
@@ -45,6 +51,7 @@ export default async function EditarComissaoBasePage({ params }: { params: { id:
           categoriasIniciais={pessoa.categorias}
           fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"
+          podeVerSalario={podeVerSalario}
         />
       </div>
     </AppShell>

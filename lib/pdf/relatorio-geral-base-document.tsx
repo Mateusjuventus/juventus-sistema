@@ -192,6 +192,7 @@ export function RelatorioGeralBaseDocument({
   despesas,
   assinatura1,
   assinatura2,
+  podeVerSalario = true,
 }: {
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
@@ -205,6 +206,11 @@ export function RelatorioGeralBaseDocument({
   despesas: RelatorioGeralBaseDespesa[];
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
+  /** `false` pra quem tem "Salário" marcado como campo escondido — ver docs/superpowers/specs/
+   * 2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. Esconde tudo que é derivado do
+   * salário da Comissão Técnica (2 dos 3 cards de topo, Composição do Gasto, Por Categoria e a
+   * seção Comissão Técnica inteira) — Despesas avulsas e Atletas continuam, não dependem disso. */
+  podeVerSalario?: boolean;
 }) {
   const maiorValor = Math.max(...categorias.map((c) => c.valor), 0);
 
@@ -233,89 +239,101 @@ export function RelatorioGeralBaseDocument({
         <Text style={styles.titulo}>Gasto Geral da Base</Text>
 
         <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Custo mensal fixo</Text>
-            <Text style={styles.statValor}>{formatMoeda(custoMensalFixo)}</Text>
-          </View>
-          <View style={styles.statBox}>
+          {podeVerSalario ? (
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>Custo mensal fixo</Text>
+              <Text style={styles.statValor}>{formatMoeda(custoMensalFixo)}</Text>
+            </View>
+          ) : null}
+          <View style={podeVerSalario ? styles.statBox : [styles.statBox, { width: "100%" }]}>
             <Text style={styles.statLabel}>Despesas avulsas</Text>
             <Text style={styles.statValor}>{formatMoeda(despesasTotal)}</Text>
           </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Total geral da Base</Text>
-            <Text style={styles.statValor}>{formatMoeda(totalGeral)}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitulo}>Composição do Gasto</Text>
-        <View style={styles.donutLinha} wrap={false}>
-          <Svg width={64} height={64} viewBox="0 0 64 64">
-            {fatiasComFracao.map((f) => (
-              <Path key={f.label} d={caminhoFatiaDonut(cx, cy, rExterno, rInterno, f.inicio, f.fim)} fill={f.cor} />
-            ))}
-          </Svg>
-          <View style={styles.donutLegenda}>
-            {composicao.map((f) => {
-              const pct = totalGeral > 0 ? Math.round((f.valor / totalGeral) * 100) : 0;
-              return (
-                <View style={styles.donutLegendaLinha} key={f.label}>
-                  <View style={[styles.donutBolinha, { backgroundColor: f.cor }]} />
-                  <Text style={styles.donutRotulo}>{f.label}</Text>
-                  <Text style={styles.donutPct}>{pct}%</Text>
-                  <Text style={styles.donutValor}>{formatMoeda(f.valor)}</Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitulo}>Por Categoria</Text>
-        <Text style={styles.legenda}>
-          Quem atua em mais de uma categoria tem o salário dividido igual entre elas aqui.
-        </Text>
-        <View style={sharedStyles.table}>
-          {categorias.map((c) => {
-            const largura = maiorValor > 0 ? Math.max((c.valor / maiorValor) * 100, c.valor > 0 ? 2 : 0) : 0;
-            const destaque = c.valor === maiorValor && maiorValor > 0;
-            return (
-              <View style={styles.barraRow} key={c.label} wrap={false}>
-                <Text style={styles.barraLabel}>{c.label}</Text>
-                <View style={styles.barraTrilha}>
-                  <View
-                    style={[
-                      styles.barraPreenchida,
-                      destaque ? styles.barraPreenchidaDestaque : {},
-                      { width: `${largura}%` },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.barraValor}>{formatMoeda(c.valor)}</Text>
-              </View>
-            );
-          })}
-        </View>
-
-        <Text style={styles.sectionTitulo}>Comissão Técnica</Text>
-        {comissao.length === 0 ? (
-          <Text style={sharedStyles.emptyState}>Nenhum integrante da Comissão Técnica cadastrado ainda.</Text>
-        ) : (
-          <View style={sharedStyles.table}>
-            <View style={sharedStyles.tableHeaderRow}>
-              <Text style={[styles.colNome, sharedStyles.headerCell]}>Nome</Text>
-              <Text style={[styles.colFuncao, sharedStyles.headerCell]}>Função</Text>
-              <Text style={[styles.colCategoria, sharedStyles.headerCell]}>Categoria(s)</Text>
-              <Text style={[styles.colValor, sharedStyles.headerCell]}>Salário mensal</Text>
+          {podeVerSalario ? (
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>Total geral da Base</Text>
+              <Text style={styles.statValor}>{formatMoeda(totalGeral)}</Text>
             </View>
-            {comissao.map((c, i) => (
-              <View style={sharedStyles.tableRow} key={i} wrap={false}>
-                <Text style={styles.colNome}>{c.nome}</Text>
-                <Text style={styles.colFuncao}>{c.funcao}</Text>
-                <Text style={styles.colCategoria}>{c.categorias}</Text>
-                <Text style={styles.colValor}>{c.valorSalario ? formatMoeda(c.valorSalario) : "—"}</Text>
+          ) : null}
+        </View>
+
+        {podeVerSalario ? (
+          <>
+            <Text style={styles.sectionTitulo}>Composição do Gasto</Text>
+            <View style={styles.donutLinha} wrap={false}>
+              <Svg width={64} height={64} viewBox="0 0 64 64">
+                {fatiasComFracao.map((f) => (
+                  <Path
+                    key={f.label}
+                    d={caminhoFatiaDonut(cx, cy, rExterno, rInterno, f.inicio, f.fim)}
+                    fill={f.cor}
+                  />
+                ))}
+              </Svg>
+              <View style={styles.donutLegenda}>
+                {composicao.map((f) => {
+                  const pct = totalGeral > 0 ? Math.round((f.valor / totalGeral) * 100) : 0;
+                  return (
+                    <View style={styles.donutLegendaLinha} key={f.label}>
+                      <View style={[styles.donutBolinha, { backgroundColor: f.cor }]} />
+                      <Text style={styles.donutRotulo}>{f.label}</Text>
+                      <Text style={styles.donutPct}>{pct}%</Text>
+                      <Text style={styles.donutValor}>{formatMoeda(f.valor)}</Text>
+                    </View>
+                  );
+                })}
               </View>
-            ))}
-          </View>
-        )}
+            </View>
+
+            <Text style={styles.sectionTitulo}>Por Categoria</Text>
+            <Text style={styles.legenda}>
+              Quem atua em mais de uma categoria tem o salário dividido igual entre elas aqui.
+            </Text>
+            <View style={sharedStyles.table}>
+              {categorias.map((c) => {
+                const largura = maiorValor > 0 ? Math.max((c.valor / maiorValor) * 100, c.valor > 0 ? 2 : 0) : 0;
+                const destaque = c.valor === maiorValor && maiorValor > 0;
+                return (
+                  <View style={styles.barraRow} key={c.label} wrap={false}>
+                    <Text style={styles.barraLabel}>{c.label}</Text>
+                    <View style={styles.barraTrilha}>
+                      <View
+                        style={[
+                          styles.barraPreenchida,
+                          destaque ? styles.barraPreenchidaDestaque : {},
+                          { width: `${largura}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.barraValor}>{formatMoeda(c.valor)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            <Text style={styles.sectionTitulo}>Comissão Técnica</Text>
+            {comissao.length === 0 ? (
+              <Text style={sharedStyles.emptyState}>Nenhum integrante da Comissão Técnica cadastrado ainda.</Text>
+            ) : (
+              <View style={sharedStyles.table}>
+                <View style={sharedStyles.tableHeaderRow}>
+                  <Text style={[styles.colNome, sharedStyles.headerCell]}>Nome</Text>
+                  <Text style={[styles.colFuncao, sharedStyles.headerCell]}>Função</Text>
+                  <Text style={[styles.colCategoria, sharedStyles.headerCell]}>Categoria(s)</Text>
+                  <Text style={[styles.colValor, sharedStyles.headerCell]}>Salário mensal</Text>
+                </View>
+                {comissao.map((c, i) => (
+                  <View style={sharedStyles.tableRow} key={i} wrap={false}>
+                    <Text style={styles.colNome}>{c.nome}</Text>
+                    <Text style={styles.colFuncao}>{c.funcao}</Text>
+                    <Text style={styles.colCategoria}>{c.categorias}</Text>
+                    <Text style={styles.colValor}>{c.valorSalario ? formatMoeda(c.valorSalario) : "—"}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        ) : null}
 
         <Text style={styles.sectionTitulo}>Atletas</Text>
         <Text style={styles.legenda}>

@@ -8,11 +8,13 @@ import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { CAMPOS_SENSIVEIS } from "@/lib/auth/campos-sensiveis";
 import { ESTOQUE_CATEGORIAS, TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
 import { buscarComissaoTecnicaParaSelecao, buscarComissaoTecnicaBaseParaSelecao } from "@/lib/auth/perfis";
 import type { PerfilRow } from "@/lib/supabase/types";
 import {
   alterarEmail,
+  atualizarCamposSensiveisBloqueados,
   atualizarCategoriasTarefas,
   atualizarCategoriasTreinador,
   atualizarDepartamentos,
@@ -80,6 +82,7 @@ export default async function UsuariosPage() {
           const estoqueCategoriasPermitidas = perfil.estoque_categorias_permitidas ?? [];
           const categoriasTreinador = perfil.categorias_treinador ?? [];
           const categoriasBasePermitidas = perfil.categorias_base_permitidas ?? [];
+          const camposSensiveisBloqueados = perfil.campos_sensiveis_bloqueados ?? [];
           const roleLabel =
             perfil.role === "master" ? "Master" : perfil.role === "treinador" ? "Treinador" : "Regular";
           return (
@@ -271,6 +274,18 @@ export default async function UsuariosPage() {
                         comissaoTecnicaBaseIdAtual={perfil.comissao_tecnica_base_id}
                         categoriasBasePermitidasAtuais={categoriasBasePermitidas}
                         action={atualizarVinculoComissaoTecnica}
+                      />
+
+                      <PermissaoCheckboxesForm
+                        id={perfil.id}
+                        fieldName="camposSensiveisBloqueados"
+                        titulo="Campos que esta pessoa NÃO pode ver"
+                        ajuda="Mesmo com o módulo correspondente liberado, os campos marcados ficam escondidos pra essa pessoa (ex.: salário da Comissão Técnica)."
+                        opcoes={CAMPOS_SENSIVEIS}
+                        valoresIniciais={camposSensiveisBloqueados}
+                        action={atualizarCamposSensiveisBloqueados}
+                        submitLabel="Salvar campos escondidos"
+                        className="border-t border-neutral-100 pt-3"
                       />
                     </>
                   )}

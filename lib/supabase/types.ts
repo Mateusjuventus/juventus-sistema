@@ -1420,6 +1420,12 @@ export interface PerfilRow {
    * isto é `true` (o fisioterapeuta) — os demais com o módulo liberado só visualizam. `false` por
    * padrão: liberar o módulo pra alguém não dá poder de edição sozinho. */
   fisioterapia_pode_editar: boolean;
+  /** Campos sensíveis (catálogo em `lib/auth/campos-sensiveis.ts`, hoje só "salario") escondidos
+   * desta pessoa mesmo com o módulo correspondente liberado — ver docs/superpowers/specs/
+   * 2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. Lista de BLOQUEIO (ao contrário
+   * da maioria das colunas acima, que são do que É permitido): vazio = nada escondido. "Master"
+   * nunca é afetado, qualquer que seja o valor aqui. */
+  campos_sensiveis_bloqueados: string[];
   created_at: string;
 }
 
