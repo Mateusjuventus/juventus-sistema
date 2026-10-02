@@ -163,11 +163,24 @@ interface CandidatoElegivel {
   numero: number;
 }
 
+/** Os dois status "ainda sem decisão" — candidato que pode ser completado/atualizado pelo link
+ * público em vez de virar um cadastro novo (ver `encontrarCandidatoParaCompletar`). "inscricao" quer
+ * dizer que ninguém decidiu nada ainda (nem a equipe aprovou pra "avaliacao"); os 3 status restantes
+ * (aprovado/dispensado/nao_compareceu) SÃO decisão, e um reenvio com o mesmo CPF/data deve virar um
+ * cadastro novo (reavaliação depois de decidido — decisão 3 do spec). */
+const STATUS_SEM_DECISAO: readonly CaptacaoStatus[] = ["inscricao", "avaliacao"];
+
 /**
- * Acha, entre candidatos "Em avaliação" (sem decisão ainda) com CPF preenchido, aquele cujo CPF
- * normalizado bate com o informado E cuja data de nascimento também bate — usado pela etapa de
- * "completar cadastro existente" do link público de inscrição (ver spec 2026-09-11-captacao-
- * completar-cadastro-cpf-design.md, decisões 2 e 3).
+ * Acha, entre candidatos ainda SEM DECISÃO (`STATUS_SEM_DECISAO` — "inscricao" ou "avaliacao") com
+ * CPF preenchido, aquele cujo CPF normalizado bate com o informado E cuja data de nascimento também
+ * bate — usado pela etapa de "completar cadastro existente" do link público de inscrição (ver spec
+ * 2026-09-11-captacao-completar-cadastro-cpf-design.md, decisões 2 e 3).
+ *
+ * Estendido pra cobrir "inscricao" em 2026-10-02 (pedido do Mateus: "não quero que permita duas
+ * dessa forma [inscrições duplicadas], enquanto estiver ativa a avaliação") — antes só "avaliacao"
+ * contava, então a mesma família reenviando o formulário público (por engano, ou achando que a
+ * primeira tentativa não funcionou) sempre criava outro candidato novo em vez de atualizar o que já
+ * estava esperando aprovação na fila de "Aprovações".
  *
  * Compara CPF **normalizado** dos dois lados porque o formulário interno (`app/base/captacao/
  * actions.ts`) só passou a normalizar o CPF ao salvar a partir desta mesma mudança — pode haver
@@ -177,8 +190,8 @@ interface CandidatoElegivel {
  * data de nascimento não bate" nem de "achou mas já foi decidido" pro chamador. Quem decide o que
  * fazer com `null` é a Server Action, sempre com a mesma resposta genérica pro cliente
  * (anti-enumeração, decisão 4 da spec — evita que alguém use o formulário pra descobrir se um CPF
- * está cadastrado). Se mais de um candidato bater (caso raro), fica com o de maior `numero` (o mais
- * recente).
+ * está cadastrado). Se mais de um candidato bater (caso raro — por exemplo, duplicatas já criadas
+ * antes desta mudança), fica com o de maior `numero` (o mais recente).
  */
 export function encontrarCandidatoParaCompletar<T extends CandidatoElegivel>(
   candidatos: T[],
@@ -188,7 +201,7 @@ export function encontrarCandidatoParaCompletar<T extends CandidatoElegivel>(
   const cpfNormalizado = normalizeCPF(cpfInformado);
   const elegiveis = candidatos.filter(
     (c) =>
-      c.status === "avaliacao" &&
+      STATUS_SEM_DECISAO.includes(c.status) &&
       !!c.cpf &&
       normalizeCPF(c.cpf) === cpfNormalizado &&
       c.data_nascimento === dataNascimentoInformada,

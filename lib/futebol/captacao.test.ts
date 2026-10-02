@@ -132,16 +132,30 @@ describe("encontrarCandidatoParaCompletar", () => {
     expect(encontrarCandidatoParaCompletar(candidatos, "12345678909", "2012-05-10")).toBeNull();
   });
 
-  it("ignora candidato já decidido (status diferente de 'avaliacao'), mesmo com CPF e data batendo", () => {
+  it("ignora candidato já decidido (aprovado/dispensado/não compareceu), mesmo com CPF e data batendo", () => {
     // Só o "3" (aprovado) tem essa combinação exata isolada — remove o "1" da lista pra testar.
     const soDecidido = candidatos.filter((c) => c.id !== "1");
     expect(encontrarCandidatoParaCompletar(soDecidido, "52998224725", "2012-05-10")).toBeNull();
+
+    const outrosDecididos = [
+      { id: "4", cpf: "52998224725", data_nascimento: "2012-05-10", status: "dispensado" as const, numero: 6 },
+      { id: "5", cpf: "52998224725", data_nascimento: "2012-05-10", status: "nao_compareceu" as const, numero: 8 },
+    ];
+    expect(encontrarCandidatoParaCompletar(outrosDecididos, "52998224725", "2012-05-10")).toBeNull();
   });
 
-  it("com mais de um candidato elegível batendo, fica com o de maior número (mais recente)", () => {
+  it("acha também um candidato com status 'inscricao' (pedido do Mateus em 2026-10-02: evitar " +
+    "inscrição duplicada enquanto a primeira ainda está pendente de aprovação)", () => {
+    const pendente = [
+      { id: "6", cpf: "52998224725", data_nascimento: "2012-05-10", status: "inscricao" as const, numero: 20 },
+    ];
+    expect(encontrarCandidatoParaCompletar(pendente, "52998224725", "2012-05-10")).toBe("6");
+  });
+
+  it("com um 'inscricao' e um 'avaliacao' batendo os dois, fica com o de maior número (mais recente)", () => {
     const duplicados = [
       { id: "a", cpf: "52998224725", data_nascimento: "2012-05-10", status: "avaliacao" as const, numero: 3 },
-      { id: "b", cpf: "52998224725", data_nascimento: "2012-05-10", status: "avaliacao" as const, numero: 7 },
+      { id: "b", cpf: "52998224725", data_nascimento: "2012-05-10", status: "inscricao" as const, numero: 7 },
     ];
     expect(encontrarCandidatoParaCompletar(duplicados, "52998224725", "2012-05-10")).toBe("b");
   });

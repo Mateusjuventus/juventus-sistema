@@ -100,9 +100,11 @@ function arquivoValido(value: FormDataEntryValue | null): value is File {
 /**
  * Etapa inicial do formulário público (ver spec 2026-09-11-captacao-completar-cadastro-cpf-
  * design.md) — antes de mostrar o resto da ficha, pede CPF + data de nascimento e confere se já
- * existe um candidato "Em avaliação" com isso (criado pelo Mateus/equipe pelo formulário interno,
- * sem documentos/termo ainda). `verificado` vira `true` depois da primeira tentativa (achando ou
- * não), momento em que o restante do formulário passa a aparecer.
+ * existe um candidato sem decisão (status "avaliacao", criado pelo Mateus/equipe pelo formulário
+ * interno, ou "inscricao", uma inscrição anterior pelo próprio link público ainda esperando
+ * aprovação — estendido em 2026-10-02 pra evitar duplicata, ver `encontrarCandidatoParaCompletar`).
+ * `verificado` vira `true` depois da primeira tentativa (achando ou não), momento em que o restante
+ * do formulário passa a aparecer.
  *
  * `candidatoId`/`valuesTexto`/`fotoUrl` só vêm preenchidos quando ACHA um candidato — os campos já
  * preenchidos pré-populam o resto da ficha (editável) e o `id` vai num campo oculto pro envio saber
@@ -135,7 +137,11 @@ export async function verificarCandidatoExistente(
   }
 
   const admin = createAdminClient();
-  const { data } = await admin.from("captacao_base").select("*").eq("status", "avaliacao").not("cpf", "is", null);
+  const { data } = await admin
+    .from("captacao_base")
+    .select("*")
+    .in("status", ["inscricao", "avaliacao"])
+    .not("cpf", "is", null);
   const candidatos = (data ?? []) as CaptacaoBaseRow[];
   const candidatoId = encontrarCandidatoParaCompletar(candidatos, cpf, dataNascimento);
 
@@ -176,9 +182,10 @@ export async function inscreverCaptacao(
 
   const admin = createAdminClient();
 
-  // Campo oculto preenchido pela etapa de verificação de CPF quando ela acha um candidato "Em
-  // avaliação" já existente (ver `verificarCandidatoExistente` acima e spec 2026-09-11-captacao-
-  // completar-cadastro-cpf-design.md) — presente só nesse caso; do contrário é uma inscrição nova.
+  // Campo oculto preenchido pela etapa de verificação de CPF quando ela acha um candidato sem
+  // decisão já existente — "avaliacao" ou "inscricao" (ver `verificarCandidatoExistente` acima,
+  // `encontrarCandidatoParaCompletar` e spec 2026-09-11-captacao-completar-cadastro-cpf-design.md) —
+  // presente só nesse caso; do contrário é uma inscrição nova.
   const captacaoIdExistente = String(formData.get("captacaoIdExistente") ?? "") || null;
   let candidatoExistente: CaptacaoBaseRow | null = null;
   if (captacaoIdExistente) {
@@ -186,7 +193,7 @@ export async function inscreverCaptacao(
       .from("captacao_base")
       .select("*")
       .eq("id", captacaoIdExistente)
-      .eq("status", "avaliacao")
+      .in("status", ["inscricao", "avaliacao"])
       .maybeSingle();
     // Não achou mais (alguém decidiu esse candidato entre a verificação e o envio, ou o id foi
     // adulterado) — não dá mais pra completar esse cadastro por aqui. Pede pra recarregar em vez de
@@ -279,14 +286,16 @@ export async function inscreverCaptacao(
   let candidatoId: string;
   if (candidatoExistente) {
     // Completar cadastro existente: UPDATE, preservando id/numero/status/origem/data_inicio/
-    // atleta_gerado_id — o candidato já está "Em avaliação", não deve voltar pra fila de Aprovações
-    // nem trocar de origem (ver spec, seção 4). Confere de novo o status na cláusula WHERE (defesa
-    // contra corrida com o SELECT acima).
+    // atleta_gerado_id — `camposComuns` não toca status, então um candidato "inscricao" continua na
+    // fila de Aprovações (não pula pra "Em avaliação" só por reenviar o formulário) e um "avaliacao"
+    // continua lá, sem trocar de origem (ver spec, seção 4). Confere de novo o status na cláusula
+    // WHERE (defesa contra corrida com o SELECT acima — alguém decidiu o candidato nesse meio
+    // tempo).
     const { data: atualizado, error } = await admin
       .from("captacao_base")
       .update(camposComuns)
       .eq("id", candidatoExistente.id)
-      .eq("status", "avaliacao")
+      .in("status", ["inscricao", "avaliacao"])
       .select("id")
       .single();
     if (error || !atualizado) {
