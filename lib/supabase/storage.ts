@@ -82,6 +82,14 @@ export function buildPhotoPath(
  * no celular. `rotate()` sem argumento aplica a orientação EXIF antes de cortar o tamanho, senão
  * foto tirada com o celular "deitado" ficaria birada.
  *
+ * `opts.formato` ("jpeg", padrão) cobre o caso de sempre — foto de pessoa, que nunca tem
+ * transparência e se beneficia do arquivo bem menor do JPEG. Escudo de adversário é diferente: o
+ * Mateus sempre sobe um PNG sem fundo (só o escudo recortado), e `.jpeg()` sem canal alfa faz o
+ * `sharp` preencher a transparência de preto por padrão — o escudo saía com fundo preto sólido nos
+ * documentos/PDFs, mesmo o PNG original não tendo fundo nenhum (ver reclamação do Mateus em
+ * 2026-10-02). `opts.formato: "png"` mantém o canal alfa intacto até o PDF, igual ao escudo do
+ * próprio Juventus (que nunca passa por aqui — é um PNG fixo em `public/brand`, lido direto).
+ *
  * Se o redimensionamento falhar por qualquer motivo (arquivo corrompido, formato que o `sharp` não
  * lê), envia o arquivo original sem cortar o cadastro por causa disso — melhor guardar a foto do
  * jeito que veio do que a pessoa perder o que preencheu.
@@ -92,19 +100,25 @@ export async function uploadFotoRedimensionada(
   prefixo: string,
   entidadeId: string,
   baseName: string = "foto",
+  opts?: { formato?: "jpeg" | "png" },
 ): Promise<{ path?: string; error?: boolean }> {
+  const formato = opts?.formato ?? "jpeg";
   try {
     const bufferOriginal = Buffer.from(await file.arrayBuffer());
-    const bufferRedimensionado = await sharp(bufferOriginal)
+    const redimensionado = sharp(bufferOriginal)
       .rotate()
-      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 82 })
-      .toBuffer();
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true });
+    const bufferRedimensionado =
+      formato === "png"
+        ? await redimensionado.png().toBuffer()
+        : await redimensionado.jpeg({ quality: 82 }).toBuffer();
 
-    const path = buildPhotoPath(prefixo, entidadeId, "foto.jpg", baseName);
+    const ext = formato === "png" ? "png" : "jpg";
+    const contentType = formato === "png" ? "image/png" : "image/jpeg";
+    const path = buildPhotoPath(prefixo, entidadeId, `foto.${ext}`, baseName);
     const { error } = await cliente.storage
       .from(ENTITY_PHOTOS_BUCKET)
-      .upload(path, bufferRedimensionado, { upsert: true, contentType: "image/jpeg" });
+      .upload(path, bufferRedimensionado, { upsert: true, contentType });
     return error ? { error: true } : { path };
   } catch {
     const path = buildPhotoPath(prefixo, entidadeId, file.name, baseName);
