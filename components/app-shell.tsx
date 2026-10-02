@@ -55,12 +55,22 @@ export async function AppShell({
   let navItems: SidebarNavItem[] = [];
   if (nav === "full") {
     if (departamento === "futebol_base") {
-      const modulosBasePermitidos = await getModulosBasePermitidos(supabase);
+      const [modulosBasePermitidos, master] = await Promise.all([
+        getModulosBasePermitidos(supabase),
+        isMaster(supabase),
+      ]);
       navItems = MODULOS_BASE.filter((m) => modulosBasePermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
         label: m.label,
         icone: m.chave as SidebarIconKey,
       }));
+      // Usuários precisa aparecer pro master em qualquer departamento — não é uma opção "do
+      // Profissional" nem "da Base", é administração de contas do sistema inteiro. Antes só
+      // entrava na lista do Profissional (ver histórico desta mudança), então o master que
+      // estivesse navegando pela Base precisava voltar pro Profissional só pra achar essa tela.
+      if (master) {
+        navItems.push({ href: "/usuarios", label: "Usuários", icone: "usuarios" });
+      }
     } else {
       const [modulosPermitidos, master] = await Promise.all([
         getModulosPermitidos(supabase),
@@ -76,7 +86,8 @@ export async function AppShell({
         grupo: m.grupo,
       }));
       // Só quem é master vê Usuários — é onde se cadastra/gerencia outras contas. Não é um
-      // ModuloChave liberável por checkbox, por isso entra fora do filtro acima.
+      // ModuloChave liberável por checkbox, por isso entra fora do filtro acima. Vale pros dois
+      // departamentos (ver comentário acima, no branch da Base).
       if (master) {
         navItems.push({ href: "/usuarios", label: "Usuários", icone: "usuarios" });
       }

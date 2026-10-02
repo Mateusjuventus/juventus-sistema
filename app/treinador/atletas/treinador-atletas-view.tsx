@@ -59,7 +59,13 @@ function CardBase({
     <div
       className={`overflow-hidden rounded-lg border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${corBorda}`}
     >
-      <AtletaAvatarBloco nome={nome} fotoUrl={fotoUrl} className="aspect-[4/3] w-full" />
+      <AtletaAvatarBloco
+        nome={nome}
+        fotoUrl={fotoUrl}
+        className="aspect-[4/3] w-full"
+        corFallback={{ bg: "bg-grena", texto: "text-white" }}
+        comFundoEstudio
+      />
       <div className="p-3">{children}</div>
     </div>
   );

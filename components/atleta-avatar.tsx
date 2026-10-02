@@ -10,9 +10,9 @@ type AtletaAvatarBlocoProps = AtletaAvatarProps & {
   /**
    * Cor fixa pro avatar de iniciais (quando não há foto), sobrepondo a cor semi-aleatória por nome
    * de `corAvatar`. Usado onde o fundo da foto precisa ser padronizado (ex.: grade de "Atletas da
-   * Base" — pedido do cliente pra não ter uma cor diferente por atleta). Sem essa prop, mantém o
-   * comportamento de sempre (cor por nome) — é o caso de "Meus Atletas" do treinador, que já foi
-   * aprovado assim.
+   * Base", grade de "Atletas" do Treinador — pedido do cliente pra ficar igual ao card de Atletas
+   * do Profissional, não mais uma cor diferente por atleta). Sem essa prop, mantém o comportamento
+   * de sempre (cor por nome).
    */
   corFallback?: { bg: string; texto: string };
   /**
