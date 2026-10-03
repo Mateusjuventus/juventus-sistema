@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AtletaAvatarBloco } from "@/components/atleta-avatar";
 import { AtletaCard, type AtletaCardDados } from "@/components/atletas/atleta-card";
 import { ClassificacaoSelectTreinador } from "@/components/classificacao-select-treinador";
+import { ModalShell } from "@/components/programacao/modal";
 import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
 import { alternarNoConjunto, atletaPassaFiltro, type AtletaFiltravel, type FiltrosAtletas } from "@/lib/futebol/atletas-filtro";
@@ -103,6 +104,62 @@ function CardBase({
 }
 
 /**
+ * "Caixa" (modal) com a classificação G1/G2/G3 e o Relatório de Dispensa de um atleta do Elenco —
+ * pedido do Mateus em 2026-10-02: o card expandindo pra baixo dentro da grade ("empurrando" os
+ * vizinhos) ficou ruim; ele queria o mesmo tipo de "caixa" que abre ao clicar num atleta na Base/
+ * Profissional. Reaproveita o `ModalShell` já usado pela Programação Semanal (primeiro modal de
+ * verdade do sistema) em vez de criar um componente de overlay novo.
+ */
+function ElencoAtletaModal({
+  atleta,
+  onClose,
+  salvarClassificacaoTreinador,
+}: {
+  atleta: AtletaComFoto;
+  onClose: () => void;
+  salvarClassificacaoTreinador: (formData: FormData) => Promise<void>;
+}) {
+  return (
+    <ModalShell
+      titulo={nomeExibido(atleta)}
+      subtitulo={`${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}`}
+      onClose={onClose}
+      maxWidthClassName="max-w-md"
+    >
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+        <AtletaAvatarBloco
+          nome={atleta.nome_completo}
+          fotoUrl={atleta.fotoUrl}
+          className="aspect-[3/4] w-32 shrink-0 rounded-lg"
+          corFallback={{ bg: "bg-grena", texto: "text-white" }}
+          comFundoEstudio
+        />
+        <div className="w-full flex-1 space-y-3">
+          <p className="text-sm text-neutral-500">Nasc. {formatDataBr(atleta.data_nascimento)}</p>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Classificação
+            </label>
+            <ClassificacaoSelectTreinador
+              atletaId={atleta.id}
+              defaultValue={atleta.classificacao}
+              action={salvarClassificacaoTreinador}
+              className="w-full"
+            />
+          </div>
+          <Link
+            href={`/treinador/atletas/${atleta.id}/dispensa`}
+            className="btn-secondary btn-sm block text-center"
+          >
+            {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
+          </Link>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+/**
  * Aba "Atletas" da Área do Treinador — candidatos "Em avaliação" (Captação), o histórico de
  * decisões e o elenco já do clube ("Meus atletas"), com classificação G1/G2/G3 e Relatório de
  * Dispensa (ver docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md).
@@ -128,10 +185,12 @@ export function TreinadorAtletasView({
   // pediram isso e os candidatos de lá nem têm status/posição no mesmo formato do elenco.
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
   const [posicoesSel, setPosicoesSel] = useState<Set<string>>(new Set());
-  // Card do Elenco começa "fechado" (só foto/nome) — classificação e Relatório de Dispensa só
-  // aparecem depois de clicar nele (pedido do Mateus em 2026-10-02: com os dois sempre visíveis o
-  // card ficava grande demais numa grade de 20+ atletas). `Set` dos ids abertos no momento.
-  const [elencoAberto, setElencoAberto] = useState<Set<string>>(new Set());
+  // Card do Elenco não mostra mais classificação/Relatório de Dispensa direto nele (ficava grande
+  // demais numa grade de 20+ atletas) — clicar no card abre esses dois controles numa "caixa"
+  // (`ElencoAtletaModal`), igual à caixa que abre ao clicar num atleta na Base/Profissional (pedido
+  // do Mateus em 2026-10-02; a primeira versão expandia o card pra baixo dentro da grade, o que ele
+  // achou ruim). `null` = nenhuma caixa aberta; só uma por vez.
+  const [atletaModalId, setAtletaModalId] = useState<string | null>(null);
 
   const buscaNormalizada = busca.trim().toLowerCase();
 
@@ -384,7 +443,6 @@ export function TreinadorAtletasView({
                         classificacao: atleta.classificacao,
                         ativo: atleta.ativo,
                       };
-                      const aberto = elencoAberto.has(atleta.id);
                       return (
                         <AtletaCard
                           key={atleta.id}
@@ -392,30 +450,12 @@ export function TreinadorAtletasView({
                           as="div"
                           mostrarCpf={false}
                           mostrarContrato={false}
-                          aoClicarCabecalho={() => setElencoAberto((atual) => alternarNoConjunto(atual, atleta.id))}
+                          aoClicarCabecalho={() => setAtletaModalId(atleta.id)}
                           indicador={
                             <div className="flex items-center justify-between gap-1 bg-neutral-50 px-1.5 py-1">
                               <span className="truncate text-[9px] font-medium text-neutral-500">{atleta.posicao}</span>
-                              <span className="shrink-0 text-[9px] font-bold text-grena">{aberto ? "Ocultar ▲" : "Classificar ▾"}</span>
+                              <span className="shrink-0 text-[9px] font-bold text-grena">Classificar</span>
                             </div>
-                          }
-                          rodape={
-                            aberto ? (
-                              <div className="space-y-1.5">
-                                <ClassificacaoSelectTreinador
-                                  atletaId={atleta.id}
-                                  defaultValue={atleta.classificacao}
-                                  action={salvarClassificacaoTreinador}
-                                  className="w-full"
-                                />
-                                <Link
-                                  href={`/treinador/atletas/${atleta.id}/dispensa`}
-                                  className="btn-secondary btn-sm block text-center"
-                                >
-                                  {atleta.dispensa_data ? "Ver relatório de dispensa" : "Gerar relatório de dispensa"}
-                                </Link>
-                              </div>
-                            ) : undefined
                           }
                         />
                       );
@@ -427,6 +467,19 @@ export function TreinadorAtletasView({
           )}
         </>
       ) : null}
+
+      {atletaModalId
+        ? (() => {
+            const atletaDoModal = atletas.find((a) => a.id === atletaModalId);
+            return atletaDoModal ? (
+              <ElencoAtletaModal
+                atleta={atletaDoModal}
+                onClose={() => setAtletaModalId(null)}
+                salvarClassificacaoTreinador={salvarClassificacaoTreinador}
+              />
+            ) : null;
+          })()
+        : null}
     </div>
   );
 }
