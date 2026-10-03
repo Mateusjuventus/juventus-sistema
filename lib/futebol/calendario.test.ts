@@ -71,7 +71,6 @@ function atleta(overrides: Partial<AtletaRow>): AtletaRow {
     possui_contrato_formacao: false,
     possui_alergia_medicamento: false,
     alergia_medicamento_qual: null,
-    fpf_id_atleta: null,
     ativo: true,
     created_by: null,
     created_at: "2026-01-01T00:00:00Z",

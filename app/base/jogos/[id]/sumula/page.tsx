@@ -16,6 +16,7 @@ import type {
 } from "@/lib/supabase/types";
 import { DadosJogoFormBase } from "./dados-jogo-form-base";
 import { EventoFormBase, type ConvocadoOption } from "./evento-form-base";
+import { ImportarSumulaFormBase } from "./importar-sumula-form";
 import { adicionarEventoBase, removerEventoBase, salvarDadosJogoBase } from "./actions";
 
 /** Espelha `app/jogos/[id]/sumula/page.tsx` para o Futebol de Base — atletas filtrados pela mesma
@@ -216,6 +217,14 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
         nomeMandante={nomeMandante}
         nomeVisitante={nomeVisitante}
       />
+
+      <div className="mt-4">
+        <ImportarSumulaFormBase
+          jogoId={jogo.id}
+          mandante={jogo.mandante}
+          atletasConvocados={convocadosOptions.map((c) => ({ id: c.id, nome: c.nome }))}
+        />
+      </div>
 
       <section className="card mt-4 p-4">
         <h2 className="text-lg font-bold text-grena-escuro">Escalação (referência)</h2>

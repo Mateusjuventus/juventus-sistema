@@ -87,11 +87,6 @@ export interface AtletaRow {
    * quando `possui_alergia_medicamento` é `true`. */
   possui_alergia_medicamento: boolean;
   alergia_medicamento_qual: string | null;
-  /** IdAtleta interno da FPF, gravado quando o vínculo é confirmado na tela "Elenco na FPF" — ver
-   * docs/superpowers/specs/2026-08-04-integracao-fpf-design.md. Diferente de `numero_fpf`, que é
-   * o número de registro/contrato (usado como sinal de sugestão automática de vínculo). Só
-   * Futebol Profissional — `AtletaBaseRow` não tem esse campo. */
-  fpf_id_atleta: number | null;
   /** Ativo/inativo (ver 0098_atleta_ativo.sql) — independente do `status` esportivo (Liberado/
    * Suspenso/Departamento Médico). Mesmo padrão de Staff Operacional/Veículos/Hotéis: em vez de
    * excluir o cadastro, ele fica marcado como inativo e some das listas/exportações por padrão
@@ -427,25 +422,17 @@ export interface JogoRow {
   concentracao_data: string | null;
   concentracao_regras: string;
   dia_jogo_liberacao: string | null;
-  /** Ver docs/superpowers/specs/2026-08-04-integracao-fpf-design.md. Só Futebol Profissional —
-   * `JogoBaseRow` não tem esses campos. Opcionais (em vez de sempre presentes) só pra continuar
-   * compatível com os componentes de PDF compartilhados (`lib/pdf/*`), que tipam `jogo` como
-   * `JogoRow` mesmo quando recebem um `JogoBaseRow` de verdade (mesmo formato estrutural, ver
-   * comentário desses arquivos) — nenhum desses componentes lê esses 3 campos novos. */
-  fpf_id_jogo?: number | null;
+  /** Link do PDF da súmula oficial da FPF, gravado quando a importação por link (aba Súmula) é
+   * confirmada — ver docs/superpowers/specs/2026-08-04-integracao-fpf-design.md,
+   * app/jogos/[id]/sumula/importar-actions.ts e app/competicoes/[id]/resultados/page.tsx. Opcional
+   * (em vez de sempre presente) só pra continuar compatível com os componentes de PDF
+   * compartilhados (`lib/pdf/*`), que tipam `jogo` como `JogoRow` mesmo quando recebem um
+   * `JogoBaseRow` de verdade (mesmo formato estrutural, ver comentário desses arquivos) — nenhum
+   * desses componentes lê esse campo. */
   fpf_link_sumula?: string | null;
-  fpf_sincronizado_em?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
-}
-
-/** Atleta da FPF marcado como "não corresponde a ninguém daqui" na tela de vínculo de elenco. */
-export interface FpfAtletaIgnoradoRow {
-  fpf_id_atleta: number;
-  nome: string;
-  ignorado_por: string | null;
-  ignorado_em: string;
 }
 
 export type ProgramacaoTipo = "concentracao" | "dia_jogo";
@@ -545,8 +532,8 @@ export interface SumulaEventoRow {
   atleta_assistencia_id: string | null;
   /** Nome do jogador do time ADVERSÁRIO que fez esse gol, quando o evento não é de um atleta
    * nosso (`atleta_id` fica null nesse caso) — usado pela importação de súmula em PDF, pra
-   * registrar o placar completo mesmo sem ter esse jogador cadastrado. Só Futebol Profissional —
-   * `SumulaEventoBaseRow` não tem essa coluna. */
+   * registrar o placar completo mesmo sem ter esse jogador cadastrado. `SumulaEventoBaseRow` tem
+   * a mesma coluna (ver 0128_sumula_base_importacao_fpf.sql). */
   nome_adversario: string | null;
   /** true só quando `nome_adversario` é um gol CONTRA marcado por um jogador do adversário — esse
    * gol favorece o Juventus, ao contrário de um gol normal do adversário (que é contra nós). Sem
@@ -847,6 +834,10 @@ export interface JogoBaseRow {
   concentracao_data: string | null;
   concentracao_regras: string;
   dia_jogo_liberacao: string | null;
+  /** Ver comentário de `JogoRow.fpf_link_sumula` — mesmo campo, pra importação de súmula por link
+   * nos jogos da Base (ver 0128_sumula_base_importacao_fpf.sql e
+   * docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md). */
+  fpf_link_sumula?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -929,6 +920,11 @@ export interface SumulaEventoBaseRow {
   atleta_id: string | null;
   atleta_entrou_id: string | null;
   atleta_assistencia_id: string | null;
+  /** Ver comentário de `SumulaEventoRow.nome_adversario`/`gol_contra_favor_juventus` — mesmas duas
+   * colunas, pra importação de súmula por link nos jogos da Base (ver
+   * 0128_sumula_base_importacao_fpf.sql). */
+  nome_adversario: string | null;
+  gol_contra_favor_juventus: boolean;
   ordem: number;
   created_by: string | null;
   created_at: string;
