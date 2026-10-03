@@ -23,7 +23,7 @@ export interface JogoBaseFormState {
 function parseForm(formData: FormData) {
   const raw = {
     categoria: String(formData.get("categoria") ?? ""),
-    competicao: String(formData.get("competicao") ?? ""),
+    competicaoId: String(formData.get("competicaoId") ?? ""),
     rodadaFase: String(formData.get("rodadaFase") ?? ""),
     adversarioNome: String(formData.get("adversarioNome") ?? ""),
     dataJogo: String(formData.get("dataJogo") ?? ""),
@@ -65,6 +65,27 @@ async function uploadLogoIfPresent(
   return { path };
 }
 
+/**
+ * Resolve a competição escolhida no `<select>` de `jogo-form-base.tsx` (ver doc-comment de
+ * `jogoBaseSchema`). Confere de novo que ela existe e é da mesma categoria do jogo — defesa em
+ * profundidade, igual à checagem de `categoriasPermitidas` acima: evita que alguém com acesso
+ * restrito vincule (manipulando o formulário) uma competição de outra categoria.
+ */
+async function resolverCompeticaoSelecionada(
+  supabase: ReturnType<typeof createClient>,
+  competicaoId: string,
+  categoria: string,
+): Promise<{ id: string; nome: string } | null> {
+  if (!competicaoId) return null;
+  const { data } = await supabase
+    .from("competicoes_base")
+    .select("id, nome, categoria")
+    .eq("id", competicaoId)
+    .maybeSingle();
+  if (!data || data.categoria !== categoria) return null;
+  return { id: data.id as string, nome: data.nome as string };
+}
+
 export async function createJogoBase(
   _prevState: JogoBaseFormState,
   formData: FormData,
@@ -90,13 +111,17 @@ export async function createJogoBase(
     return { error: "Você não tem permissão para cadastrar um jogo nessa categoria.", values: raw };
   }
 
+  const selecionada = await resolverCompeticaoSelecionada(supabase, data.competicaoId ?? "", data.categoria);
+
   const { error: uploadError, path: logoPath } = await uploadLogoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
   const { error } = await supabase.from("jogos_base").insert({
     id,
     categoria: data.categoria,
-    competicao: data.competicao,
+    // `jogos_base.competicao` é "text not null" — sem seleção, grava "" (nunca null). Ver
+    // doc-comment de `jogoBaseSchema`.
+    competicao: selecionada?.nome ?? "",
     rodada_fase: data.rodadaFase || null,
     adversario_nome: data.adversarioNome,
     adversario_logo_path: logoPath ?? null,
@@ -110,6 +135,12 @@ export async function createJogoBase(
   });
 
   if (error) return { error: "Não foi possível salvar o jogo. Tente novamente.", values: raw };
+
+  if (selecionada) {
+    await supabase
+      .from("competicao_jogos_base")
+      .upsert({ jogo_id: id, competicao_id: selecionada.id }, { onConflict: "jogo_id" });
+  }
 
   revalidatePath("/base/jogos");
   redirect("/base/jogos");
@@ -136,12 +167,18 @@ export async function updateJogoBase(
     return { error: "Você não tem permissão para mover esse jogo pra essa categoria.", values: raw };
   }
 
+  const selecionada = await resolverCompeticaoSelecionada(supabase, data.competicaoId ?? "", data.categoria);
+  const { data: linkExistente } = await supabase
+    .from("competicao_jogos_base")
+    .select("competicao_id")
+    .eq("jogo_id", id)
+    .maybeSingle();
+
   const { error: uploadError, path: logoPath } = await uploadLogoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
   const updatePayload: Record<string, unknown> = {
     categoria: data.categoria,
-    competicao: data.competicao,
     rodada_fase: data.rodadaFase || null,
     adversario_nome: data.adversarioNome,
     data_jogo: data.dataJogo,
@@ -154,9 +191,32 @@ export async function updateJogoBase(
   };
   if (logoPath) updatePayload.adversario_logo_path = logoPath;
 
+  // `competicao` (texto livre, legado) só é sobrescrito quando há algo a refletir: uma competição
+  // selecionada agora, ou um desvínculo explícito de uma que estava vinculada antes. Um jogo que
+  // nunca foi vinculado a um cadastro estruturado (pré-existe a essa feature) mantém o texto livre
+  // intocado — nunca apagamos o histórico dele silenciosamente.
+  if (selecionada) {
+    updatePayload.competicao = selecionada.nome;
+  } else if (linkExistente) {
+    updatePayload.competicao = "";
+  }
+
   const { error } = await supabase.from("jogos_base").update(updatePayload).eq("id", id);
 
   if (error) return { error: "Não foi possível salvar o jogo. Tente novamente.", values: raw };
+
+  if (selecionada) {
+    const payload: Record<string, unknown> = { jogo_id: id, competicao_id: selecionada.id };
+    // Trocou de competição: reseta fase/grupo, já que eram referências à estrutura da competição
+    // anterior e não fazem sentido na nova.
+    if (linkExistente && linkExistente.competicao_id !== selecionada.id) {
+      payload.fase_id = null;
+      payload.grupo_id = null;
+    }
+    await supabase.from("competicao_jogos_base").upsert(payload, { onConflict: "jogo_id" });
+  } else if (linkExistente) {
+    await supabase.from("competicao_jogos_base").delete().eq("jogo_id", id);
+  }
 
   revalidatePath("/base/jogos");
   revalidatePath(`/base/jogos/${id}`);

@@ -156,6 +156,34 @@ export async function getSignedCompeticaoDocumentoUrl(
   return data.signedUrl;
 }
 
+/** Bucket privado dos documentos de competição do Futebol de Base — espelha
+ * `COMPETICAO_DOCUMENTOS_BUCKET`, bucket próprio (não compartilha com o do Profissional). Ver
+ * supabase/migrations/0130_competicoes_base.sql e
+ * docs/superpowers/specs/2026-10-03-competicoes-base-design.md. */
+export const COMPETICAO_DOCUMENTOS_BASE_BUCKET = "competicao-documentos-base";
+
+export function buildCompeticaoDocumentoBasePath(documentoId: string, fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "pdf";
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "pdf";
+  return `competicao-documentos-base/${documentoId}/arquivo.${safeExt}`;
+}
+
+/** Signed URL temporária (1h) pra um documento de competição da Base — mesmo padrão do
+ * Profissional. */
+export async function getSignedCompeticaoDocumentoBaseUrl(
+  supabase: SupabaseClient,
+  path: string | null,
+): Promise<string | null> {
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(COMPETICAO_DOCUMENTOS_BASE_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
 /** Bucket privado dos anexos do Termo de Retirada — principalmente o termo ASSINADO, digitalizado
  * depois da impressão (o sistema não faz assinatura digital). Ver
  * supabase/migrations/0069_termo_retirada_anexos.sql. */

@@ -1603,6 +1603,148 @@ export interface CompeticaoDocumentoRow {
   created_at: string;
 }
 
+// ===== Competições — Futebol de Base (ver docs/superpowers/specs/
+// 2026-10-03-competicoes-base-design.md) — espelham exatamente as interfaces acima, tabelas
+// `_base`, só com `CompeticaoBaseRow.categoria` virando `CategoriaBase` (uma competição da Base é
+// sempre de uma única categoria, diferente do `categoria: string` livre do Profissional). =====
+
+export interface TemporadaBaseRow {
+  id: string;
+  nome: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CompeticaoBaseRow {
+  id: string;
+  temporada_id: string;
+  nome: string;
+  federacao: string | null;
+  categoria: CategoriaBase;
+  data_inicio: string | null;
+  data_termino: string | null;
+  status: CompeticaoStatus;
+  regulamento_path: string | null;
+  observacoes: string | null;
+  regra_amarelos_suspensao: number;
+  regra_jogos_suspensao_amarelos: number;
+  regra_jogos_suspensao_vermelho: number;
+  regra_observacoes: string | null;
+  criterios_desempate: string[];
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompeticaoBaseComTemporadaRow extends CompeticaoBaseRow {
+  temporada: Pick<TemporadaBaseRow, "id" | "nome"> | null;
+}
+
+export interface CompeticaoFaseBaseRow {
+  id: string;
+  competicao_id: string;
+  nome: string;
+  ordem: number;
+  status: CompeticaoFaseStatus;
+  zerar_cartoes_ao_encerrar: boolean;
+  criterios_desempate: string[] | null;
+  created_at: string;
+}
+
+export interface CompeticaoGrupoBaseRow {
+  id: string;
+  fase_id: string;
+  nome: string;
+  ordem: number;
+  created_at: string;
+}
+
+export interface CompeticaoGrupoEquipeBaseRow {
+  id: string;
+  grupo_id: string;
+  nome: string | null;
+  origem_grupo_id: string | null;
+  origem_posicao: number | null;
+  ordem: number;
+  created_at: string;
+}
+
+/** Vínculo do jogo EXISTENTE (`public.jogos_base`) com competição/fase/grupo. */
+export interface CompeticaoJogoBaseRow {
+  id: string;
+  competicao_id: string;
+  jogo_id: string;
+  fase_id: string | null;
+  grupo_id: string | null;
+  cartoes_amarelos_adversario: number;
+  cartoes_vermelhos_adversario: number;
+  sumula_link: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CompeticaoGrupoResultadoBaseRow {
+  id: string;
+  grupo_id: string;
+  equipe_casa: string;
+  equipe_fora: string;
+  gols_casa: number;
+  gols_fora: number;
+  data_jogo: string | null;
+  rodada: string | null;
+  sumula_path: string | null;
+  cartoes_amarelos_casa: number;
+  cartoes_amarelos_fora: number;
+  cartoes_vermelhos_casa: number;
+  cartoes_vermelhos_fora: number;
+  sumula_link: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CompeticaoInscricaoBaseRow {
+  id: string;
+  competicao_id: string;
+  atleta_id: string;
+  lista: CompeticaoListaInscricao | null;
+  data_inscricao: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CompeticaoSuspensaoManualBaseRow {
+  id: string;
+  competicao_id: string;
+  atleta_id: string;
+  origem: CompeticaoSuspensaoOrigem;
+  motivo: string;
+  jogos_suspensao: number;
+  data_decisao: string;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CompeticaoPrazoBaseRow {
+  id: string;
+  competicao_id: string;
+  titulo: string;
+  data_inicio: string | null;
+  data_fim: string;
+  concluido: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CompeticaoDocumentoBaseRow {
+  id: string;
+  competicao_id: string;
+  nome: string;
+  arquivo_path: string;
+  created_by: string | null;
+  created_at: string;
+}
+
 // ===== Termo de Responsabilidade — Retirada de Materiais =====
 // Ver docs/superpowers/specs/2026-08-11-termos-retirada-design.md.
 

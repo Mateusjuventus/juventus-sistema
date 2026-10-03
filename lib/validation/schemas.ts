@@ -818,11 +818,19 @@ export const jogoSchema = z.object({
 export type JogoInput = z.infer<typeof jogoSchema>;
 
 /** Mesmo formulário de `jogoSchema`, mais a categoria de idade do Futebol de Base (obrigatória —
- * ver `lib/auth/categorias-base.ts`). Mesmo padrão de `atletaBaseSchema`/`comissaoTecnicaBaseSchema`. */
+ * ver `lib/auth/categorias-base.ts`). Mesmo padrão de `atletaBaseSchema`/`comissaoTecnicaBaseSchema`.
+ * Diferente do Profissional, `competicao` deixa de ser obrigatória aqui: na Base ela vem de um
+ * select vinculado ao cadastro de Competições (ver `competicaoId`), e pode ser o primeiro jogo da
+ * categoria antes de existir cadastro — nesse caso o campo fica em branco (ver
+ * docs/superpowers/specs/2026-10-03-competicoes-base-design.md). `competicaoId` é o valor real do
+ * select — o texto `competicao` gravado em `jogos_base` é derivado dele no servidor
+ * (`app/base/jogos/actions.ts`), nunca digitado pelo usuário. */
 export const jogoBaseSchema = jogoSchema.extend({
   categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
+  competicao: z.string().optional().or(z.literal("")),
+  competicaoId: z.string().optional().or(z.literal("")),
 });
 export type JogoBaseInput = z.infer<typeof jogoBaseSchema>;
 

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
-import { JogoBaseForm } from "../jogo-form-base";
+import { JogoBaseForm, type CompeticaoBaseParaSelecao } from "../jogo-form-base";
 import { updateJogoBase, deleteJogoBase } from "../actions";
 
 export default async function EditarJogoBasePage({
@@ -18,14 +18,21 @@ export default async function EditarJogoBasePage({
   const jogo = await verificarAcessoJogoBase(supabase, params.id);
   if (!jogo) notFound();
 
-  const [logoUrl, categoriasPermitidas] = await Promise.all([
+  const [logoUrl, categoriasPermitidas, competicoesResult, linkResult] = await Promise.all([
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
     getCategoriasBasePermitidas(supabase),
+    supabase.from("competicoes_base").select("id, nome, categoria"),
+    supabase.from("competicao_jogos_base").select("competicao_id").eq("jogo_id", jogo.id).maybeSingle(),
   ]);
+  const competicoes = ((competicoesResult.data ?? []) as CompeticaoBaseParaSelecao[]).filter((c) =>
+    categoriasPermitidas.includes(c.categoria),
+  );
+  const competicaoId = (linkResult.data as { competicao_id: string } | null)?.competicao_id ?? "";
 
   const defaultValues: Record<string, string> = {
     categoria: jogo.categoria,
     competicao: jogo.competicao,
+    competicaoId,
     rodadaFase: jogo.rodada_fase ?? "",
     adversarioNome: jogo.adversario_nome,
     dataJogo: jogo.data_jogo,
@@ -49,6 +56,7 @@ export default async function EditarJogoBasePage({
           logoUrl={logoUrl}
           submitLabel="Salvar alterações"
           categoriasPermitidas={categoriasPermitidas}
+          competicoes={competicoes}
         />
 
         <div className="mt-8 flex justify-end border-t border-linha pt-4">

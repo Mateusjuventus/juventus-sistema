@@ -19,6 +19,7 @@ export type ModuloBaseChave =
   | "comissao_tecnica"
   | "staff_operacional"
   | "jogos"
+  | "competicoes"
   | "solicitacoes"
   | "estoque"
   | "financeiro"
@@ -37,6 +38,7 @@ export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "comissao_tecnica", label: "Comissão Técnica / Diretoria", prefixo: "/base/comissao-tecnica" },
   { chave: "staff_operacional", label: "Staff Operacional", prefixo: "/base/staff-operacional" },
   { chave: "jogos", label: "Jogos / Competições", prefixo: "/base/jogos" },
+  { chave: "competicoes", label: "Competições", prefixo: "/base/competicoes" },
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/base/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/base/estoque" },
   { chave: "financeiro", label: "Financeiro", prefixo: "/base/financeiro" },

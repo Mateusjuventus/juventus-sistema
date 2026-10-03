@@ -2,12 +2,18 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
-import { JogoBaseForm } from "../jogo-form-base";
+import { JogoBaseForm, type CompeticaoBaseParaSelecao } from "../jogo-form-base";
 import { createJogoBase } from "../actions";
 
 export default async function NovoJogoBasePage() {
   const supabase = createClient();
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
+
+  const { data: competicoesData } = await supabase
+    .from("competicoes_base")
+    .select("id, nome, categoria")
+    .in("categoria", categoriasPermitidas);
+  const competicoes = (competicoesData ?? []) as CompeticaoBaseParaSelecao[];
 
   return (
     <AppShell departamento="futebol_base">
@@ -20,6 +26,7 @@ export default async function NovoJogoBasePage() {
           action={createJogoBase}
           submitLabel="Cadastrar jogo"
           categoriasPermitidas={categoriasPermitidas}
+          competicoes={competicoes}
         />
       </div>
     </AppShell>
