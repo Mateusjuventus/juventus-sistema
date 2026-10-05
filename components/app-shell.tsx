@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { AppSidebar, type SidebarIconKey, type SidebarNavItem } from "@/components/app-sidebar";
-import { JuventusCrestMark } from "@/components/juventus-crest";
+import { ProxisMark } from "@/components/proxis-brand";
 import { DemandasFlutuante } from "@/components/demandas/demandas-flutuante";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -44,11 +44,13 @@ export async function AppShell({
   children: ReactNode;
   nav?: "full" | "none";
   departamento?: "futebol_profissional" | "futebol_base";
-  /** Nome da página atual, mostrado como "Início / {breadcrumb}" numa barra fina no topo do
-   * conteúdo — troca os links soltos "← Voltar"/"← Início" que cada página desenhava por conta
-   * própria. Opcional: por ora só `/profissional` e `/financeiro` passam isso (ver a spec do
-   * redesign visual) — as demais páginas continuam com seu próprio link de volta até serem
-   * tocadas. */
+  /** Nome da página atual, mostrado numa barra fina no topo do conteúdo, com a marca da Proxis ao
+   * lado (ver docs/superpowers/specs/2026-10-05-barra-topo-todas-as-telas-design.md) — troca os
+   * links soltos "← Voltar"/"← Início" que cada página desenhava por conta própria. Sem o prefixo
+   * "Início /": só o nome da tela, já que repetir "Início" não ajudava em nada (pedido do Mateus,
+   * 05/10). Praticamente toda tela do sistema passa isso hoje (Base e Profissional); as únicas
+   * exceções são a Área do Treinador (chrome próprio) e `app/base/comissao-tecnica/organograma`
+   * (ainda não migrada). */
   breadcrumb?: string;
   /** "padrao" (default) mantém a largura de conteúdo de sempre (`max-w-6xl`, ~40 telas do sistema).
    * "total" usa a largura inteira disponível — pra telas que realmente precisam de mais espaço
@@ -182,11 +184,8 @@ export async function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         {breadcrumb ? (
           <div className="flex h-12 shrink-0 items-center gap-2.5 border-b border-linha bg-white px-4 sm:h-14 sm:px-6 lg:px-8">
-            <JuventusCrestMark className="h-6 w-6 shrink-0" />
-            <p className="text-sm text-neutral-500">
-              Início <span className="mx-1 text-neutral-300">/</span>
-              <span className="font-semibold text-grena-escuro">{breadcrumb}</span>
-            </p>
+            <ProxisMark className="h-6 w-6 shrink-0" />
+            <p className="text-sm font-semibold text-grena-escuro">{breadcrumb}</p>
           </div>
         ) : null}
         {/* `max-w-6xl mx-auto` reproduz a mesma largura de conteúdo que a barra horizontal antiga
