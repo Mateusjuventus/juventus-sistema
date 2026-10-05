@@ -1422,6 +1422,11 @@ export interface PerfilRow {
    * da maioria das colunas acima, que são do que É permitido): vazio = nada escondido. "Master"
    * nunca é afetado, qualquer que seja o valor aqui. */
   campos_sensiveis_bloqueados: string[];
+  /** Aparece no Painel de Demandas do master (`/demandas`) e no widget "Minhas Demandas" da tela
+   * inicial desta pessoa — ver docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-
+   * design.md, Parte 2. `false` por padrão: a tela `/minhas-demandas` continua funcionando pra
+   * qualquer um independente disto, só não aparece sozinha na sidebar/tela inicial. */
+  demandas_acompanhado: boolean;
   created_at: string;
 }
 
@@ -2290,4 +2295,36 @@ export interface FisioterapiaHistoricoImportadoRow {
   resumo: string;
   created_by: string | null;
   created_at: string;
+}
+
+/** Um atendimento do módulo Assistência Social (Futebol de Base) — ver docs/superpowers/specs/
+ * 2026-10-05-assistencia-social-e-demandas-design.md, Parte 1. `encaminhamento` é opcional: nem
+ * todo atendimento gera um encaminhamento. */
+export interface AssistenciaSocialAtendimentoRow {
+  id: string;
+  atleta_id: string;
+  data: string;
+  anotacoes: string;
+  encaminhamento: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Status possíveis de uma Demanda — ver `DemandaRow` abaixo. Sem "solicitado" (diferente de
+ * `TarefaStatus`) — esse valor só fazia sentido no fluxo de Tarefas. */
+export type DemandaStatus = "pendente" | "em_andamento" | "concluido";
+
+/** Uma demanda/pendência de uma pessoa acompanhada no Painel de Demandas — ver docs/superpowers/
+ * specs/2026-10-05-assistencia-social-e-demandas-design.md, Parte 2. `responsavel_id` é sempre
+ * quem está logado ao criar (nunca recebido de outra pessoa) — cada um mexe só nas próprias. */
+export interface DemandaRow {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  prazo: string | null;
+  status: DemandaStatus;
+  responsavel_id: string;
+  created_at: string;
+  updated_at: string;
 }

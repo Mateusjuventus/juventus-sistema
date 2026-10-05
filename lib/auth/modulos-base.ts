@@ -25,7 +25,8 @@ export type ModuloBaseChave =
   | "financeiro"
   | "relatorios_avulso"
   | "captacao"
-  | "alojamento";
+  | "alojamento"
+  | "assistencia_social";
 
 export interface ModuloBaseInfo {
   chave: ModuloBaseChave;
@@ -45,6 +46,7 @@ export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "relatorios_avulso", label: "Relatório Avulso", prefixo: "/base/relatorios/avulso" },
   { chave: "captacao", label: "Captação/Avaliação", prefixo: "/base/captacao" },
   { chave: "alojamento", label: "Alojamento", prefixo: "/base/alojamento" },
+  { chave: "assistencia_social", label: "Assistência Social", prefixo: "/base/assistencia-social" },
 ];
 
 /** Todas as chaves de módulo de Base — usado como padrão de quem ainda não tem

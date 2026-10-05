@@ -15,6 +15,7 @@ import type { SolicitacaoTipo } from "@/lib/supabase/types";
 export type TipoDocumento =
   | "dispensa_base"
   | "parecer_captacao_base"
+  | "parecer_social"
   | "orcamento_jogo"
   | "despesas_jogo"
   | "solicitacao";
@@ -31,6 +32,9 @@ const PAPEIS_FIXOS: Partial<Record<TipoDocumento, PapelEsperado[]>> = {
     { papel: "treinador", rotulo: "Treinador / Responsável pela avaliação" },
     { papel: "departamento", rotulo: "Departamento de Futebol de Base" },
   ],
+  // Assinatura única, auto-assinada por quem gera o PDF (sem fluxo de aprovação de terceiros — ver
+  // docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md, Parte 1).
+  parecer_social: [{ papel: "assistente_social", rotulo: "Assistente Social" }],
 };
 
 /**
