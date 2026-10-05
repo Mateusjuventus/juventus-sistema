@@ -14,28 +14,43 @@ export interface PessoaParaAtribuir {
 }
 
 /**
- * Formulário de criar demanda, reaproveitado em três lugares (ver docs/superpowers/specs/
+ * Formulário de criar demanda, reaproveitado em quatro lugares (ver docs/superpowers/specs/
  * 2026-10-05-assistencia-social-e-demandas-design.md, Parte 2): a tela cheia `/minhas-demandas`
  * (completo, com descrição), o painel flutuante (`compacta`, só título + prazo — "precisa ser algo
  * fácil que sempre fica à vista dela", pedido do Mateus) e, dentro do painel flutuante só pro
  * master, o seletor "Para quem?" (`pessoas`, pedido do Mateus em 05/10: "eu como master posso
  * colocar demanda pra eles também") — some quando a lista vem vazia/ausente, e quando aparece o
- * padrão é sempre "Eu mesmo" (nunca pré-seleciona outra pessoa sem querer). Limpa os campos sozinho
- * depois de salvar (sem navegar pra lugar nenhum — `criarDemanda` não redireciona de propósito).
+ * padrão é sempre "Eu mesmo" (nunca pré-seleciona outra pessoa sem querer). `responsavelIdFixo`
+ * cobre um quarto caso, pedido em seguida: dentro da tela intermediária de UMA pessoa específica
+ * (`PessoaDemandasModal`), não faz sentido escolher "pra quem" de novo — já se sabe. Quando
+ * presente, tem prioridade sobre `pessoas` (nem mostra o seletor, manda o id certo num campo
+ * oculto). Limpa os campos sozinho depois de salvar (sem navegar pra lugar nenhum — `criarDemanda`
+ * não redireciona de propósito); `onSalvo` deixa quem usa reagir (ex.: recarregar a lista).
  */
 export function NovaDemandaForm({
   compacta = false,
   pessoas,
+  responsavelIdFixo,
+  onSalvo,
 }: {
   compacta?: boolean;
-  /** Só o master recebe isso preenchido — ver `DemandasFlutuantePainel`. */
+  /** Só o master recebe isso preenchido — ver `DemandasFlutuantePainel`. Ignorado quando
+   * `responsavelIdFixo` também vier preenchido. */
   pessoas?: PessoaParaAtribuir[];
+  /** Pra quando já se sabe de quem é a demanda (ver `PessoaDemandasModal`) — não mostra seletor
+   * nenhum, só grava direto nesse id. */
+  responsavelIdFixo?: string;
+  onSalvo?: () => void;
 }) {
   const [state, formAction] = useFormState(criarDemanda, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state.success) formRef.current?.reset();
+    if (state.success) {
+      formRef.current?.reset();
+      onSalvo?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   if (compacta) {
@@ -52,7 +67,9 @@ export function NovaDemandaForm({
           {state.fieldErrors?.titulo ? <p className="field-error">{state.fieldErrors.titulo}</p> : null}
         </div>
         <input type="date" name="prazo" className="field-input w-auto" aria-label="Prazo (opcional)" />
-        {pessoas && pessoas.length > 0 ? (
+        {responsavelIdFixo ? (
+          <input type="hidden" name="responsavelId" value={responsavelIdFixo} />
+        ) : pessoas && pessoas.length > 0 ? (
           <select name="responsavelId" defaultValue="" className="field-input w-auto" aria-label="Para quem">
             <option value="">Eu mesmo</option>
             {pessoas.map((p) => (

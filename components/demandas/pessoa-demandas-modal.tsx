@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ModalShell } from "@/components/programacao/modal";
 import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
 import { corPrazoDemanda, type CorPrazoDemanda } from "@/lib/demandas/cor-prazo";
+import { NovaDemandaForm } from "@/components/demandas/nova-demanda-form";
 import { alternarConclusaoDemanda } from "@/app/minhas-demandas/actions";
 import { buscarDemandasDaPessoa } from "@/app/demandas/actions";
 import { hojeBrasilia } from "@/lib/data-brasil";
@@ -109,7 +110,10 @@ function LinhaDemanda({
  * abrir, com um link no rodapé pra tela completa (`/demandas/[id]`) pra quem quiser a URL
  * compartilhável. Mostra TODAS as demandas da pessoa, sem limite — Pendentes e Concluídas, com uma
  * "bolinha" de check em cada uma pra marcar/desmarcar concluída com um clique, e um filtro de dia
- * opcional (client-side, instantâneo — já tem tudo carregado) que vale pros dois grupos.
+ * opcional (client-side, instantâneo — já tem tudo carregado) que vale pros dois grupos. Também
+ * tem o formulário de criar demanda já atribuída a essa pessoa (`responsavelIdFixo`) — pedido do
+ * Mateus em 05/10: "está faltando a opção de eu acrescentar a demanda de cada um" — aqui já se sabe
+ * de quem é, então sem o seletor "Para quem?" que o painel flutuante precisa ter.
  */
 export function PessoaDemandasModal({
   perfilId,
@@ -160,11 +164,19 @@ export function PessoaDemandasModal({
         </Link>
       }
     >
-      <div className="flex items-center gap-3">
-        <AtletaAvatarCirculo nome={nome} fotoUrl={fotoUrl} className="h-10 w-10" />
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-linha pb-4">
+        <div className="flex items-center gap-3">
+          <AtletaAvatarCirculo nome={nome} fotoUrl={fotoUrl} className="h-10 w-10" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+              {pendentes.length} pendente{pendentes.length === 1 ? "" : "s"} · {concluidas.length} concluída
+              {concluidas.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <label htmlFor="pessoa-demandas-dia" className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-            Filtrar por dia
+            Dia
           </label>
           <input
             id="pessoa-demandas-dia"
@@ -179,6 +191,10 @@ export function PessoaDemandasModal({
             </button>
           ) : null}
         </div>
+      </div>
+
+      <div className="mt-4 rounded-md bg-pagina/60 p-3">
+        <NovaDemandaForm compacta responsavelIdFixo={perfilId} onSalvo={recarregar} />
       </div>
 
       {demandas === null ? (

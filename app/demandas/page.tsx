@@ -42,6 +42,9 @@ export default async function DemandasPage() {
     }),
   );
 
+  const totalPendencias = cards.reduce((acc, c) => acc + c.rendimento.pendentes, 0);
+  const totalAtrasadas = cards.reduce((acc, c) => acc + c.rendimento.atrasadas, 0);
+
   return (
     <AppShell>
       <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
@@ -55,7 +58,28 @@ export default async function DemandasPage() {
           no painel de Demandas&quot; pra cada pessoa.
         </div>
       ) : (
-        <DemandasListagem cards={cards} hojeStr={hojeStr} />
+        <>
+          <div className="mx-auto mt-6 grid max-w-xl grid-cols-3 gap-3">
+            <div className="card p-4 text-center">
+              <p className="text-2xl font-bold text-grena-escuro">{cards.length}</p>
+              <p className="mt-1 text-xs font-medium text-neutral-500">Pessoas acompanhadas</p>
+            </div>
+            <div className="card p-4 text-center">
+              <p className={`text-2xl font-bold ${totalPendencias > 0 ? "text-orange-700" : "text-grena-escuro"}`}>
+                {totalPendencias}
+              </p>
+              <p className="mt-1 text-xs font-medium text-neutral-500">Pendências no total</p>
+            </div>
+            <div className="card p-4 text-center">
+              <p className={`text-2xl font-bold ${totalAtrasadas > 0 ? "text-red-700" : "text-emerald-700"}`}>
+                {totalAtrasadas}
+              </p>
+              <p className="mt-1 text-xs font-medium text-neutral-500">Atrasadas</p>
+            </div>
+          </div>
+
+          <DemandasListagem cards={cards} hojeStr={hojeStr} />
+        </>
       )}
     </AppShell>
   );
