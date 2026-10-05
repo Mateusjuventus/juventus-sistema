@@ -32,8 +32,12 @@ const PAPEIS_FIXOS: Partial<Record<TipoDocumento, PapelEsperado[]>> = {
     { papel: "treinador", rotulo: "Treinador / Responsável pela avaliação" },
     { papel: "departamento", rotulo: "Departamento de Futebol de Base" },
   ],
-  // Assinatura única, auto-assinada por quem gera o PDF (sem fluxo de aprovação de terceiros — ver
-  // docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md, Parte 1).
+  // Assinatura única, por botão explícito na ficha do atleta — qualquer um com o módulo liberado
+  // pode assinar (sem fluxo de aprovação de terceiros nem vínculo obrigatório com um cadastro
+  // específico de "Assistente Social", que não existe como papel à parte no sistema — ver
+  // docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md, Parte 1). Deixou de
+  // ser automática em 05/10: auto-assinar em toda visualização do PDF gravava o nome de quem quer
+  // que abrisse o PDF, não necessariamente a Assistente Social de verdade.
   parecer_social: [{ papel: "assistente_social", rotulo: "Assistente Social" }],
 };
 

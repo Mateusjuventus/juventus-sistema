@@ -34,3 +34,17 @@ export function ehCategoriaBaseValida(valor: string): valor is CategoriaBase {
 export function categoriaBaseLabel(valor: string): string {
   return CATEGORIAS_BASE.find((c) => c.value === valor)?.label ?? valor;
 }
+
+/** Uma cor por categoria, do mais velho (Sub-20) ao mais novo (Sub-11) — tons do próprio `grena`
+ * da identidade visual (ver `lib/theme.ts`), cada vez mais claros, nunca uma cor fora da paleta do
+ * sistema. Usado nos gráficos de composição por categoria (ex.: Assistência Social, ver
+ * docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md). */
+export const CATEGORIA_BASE_COR: Record<CategoriaBase, string> = {
+  sub20: "#3F0724",
+  sub17: "#5C0A35",
+  sub15: "#732D52",
+  sub14: "#8B516F",
+  sub13: "#A2748C",
+  sub12: "#BA97A9",
+  sub11: "#D1BAC6",
+};

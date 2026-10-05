@@ -2,10 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
+import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
+import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
+import { papeisEsperados } from "@/lib/assinaturas/config";
 import type { AssistenciaSocialAtendimentoRow, AtletaBaseRow } from "@/lib/supabase/types";
 import { AtendimentoItem, NovoAtendimentoForm } from "./atendimento-forms";
 
@@ -30,7 +33,15 @@ export default async function AssistenciaSocialAtletaPage({ params }: { params: 
   const atleta = atletaData as AtletaBaseRow;
   const atendimentos = (atendimentosData ?? []) as AssistenciaSocialAtendimentoRow[];
 
-  const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [fotoUrl, assinaturas, minhaAssinaturaCadastrada] = await Promise.all([
+    getSignedPhotoUrl(supabase, atleta.foto_path),
+    resolverImagensAssinaturas(supabase, await buscarAssinaturas("parecer_social", atleta.id)),
+    user ? possuiAssinaturaCadastrada(supabase, user.id) : Promise.resolve(false),
+  ]);
 
   return (
     <AppShell departamento="futebol_base">
@@ -53,6 +64,24 @@ export default async function AssistenciaSocialAtletaPage({ params }: { params: 
           Gerar Parecer Social em PDF
         </a>
       </div>
+
+      <section className="card mt-4 p-4">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-grena">Assinatura do Parecer Social</h2>
+        <p className="mt-1 text-xs text-neutral-400">
+          Quem assinar aqui aparece como Assistente Social no PDF gerado acima.
+        </p>
+        <div className="mt-3">
+          <BlocoAssinaturaDigital
+            tipoDocumento="parecer_social"
+            documentoId={atleta.id}
+            caminhoRevalidar={`/base/assistencia-social/${atleta.id}`}
+            papeis={papeisEsperados("parecer_social")}
+            assinaturas={assinaturas}
+            papeisQuePossoAssinar={["assistente_social"]}
+            minhaAssinaturaCadastrada={minhaAssinaturaCadastrada}
+          />
+        </div>
+      </section>
 
       <section className="card mt-4 p-4">
         <h2 className="text-sm font-bold uppercase tracking-wide text-grena">Dados sociais</h2>
