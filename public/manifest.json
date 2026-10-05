@@ -1,7 +1,7 @@
 {
-  "name": "Juventus - SAF",
-  "short_name": "Juventus SAF",
-  "description": "Central de cadastros e operação do Clube Atlético Juventus SAF",
+  "name": "Proxis Gestão Esportiva",
+  "short_name": "Proxis",
+  "description": "Central de cadastros e operação esportiva — Proxis, operando para o Clube Atlético Juventus",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#EEF0F2",

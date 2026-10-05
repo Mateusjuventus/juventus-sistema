@@ -16,8 +16,8 @@ export const viewport: Viewport = {
 // comentário lá pra entender por que não usamos next/font/google aqui.
 
 export const metadata: Metadata = {
-  title: "Juventus - SAF",
-  description: "Central de cadastros e operação do futebol profissional do Juventus",
+  title: "Proxis — Gestão Esportiva",
+  description: "Central de cadastros e operação esportiva — Proxis, operando para o Clube Atlético Juventus",
   // Deixa o sistema "instalável" (Adicionar à Tela de Início) — pré-requisito pra push funcionar no
   // iPhone (ver docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md).
   manifest: "/manifest.json",

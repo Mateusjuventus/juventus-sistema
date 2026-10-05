@@ -21,6 +21,17 @@ export const JUVENTUS_RAZAO_SOCIAL = "Juventus Sociedade Anônima do Futebol";
 export const JUVENTUS_CNPJ = "63.634.319/0001-99";
 export const JUVENTUS_ENDERECO = "Rua Javari, 117 – Mooca, São Paulo – SP, 03112-100";
 
+// Marca da Proxis usada na linha discreta de crédito do rodapé (ver docs/superpowers/specs/
+// 2026-10-04-rebranding-proxis-design.md) — chrome do software, não identidade do clube, por isso
+// vem abaixo da razão social/CNPJ/endereço do Juventus, não no lugar deles. Embutida como base64
+// (48×48, recorte de `public/brand/proxis-mark.png`) em vez de lida via `node:fs` — diferente dos
+// documentos de pôster (`lib/pdf/poster-shared.tsx`), este arquivo também é importado por
+// componentes client (`formatDataBr`, usado fora da geração de PDF), e `node:fs`/`node:path`
+// quebram o bundle do cliente mesmo sem serem chamados ali.
+const PROXIS_MARK_BASE64 =
+  "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";
+const proxisMarkSrc = `data:image/png;base64,${PROXIS_MARK_BASE64}`;
+
 export const sharedStyles = StyleSheet.create({
   page: { padding: 32, paddingBottom: 60, fontFamily: "Helvetica", fontSize: 10, color: "#262626" },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 4 },
@@ -85,6 +96,12 @@ export const sharedStyles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 3,
   },
+  // Linha discreta "Gerado via Proxis Gestão Esportiva" — ver proxisMarkSrc acima. Mesmo tom de
+  // cinza do resto do rodapé, só um pouco menor: é uma assinatura de rodapé, não mais um dado do
+  // clube ao lado da razão social/CNPJ/endereço.
+  footerProxisLinha: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 3 },
+  footerProxisMarca: { width: 8, height: 8 },
+  footerProxisTexto: { fontSize: 6.5, color: "#a3a3a3" },
 });
 
 export function formatDataBr(iso: string | null): string {
@@ -210,6 +227,11 @@ export function DocumentoFooter({ geradoEm }: { geradoEm?: Date } = {}) {
         {JUVENTUS_RAZAO_SOCIAL} · CNPJ {JUVENTUS_CNPJ}
       </Text>
       <Text style={sharedStyles.footerTexto}>{JUVENTUS_ENDERECO}</Text>
+      <View style={sharedStyles.footerProxisLinha}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        <Image style={sharedStyles.footerProxisMarca} src={proxisMarkSrc} />
+        <Text style={sharedStyles.footerProxisTexto}>Gerado via Proxis Gestão Esportiva</Text>
+      </View>
     </View>
   );
 }

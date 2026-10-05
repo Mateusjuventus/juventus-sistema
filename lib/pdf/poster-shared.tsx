@@ -18,6 +18,14 @@ const juventusEscudoSrc = {
   format: "png" as const,
 };
 
+// Marca da Proxis usada na linha discreta de crédito do rodapé (ver docs/superpowers/specs/
+// 2026-10-04-rebranding-proxis-design.md) — chrome do software, não identidade do clube, por isso
+// bem pequena e sem concorrer com o brasão do Juventus/adversário nem com a #MOLEQUETRAVESSO.
+const proxisMarkSrc = {
+  data: readFileSync(path.join(process.cwd(), "public/brand/proxis-mark.png")),
+  format: "png" as const,
+};
+
 export type LogoSrc = string | { data: Buffer; format: "png" | "jpg" } | null;
 
 export const styles = StyleSheet.create({
@@ -85,6 +93,18 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 14,
   },
+  // Linha discreta "Gerado via Proxis Gestão Esportiva" — ver proxisMarkSrc acima. `prata` (cinza
+  // da própria paleta do pôster) em vez do grena/dourado de toda a identidade do clube: não é pra
+  // chamar atenção, só uma assinatura pequena de quem gerou o documento.
+  rodapeProxisLinha: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  rodapeProxisMarca: { width: 8, height: 8 },
+  rodapeProxisTexto: { fontFamily: "Helvetica", fontSize: 6.5, color: CORES_POSTER.prata },
   faixaDado: {
     backgroundColor: CORES_POSTER.grena,
     marginTop: 10,
@@ -205,7 +225,17 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     color: CORES_POSTER.grena,
     textAlign: "center",
-    paddingBottom: 20,
+  },
+  // Mesma linha de crédito do Relacionados (`rodapeProxisLinha`), só que com o `paddingBottom` que
+  // antes vivia em `rodapeLateralHashtag` — aqui ela é o último elemento antes da borda da página,
+  // já que Concentração/Dia de Jogo não têm as faixas vinho do rodapé do Relacionados embaixo.
+  rodapeProxisLinhaLateral: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    marginTop: 4,
+    paddingBottom: 14,
   },
 });
 
@@ -384,6 +414,11 @@ export function PosterRodapeLateral() {
   return (
     <View style={styles.rodapeFixo}>
       <Text style={styles.rodapeLateralHashtag}>{HASHTAG_RODAPE}</Text>
+      <View style={styles.rodapeProxisLinhaLateral}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        <Image style={styles.rodapeProxisMarca} src={proxisMarkSrc} />
+        <Text style={styles.rodapeProxisTexto}>Gerado via Proxis Gestão Esportiva</Text>
+      </View>
     </View>
   );
 }
@@ -392,7 +427,12 @@ export function PosterRodape() {
   return (
     <View style={styles.rodapeFixo}>
       <Text style={styles.rodapeHashtag}>{HASHTAG_RODAPE}</Text>
-      <View style={{ height: 14 }} />
+      <View style={styles.rodapeProxisLinha}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        <Image style={styles.rodapeProxisMarca} src={proxisMarkSrc} />
+        <Text style={styles.rodapeProxisTexto}>Gerado via Proxis Gestão Esportiva</Text>
+      </View>
+      <View style={{ height: 10 }} />
       <View style={styles.barraTopoFina} />
       <View style={styles.barraTopoGrossa} />
     </View>
