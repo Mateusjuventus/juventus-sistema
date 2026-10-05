@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { TrocarSenhaForm } from "@/components/trocar-senha-form";
 import { NomeCargoForm } from "@/components/nome-cargo-form";
 import { MinhaAssinaturaForm } from "@/components/minha-assinatura-form";
@@ -49,9 +48,7 @@ export default async function MinhaContaPage() {
   const treinadorSemVinculo = role === "treinador" && perfil && !treinadorPossuiVinculoObrigatorio(perfil);
 
   return (
-    <AppShell>
-      <PageHeader title="Minha Conta" />
-
+    <AppShell breadcrumb="Minha Conta">
       <div className="mx-auto mt-6 max-w-2xl space-y-4">
         <div className="card space-y-4 p-5">
           <div>

@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { DemandasListagem } from "@/components/demandas/demandas-listagem";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
@@ -16,11 +14,19 @@ import type { DemandaRow, PerfilRow } from "@/lib/supabase/types";
  * de rendimento (ver docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md,
  * Parte 2, "Painel do Mateus" — pedido original: "pra mim fique como se fosse um painel para
  * acompanhar todos de uma vez"). Só master acessa.
+ *
+ * `?de=base` faz a sidebar abrir no departamento da Base em vez do Profissional (padrão) — sem
+ * isso, clicar em "Demandas" a partir da Base sempre levava pro menu do Profissional, mesmo quem
+ * clicou estando na Base (pedido do Mateus: "as demandas estão no acesso somente do profi? ...
+ * toda vez que clico ela vem pro profissional"). O link da sidebar (`components/app-sidebar.tsx`)
+ * é quem decide se manda esse `?de=base`, de acordo com onde a pessoa estava.
  */
-export default async function DemandasPage() {
+export default async function DemandasPage({ searchParams }: { searchParams: { de?: string } }) {
   const supabase = createClient();
   const master = await isMaster(supabase);
-  if (!master) redirect("/profissional");
+  const departamento = searchParams.de === "base" ? "futebol_base" : "futebol_profissional";
+  const homeDoDepartamento = departamento === "futebol_base" ? "/base" : "/profissional";
+  if (!master) redirect(homeDoDepartamento);
 
   const { data: perfisData } = await supabase.from("perfis").select("*").eq("demandas_acompanhado", true);
   const perfis = (perfisData ?? []) as PerfilRow[];
@@ -52,12 +58,7 @@ export default async function DemandasPage() {
   const percentualGeral = calcularRendimento(todasDemandas, hojeStr).percentualHoje;
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Demandas" />
-
+    <AppShell departamento={departamento} breadcrumb="Demandas">
       {cards.length === 0 ? (
         <div className="card mx-auto mt-6 max-w-md p-8 text-center text-neutral-500">
           Ninguém está marcado pra acompanhar ainda. Em &quot;Usuários&quot;, marque &quot;Acompanhar

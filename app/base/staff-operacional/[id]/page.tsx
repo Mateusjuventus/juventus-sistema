@@ -44,7 +44,7 @@ export default async function EditarStaffBasePage({ params }: { params: { id: st
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Editar staff operacional">
       <Link href="/base/staff-operacional" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

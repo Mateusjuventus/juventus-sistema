@@ -30,7 +30,7 @@ export default async function EditarCargaPage({
   };
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar carga">
       <JogoTabs jogoId={jogo.id} active="ingressos" />
       <Link
         href={`/jogos/${jogo.id}/ingressos`}

@@ -36,7 +36,7 @@ export default async function EditarDespesaAvulsaPage({
   };
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar despesa avulsa">
       <Link
         href="/financeiro/despesas-avulsas"
         className="text-sm font-medium text-grena hover:underline"

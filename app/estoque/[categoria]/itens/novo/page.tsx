@@ -12,7 +12,7 @@ export default function NovoItemEstoquePage({ params }: { params: { categoria: s
   const label = ESTOQUE_CATEGORIAS.find((c) => c.value === categoria)?.label ?? categoria;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Novo item">
       <Link href={`/estoque/${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque {label}
       </Link>

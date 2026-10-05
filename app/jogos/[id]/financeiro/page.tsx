@@ -80,7 +80,7 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
   ]);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Financeiro">
       <JogoTabs jogoId={jogo.id} active="financeiro" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

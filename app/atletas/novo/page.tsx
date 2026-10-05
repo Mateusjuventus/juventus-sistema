@@ -5,7 +5,7 @@ import { createAtleta } from "../actions";
 
 export default function NovoAtletaPage() {
   return (
-    <AppShell>
+    <AppShell breadcrumb="Novo atleta">
       <Link href="/atletas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

@@ -60,7 +60,7 @@ export default async function EditarItemSolicitacaoBasePage({
           : "Editar item";
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Editar item">
       <Link href={`/base/solicitacoes/${solicitacao.id}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para a solicitação
       </Link>

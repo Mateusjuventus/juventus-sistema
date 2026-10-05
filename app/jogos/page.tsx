@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { JuventusCrestMark } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
@@ -107,11 +106,8 @@ export default async function JogosPage({
       : null;
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Jogos" pendencia={pendenciaJogos} />
+    <AppShell breadcrumb="Jogos">
+      {pendenciaJogos ? <p className="text-sm font-medium text-amber-700">{pendenciaJogos}</p> : null}
 
       {artilheiros.length > 0 ? (
         <div className="mt-3 flex flex-wrap justify-center gap-2">

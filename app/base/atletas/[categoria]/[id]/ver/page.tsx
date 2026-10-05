@@ -64,7 +64,7 @@ export default async function VerAtletaBasePage({
   const subtitulo = `${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Dados Pessoais">
       <AtletaTabsBase categoria={params.categoria} atletaId={atleta.id} active="dados-pessoais" />
 
       <AtletaPerfilHeader

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { DemandaStatusBadge, DemandaStatusSelect } from "@/components/demanda-status";
 import { NovaDemandaForm } from "@/components/demandas/nova-demanda-form";
@@ -41,11 +40,10 @@ export default async function MinhasDemandasPage() {
   const hojeStr = new Date().toISOString().slice(0, 10);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Minhas Demandas">
       <Link href="/" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
-      <PageHeader title="Minhas Demandas" />
 
       <div className="mt-4">
         <NovaDemandaForm />

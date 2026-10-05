@@ -46,7 +46,7 @@ export default async function DocumentacaoAtletaBasePage({
   );
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Documentação">
       <AtletaTabsBase categoria={params.categoria} atletaId={atleta.id} active="documentacao" />
 
       <AtletaPerfilHeader

@@ -39,7 +39,7 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
   };
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar — Comissão Técnica/Diretoria">
       <Link href="/comissao-tecnica" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

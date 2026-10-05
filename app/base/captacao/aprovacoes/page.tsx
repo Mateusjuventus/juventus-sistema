@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import type { CaptacaoBaseRow } from "@/lib/supabase/types";
@@ -29,11 +28,10 @@ export default async function AprovacoesCaptacaoPage() {
   const inscricoes = (data ?? []) as CaptacaoBaseRow[];
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Aprovações">
       <Link href="/base/captacao" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Captação/Avaliação
       </Link>
-      <PageHeader title="Aprovações" />
       <p className="mt-1 text-center text-sm text-neutral-500">
         Quem se inscreveu pelo link público espera aqui. Aprovar pede a Data de Início e manda pra
         Em avaliação; Recusar manda direto pra Dispensado.

@@ -49,7 +49,7 @@ export default async function DadosDeJogoAtletaPage({
   );
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Dados de Jogo">
       <AtletaTabs atletaId={atleta.id} active="dados-de-jogo" />
 
       <AtletaPerfilHeader

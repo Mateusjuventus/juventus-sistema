@@ -48,7 +48,7 @@ export default async function CompeticaoAdversariosPage({ params }: { params: { 
   );
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Análise de adversários">
       <CompeticaoTabs competicao={competicao} active="adversarios" />
 
       <h2 className="text-lg font-bold text-grena-escuro">Análise de adversários</h2>

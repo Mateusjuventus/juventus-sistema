@@ -45,7 +45,7 @@ export default async function IngressosJogoPage({ params }: { params: { id: stri
   const mediaPorPessoa = calcularMediaIngressosPorPessoa(totalAtendido, solicitacoes.length);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Carga de Ingressos">
       <JogoTabs jogoId={jogo.id} active="ingressos" />
 
       {cargasError || solicitacoesError ? (

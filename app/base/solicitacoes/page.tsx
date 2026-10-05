@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SolicitacoesLista } from "@/components/solicitacoes-lista";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
@@ -56,12 +55,7 @@ export default async function SolicitacoesBasePage({
   const solicitacoes = (data ?? []) as SolicitacaoBaseRow[];
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Solicitações" />
-
+    <AppShell departamento="futebol_base" breadcrumb="Solicitações">
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <a
           href={`/base/solicitacoes/export?tipo=${encodeURIComponent(tipoFiltro)}&status=${encodeURIComponent(statusFiltro)}`}

@@ -31,7 +31,7 @@ export default async function EditarJogoPage({ params }: { params: { id: string 
   };
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar jogo">
       <h1 className="text-2xl font-bold text-grena-escuro">Editar jogo</h1>
       <div className="mt-4">
         <JogoTabs jogoId={jogo.id} active="dados" />

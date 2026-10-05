@@ -73,7 +73,7 @@ export default async function ConvocacaoBasePage({
   }
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Convocação">
       <JogoTabsBase jogoId={jogo.id} active="convocacao" />
 
       <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 p-4">

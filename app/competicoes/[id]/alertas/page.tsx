@@ -21,7 +21,7 @@ export default async function CompeticaoAlertasPage({ params }: { params: { id: 
   const alertas = avisosDaCompeticao(carregada, hojeBrasilia());
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Alertas">
       <CompeticaoTabs competicao={competicao} active="alertas" />
 
       <h2 className="text-lg font-bold text-grena-escuro">Alertas ({alertas.length})</h2>

@@ -23,7 +23,7 @@ export default async function ChecklistJogoBasePage({
   const percentual = total === 0 ? 0 : Math.round((concluidos / total) * 100);
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Checklist">
       <JogoTabsBase jogoId={jogo.id} active="checklist" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

@@ -47,7 +47,7 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
   const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Dados Pessoais">
       <AtletaTabs atletaId={atleta.id} active="dados-pessoais" />
 
       <AtletaPerfilHeader

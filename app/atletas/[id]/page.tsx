@@ -52,7 +52,7 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
   };
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar atleta">
       <Link href="/atletas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

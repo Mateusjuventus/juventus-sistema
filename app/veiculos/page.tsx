@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
@@ -26,11 +25,7 @@ export default async function VeiculosPage({ searchParams }: { searchParams: { q
   const inativos = veiculos.filter((v) => !v.ativo);
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Veículos / Placas" />
+    <AppShell breadcrumb="Veículos / Placas">
       <p className="mt-1 text-center text-sm text-neutral-500">
         Quem vai de carro próprio. Serve para gerar a Relação de Placas que o clube manda antes de
         jogo fora, para liberação de acesso.

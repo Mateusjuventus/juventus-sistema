@@ -20,7 +20,7 @@ export default async function NovoGastoPage({ params }: { params: { id: string }
   const categorias = (categoriasData ?? []) as CategoriaGastoRow[];
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Novo gasto">
       <JogoTabs jogoId={jogo.id} active="financeiro" />
       <Link
         href={`/jogos/${jogo.id}/financeiro`}

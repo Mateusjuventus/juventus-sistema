@@ -52,7 +52,7 @@ export default async function CompeticaoBaseJogosPage({ params }: { params: { id
   const proximoVinculado = vinculosOrdenados.find((v) => (jogosById.get(v.jogo_id)?.data_jogo ?? "") >= hojeStr);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Jogos vinculados">
       <CompeticaoTabsBase competicao={competicao} active="jogos" />
 
       <p className="rounded-md border border-dourado/30 bg-dourado/5 px-4 py-3 text-sm text-neutral-700">

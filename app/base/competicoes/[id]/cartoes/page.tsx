@@ -85,7 +85,7 @@ export default async function CompeticaoBaseCartoesPage({
   if (tipoFiltro) pdfQuery.set("tipo", tipoFiltro);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Cartões">
       <CompeticaoTabsBase competicao={competicao} active="cartoes" />
 
       <p className="rounded-md border border-dourado/30 bg-dourado/5 px-4 py-3 text-sm text-neutral-700">

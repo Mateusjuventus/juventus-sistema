@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { HotelRow } from "@/lib/supabase/types";
 import { atualizarHotel } from "../../actions";
@@ -16,11 +15,10 @@ export default async function EditarHotelPage({ params }: { params: { id: string
   const action = atualizarHotel.bind(null, hotel.id);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar Hotel">
       <Link href={`/hoteis/${hotel.id}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para o hotel
       </Link>
-      <PageHeader title="Editar Hotel" />
       <HotelForm hotel={hotel} action={action} submitLabel="Salvar alterações" />
     </AppShell>
   );

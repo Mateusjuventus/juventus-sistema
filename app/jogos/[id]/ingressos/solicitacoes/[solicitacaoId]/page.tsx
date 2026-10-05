@@ -31,7 +31,7 @@ export default async function EditarSolicitacaoPage({
   };
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar solicitação">
       <JogoTabs jogoId={jogo.id} active="ingressos" />
       <Link
         href={`/jogos/${jogo.id}/ingressos`}

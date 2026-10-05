@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { montarResumoGeralFisioterapia } from "@/lib/futebol/fisioterapia";
@@ -47,13 +46,10 @@ export default async function FisioterapiaRelatorioPage() {
   );
 
   return (
-    <AppShell largura="total">
+    <AppShell largura="total" breadcrumb="Relatório Geral de Fisioterapia">
       <Link href="/departamento-medico/fisioterapia" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-        <PageHeader title="Relatório Geral de Fisioterapia" />
-      </div>
       <div className="flex justify-center">
         <a href="/departamento-medico/fisioterapia/relatorio/pdf" className="btn-secondary mt-3" target="_blank">
           Gerar relatório em PDF

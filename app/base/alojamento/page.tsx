@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { calcularVagasAlojamento } from "@/lib/futebol/alojamento";
@@ -30,11 +29,7 @@ export default async function AlojamentoPage() {
   const vagas = calcularVagasAlojamento(config?.capacidade_total ?? 0, alojados.length);
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Alojamento" />
+    <AppShell departamento="futebol_base" breadcrumb="Alojamento">
       <p className="mt-1 text-center text-sm text-neutral-500">
         Quem está alojado vem do cadastro de cada atleta — marque a opção Mora no alojamento do
         clube lá pra essa pessoa aparecer aqui.

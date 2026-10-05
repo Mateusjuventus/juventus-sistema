@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { cidadeUf, enderecoCompleto, estruturaDoHotel, formatDiaria } from "@/lib/futebol/hotel";
@@ -28,11 +27,10 @@ export default async function HotelDetalhePage({ params }: { params: { id: strin
   const estrutura = estruturaDoHotel(hotel);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Hotel">
       <Link href="/hoteis" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Hotéis
       </Link>
-      <PageHeader title={hotel.nome} />
       <p className="mt-1 text-center text-sm text-neutral-500">
         {cidadeUf(hotel) || "Cidade não informada"}
         {hotel.ativo ? "" : " · inativo"}

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { TermoRetiradaItemRow, TermoRetiradaRow } from "@/lib/supabase/types";
 import { atualizarTermo } from "../../actions";
@@ -20,11 +19,10 @@ export default async function EditarTermoPage({ params }: { params: { id: string
   const action = atualizarTermo.bind(null, termo.id);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar termo">
       <Link href={`/termos/${termo.id}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para o termo
       </Link>
-      <PageHeader title={`Editar Termo Nº ${String(termo.numero).padStart(4, "0")}`} />
       <TermoForm termo={termo} itensIniciais={itens} action={action} submitLabel="Salvar alterações" />
     </AppShell>
   );

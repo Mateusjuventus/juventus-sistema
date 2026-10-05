@@ -19,7 +19,7 @@ export default async function EditarItemEstoqueBasePage({ params }: { params: { 
   }));
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Editar item">
       <Link href="/base/estoque" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque
       </Link>

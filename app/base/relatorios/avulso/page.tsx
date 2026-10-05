@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -69,10 +68,7 @@ export default async function RelatorioAvulsoBasePage() {
   }));
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
+    <AppShell departamento="futebol_base" breadcrumb="Relatório avulso">
       <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Relatório avulso</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Monte uma lista em PDF do seu jeito — escolha quem entra, quais dados aparecem e, se

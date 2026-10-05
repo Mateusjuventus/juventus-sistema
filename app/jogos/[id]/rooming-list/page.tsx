@@ -22,7 +22,7 @@ export default async function RoomingListPage({ params }: { params: { id: string
 
   if (!convocacao) {
     return (
-      <AppShell>
+      <AppShell breadcrumb="Rooming List">
         <JogoTabs jogoId={jogo.id} active="rooming-list" />
         <AvisoSemConvocacao jogoId={jogo.id} />
       </AppShell>
@@ -82,7 +82,7 @@ export default async function RoomingListPage({ params }: { params: { id: string
   }));
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Rooming List">
       <JogoTabs jogoId={jogo.id} active="rooming-list" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

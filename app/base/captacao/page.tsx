@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
@@ -70,11 +69,7 @@ export default async function CaptacaoPage({
   const aguardandoAprovacao = contarInscricoesPendentes(todosStatus);
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Captação/Avaliação" />
+    <AppShell departamento="futebol_base" breadcrumb="Captação/Avaliação">
       <p className="mt-1 text-center text-sm text-neutral-500">
         Banco de candidatos em teste — sem relação com o cadastro de Atletas já do clube.
       </p>

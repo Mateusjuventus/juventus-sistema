@@ -36,7 +36,7 @@ export default async function EditarGastoBasePage({
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Editar gasto">
       <JogoTabsBase jogoId={jogo.id} active="financeiro" />
       <Link
         href={`/base/jogos/${jogo.id}/financeiro`}

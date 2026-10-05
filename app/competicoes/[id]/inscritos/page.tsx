@@ -48,7 +48,7 @@ export default async function CompeticaoInscritosPage({ params }: { params: { id
   });
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Atletas inscritos">
       <CompeticaoTabs competicao={competicao} active="inscritos" />
 
       <div className="flex flex-wrap items-end justify-between gap-3">

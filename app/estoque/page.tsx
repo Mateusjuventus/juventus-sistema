@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { totalItem } from "@/lib/estoque/estoque-ajustes";
 import { getEstoqueCategoriasPermitidas } from "@/lib/auth/role";
@@ -23,11 +22,7 @@ export default async function EstoquePage() {
   const categoriasExibidas = ESTOQUE_CATEGORIAS.filter((c) => categoriasPermitidas.includes(c.value));
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Estoque" />
+    <AppShell breadcrumb="Estoque">
       <p className="mt-1 text-center text-sm text-neutral-500">
         Escolha o estoque — cada lista é controlada separadamente. Medicamentos e Materiais são as duas
         listas do Departamento Médico.

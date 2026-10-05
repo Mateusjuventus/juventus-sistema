@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import type { JogoRow, VeiculoRow } from "@/lib/supabase/types";
@@ -40,11 +39,10 @@ export default async function DocumentoVeiculosPage() {
   }));
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Relação de Placas">
       <Link href="/veiculos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Veículos / Placas
       </Link>
-      <PageHeader title="Relação de Placas" />
       <p className="mt-1 text-center text-sm text-neutral-500">
         Escolha os veículos e, se for de um jogo, os dados dele. O PDF abre em outra aba, pronto para
         encaminhar.

@@ -165,7 +165,7 @@ export default async function EditarSolicitacaoPage({ params }: { params: { id: 
   }
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Solicitação">
       <Link href="/solicitacoes" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

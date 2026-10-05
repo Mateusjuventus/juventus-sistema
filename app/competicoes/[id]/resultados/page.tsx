@@ -51,7 +51,7 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
   }
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Súmulas dos jogos dos grupos">
       <CompeticaoTabs competicao={competicao} active="resultados" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">

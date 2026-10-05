@@ -91,7 +91,7 @@ export default async function CompeticaoBaseCondicaoPage({
   for (const l of linhas) contagem[l.condicao.status] += 1;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Condição de jogo">
       <CompeticaoTabsBase competicao={competicao} active="condicao" />
 
       <div className="flex flex-wrap items-end justify-between gap-3">

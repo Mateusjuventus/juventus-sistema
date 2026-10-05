@@ -21,7 +21,7 @@ export default async function RoomingListBasePage({
 
   if (!convocacao) {
     return (
-      <AppShell departamento="futebol_base">
+      <AppShell departamento="futebol_base" breadcrumb="Rooming List">
         <JogoTabsBase jogoId={jogo.id} active="rooming-list" />
         <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${jogo.id}/convocacao`} />
       </AppShell>
@@ -65,7 +65,7 @@ export default async function RoomingListBasePage({
   const temRoomingList = quartosIniciais.length > 0;
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Rooming List">
       <JogoTabsBase jogoId={jogo.id} active="rooming-list" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

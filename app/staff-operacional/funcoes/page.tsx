@@ -47,7 +47,10 @@ export default async function FuncoesStaffPage({
   const voltarHref = veioDoBase ? "/base/staff-operacional" : "/staff-operacional";
 
   return (
-    <AppShell departamento={veioDoBase ? "futebol_base" : "futebol_profissional"}>
+    <AppShell
+      departamento={veioDoBase ? "futebol_base" : "futebol_profissional"}
+      breadcrumb="Gerenciar Funções"
+    >
       <Link href={voltarHref} className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

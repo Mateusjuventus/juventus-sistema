@@ -32,7 +32,7 @@ export default async function CompeticaoBaseVisaoGeralPage({ params }: { params:
   const regulamentoUrl = await getSignedCompeticaoDocumentoBaseUrl(supabase, competicao.regulamento_path);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Visão geral">
       <CompeticaoTabsBase competicao={competicao} active="visao" />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

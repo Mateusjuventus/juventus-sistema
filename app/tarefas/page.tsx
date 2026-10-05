@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { TarefaStatusBadge, TarefaStatusSelect } from "@/components/tarefa-status";
 import { createClient } from "@/lib/supabase/server";
@@ -48,11 +47,10 @@ export default async function TarefasPage({
   const hojeStr = new Date().toISOString().slice(0, 10);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Tarefas">
       <Link href="/" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
-      <PageHeader title="Tarefas" />
       <div className="mt-3 flex justify-end">
         <Link href={`/tarefas/novo?categoria=${categoriaAtiva}`} className="btn-primary">
           + Nova tarefa

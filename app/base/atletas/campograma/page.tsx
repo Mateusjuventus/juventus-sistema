@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { CampogramaElenco } from "@/components/campograma-elenco";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
@@ -61,11 +60,10 @@ export default async function CampogramaPage({
   const grupos = agruparPorPosicaoEspecifica(paraCampograma);
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Campograma">
       <Link href={`/base/atletas/${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Atletas
       </Link>
-      <PageHeader title={`Campograma — ${categoriaBaseLabel(categoria)}`} />
 
       <div className="mt-3 flex flex-wrap justify-center gap-1.5">
         {CATEGORIAS_BASE.map((cat) => (

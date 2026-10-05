@@ -24,7 +24,7 @@ export default async function CredenciamentoPage({ params }: { params: { id: str
 
   if (!convocacao) {
     return (
-      <AppShell>
+      <AppShell breadcrumb="Credenciamento por Zona">
         <JogoTabs jogoId={jogo.id} active="credenciamento" />
         <AvisoSemConvocacao jogoId={jogo.id} />
       </AppShell>
@@ -60,7 +60,7 @@ export default async function CredenciamentoPage({ params }: { params: { id: str
   const temCredenciamento = atribuicoesAtuais.length > 0;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Credenciamento por Zona">
       <JogoTabs jogoId={jogo.id} active="credenciamento" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

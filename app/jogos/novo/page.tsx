@@ -5,7 +5,7 @@ import { createJogo } from "../actions";
 
 export default function NovoJogoPage() {
   return (
-    <AppShell>
+    <AppShell breadcrumb="Novo jogo">
       <Link href="/jogos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
 import { buscarPerfisParaSelecao } from "@/lib/auth/perfis";
@@ -33,11 +32,10 @@ export default async function ConfiguracoesSolicitacoesBasePage() {
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Assinatura das Solicitações">
       <Link href="/base/solicitacoes" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Solicitações
       </Link>
-      <PageHeader title="Assinatura das Solicitações" />
       <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-neutral-500">
         Quem assina cada Solicitação do Futebol de Base, além do Solicitante (sempre quem cria — não
         precisa configurar): Encarregado do Departamento, Departamento de Compras ou Financeiro

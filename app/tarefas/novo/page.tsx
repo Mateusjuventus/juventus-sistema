@@ -15,7 +15,7 @@ export default async function NovaTarefaPage({
   const categoriasPermitidas = await getCategoriasTarefasVisiveis(supabase);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Nova tarefa">
       <Link href="/tarefas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

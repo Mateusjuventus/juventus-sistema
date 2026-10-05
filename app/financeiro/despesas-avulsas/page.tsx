@@ -46,7 +46,7 @@ export default async function DespesasAvulsasPage() {
   const temEfetuado = despesas.some((d) => d.valor_efetuado !== null);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Despesas avulsas">
       <Link href="/financeiro" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Prestação de Contas
       </Link>

@@ -166,7 +166,7 @@ export default async function EditarSolicitacaoBasePage({ params }: { params: { 
   }
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Solicitação">
       <Link href="/base/solicitacoes" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

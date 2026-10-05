@@ -196,7 +196,7 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   const nomeVisitante = jogo.mandante ? jogo.adversario_nome : "Juventus";
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Súmula">
       <JogoTabsBase jogoId={jogo.id} active="sumula" />
 
       <div className="card mb-4 p-4">

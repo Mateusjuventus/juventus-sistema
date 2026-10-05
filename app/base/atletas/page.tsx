@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
@@ -36,12 +35,7 @@ export default async function AtletasBasePage() {
   );
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Atletas" />
-
+    <AppShell departamento="futebol_base" breadcrumb="Atletas">
       <div className="mt-3 flex flex-wrap justify-center gap-3">
         <Link href="/base/atletas/campograma" className="btn-secondary">
           Ver campograma por categoria

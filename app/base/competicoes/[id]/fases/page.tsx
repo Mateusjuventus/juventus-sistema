@@ -51,7 +51,7 @@ export default async function CompeticaoBaseFasesPage({ params }: { params: { id
   const todosGrupos = fases.flatMap((f) => (gruposPorFase.get(f.id) ?? []).map((g) => ({ fase: f, grupo: g })));
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Estrutura da competição">
       <CompeticaoTabsBase competicao={competicao} active="fases" />
 
       <div className="flex flex-wrap items-end justify-between gap-3">

@@ -11,7 +11,7 @@ export default async function NovaSaidaBasePage() {
   const itens = (data ?? []) as EstoqueItemBaseRow[];
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Nova saída">
       <Link href="/base/estoque" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque
       </Link>

@@ -36,7 +36,7 @@ export default async function SaidaDetalhePage({
   const totalQtd = itens.reduce((soma, i) => soma + Number(i.quantidade), 0);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Saída de estoque">
       <Link href={`/estoque/${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque {label}
       </Link>

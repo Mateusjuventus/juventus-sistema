@@ -70,7 +70,7 @@ export default async function EditarAtletaBasePage({
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Editar atleta">
       <Link href={`/base/atletas/${params.categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

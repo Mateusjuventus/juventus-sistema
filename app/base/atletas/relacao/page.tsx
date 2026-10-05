@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { ehCategoriaBaseValida, type CategoriaBase } from "@/lib/auth/categorias-base";
 import { RelacaoAtletasForm } from "./relacao-atletas-form";
 
@@ -19,11 +18,10 @@ export default function RelacaoAtletasBasePage({ searchParams }: { searchParams:
     searchParams.categoria && ehCategoriaBaseValida(searchParams.categoria) ? searchParams.categoria : "todas";
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Exportar relação de atletas">
       <Link href="/base/atletas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
-      <PageHeader title="Exportar relação de atletas" />
       <p className="mt-1 text-sm text-neutral-500">
         Gera um PDF com os atletas separados por categoria — escolha o escopo, os status e os dados
         que devem aparecer.

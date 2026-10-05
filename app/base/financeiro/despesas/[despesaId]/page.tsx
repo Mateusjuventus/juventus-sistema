@@ -32,7 +32,7 @@ export default async function EditarDespesaBasePage({
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Editar despesa da Base">
       <Link
         href="/base/financeiro?aba=geral"
         className="text-sm font-medium text-grena hover:underline"

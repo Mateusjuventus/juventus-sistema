@@ -5,7 +5,7 @@ import { ItemFormBase } from "../../item-form";
 
 export default function NovoItemEstoqueBasePage() {
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Novo item">
       <Link href="/base/estoque" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque
       </Link>

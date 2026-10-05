@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { TarefaStatusBadge } from "@/components/tarefa-status";
 import { createClient } from "@/lib/supabase/server";
 import { TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
@@ -54,8 +53,7 @@ export default async function AvisosPage() {
   const totalAvisos = avisosTarefas.length + checklistItens.length + avisosCompeticoes.length;
 
   return (
-    <AppShell>
-      <PageHeader title="Avisos" />
+    <AppShell breadcrumb="Avisos">
       <p className="mt-1 text-center text-sm text-neutral-500">
         Solicitações em aberto, tarefas com prazo em até {DIAS_PRAZO_CURTO} dias (ou já vencidas) e
         itens de checklist de jogos na mesma situação.

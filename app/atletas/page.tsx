@@ -73,11 +73,7 @@ export default async function AtletasPage() {
   }));
 
   return (
-    <AppShell largura="total">
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-
+    <AppShell largura="total" breadcrumb="Atletas">
       <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-grena-escuro">Atletas</h1>
         <div className="flex flex-wrap gap-2">

@@ -16,7 +16,7 @@ export default async function NovoJogoBasePage() {
   const competicoes = (competicoesData ?? []) as CompeticaoBaseParaSelecao[];
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Novo jogo">
       <Link href="/base/jogos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

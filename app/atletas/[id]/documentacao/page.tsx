@@ -40,7 +40,7 @@ export default async function DocumentacaoAtletaPage({ params }: { params: { id:
   );
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Documentação">
       <AtletaTabs atletaId={atleta.id} active="documentacao" />
 
       <AtletaPerfilHeader

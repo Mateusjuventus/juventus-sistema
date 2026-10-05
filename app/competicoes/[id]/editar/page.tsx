@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { CompeticaoRow, TemporadaRow } from "@/lib/supabase/types";
 import { atualizarCompeticao } from "../../actions";
@@ -20,11 +19,10 @@ export default async function EditarCompeticaoPage({ params }: { params: { id: s
   const action = atualizarCompeticao.bind(null, competicao.id);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar">
       <Link href={`/competicoes/${competicao.id}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para {competicao.nome}
       </Link>
-      <PageHeader title={`Editar — ${competicao.nome}`} />
       <CompeticaoForm temporadas={temporadas} competicao={competicao} action={action} submitLabel="Salvar alterações" />
     </AppShell>
   );

@@ -15,7 +15,7 @@ export default async function NovaDespesaBasePage() {
   const categorias = (categoriasData ?? []) as CategoriaGastoRow[];
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Nova despesa da Base">
       <Link
         href="/base/financeiro?aba=geral"
         className="text-sm font-medium text-grena hover:underline"

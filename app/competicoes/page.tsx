@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { CompeticaoStatusBadge } from "@/components/competicao-tabs";
 import { createClient } from "@/lib/supabase/server";
 import type { CompeticaoRow, TemporadaRow } from "@/lib/supabase/types";
@@ -40,8 +39,7 @@ export default async function CompeticoesPage() {
   }
 
   return (
-    <AppShell>
-      <PageHeader title="Competições" />
+    <AppShell breadcrumb="Competições">
       <p className="mt-1 text-center text-sm text-neutral-500">Organizadas por temporada.</p>
 
       <div className="mt-6 flex flex-wrap items-end justify-between gap-3">

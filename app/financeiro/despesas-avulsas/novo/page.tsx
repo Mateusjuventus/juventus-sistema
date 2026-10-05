@@ -16,7 +16,7 @@ export default async function NovaDespesaAvulsaPage() {
   const jogos = (jogosData ?? []) as JogoRow[];
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Nova despesa avulsa">
       <Link
         href="/financeiro/despesas-avulsas"
         className="text-sm font-medium text-grena hover:underline"

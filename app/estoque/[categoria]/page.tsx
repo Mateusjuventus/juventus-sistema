@@ -26,7 +26,7 @@ export default async function EstoqueCategoriaPage({ params }: { params: { categ
   const totalPecas = itens.reduce((soma, item) => soma + totalItem(item), 0);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Estoque">
       <Link href="/estoque" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

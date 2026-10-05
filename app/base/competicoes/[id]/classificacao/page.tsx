@@ -30,7 +30,7 @@ export default async function CompeticaoBaseClassificacaoPage({ params }: { para
   } = carregada;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Classificação">
       <CompeticaoTabsBase competicao={competicao} active="classificacao" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">

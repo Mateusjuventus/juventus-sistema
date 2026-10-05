@@ -45,7 +45,7 @@ export default async function EditarJogoBasePage({
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Editar jogo">
       <h1 className="text-2xl font-bold text-grena-escuro">Editar jogo</h1>
       <div className="mt-4">
         <JogoTabsBase jogoId={jogo.id} active="dados" />

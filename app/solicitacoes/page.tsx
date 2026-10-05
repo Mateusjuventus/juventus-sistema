@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SolicitacoesLista } from "@/components/solicitacoes-lista";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
@@ -59,12 +58,7 @@ export default async function SolicitacoesPage({
   const solicitacoes = (data ?? []) as SolicitacaoRow[];
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Solicitações" />
-
+    <AppShell breadcrumb="Solicitações">
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <a
           href={`/solicitacoes/export?tipo=${encodeURIComponent(tipoFiltro)}&status=${encodeURIComponent(statusFiltro)}`}

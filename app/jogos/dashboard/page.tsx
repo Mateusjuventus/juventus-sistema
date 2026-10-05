@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { JogoRow } from "@/lib/supabase/types";
 
@@ -34,11 +33,10 @@ export default async function JogosDashboardPage() {
   const jogosFora = jogos.filter((j) => !j.mandante).length;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Dashboard de Jogos">
       <Link href="/jogos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Jogos
       </Link>
-      <PageHeader title="Dashboard de Jogos" />
 
       {error ? (
         <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">

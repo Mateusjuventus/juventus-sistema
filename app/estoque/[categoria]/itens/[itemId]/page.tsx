@@ -29,7 +29,7 @@ export default async function EditarItemEstoquePage({
   }));
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar item">
       <Link href={`/estoque/${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque {label}
       </Link>

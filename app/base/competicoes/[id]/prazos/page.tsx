@@ -44,7 +44,7 @@ export default async function CompeticaoBasePrazosPage({ params }: { params: { i
   );
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Prazos e Documentos">
       <CompeticaoTabsBase competicao={competicao} active="prazos" />
 
       <div className="grid gap-4 lg:grid-cols-2">

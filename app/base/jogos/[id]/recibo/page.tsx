@@ -50,7 +50,7 @@ export default async function ReciboBasePage({
   const temRecibos = recibos.length > 0;
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Recibo de Pagamento">
       <JogoTabsBase jogoId={jogo.id} active="recibo" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

@@ -42,7 +42,7 @@ export default async function ProgramacaoPage({ params }: { params: { id: string
   const diaJogoLiberado = itensDiaJogo.length > 0;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Programação">
       <JogoTabs jogoId={jogo.id} active="programacao" />
 
       <div className="space-y-6">

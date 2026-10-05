@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
 import { DemandaStatusBadge } from "@/components/demanda-status";
 import { corPrazoDemanda, type CorPrazoDemanda } from "@/lib/demandas/cor-prazo";
@@ -76,11 +75,10 @@ export default async function PessoaAcompanhadaDetalhePage({
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Pessoa acompanhada">
       <Link href="/demandas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
-      <PageHeader title={nome} />
 
       <div className="mt-4 flex items-center gap-3">
         <AtletaAvatarCirculo nome={nome} fotoUrl={fotoUrl} className="h-14 w-14" />

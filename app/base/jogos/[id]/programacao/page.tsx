@@ -47,7 +47,7 @@ export default async function ProgramacaoBasePage({
   const base = `/base/jogos/${jogo.id}`;
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Programação">
       <JogoTabsBase jogoId={jogo.id} active="programacao" />
 
       <div className="space-y-6">

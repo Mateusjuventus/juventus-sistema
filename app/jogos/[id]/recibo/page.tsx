@@ -44,7 +44,7 @@ export default async function ReciboPage({ params }: { params: { id: string } })
   const temRecibos = recibos.length > 0;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Recibo de Pagamento">
       <JogoTabs jogoId={jogo.id} active="recibo" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

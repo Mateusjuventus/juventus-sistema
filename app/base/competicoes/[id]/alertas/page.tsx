@@ -22,7 +22,7 @@ export default async function CompeticaoBaseAlertasPage({ params }: { params: { 
   const alertas = avisosDaCompeticaoBase(carregada, hojeBrasilia());
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Alertas">
       <CompeticaoTabsBase competicao={competicao} active="alertas" />
 
       <h2 className="text-lg font-bold text-grena-escuro">Alertas ({alertas.length})</h2>

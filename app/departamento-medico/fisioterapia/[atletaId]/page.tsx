@@ -82,7 +82,7 @@ export default async function FisioterapiaAtletaPage({ params }: { params: { atl
   const lesaoPorId = new Map(lesoes.map((l) => [l.id, l]));
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Ficha do atleta">
       <Link href="/departamento-medico/fisioterapia" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

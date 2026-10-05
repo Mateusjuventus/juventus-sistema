@@ -9,7 +9,7 @@ export default async function NovaComissaoPage() {
   const podeVerSalario = await podeVerCampoSensivel(createClient(), "salario");
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Nova pessoa — Comissão Técnica/Diretoria">
       <Link href="/comissao-tecnica" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

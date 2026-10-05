@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
 import { buscarPendenciasDoUsuario } from "@/lib/assinaturas/pendencias";
@@ -22,8 +21,7 @@ export default async function DocumentosPendentesPage() {
 
   return (
     <AppShell breadcrumb="Documentos Pendentes">
-      <PageHeader title="Documentos Pendentes de Assinatura" />
-      <p className="mx-auto -mt-2 max-w-2xl text-center text-sm text-neutral-500">
+      <p className="mx-auto max-w-2xl text-center text-sm text-neutral-500">
         Tudo que está esperando a SUA assinatura agora, de qualquer tipo de documento.
       </p>
 

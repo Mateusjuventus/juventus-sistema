@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import {
@@ -69,11 +68,10 @@ export default async function TermosPage({ searchParams }: { searchParams: { sit
   ];
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Termos de Retirada"
-        pendencia={atrasados > 0 ? `${atrasados} termo(s) com devolução atrasada` : null}
-      />
+    <AppShell breadcrumb="Termos de Retirada">
+      {atrasados > 0 ? (
+        <p className="text-sm font-medium text-amber-700">{atrasados} termo(s) com devolução atrasada</p>
+      ) : null}
       <p className="mt-1 text-center text-sm text-neutral-500">
         Termo de responsabilidade assinado no ato da retirada de material do clube.
       </p>

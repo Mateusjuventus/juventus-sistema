@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { DeleteButton } from "@/components/delete-button";
 import { StaffAtivoButton } from "@/components/staff-ativo-button";
@@ -105,11 +104,7 @@ export default async function StaffOperacionalBasePage({
   const inativos = staff.filter((s) => !s.ativo);
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Staff Operacional" />
+    <AppShell departamento="futebol_base" breadcrumb="Staff Operacional">
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <a
           href={`/base/staff-operacional/export?q=${encodeURIComponent(q)}&funcaoId=${encodeURIComponent(funcaoId)}`}

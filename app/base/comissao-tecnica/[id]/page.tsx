@@ -38,7 +38,7 @@ export default async function EditarComissaoBasePage({ params }: { params: { id:
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Editar — Comissão Técnica/Diretoria">
       <Link href="/base/comissao-tecnica" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

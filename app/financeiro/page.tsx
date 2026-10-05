@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { DespesaAvulsaComCategoriaRow, GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 
@@ -94,12 +93,7 @@ export default async function FinanceiroPage() {
     });
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Financeiro" />
-
+    <AppShell breadcrumb="Financeiro">
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {gastos.length > 0 || despesasAvulsas.length > 0 ? (
           <>

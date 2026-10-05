@@ -46,7 +46,7 @@ export default async function CompeticaoSuspensoesPage({ params }: { params: { i
   const ORIGEM_LABEL = { cartao: "Cartão", decisao_disciplinar: "Decisão disciplinar", outro: "Outro" } as const;
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Suspensões">
       <CompeticaoTabs competicao={competicao} active="suspensoes" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">

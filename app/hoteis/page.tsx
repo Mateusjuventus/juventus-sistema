@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { cidadeUf, estruturaDoHotel, formatDiaria } from "@/lib/futebol/hotel";
 import { createClient } from "@/lib/supabase/server";
@@ -34,11 +33,7 @@ export default async function HoteisPage({ searchParams }: { searchParams: { q?:
   const inativos = hoteis.filter((h) => !h.ativo);
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Hotéis" />
+    <AppShell breadcrumb="Hotéis">
       <p className="mt-1 text-center text-sm text-neutral-500">
         Banco de dados dos hotéis do clube — na Rooming List de um jogo dá pra escolher um daqui e o
         nome e o endereço já vêm preenchidos.

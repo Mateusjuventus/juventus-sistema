@@ -51,7 +51,7 @@ export default async function ConvocacaoPage({ params }: { params: { id: string 
   }
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Convocação">
       <JogoTabs jogoId={jogo.id} active="convocacao" />
 
       <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 p-4">

@@ -19,7 +19,7 @@ export default async function OnibusPage({ params }: { params: { id: string } })
 
   if (!convocacao) {
     return (
-      <AppShell>
+      <AppShell breadcrumb="Lista de Passageiros do Ônibus">
         <JogoTabs jogoId={jogo.id} active="onibus" />
         <AvisoSemConvocacao jogoId={jogo.id} />
       </AppShell>
@@ -59,7 +59,7 @@ export default async function OnibusPage({ params }: { params: { id: string } })
   const incluidos = passageiros.map((p) => `${p.pessoa_tipo}:${p.pessoa_id}`);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Lista de Passageiros do Ônibus">
       <JogoTabs jogoId={jogo.id} active="onibus" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

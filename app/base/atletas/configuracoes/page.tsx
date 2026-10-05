@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { buscarPerfisParaSelecao } from "@/lib/auth/perfis";
 import type { ConfiguracaoDispensaBaseRow } from "@/lib/supabase/types";
@@ -22,11 +21,10 @@ export default async function ConfiguracoesAtletasBasePage() {
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Assinatura do Relatório de Dispensa">
       <Link href="/base/atletas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Atletas
       </Link>
-      <PageHeader title="Assinatura do Relatório de Dispensa" />
       <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-neutral-500">
         Quem assina como Departamento de Futebol de Base em todo Relatório de Dispensa. O Treinador
         é sempre quem preenche a avaliação — não precisa configurar.

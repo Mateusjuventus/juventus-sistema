@@ -110,7 +110,7 @@ export default async function VagasStaffBasePage({ params }: { params: { id: str
   const mensagemWhatsapp = `Vagas de trabalho — ${buildConfrontoTexto(jogo)} (${dataTexto}). Pegue a sua:`;
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Vagas de Staff">
       <JogoTabsBase jogoId={jogo.id} active="vagas" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

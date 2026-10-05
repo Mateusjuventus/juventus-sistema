@@ -82,7 +82,7 @@ export default async function AtletasBaseCategoriaPage({
   // do que uma linha de texto no cabeçalho.
 
   return (
-    <AppShell departamento="futebol_base" largura="total">
+    <AppShell departamento="futebol_base" largura="total" breadcrumb="Atletas">
       <Link href="/base/atletas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

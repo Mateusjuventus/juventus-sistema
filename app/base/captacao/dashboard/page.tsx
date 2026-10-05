@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { MapaBrasilUf } from "@/components/mapa-brasil-uf";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
@@ -34,11 +33,10 @@ export default async function CaptacaoDashboardPage() {
   const totalCandidatos = candidatos.length;
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Dashboard da Captação">
       <Link href="/base/captacao" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Captação/Avaliação
       </Link>
-      <PageHeader title="Dashboard da Captação" />
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-6">
         <div className="card p-4 text-center">

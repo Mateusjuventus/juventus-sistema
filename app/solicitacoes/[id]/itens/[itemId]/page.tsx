@@ -59,7 +59,7 @@ export default async function EditarItemSolicitacaoPage({
           : "Editar item";
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar item">
       <Link href={`/solicitacoes/${solicitacao.id}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para a solicitação
       </Link>

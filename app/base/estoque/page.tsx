@@ -18,10 +18,7 @@ export default async function EstoqueBasePage() {
   const totalPecas = itens.reduce((soma, item) => soma + totalItem(item), 0);
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
+    <AppShell departamento="futebol_base" breadcrumb="Estoque">
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-grena-escuro">Estoque</h1>

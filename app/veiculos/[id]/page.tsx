@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { VeiculoRow } from "@/lib/supabase/types";
 import { atualizarVeiculo } from "../actions";
@@ -20,11 +19,10 @@ export default async function EditarVeiculoPage({ params }: { params: { id: stri
   const action = atualizarVeiculo.bind(null, veiculo.id);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar Veículo">
       <Link href="/veiculos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Veículos / Placas
       </Link>
-      <PageHeader title="Editar Veículo" />
       <VeiculoForm veiculo={veiculo} pessoas={pessoas} action={action} submitLabel="Salvar alterações" />
     </AppShell>
   );

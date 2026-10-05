@@ -22,7 +22,7 @@ export default async function NovoItemSolicitacaoPage({ params }: { params: { id
           : "Novo item";
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Novo item">
       <Link href={`/solicitacoes/${solicitacao.id}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para a solicitação
       </Link>

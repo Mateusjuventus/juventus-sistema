@@ -16,7 +16,7 @@ export default async function NovaSolicitacaoPage() {
   const solicitante = master ? "Mateus dos Santos Pereira" : ((await nomeDaContaAtual(supabase)) ?? "");
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Nova solicitação">
       <Link href="/solicitacoes" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

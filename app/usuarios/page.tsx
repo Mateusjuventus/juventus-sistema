@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
 import { MODULOS } from "@/lib/auth/modulos";
@@ -60,11 +58,7 @@ export default async function UsuariosPage() {
   const perfis = (data ?? []) as PerfilRow[];
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Usuários" />
+    <AppShell breadcrumb="Usuários">
       <p className="mt-1 text-center text-sm text-neutral-500">
         Só quem é <strong>master</strong> pode excluir Entrada/Saída do Estoque e acessar esta tela.
       </p>

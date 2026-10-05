@@ -92,7 +92,7 @@ export default async function HistoricoEstoquePage({
   );
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Histórico">
       <Link href={`/estoque/${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque {label}
       </Link>

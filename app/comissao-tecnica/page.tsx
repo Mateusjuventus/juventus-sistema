@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { DeleteButton } from "@/components/delete-button";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
@@ -31,11 +30,7 @@ export default async function ComissaoTecnicaPage({
   const fotoUrls = await Promise.all(pessoas.map((p) => getSignedPhotoUrl(supabase, p.foto_path)));
 
   return (
-    <AppShell>
-      <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Comissão Técnica / Diretoria" />
+    <AppShell breadcrumb="Comissão Técnica / Diretoria">
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <a href={`/comissao-tecnica/export?q=${encodeURIComponent(q)}`} className="btn-secondary">
           Exportar para Excel

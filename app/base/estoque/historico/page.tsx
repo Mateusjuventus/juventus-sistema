@@ -72,7 +72,7 @@ export default async function HistoricoEstoqueBasePage({ searchParams }: { searc
   );
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Histórico">
       <Link href="/base/estoque" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque
       </Link>

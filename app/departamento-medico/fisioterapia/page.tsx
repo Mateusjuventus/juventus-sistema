@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getFisioterapiaPodeEditar } from "@/lib/auth/role";
@@ -58,15 +57,8 @@ export default async function FisioterapiaListagemPage() {
   }));
 
   return (
-    <AppShell largura="total">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* A tela-hub de Departamento Médico foi removida (ver docs/superpowers/specs/
-            2026-10-01-departamento-medico-historico-status-design.md, seção 1) — "Fisioterapia"
-            agora é acessada direto pela sidebar, então "Voltar" segue o mesmo padrão dos outros
-            módulos de topo (ex.: Atletas, Financeiro): volta pro Início. */}
-        <Link href="/profissional" className="text-sm font-medium text-grena hover:underline">
-          ← Voltar
-        </Link>
+    <AppShell largura="total" breadcrumb="Fisioterapia">
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="flex flex-wrap gap-2">
           <Link href="/departamento-medico/fisioterapia/relatorio" className="btn-secondary btn-sm">
             Relatório geral
@@ -80,7 +72,6 @@ export default async function FisioterapiaListagemPage() {
           </a>
         </div>
       </div>
-      <PageHeader title="Fisioterapia" />
       <p className="mt-1 text-center text-sm text-neutral-500">
         {podeEditar
           ? "Clique num atleta para lançar lesões, queixas e atendimentos."

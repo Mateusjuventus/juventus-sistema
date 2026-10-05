@@ -29,7 +29,7 @@ export default async function EntradaBaseDetalhePage({ params }: { params: { ent
   const totalQtd = itens.reduce((soma, i) => soma + Number(i.quantidade), 0);
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Entrada de estoque">
       <Link href="/base/estoque" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque
       </Link>

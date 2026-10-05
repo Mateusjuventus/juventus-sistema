@@ -19,7 +19,7 @@ export default async function NovaComissaoBasePage({
   const podeVerSalario = await podeVerCampoSensivel(createClient(), "salario");
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Nova pessoa — Comissão Técnica/Diretoria">
       <Link href="/base/comissao-tecnica" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

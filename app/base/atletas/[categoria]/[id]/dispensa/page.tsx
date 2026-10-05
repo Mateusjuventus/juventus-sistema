@@ -55,7 +55,7 @@ export default async function DispensaAtletaBasePage({
   };
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Relatório de Dispensa">
       <Link
         href={`/base/atletas/${params.categoria}/${atleta.id}/ver`}
         className="text-sm font-medium text-grena hover:underline"

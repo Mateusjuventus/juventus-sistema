@@ -10,7 +10,7 @@ export default function NovoAtletaBasePage({ params }: { params: { categoria: st
   const categoria = params.categoria;
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Novo atleta">
       <Link href={`/base/atletas/${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

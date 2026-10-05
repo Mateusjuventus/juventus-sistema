@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { GastoJogoBaseComCategoriaRow, JogoBaseRow } from "@/lib/supabase/types";
 import { GeralBaseView } from "./geral-base-view";
@@ -196,12 +195,7 @@ export default function FinanceiroBasePage({
   const aba = searchParams.aba === "geral" ? "geral" : "jogos";
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Financeiro" />
-
+    <AppShell departamento="futebol_base" breadcrumb="Financeiro">
       <div className="tab-bar mb-1 mt-4">
         <Link
           href="/base/financeiro"

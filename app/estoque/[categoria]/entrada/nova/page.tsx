@@ -22,7 +22,7 @@ export default async function NovaEntradaPage({ params }: { params: { categoria:
   const itens = (data ?? []) as EstoqueItemRow[];
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Nova entrada">
       <Link href={`/estoque/${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque {label}
       </Link>

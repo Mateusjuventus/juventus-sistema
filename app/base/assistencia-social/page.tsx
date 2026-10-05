@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { AtletaCardDados } from "@/components/atletas/atleta-card";
@@ -45,8 +44,7 @@ export default async function AssistenciaSocialListagemPage() {
   }));
 
   return (
-    <AppShell departamento="futebol_base" largura="total">
-      <PageHeader title="Assistência Social" />
+    <AppShell departamento="futebol_base" largura="total" breadcrumb="Assistência Social">
       <p className="mt-1 text-center text-sm text-neutral-500">
         Clique num atleta pra ver o histórico de atendimentos e registrar um novo.
       </p>

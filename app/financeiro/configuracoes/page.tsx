@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { buscarPerfisParaSelecao } from "@/lib/auth/perfis";
 import type { ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
@@ -32,11 +31,10 @@ export default async function ConfiguracoesFinanceiroPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Assinaturas dos Relatórios">
       <Link href="/financeiro" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Prestação de Contas
       </Link>
-      <PageHeader title="Assinaturas dos Relatórios" />
       <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-neutral-500">
         Esses dois nomes e cargos aparecem no PDF do orçamento previsto e no relatório geral da
         Prestação de Contas. Altere aqui sempre que precisar trocar quem assina.

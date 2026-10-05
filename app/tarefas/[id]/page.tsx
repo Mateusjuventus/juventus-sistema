@@ -27,7 +27,7 @@ export default async function EditarTarefaPage({ params }: { params: { id: strin
   };
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Editar tarefa">
       <Link href="/tarefas" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

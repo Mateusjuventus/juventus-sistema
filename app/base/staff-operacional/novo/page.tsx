@@ -11,7 +11,7 @@ export default async function NovoStaffBasePage() {
   const funcoes = (data ?? []) as StaffFuncaoCatalogoRow[];
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Novo staff operacional">
       <Link href="/base/staff-operacional" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

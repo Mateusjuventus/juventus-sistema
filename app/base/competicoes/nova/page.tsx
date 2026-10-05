@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { TemporadaBaseRow } from "@/lib/supabase/types";
 import { criarCompeticaoBase } from "../actions";
@@ -12,11 +11,10 @@ export default async function NovaCompeticaoBasePage() {
   const temporadas = (data ?? []) as TemporadaBaseRow[];
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Nova Competição">
       <Link href="/base/competicoes" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Competições
       </Link>
-      <PageHeader title="Nova Competição" />
 
       {temporadas.length === 0 ? (
         <div className="card mt-6 p-8 text-center text-neutral-500">

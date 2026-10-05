@@ -44,7 +44,7 @@ export default async function AssistenciaSocialAtletaPage({ params }: { params: 
   ]);
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Ficha do atleta">
       <Link href="/base/assistencia-social" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>

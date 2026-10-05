@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { DeleteButton } from "@/components/delete-button";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
@@ -48,11 +47,7 @@ export default async function ComissaoTecnicaBasePage({
     : "/base/comissao-tecnica/novo";
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Comissão Técnica / Diretoria" />
+    <AppShell departamento="futebol_base" breadcrumb="Comissão Técnica / Diretoria">
       <ComissaoTecnicaBaseTabs active="lista" />
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <a

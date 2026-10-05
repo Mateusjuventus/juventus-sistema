@@ -25,7 +25,7 @@ export default async function OnibusBasePage({ params }: { params: { id: string 
 
   if (!convocacao) {
     return (
-      <AppShell departamento="futebol_base">
+      <AppShell departamento="futebol_base" breadcrumb="Lista de Passageiros do Ônibus">
         <JogoTabsBase jogoId={jogo.id} active="onibus" />
         <AvisoSemConvocacao jogoId={jogo.id} convocacaoHref={`/base/jogos/${jogo.id}/convocacao`} />
       </AppShell>
@@ -71,7 +71,7 @@ export default async function OnibusBasePage({ params }: { params: { id: string 
   const incluidos = passageiros.map((p) => `${p.pessoa_tipo}:${p.pessoa_id}`);
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Lista de Passageiros do Ônibus">
       <JogoTabsBase jogoId={jogo.id} active="onibus" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

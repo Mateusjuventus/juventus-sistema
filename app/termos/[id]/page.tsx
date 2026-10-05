@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedTermoDocumentoUrl } from "@/lib/supabase/storage";
@@ -63,11 +62,10 @@ export default async function TermoDetalhePage({ params }: { params: { id: strin
   const excluirAnexoAction = excluirAnexoTermo.bind(null, termo.id);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Termo">
       <Link href="/termos" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Termos de Retirada
       </Link>
-      <PageHeader title={`Termo Nº ${String(termo.numero).padStart(4, "0")}`} />
       <p className="mt-1 text-center text-sm text-neutral-500">
         {TERMO_TIPO_LABEL[termo.tipo]} · {formatData(termo.data)} · {SITUACAO_LABEL[situacao]}
       </p>

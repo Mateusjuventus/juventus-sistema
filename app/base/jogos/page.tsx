@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SearchBar } from "@/components/search-bar";
 import { JogoCardBase } from "@/components/jogos/jogo-card-base";
 import { createClient } from "@/lib/supabase/server";
@@ -70,11 +69,8 @@ export default async function JogosBasePage({
   const queryStringBase = `q=${encodeURIComponent(q)}&mandante=${encodeURIComponent(mandanteFiltro)}&categoria=${encodeURIComponent(categoriaFiltro)}`;
 
   return (
-    <AppShell departamento="futebol_base">
-      <Link href="/base" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <PageHeader title="Jogos / Competições" pendencia={pendenciaJogos} />
+    <AppShell departamento="futebol_base" breadcrumb="Jogos">
+      {pendenciaJogos ? <p className="text-sm font-medium text-amber-700">{pendenciaJogos}</p> : null}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <Link
           href={`/base/jogos?${queryStringBase}&ordem=${ordem === "cronologico" ? "proximidade" : "cronologico"}`}

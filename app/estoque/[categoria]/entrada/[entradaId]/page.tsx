@@ -40,7 +40,7 @@ export default async function EntradaDetalhePage({
   const totalQtd = itens.reduce((soma, i) => soma + Number(i.quantidade), 0);
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Entrada de estoque">
       <Link href={`/estoque/${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Estoque {label}
       </Link>

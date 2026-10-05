@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedCaptacaoDocumentoUrl, getSignedPhotoUrl } from "@/lib/supabase/storage";
@@ -131,14 +130,11 @@ export default async function EditarCandidatoPage({ params }: { params: { id: st
   const atualizarAction = atualizarCaptacao.bind(null, candidato.id);
 
   return (
-    <AppShell departamento="futebol_base">
+    <AppShell departamento="futebol_base" breadcrumb="Candidato">
       <Link href="/base/captacao" className="text-sm font-medium text-grena hover:underline">
         ← Voltar para Captação/Avaliação
       </Link>
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-        <PageHeader title={`Candidato Nº ${candidato.numero}`} />
-      </div>
-      <div className="mt-1 flex flex-col items-center gap-2">
+      <div className="mt-2 flex flex-col items-center gap-2">
         {candidato.status === "inscricao" ? (
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${corCaptacaoStatus(candidato.status)}`}>
             {captacaoStatusLabel(candidato.status)}
