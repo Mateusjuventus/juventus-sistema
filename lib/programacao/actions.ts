@@ -27,8 +27,11 @@ import { buscarDia } from "./queries";
  * Edição de atividade adicionada em 18/09 (pedido do Mateus — clicar numa atividade da grade agora
  * abre a opção de editar, tela do treinador e da base) — `atualizarAtividade`/
  * `atualizarAtividadeDeJogo` espelham exatamente a validação e as regras de `criarAtividade`/
- * `criarAtividadeDeJogo` acima, só trocando o insert por um update na atividade já existente. Sem
- * remoção de atividade ou subatividade ainda.
+ * `criarAtividadeDeJogo` acima, só trocando o insert por um update na atividade já existente.
+ * `excluirAtividade` (05/10) cobre o que faltava — "quando coloca-se alguma atividade, não
+ * conseguimos excluir": nunca tinha existido a opção, não era bug. Apaga a atividade e, em
+ * cascata, suas subatividades (FK `on delete cascade`, ver 0094_programacao_semanal.sql) — nenhuma
+ * action própria de excluir subatividade isolada ainda.
  */
 
 export interface ProgramacaoFormState {
@@ -448,6 +451,31 @@ export async function copiarDiaProgramacao(
       }
     }
   }
+
+  revalidatePath("/treinador");
+  revalidatePath("/base");
+  return {};
+}
+
+/** "Excluir Atividade" — chamada direto pelo client (sem `<form>`), mesmo padrão de
+ * `copiarDiaProgramacao`/`salvarMicrocicloTexto` abaixo. Recusa se a atividade já não existir (ex.:
+ * excluída em outra aba) ou se a categoria dela não estiver liberada pra quem está chamando. */
+export async function excluirAtividade(id: string): Promise<ProgramacaoFormState> {
+  const supabase = createClient();
+
+  const { data: atividade } = await supabase
+    .from("programacao_atividades")
+    .select("categoria")
+    .eq("id", id)
+    .maybeSingle();
+  if (!atividade) return { error: "Atividade não encontrada." };
+
+  if (!(await categoriaLiberada(supabase, atividade.categoria))) {
+    return { error: "Você não tem permissão para excluir atividades nesta categoria." };
+  }
+
+  const { error } = await supabase.from("programacao_atividades").delete().eq("id", id);
+  if (error) return { error: `Não foi possível excluir a atividade: ${error.message}` };
 
   revalidatePath("/treinador");
   revalidatePath("/base");

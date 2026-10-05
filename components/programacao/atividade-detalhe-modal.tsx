@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { ModalShell } from "./modal";
 import { GameCard } from "./game-card";
 import { NovaSubatividadeModal } from "./nova-subatividade-modal";
 import { AtividadeFormModal } from "./nova-atividade-modal";
 import { formatHorarioCurto, labelTipoAtividade } from "@/lib/programacao/tipo-atividade";
+import { excluirAtividade } from "@/lib/programacao/actions";
 import type { AtividadeComDetalhes, JogoResumoAtividade } from "@/lib/programacao/queries";
 import type { ProgramacaoCatalogoSubatividadeRow } from "@/lib/supabase/types";
 import type { CategoriaBase } from "@/lib/auth/categorias-base";
@@ -19,7 +20,10 @@ function formatDataBr(dataIso: string): string {
  * Detalhe de uma atividade da grade — abas Planejamento (lista de subatividades + "+ Nova
  * Subatividade") e Executado (ainda não tem nada pra registrar aqui — ver spec, "Fora de escopo").
  * Botão "Editar" adicionado em 18/09 (pedido do Mateus) abre o mesmo formulário de "+ Nova
- * Atividade" (`AtividadeFormModal`) já preenchido — ainda sem remoção de atividade/subatividade.
+ * Atividade" (`AtividadeFormModal`) já preenchido. "Excluir" (05/10, mesmo pedido: "quando
+ * coloca-se alguma atividade, não conseguimos excluir") chama `excluirAtividade` direto (sem
+ * `<form>`, pra poder fechar o modal sozinho quando a exclusão dá certo — a grade por trás já
+ * atualiza pelo `revalidatePath` da action).
  */
 export function AtividadeDetalheModal({
   atividade,
@@ -37,6 +41,22 @@ export function AtividadeDetalheModal({
   const [aba, setAba] = useState<"planejamento" | "executado">("planejamento");
   const [novaSubAberta, setNovaSubAberta] = useState(false);
   const [editarAberto, setEditarAberto] = useState(false);
+  const [confirmandoExcluir, setConfirmandoExcluir] = useState(false);
+  const [erroExcluir, setErroExcluir] = useState<string | null>(null);
+  const [excluindo, startExcluir] = useTransition();
+
+  function excluir() {
+    setErroExcluir(null);
+    startExcluir(async () => {
+      const resultado = await excluirAtividade(atividade.id);
+      if (resultado.error) {
+        setErroExcluir(resultado.error);
+        setConfirmandoExcluir(false);
+      } else {
+        onClose();
+      }
+    });
+  }
 
   const subtitulo = atividade.jogo
     ? undefined
@@ -74,10 +94,38 @@ export function AtividadeDetalheModal({
               Executado
             </button>
           </div>
-          <button type="button" onClick={() => setEditarAberto(true)} className="mb-2 shrink-0 text-sm font-semibold text-grena hover:underline">
-            Editar
-          </button>
+          <div className="mb-2 flex shrink-0 items-center gap-3">
+            <button type="button" onClick={() => setEditarAberto(true)} className="text-sm font-semibold text-grena hover:underline">
+              Editar
+            </button>
+            {confirmandoExcluir ? (
+              <div className="flex items-center gap-2 rounded-md bg-red-50 p-1.5">
+                <span className="text-xs text-red-800">Excluir esta atividade?</span>
+                <button
+                  type="button"
+                  onClick={excluir}
+                  disabled={excluindo}
+                  className="btn-danger px-2 py-1 text-xs"
+                >
+                  {excluindo ? "Excluindo..." : "Sim, excluir"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoExcluir(false)}
+                  disabled={excluindo}
+                  className="text-xs font-medium text-neutral-500 hover:underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirmandoExcluir(true)} className="text-sm font-semibold text-red-700 hover:underline">
+                Excluir
+              </button>
+            )}
+          </div>
         </div>
+        {erroExcluir ? <p className="field-error -mt-3 mb-3">{erroExcluir}</p> : null}
 
         {aba === "planejamento" ? (
           <div className="pt-4">

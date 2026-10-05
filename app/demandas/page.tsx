@@ -26,7 +26,7 @@ export default async function DemandasPage() {
   const perfis = (perfisData ?? []) as PerfilRow[];
   const hojeStr = hojeBrasilia();
 
-  const cards = await Promise.all(
+  const resultados = await Promise.all(
     perfis.map(async (perfil) => {
       const [{ nome, funcao, fotoUrl }, { data: demandasData }] = await Promise.all([
         resolverPessoaAcompanhada(supabase, perfil),
@@ -38,12 +38,18 @@ export default async function DemandasPage() {
         .filter((d) => d.status !== "concluido")
         .sort((a, b) => (a.prazo ?? "9999-99-99").localeCompare(b.prazo ?? "9999-99-99"));
 
-      return { id: perfil.id, nome, funcao, fotoUrl, rendimento, pendencias };
+      return { id: perfil.id, nome, funcao, fotoUrl, rendimento, pendencias, demandas };
     }),
   );
+  const cards = resultados.map(({ demandas: _demandas, ...card }) => card);
 
   const totalPendencias = cards.reduce((acc, c) => acc + c.rendimento.pendentes, 0);
   const totalAtrasadas = cards.reduce((acc, c) => acc + c.rendimento.atrasadas, 0);
+  // "% Geral" pedido pelo Mateus em 05/10 ("coloca a %geral também ali nos gerais") — mesma conta
+  // de `percentualHoje` (ver `calcularRendimento`), só que sobre TODAS as demandas de TODAS as
+  // pessoas acompanhadas juntas, não pessoa por pessoa.
+  const todasDemandas = resultados.flatMap((r) => r.demandas);
+  const percentualGeral = calcularRendimento(todasDemandas, hojeStr).percentualHoje;
 
   return (
     <AppShell>
@@ -59,10 +65,16 @@ export default async function DemandasPage() {
         </div>
       ) : (
         <>
-          <div className="mx-auto mt-6 grid max-w-xl grid-cols-3 gap-3">
+          <div className="mx-auto mt-6 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="card p-4 text-center">
               <p className="text-2xl font-bold text-grena-escuro">{cards.length}</p>
               <p className="mt-1 text-xs font-medium text-neutral-500">Pessoas acompanhadas</p>
+            </div>
+            <div className="card p-4 text-center">
+              <p className="text-2xl font-bold text-grena-escuro">
+                {percentualGeral === null ? "—" : `${percentualGeral}%`}
+              </p>
+              <p className="mt-1 text-xs font-medium text-neutral-500">% Geral hoje</p>
             </div>
             <div className="card p-4 text-center">
               <p className={`text-2xl font-bold ${totalPendencias > 0 ? "text-orange-700" : "text-grena-escuro"}`}>

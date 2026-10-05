@@ -122,7 +122,7 @@ export function PessoaAcompanhadaCard({
             }
           : undefined
       }
-      className={`card border-2 p-4 ${BORDA_STATUS[piorCor]} ${
+      className={`card overflow-hidden border-2 p-4 ${BORDA_STATUS[piorCor]} ${
         aoClicar ? "cursor-pointer text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-dourado" : ""
       }`}
     >
