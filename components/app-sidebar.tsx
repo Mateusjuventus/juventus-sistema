@@ -8,6 +8,7 @@ import { ChecklistIcon, HomeIcon, SwitchIcon, TargetIcon } from "@/components/de
 import {
   IconAlojamento,
   IconAssinaturaPendente,
+  IconAssistenciaSocial,
   IconAtletas,
   IconCaptacao,
   IconComissao,
@@ -37,8 +38,10 @@ import { PRIORIDADE_MOBILE, type ModuloChave } from "@/lib/auth/modulos";
  * abaixo — sem isso, `ICONES[item.icone]` fica `undefined` e o React quebra em produção (erro #130,
  * "element type is invalid") assim que alguém com aquele módulo liberado carrega a sidebar. O
  * `as SidebarIconKey` em `app-shell.tsx` (necessário pra reaproveitar `MODULOS_BASE.map` sem
- * duplicar a lista) não pega esse tipo de furo em tempo de compilação — só em runtime. */
-export type SidebarIconKey = ModuloChave | "usuarios" | "captacao" | "alojamento";
+ * duplicar a lista) não pega esse tipo de furo em tempo de compilação — só em runtime.
+ * ("assistencia_social" foi exatamente esse furo: entrou em `ModuloBaseChave`/`MODULOS_BASE` sem
+ * entrada aqui, e quebrava a sidebar inteira da Base pra quem tivesse o módulo liberado — 05/10.) */
+export type SidebarIconKey = ModuloChave | "usuarios" | "captacao" | "alojamento" | "assistencia_social";
 
 export interface SidebarNavItem {
   href: string;
@@ -70,6 +73,7 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
   usuarios: IconUsuarios,
   captacao: IconCaptacao,
   alojamento: IconAlojamento,
+  assistencia_social: IconAssistenciaSocial,
 };
 
 /** Rótulos da sidebar são escritos por extenso ("Comissão Técnica / Diretoria") e não cabem embaixo
@@ -83,6 +87,7 @@ const ROTULO_CURTO: Record<string, string> = {
   "Relatório Avulso": "Relatório",
   "Jogos / Competições": "Jogos",
   "Captação/Avaliação": "Captação",
+  "Assistência Social": "Social",
 };
 
 function rotuloCurto(label: string): string {
