@@ -22,7 +22,6 @@ import { CalendarioWidget } from "./calendario-widget";
 import { ProximoJogoWidget } from "./proximo-jogo-widget";
 import { ProximosJogosWidget } from "./proximos-jogos-widget";
 import { MuralWidget } from "./mural-widget";
-import { MinhasDemandasWidget } from "@/components/demandas/minhas-demandas-widget";
 
 const DIAS_JANELA_MURAL = 10;
 const DIAS_JANELA_CONTRATO = 90;
@@ -167,10 +166,6 @@ export default async function ProfissionalPage() {
   return (
     <AppShell breadcrumb="Futebol Profissional">
       <h1 className="text-xl font-extrabold text-grena-escuro">Futebol Profissional</h1>
-
-      <div className="mt-4">
-        <MinhasDemandasWidget />
-      </div>
 
       <div className="mt-4 grid grid-cols-[1fr_224px] items-start gap-4 max-lg:grid-cols-1">
         <div className="min-w-0 space-y-4">

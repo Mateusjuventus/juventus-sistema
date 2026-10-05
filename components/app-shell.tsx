@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { AppSidebar, type SidebarIconKey, type SidebarNavItem } from "@/components/app-sidebar";
+import { DemandasFlutuante } from "@/components/demandas/demandas-flutuante";
 import { createClient } from "@/lib/supabase/server";
 import {
   getDemandasAcompanhado,
@@ -186,6 +187,9 @@ export async function AppShell({
           <div className={`min-w-0 ${largura === "total" ? "" : "mx-auto max-w-6xl"}`}>{children}</div>
         </main>
       </div>
+      {/* Flutuante em cima de qualquer tela (não só a Home) — pedido do Mateus em 05/10, ver
+          `DemandasFlutuante`. Some sozinho pra quem não está marcado "Acompanhar". */}
+      <DemandasFlutuante />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { PessoaAcompanhadaCard } from "@/components/demandas/pessoa-acompanhada-card";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
-import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { resolverPessoaAcompanhada } from "@/lib/demandas/pessoa-acompanhada";
 import { calcularRendimento } from "@/lib/demandas/rendimento";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import type { DemandaRow, PerfilRow } from "@/lib/supabase/types";
@@ -28,40 +28,9 @@ export default async function DemandasPage() {
 
   const cards = await Promise.all(
     perfis.map(async (perfil) => {
-      // Nome/função/foto: vínculo com a Comissão Técnica (Base tem prioridade sobre Profissional,
-      // mesma regra de `resolverNomeCargoParaAssinatura`) quando existir, senão `perfis.nome`/
-      // `cargo` de sempre e avatar de iniciais (sem foto cadastrada fora da Comissão Técnica).
-      let nome = perfil.nome ?? perfil.email;
-      let funcao = perfil.cargo ?? "—";
-      let fotoPath: string | null = null;
-
-      if (perfil.comissao_tecnica_base_id) {
-        const { data } = await supabase
-          .from("comissao_tecnica_base")
-          .select("nome_completo, funcao, foto_path")
-          .eq("id", perfil.comissao_tecnica_base_id)
-          .maybeSingle();
-        if (data) {
-          nome = data.nome_completo;
-          funcao = data.funcao;
-          fotoPath = data.foto_path;
-        }
-      } else if (perfil.comissao_tecnica_id) {
-        const { data } = await supabase
-          .from("comissao_tecnica")
-          .select("nome_completo, funcao, foto_path")
-          .eq("id", perfil.comissao_tecnica_id)
-          .maybeSingle();
-        if (data) {
-          nome = data.nome_completo;
-          funcao = data.funcao;
-          fotoPath = data.foto_path;
-        }
-      }
-
-      const [{ data: demandasData }, fotoUrl] = await Promise.all([
+      const [{ nome, funcao, fotoUrl }, { data: demandasData }] = await Promise.all([
+        resolverPessoaAcompanhada(supabase, perfil),
         supabase.from("demandas").select("*").eq("responsavel_id", perfil.id),
-        getSignedPhotoUrl(supabase, fotoPath),
       ]);
       const demandas = (demandasData ?? []) as DemandaRow[];
       const rendimento = calcularRendimento(demandas, hojeStr);
@@ -69,7 +38,7 @@ export default async function DemandasPage() {
         .filter((d) => d.status !== "concluido")
         .sort((a, b) => (a.prazo ?? "9999-99-99").localeCompare(b.prazo ?? "9999-99-99"));
 
-      return { id: perfil.id, nome: nome ?? "—", funcao, fotoUrl, rendimento, pendencias };
+      return { id: perfil.id, nome, funcao, fotoUrl, rendimento, pendencias };
     }),
   );
 
@@ -95,6 +64,8 @@ export default async function DemandasPage() {
               fotoUrl={c.fotoUrl}
               rendimento={c.rendimento}
               pendencias={c.pendencias}
+              hojeStr={hojeStr}
+              href={`/demandas/${c.id}`}
             />
           ))}
         </div>

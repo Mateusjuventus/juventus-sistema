@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { resolverNomeCargoParaAssinatura } from "@/lib/assinaturas/nome-cargo";
 
 export interface PerfilParaSelecao {
   id: string;
@@ -83,6 +84,46 @@ export async function buscarComissaoTecnicaBaseParaSelecao(
       id: p.id,
       rotulo: `${p.nome_completo} — ${p.funcao}`,
       categorias: p.categorias,
+    }),
+  );
+}
+
+export interface PessoaAcompanhadaParaSelecao {
+  id: string;
+  nome: string;
+}
+
+/**
+ * Lista de quem está marcado "Acompanhar no painel de Demandas" (ver `/usuarios` e
+ * `app/demandas/page.tsx`) — popula o `<select>` de "pra quem é essa demanda" que só o master vê
+ * no painel flutuante (pedido do Mateus em 05/10: "eu como master posso colocar demanda pra eles
+ * também"). Nome resolvido pela mesma prioridade de sempre (vínculo com a Comissão Técnica da Base
+ * > Profissional > `perfis.nome`/e-mail) via `resolverNomeCargoParaAssinatura`.
+ */
+export async function buscarPessoasAcompanhadasParaSelecao(
+  supabase: ReturnType<typeof createClient>,
+): Promise<PessoaAcompanhadaParaSelecao[]> {
+  const { data } = await supabase
+    .from("perfis")
+    .select("id, nome, email, comissao_tecnica_id, comissao_tecnica_base_id")
+    .eq("demandas_acompanhado", true)
+    .order("email", { ascending: true });
+  const perfis = (data ?? []) as {
+    id: string;
+    nome: string | null;
+    email: string;
+    comissao_tecnica_id: string | null;
+    comissao_tecnica_base_id: string | null;
+  }[];
+  return Promise.all(
+    perfis.map(async (p) => {
+      const { nome } = await resolverNomeCargoParaAssinatura(supabase, {
+        nome: p.nome,
+        cargo: null,
+        comissao_tecnica_id: p.comissao_tecnica_id,
+        comissao_tecnica_base_id: p.comissao_tecnica_base_id,
+      });
+      return { id: p.id, nome: nome ?? p.email };
     }),
   );
 }

@@ -9,7 +9,6 @@ import { inicioDaSemana } from "@/lib/programacao/semana";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
 import { ProgramacaoView } from "@/components/programacao/programacao-view";
-import { MinhasDemandasWidget } from "@/components/demandas/minhas-demandas-widget";
 
 /**
  * Início do Futebol de Base — desde 30/08 é direto a Programação Semanal (ver docs/superpowers/
@@ -38,9 +37,6 @@ export default async function BasePage({
         <div className="mt-2 flex flex-col items-center gap-2 text-center">
           <JuventusCrest className="h-14 w-auto" />
           <h1 className="text-3xl font-bold text-grena-escuro">Futebol de Base</h1>
-        </div>
-        <div className="mx-auto mt-6 max-w-md">
-          <MinhasDemandasWidget />
         </div>
         <div className="card mx-auto mt-6 max-w-md p-8 text-center text-neutral-500">
           Você não tem acesso a nenhum módulo do Futebol de Base ainda. Fale com o responsável pelo
@@ -71,10 +67,6 @@ export default async function BasePage({
       <div className="mt-2 flex flex-col items-center gap-2 text-center">
         <JuventusCrest className="h-14 w-auto" />
         <h1 className="text-3xl font-bold text-grena-escuro">Futebol de Base</h1>
-      </div>
-
-      <div className="mx-auto mt-6 max-w-2xl">
-        <MinhasDemandasWidget />
       </div>
 
       <div className="mt-6">

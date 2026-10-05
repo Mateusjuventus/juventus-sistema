@@ -16,9 +16,9 @@ function formatData(data: string | null): string | null {
 
 /**
  * Tela cheia das demandas da pessoa logada — acessível a QUALQUER usuário logado, mesmo quem não
- * tem `demandas_acompanhado` marcado (só não ganha o link na sidebar nem o widget da tela inicial,
- * ver `components/app-sidebar.tsx`/`components/demandas/minhas-demandas-widget.tsx`). Mesmo padrão
- * de `/tarefas`: abertas primeiro, concluídas recolhidas num `<details>`.
+ * tem `demandas_acompanhado` marcado (só não ganha o link na sidebar nem o painel flutuante, ver
+ * `components/app-sidebar.tsx`/`components/demandas/demandas-flutuante.tsx`). Mesmo padrão de
+ * `/tarefas`: abertas primeiro, concluídas recolhidas num `<details>`.
  */
 export default async function MinhasDemandasPage() {
   const supabase = createClient();

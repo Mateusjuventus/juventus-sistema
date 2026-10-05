@@ -13,14 +13,13 @@ export interface DemandaFormState {
 
 /**
  * CRUD de Demandas — espelha `app/tarefas/actions.ts`, com três diferenças deliberadas: não existe
- * `categoria` (não se aplica aqui), `responsavel_id` NUNCA vem do formulário (sempre `auth.uid()` —
- * ninguém cria ou edita demanda de outra pessoa por aqui; é o Mateus que cadastra quem ele vai
- * acompanhar, lá em `/usuarios`, não "atribui" demandas pelo sistema), e não existe uma action de
- * editar título/descrição depois de criada — só trocar status ou excluir (ver docs/superpowers/
- * specs/2026-10-05-assistencia-social-e-demandas-design.md, Parte 2: o widget precisa ser rápido de
- * preencher, não um formulário completo de edição). `criarDemanda` não redireciona (ao contrário de
- * `createTarefa`) porque é usada tanto na tela cheia quanto no mini-form embutido no widget da tela
- * inicial — os dois ficam na mesma página depois de criar.
+ * `categoria` (não se aplica aqui), `responsavel_id` normalmente é sempre `auth.uid()` (ninguém
+ * cria demanda de outra pessoa por aqui, com UMA exceção — ver `responsavelId` abaixo), e não
+ * existe uma action de editar título/descrição depois de criada — só trocar status ou excluir (ver
+ * docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md, Parte 2: o widget
+ * precisa ser rápido de preencher, não um formulário completo de edição). `criarDemanda` não
+ * redireciona (ao contrário de `createTarefa`) porque é usada tanto na tela cheia quanto no
+ * mini-form embutido no painel flutuante — os dois ficam na mesma página depois de criar.
  */
 export async function criarDemanda(
   _prevState: DemandaFormState,
@@ -44,18 +43,34 @@ export async function criarDemanda(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
 
+  // Exceção pedida pelo Mateus em 05/10: master pode lançar uma demanda já atribuída a outra
+  // pessoa, direto do painel flutuante (ver `DemandasFlutuantePainel`, prop `pessoas`). Nunca
+  // confia no que vem do form sozinho — revalida aqui que quem está logado é master de verdade E
+  // que a pessoa-alvo está marcada "Acompanhar no painel de Demandas" (mesma trava de quem entra
+  // no `<select>`, checada de novo no servidor).
+  const responsavelIdForm = String(formData.get("responsavelId") ?? "").trim();
+  let responsavelId = user.id;
+  if (responsavelIdForm && responsavelIdForm !== user.id) {
+    const [{ data: perfilAtual }, { data: alvo }] = await Promise.all([
+      supabase.from("perfis").select("role").eq("id", user.id).maybeSingle(),
+      supabase.from("perfis").select("id").eq("id", responsavelIdForm).eq("demandas_acompanhado", true).maybeSingle(),
+    ]);
+    if (perfilAtual?.role === "master" && alvo) responsavelId = responsavelIdForm;
+  }
+
   const data = result.data;
   const { error } = await supabase.from("demandas").insert({
     titulo: data.titulo,
     descricao: data.descricao || null,
     prazo: data.prazo || null,
-    responsavel_id: user.id,
+    responsavel_id: responsavelId,
   });
   if (error) return { error: "Não foi possível salvar a demanda. Tente novamente." };
 
   revalidatePath("/minhas-demandas");
   revalidatePath("/profissional");
   revalidatePath("/base");
+  revalidatePath("/demandas");
   return { success: "Demanda criada." };
 }
 
