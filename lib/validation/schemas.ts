@@ -888,6 +888,29 @@ export const tarefaStatusSchema = z.object({
   status: z.enum(["pendente", "em_andamento", "solicitado", "concluido"]),
 });
 
+/**
+ * Demandas por pessoa (Painel de Demandas, ver docs/superpowers/specs/2026-10-05-assistencia-
+ * social-e-demandas-design.md, Parte 2) — mesmo espírito de `tarefaSchema`/`TAREFA_STATUS`, mas sem
+ * `categoria` (não existe aqui) e com 3 status em vez de 4: "solicitado" só fazia sentido no fluxo
+ * de aprovação de Tarefas, que não existe em Demandas.
+ */
+export const DEMANDA_STATUS = [
+  { value: "pendente", label: "Pendente" },
+  { value: "em_andamento", label: "Em andamento" },
+  { value: "concluido", label: "Concluído" },
+] as const;
+
+export const demandaSchema = z.object({
+  titulo: z.string().min(1, { message: "Título é obrigatório" }),
+  descricao: z.string().optional().or(z.literal("")),
+  prazo: z.string().optional().or(z.literal("")),
+});
+export type DemandaInput = z.infer<typeof demandaSchema>;
+
+export const demandaStatusSchema = z.object({
+  status: z.enum(["pendente", "em_andamento", "concluido"]),
+});
+
 const NOVA_CATEGORIA_GASTO_VALUE = "__nova__";
 
 export const gastoJogoSchema = z

@@ -18,6 +18,7 @@ function perfil(overrides: Partial<PerfilPermissoes>): PerfilPermissoes {
     comissao_tecnica_base: null,
     fisioterapia_pode_editar: null,
     campos_sensiveis_bloqueados: null,
+    demandas_acompanhado: null,
     ...overrides,
   };
 }

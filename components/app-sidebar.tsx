@@ -4,7 +4,7 @@ import { useEffect, useState, type FocusEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { JuventusCrest } from "@/components/juventus-crest";
-import { ChecklistIcon, HomeIcon, SwitchIcon } from "@/components/department-icon";
+import { ChecklistIcon, HomeIcon, SwitchIcon, TargetIcon } from "@/components/department-icon";
 import {
   IconAlojamento,
   IconAssinaturaPendente,
@@ -207,6 +207,8 @@ export function AppSidebar({
   departamentoLabel,
   outroDepartamento,
   navItems,
+  mostrarMinhasDemandas,
+  mostrarPainelDemandas,
   showAvisos,
   email,
   logoutAction,
@@ -222,6 +224,11 @@ export function AppSidebar({
    * há "outro" pra trocar. */
   outroDepartamento: { href: string; label: string } | null;
   navItems: SidebarNavItem[];
+  /** `demandas_acompanhado` do usuário logado (ver docs/superpowers/specs/2026-10-05-assistencia-
+   * social-e-demandas-design.md, Parte 2) — mostra "Minhas Demandas" no grupo "Geral". */
+  mostrarMinhasDemandas: boolean;
+  /** Só master — mostra "Demandas" (o painel que acompanha todo mundo marcado) no grupo "Geral". */
+  mostrarPainelDemandas: boolean;
   showAvisos: boolean;
   email: string | null;
   logoutAction: () => Promise<void>;
@@ -359,6 +366,22 @@ export function AppSidebar({
             <ChecklistIcon className="h-[18px] w-[18px] shrink-0" />
             {!compacto ? "Tarefas" : null}
           </Link>
+          {mostrarMinhasDemandas ? (
+            <Link
+              href="/minhas-demandas"
+              title="Minhas Demandas"
+              className={linkClasse(itemAtivo("/minhas-demandas"), compacto)}
+            >
+              <TargetIcon className="h-[18px] w-[18px] shrink-0" />
+              {!compacto ? "Minhas Demandas" : null}
+            </Link>
+          ) : null}
+          {mostrarPainelDemandas ? (
+            <Link href="/demandas" title="Demandas" className={linkClasse(itemAtivo("/demandas"), compacto)}>
+              <TargetIcon className="h-[18px] w-[18px] shrink-0" />
+              {!compacto ? "Demandas" : null}
+            </Link>
+          ) : null}
           <Link
             href="/documentos-pendentes"
             title="Documentos Pendentes"

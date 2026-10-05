@@ -17,6 +17,7 @@ import {
   atualizarCamposSensiveisBloqueados,
   atualizarCategoriasTarefas,
   atualizarCategoriasTreinador,
+  atualizarDemandasAcompanhado,
   atualizarDepartamentos,
   atualizarEstoqueCategorias,
   atualizarFisioterapiaPodeEditar,
@@ -299,6 +300,20 @@ export default async function UsuariosPage() {
                       valoresIniciais={categoriasTarefasVisiveis}
                       action={atualizarCategoriasTarefas}
                       submitLabel="Salvar categorias de tarefas"
+                      className="border-t border-neutral-100 pt-3"
+                    />
+                  )}
+
+                  {perfil.role === "treinador" ? null : (
+                    <PermissaoCheckboxesForm
+                      id={perfil.id}
+                      fieldName="demandasAcompanhado"
+                      titulo="Painel de Demandas"
+                      ajuda="Com isso marcado, essa pessoa ganha o widget 'Minhas Demandas' na tela inicial e aparece no seu painel em /demandas."
+                      opcoes={[{ value: "sim", label: "Acompanhar no painel de Demandas" }]}
+                      valoresIniciais={perfil.demandas_acompanhado ? ["sim"] : []}
+                      action={atualizarDemandasAcompanhado}
+                      submitLabel="Salvar"
                       className="border-t border-neutral-100 pt-3"
                     />
                   )}

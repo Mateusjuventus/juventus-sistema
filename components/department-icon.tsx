@@ -113,6 +113,19 @@ export function PersonIcon({ className }: { className?: string }) {
   );
 }
 
+/** Ícone dos links "Minhas Demandas"/"Demandas" na sidebar (ver docs/superpowers/specs/2026-10-05-
+ * assistencia-social-e-demandas-design.md, Parte 2) — um alvo, distinto da prancheta de Tarefas
+ * (`ChecklistIcon`) porque Demandas é outra tela, não uma categoria a mais de Tarefas. */
+export function TargetIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 /** Ícone do botão "Tarefas" no cabeçalho — uma prancheta com itens marcados. */
 export function ChecklistIcon({ className }: { className?: string }) {
   return (

@@ -41,6 +41,10 @@ export interface PerfilPermissoes {
    * docs/superpowers/specs/2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md e
    * `getCamposSensiveisBloqueados`/`podeVerCampoSensivel` abaixo. */
   campos_sensiveis_bloqueados: string[] | null;
+  /** Aparece no Painel de Demandas do master e no widget "Minhas Demandas" da tela inicial — ver
+   * docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md, Parte 2, e
+   * `getDemandasAcompanhado` abaixo. */
+  demandas_acompanhado: boolean | null;
 }
 
 /** Uma única leitura de `perfis` com tudo que as funções abaixo precisam — evita repetir a mesma
@@ -80,7 +84,7 @@ const buscarPerfilPermissoes = cache(async (): Promise<PerfilPermissoes | null> 
       "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, " +
         "tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador, " +
         "comissao_tecnica_id, comissao_tecnica_base_id, categorias_base_permitidas, " +
-        "fisioterapia_pode_editar, campos_sensiveis_bloqueados, " +
+        "fisioterapia_pode_editar, campos_sensiveis_bloqueados, demandas_acompanhado, " +
         "comissao_tecnica_base:comissao_tecnica_base_id(categorias)",
     )
     .eq("id", user.id)
@@ -253,6 +257,20 @@ export async function getFisioterapiaPodeEditar(
   if (!perfil) return false;
   if (perfil.role === "master") return true;
   return perfil.fisioterapia_pode_editar ?? false;
+}
+
+/**
+ * Se o usuário logado aparece no Painel de Demandas do master e ganha o widget "Minhas Demandas"
+ * na tela inicial/sidebar — ver docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-
+ * design.md, Parte 2. Diferente de `getFisioterapiaPodeEditar`, não existe bypass pra "master" aqui:
+ * isto não é uma permissão de acesso (a tela `/minhas-demandas` funciona pra qualquer um logado,
+ * marcado ou não), é só quem o Mateus decidiu acompanhar — inclusive ele mesmo, se quiser.
+ */
+export async function getDemandasAcompanhado(
+  supabase: ReturnType<typeof createClient>,
+): Promise<boolean> {
+  const perfil = await getPerfilPermissoes(supabase);
+  return perfil?.demandas_acompanhado ?? false;
 }
 
 /**

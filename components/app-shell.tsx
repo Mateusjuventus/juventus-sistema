@@ -2,7 +2,13 @@ import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { AppSidebar, type SidebarIconKey, type SidebarNavItem } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { getModulosPermitidos, getModulosBasePermitidos, getDepartamentosPermitidos, isMaster } from "@/lib/auth/role";
+import {
+  getDemandasAcompanhado,
+  getModulosPermitidos,
+  getModulosBasePermitidos,
+  getDepartamentosPermitidos,
+  isMaster,
+} from "@/lib/auth/role";
 import { MODULOS, type ModuloChave } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { buscarNotificacoes } from "@/lib/notificacoes/actions";
@@ -58,12 +64,18 @@ export async function AppShell({
   // tem um (não há "outro" pra trocar) ou quando `nav === "none"` (tela de escolha, que já é o
   // próprio lugar de trocar).
   let outroDepartamento: { href: string; label: string } | null = null;
+  // Preenchidos só quando `nav === "full"` (ver abaixo) — alimentam os links condicionais "Minhas
+  // Demandas"/"Demandas" no grupo "Geral" da sidebar (ver docs/superpowers/specs/2026-10-05-
+  // assistencia-social-e-demandas-design.md, Parte 2).
+  let mostrarMinhasDemandas = false;
+  let mostrarPainelDemandas = false;
   if (nav === "full") {
     if (departamento === "futebol_base") {
-      const [modulosBasePermitidos, master, departamentosPermitidos] = await Promise.all([
+      const [modulosBasePermitidos, master, departamentosPermitidos, demandasAcompanhado] = await Promise.all([
         getModulosBasePermitidos(supabase),
         isMaster(supabase),
         getDepartamentosPermitidos(supabase),
+        getDemandasAcompanhado(supabase),
       ]);
       navItems = MODULOS_BASE.filter((m) => modulosBasePermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
@@ -80,11 +92,14 @@ export async function AppShell({
       if (departamentosPermitidos.includes("futebol_profissional")) {
         outroDepartamento = { href: "/profissional", label: "Futebol Profissional" };
       }
+      mostrarMinhasDemandas = demandasAcompanhado;
+      mostrarPainelDemandas = master;
     } else {
-      const [modulosPermitidos, master, departamentosPermitidos] = await Promise.all([
+      const [modulosPermitidos, master, departamentosPermitidos, demandasAcompanhado] = await Promise.all([
         getModulosPermitidos(supabase),
         isMaster(supabase),
         getDepartamentosPermitidos(supabase),
+        getDemandasAcompanhado(supabase),
       ]);
       navItems = MODULOS.filter((m) => modulosPermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
@@ -104,6 +119,8 @@ export async function AppShell({
       if (departamentosPermitidos.includes("futebol_base")) {
         outroDepartamento = { href: "/base", label: "Futebol de Base" };
       }
+      mostrarMinhasDemandas = demandasAcompanhado;
+      mostrarPainelDemandas = master;
     }
   }
 
@@ -142,6 +159,8 @@ export async function AppShell({
         departamentoLabel={departamentoLabel}
         outroDepartamento={outroDepartamento}
         navItems={navItems}
+        mostrarMinhasDemandas={mostrarMinhasDemandas}
+        mostrarPainelDemandas={mostrarPainelDemandas}
         showAvisos={departamento !== "futebol_base"}
         email={user?.email ?? null}
         logoutAction={logout}

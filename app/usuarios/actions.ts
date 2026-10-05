@@ -62,6 +62,13 @@ function parseFisioterapiaPodeEditar(formData: FormData): boolean {
   return formData.getAll("fisioterapiaPodeEditar").includes("sim");
 }
 
+/** Checkbox único "Acompanhar no painel de Demandas" — ver docs/superpowers/specs/2026-10-05-
+ * assistencia-social-e-demandas-design.md, Parte 2 e `getDemandasAcompanhado` em
+ * `lib/auth/role.ts`. Mesmo padrão de `parseFisioterapiaPodeEditar`. */
+function parseDemandasAcompanhado(formData: FormData): boolean {
+  return formData.getAll("demandasAcompanhado").includes("sim");
+}
+
 /** Campos sensíveis (catálogo em `lib/auth/campos-sensiveis.ts`, hoje só "salario") que esta
  * pessoa NÃO pode ver, mesmo com o módulo correspondente liberado — ver docs/superpowers/specs/
  * 2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. Vale pra qualquer papel não-
@@ -569,4 +576,26 @@ export async function redefinirSenha(
   if (error) return { error: `Não foi possível redefinir a senha. Tente novamente. (${error.message})` };
 
   return { success: "Senha redefinida. Já pode passar a nova senha pra pessoa." };
+}
+
+/** Salva o checkbox "Acompanhar no painel de Demandas" de um usuário já existente — espelha
+ * `atualizarFisioterapiaPodeEditar`. Vale pra qualquer papel (até master, se ele mesmo quiser
+ * aparecer no próprio painel). Só master pode chamar. */
+export async function atualizarDemandasAcompanhado(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+  const demandasAcompanhado = parseDemandasAcompanhado(formData);
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("perfis").update({ demandas_acompanhado: demandasAcompanhado }).eq("id", id);
+  if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
+
+  revalidatePath("/usuarios");
+  return { success: "Salvo." };
 }
