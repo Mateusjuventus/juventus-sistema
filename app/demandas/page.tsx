@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
-import { PessoaAcompanhadaCard } from "@/components/demandas/pessoa-acompanhada-card";
+import { DemandasListagem } from "@/components/demandas/demandas-listagem";
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
 import { resolverPessoaAcompanhada } from "@/lib/demandas/pessoa-acompanhada";
@@ -55,20 +55,7 @@ export default async function DemandasPage() {
           no painel de Demandas&quot; pra cada pessoa.
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((c) => (
-            <PessoaAcompanhadaCard
-              key={c.id}
-              nome={c.nome}
-              funcao={c.funcao}
-              fotoUrl={c.fotoUrl}
-              rendimento={c.rendimento}
-              pendencias={c.pendencias}
-              hojeStr={hojeStr}
-              href={`/demandas/${c.id}`}
-            />
-          ))}
-        </div>
+        <DemandasListagem cards={cards} hojeStr={hojeStr} />
       )}
     </AppShell>
   );

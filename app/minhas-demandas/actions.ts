@@ -74,6 +74,19 @@ export async function criarDemanda(
   return { success: "Demanda criada." };
 }
 
+/** Dono da demanda sempre pode alterá-la; master também pode (mesma exceção de `criarDemanda`,
+ * reaproveitada aqui pro master interagir com as demandas de qualquer pessoa acompanhada direto do
+ * painel — ver `alternarConclusaoDemanda`). */
+async function podeAlterarDemanda(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  responsavelId: string,
+): Promise<boolean> {
+  if (responsavelId === userId) return true;
+  const { data: perfilAtual } = await supabase.from("perfis").select("role").eq("id", userId).maybeSingle();
+  return perfilAtual?.role === "master";
+}
+
 export async function deleteDemanda(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
@@ -90,8 +103,9 @@ export async function deleteDemanda(formData: FormData): Promise<void> {
   revalidatePath("/base");
 }
 
-/** Troca rápida de status (widget da tela inicial e tela cheia) — mesmo padrão de
- * `updateTarefaStatus`. */
+/** Troca rápida de status (widget da tela inicial, painel flutuante e tela cheia) — mesmo padrão de
+ * `updateTarefaStatus`. Autorização via `podeAlterarDemanda` (dono ou master) desde 05/10, pra
+ * também valer quando o master usa esse mesmo controle numa demanda de outra pessoa. */
 export async function updateDemandaStatus(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const raw = String(formData.get("status") ?? "");
@@ -104,12 +118,40 @@ export async function updateDemandaStatus(formData: FormData): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase
-    .from("demandas")
-    .update({ status: result.data.status })
-    .eq("id", id)
-    .eq("responsavel_id", user.id);
+  const { data: demanda } = await supabase.from("demandas").select("responsavel_id").eq("id", id).maybeSingle();
+  if (!demanda || !(await podeAlterarDemanda(supabase, user.id, demanda.responsavel_id))) return;
+
+  await supabase.from("demandas").update({ status: result.data.status }).eq("id", id);
   revalidatePath("/minhas-demandas");
   revalidatePath("/profissional");
   revalidatePath("/base");
+  revalidatePath("/demandas");
+}
+
+/**
+ * Alterna concluído/pendente com um clique — a "bolinha" de check usada pelo master em
+ * `PessoaDemandasModal` (tela intermediária aberta ao clicar numa pessoa em `/demandas`), pedido do
+ * Mateus em 05/10: "coloca tipo umas bolinhas de check-box pra clicar em cima". Chamada direto pelo
+ * componente client (sem passar por um `<form>`), por isso recebe os valores já prontos em vez de
+ * `FormData` como as outras actions deste arquivo. Mesma trava de `updateDemandaStatus` — dono da
+ * demanda ou master.
+ */
+export async function alternarConclusaoDemanda(id: string, concluida: boolean): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: demanda } = await supabase.from("demandas").select("responsavel_id").eq("id", id).maybeSingle();
+  if (!demanda || !(await podeAlterarDemanda(supabase, user.id, demanda.responsavel_id))) return;
+
+  await supabase
+    .from("demandas")
+    .update({ status: concluida ? "concluido" : "pendente" })
+    .eq("id", id);
+  revalidatePath("/minhas-demandas");
+  revalidatePath("/profissional");
+  revalidatePath("/base");
+  revalidatePath("/demandas");
 }

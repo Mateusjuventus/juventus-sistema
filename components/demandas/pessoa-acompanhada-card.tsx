@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
 import type { RendimentoDemandas } from "@/lib/demandas/rendimento";
 import { corPrazoDemanda, type CorPrazoDemanda } from "@/lib/demandas/cor-prazo";
@@ -32,10 +31,11 @@ function Metrica({ label, valor, alerta }: { label: string; valor: string | numb
 /**
  * Card de uma pessoa acompanhada no Painel de Demandas do master (`/demandas`) — foto, nome,
  * função e as 5 métricas de rendimento, lado a lado com as demais (ver docs/superpowers/specs/
- * 2026-10-05-assistencia-social-e-demandas-design.md, Parte 2, "Painel do Mateus"). Com `href`
- * preenchido, o card inteiro é um link pro detalhe da pessoa (`/demandas/[id]`) — pedido do
- * Mateus em 05/10: "quero tipo poder acompanhar as demandas sabe que já foram concluidas, quero
- * poder ver as pendentes e depois que vc filtre por dia".
+ * 2026-10-05-assistencia-social-e-demandas-design.md, Parte 2, "Painel do Mateus"). Com `aoClicar`
+ * preenchido, o card inteiro é um botão que abre a tela intermediária da pessoa
+ * (`PessoaDemandasModal`) — pedido do Mateus em 05/10: "a tela de quando clicar em cima da pessoa,
+ * não precisa abrir essa tela inteira, abra aquela intermediária" (mesmo padrão de clicar num card e
+ * abrir um modal, não navegar, já usado em `FisioterapiaListagem`/`HistoricoStatusModal`).
  */
 export function PessoaAcompanhadaCard({
   nome,
@@ -44,7 +44,7 @@ export function PessoaAcompanhadaCard({
   rendimento,
   pendencias,
   hojeStr,
-  href,
+  aoClicar,
 }: {
   nome: string;
   funcao: string;
@@ -56,24 +56,34 @@ export function PessoaAcompanhadaCard({
   /** "Hoje" em Brasília (`hojeBrasilia()`), vindo do pai — pra bater exatamente com o `hojeStr` já
    * usado em `calcularRendimento`, em vez de recalcular aqui com o fuso do servidor. */
   hojeStr: string;
-  /** Pra onde o card leva ao clicar — sem isso, o card não é clicável (ex.: um uso futuro fora do
-   * painel do master). */
-  href?: string;
+  /** Sem isso, o card não é clicável (ex.: um uso futuro fora do painel do master). */
+  aoClicar?: () => void;
 }) {
   const LIMITE_PENDENCIAS_EXIBIDAS = 4;
 
   return (
-    <div className="card p-4">
+    <div
+      role={aoClicar ? "button" : undefined}
+      tabIndex={aoClicar ? 0 : undefined}
+      onClick={aoClicar}
+      onKeyDown={
+        aoClicar
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                aoClicar();
+              }
+            }
+          : undefined
+      }
+      className={`card p-4 ${
+        aoClicar ? "cursor-pointer text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-dourado" : ""
+      }`}
+    >
       <div className="flex items-center gap-3">
         <AtletaAvatarCirculo nome={nome} fotoUrl={fotoUrl} className="h-12 w-12" />
         <div className="min-w-0 flex-1">
-          {href ? (
-            <Link href={href} className="truncate font-semibold text-grena hover:underline">
-              {nome}
-            </Link>
-          ) : (
-            <p className="truncate font-semibold text-neutral-800">{nome}</p>
-          )}
+          <p className="truncate font-semibold text-neutral-800">{nome}</p>
           <p className="truncate text-xs text-neutral-500">{funcao}</p>
         </div>
       </div>
@@ -116,3 +126,4 @@ export function PessoaAcompanhadaCard({
     </div>
   );
 }
+
