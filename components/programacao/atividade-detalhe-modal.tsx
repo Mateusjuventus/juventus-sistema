@@ -9,7 +9,7 @@ import { formatHorarioCurto, labelTipoAtividade } from "@/lib/programacao/tipo-a
 import { excluirAtividade } from "@/lib/programacao/actions";
 import type { AtividadeComDetalhes, JogoResumoAtividade } from "@/lib/programacao/queries";
 import type { ProgramacaoCatalogoSubatividadeRow } from "@/lib/supabase/types";
-import type { CategoriaBase } from "@/lib/auth/categorias-base";
+import type { CategoriaProgramacao } from "@/lib/programacao/categoria-programacao";
 
 function formatDataBr(dataIso: string): string {
   const [ano, mes, dia] = dataIso.split("-");
@@ -34,7 +34,7 @@ export function AtividadeDetalheModal({
 }: {
   atividade: AtividadeComDetalhes;
   catalogo: ProgramacaoCatalogoSubatividadeRow[];
-  categoria: CategoriaBase;
+  categoria: CategoriaProgramacao;
   jogosParaSelecao: JogoResumoAtividade[];
   onClose: () => void;
 }) {

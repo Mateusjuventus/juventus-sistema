@@ -10,6 +10,7 @@ import {
   IconAssinaturaPendente,
   IconAssistenciaSocial,
   IconAtletas,
+  IconCalendario,
   IconCaptacao,
   IconComissao,
   IconCompeticoes,
@@ -18,6 +19,7 @@ import {
   IconFinanceiro,
   IconHotel,
   IconJogos,
+  IconProgramacao,
   IconRelatorio,
   IconSolicitacoes,
   IconStaff,
@@ -209,7 +211,11 @@ function GrupoRecolhivel({
 export function AppSidebar({
   homeHref,
   homeTitle,
+  homeLabel,
+  homeIconeProgramacao,
+  itemExtra,
   departamentoLabel,
+  departamentoAtual,
   outroDepartamento,
   navItems,
   mostrarMinhasDemandas,
@@ -221,7 +227,21 @@ export function AppSidebar({
 }: {
   homeHref: string;
   homeTitle: string;
+  /** Rótulo do primeiro item da sidebar — "Início" por padrão. O Profissional passa "Programação"
+   * (ver docs/superpowers/specs/2026-10-05-programacao-profissional-design.md: o Início do
+   * Profissional virou a grade semanal, então o item deixa de se chamar "Início"). A Base não passa
+   * nada — continua "Início", sem mudança. */
+  homeLabel?: string;
+  /** Troca o ícone do item de Início/Programação por `IconProgramacao` — só o Profissional usa. */
+  homeIconeProgramacao?: boolean;
+  /** Item fixo extra, logo abaixo do Início/Programação — hoje só "Calendário" do Profissional. */
+  itemExtra?: { href: string; label: string };
   departamentoLabel: string;
+  /** Departamento de onde a sidebar está sendo renderizada agora — só usado pra "Demandas" carregar
+   * de volta no mesmo departamento (ver `app/demandas/page.tsx`): sem isso, clicar em "Demandas" a
+   * partir da Base sempre abria a tela com o menu do Profissional (`/demandas` não sabe de onde
+   * veio), confuso pro Mateus ("toda vez que clico ela vem pro profissional"). */
+  departamentoAtual: "futebol_profissional" | "futebol_base";
   /** Preenchido só quando o usuário tem acesso aos DOIS departamentos (ver `AppShell`) — mostra um
    * atalho pra trocar direto pro outro, sem passar pela tela de escolha (`app/page.tsx`). Pedido do
    * Mateus em 05/10: quem tem os dois ficava tendo que voltar pra "/" e escolher de novo a cada
@@ -336,9 +356,23 @@ export function AppSidebar({
             </Link>
           ) : null}
           <Link href={homeHref} title={homeTitle} className={linkClasse(homeAtivo, compacto)}>
-            <HomeIcon className="h-[18px] w-[18px] shrink-0" />
-            {!compacto ? "Início" : null}
+            {homeIconeProgramacao ? (
+              <IconProgramacao className="h-[18px] w-[18px] shrink-0" />
+            ) : (
+              <HomeIcon className="h-[18px] w-[18px] shrink-0" />
+            )}
+            {!compacto ? (homeLabel ?? "Início") : null}
           </Link>
+          {itemExtra ? (
+            <Link
+              href={itemExtra.href}
+              title={itemExtra.label}
+              className={linkClasse(itemAtivo(itemExtra.href), compacto)}
+            >
+              <IconCalendario className="h-[18px] w-[18px] shrink-0" />
+              {!compacto ? itemExtra.label : null}
+            </Link>
+          ) : null}
           {soltos.map((item) => (
             <ItemLink
               key={item.href}
@@ -382,7 +416,11 @@ export function AppSidebar({
             </Link>
           ) : null}
           {mostrarPainelDemandas ? (
-            <Link href="/demandas" title="Demandas" className={linkClasse(itemAtivo("/demandas"), compacto)}>
+            <Link
+              href={departamentoAtual === "futebol_base" ? "/demandas?de=base" : "/demandas"}
+              title="Demandas"
+              className={linkClasse(itemAtivo("/demandas"), compacto)}
+            >
               <TargetIcon className="h-[18px] w-[18px] shrink-0" />
               {!compacto ? "Demandas" : null}
             </Link>
@@ -439,8 +477,12 @@ export function AppSidebar({
           por cima dos rótulos. */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-linha bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_3px_rgba(0,0,0,0.06)] lg:hidden">
         <Link href={homeHref} className={itemInferior(homeAtivo)}>
-          <HomeIcon className="h-[22px] w-[22px]" />
-          <span className="w-full truncate text-center">Início</span>
+          {homeIconeProgramacao ? (
+            <IconProgramacao className="h-[22px] w-[22px]" />
+          ) : (
+            <HomeIcon className="h-[22px] w-[22px]" />
+          )}
+          <span className="w-full truncate text-center">{homeLabel ?? "Início"}</span>
         </Link>
         {itensMobile.map((item) => {
           const Icone = ICONES[item.icone];

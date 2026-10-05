@@ -10,7 +10,7 @@ import { MicrocicloTextoEditor } from "./microciclo-texto-editor";
 import { diasDaSemana, somarDias } from "@/lib/programacao/semana";
 import type { AtividadeComDetalhes, JogoResumoAtividade } from "@/lib/programacao/queries";
 import type { ProgramacaoCatalogoSubatividadeRow, ProgramacaoAtividadeTipo } from "@/lib/supabase/types";
-import { categoriaBaseLabel, type CategoriaBase } from "@/lib/auth/categorias-base";
+import { categoriaProgramacaoLabel, type CategoriaProgramacao } from "@/lib/programacao/categoria-programacao";
 import {
   PROGRAMACAO_ATIVIDADE_TIPOS_ORDEM,
   corPontoAtividade,
@@ -60,8 +60,8 @@ export function ProgramacaoView({
   permitirProgramacaoGeral,
 }: {
   basePath: string;
-  categoriaAtiva: CategoriaBase;
-  categoriasDisponiveis: CategoriaBase[];
+  categoriaAtiva: CategoriaProgramacao;
+  categoriasDisponiveis: CategoriaProgramacao[];
   inicioSemana: string;
   atividades: AtividadeComDetalhes[];
   jogosParaSelecao: JogoResumoAtividade[];
@@ -110,7 +110,7 @@ export function ProgramacaoView({
                   : "bg-white text-neutral-600 ring-1 ring-linha hover:bg-neutral-50"
               }`}
             >
-              {categoriaBaseLabel(cat)}
+              {categoriaProgramacaoLabel(cat)}
             </Link>
           ))}
         </div>

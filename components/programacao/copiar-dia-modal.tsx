@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { ModalShell } from "./modal";
 import { copiarDiaProgramacao } from "@/lib/programacao/actions";
 import { formatDataCurta } from "@/lib/programacao/microciclo-texto";
-import type { CategoriaBase } from "@/lib/auth/categorias-base";
+import type { CategoriaProgramacao } from "@/lib/programacao/categoria-programacao";
 
 const DIA_SEMANA_COMPLETO_MIN = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
@@ -29,7 +29,7 @@ export function CopiarDiaModal({
   dataOrigem,
   onClose,
 }: {
-  categoria: CategoriaBase;
+  categoria: CategoriaProgramacao;
   dataOrigem: string;
   onClose: () => void;
 }) {

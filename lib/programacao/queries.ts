@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
-import type { CategoriaBase } from "@/lib/auth/categorias-base";
+import type { CategoriaProgramacao } from "./categoria-programacao";
 import type {
   ProgramacaoAtividadeRow,
   ProgramacaoSubatividadeRow,
@@ -56,7 +56,7 @@ export interface AtividadeComDetalhes extends ProgramacaoAtividadeRow {
  */
 async function buscarAtividadesComDetalhes(
   supabase: ReturnType<typeof createClient>,
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
   dataInicio: string,
   dataFim: string,
 ): Promise<AtividadeComDetalhes[]> {
@@ -97,7 +97,7 @@ async function buscarAtividadesComDetalhes(
  * `inicioDaSemana` em `./semana`). */
 export async function buscarSemana(
   supabase: ReturnType<typeof createClient>,
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
   dataInicioSemana: string,
 ): Promise<AtividadeComDetalhes[]> {
   return buscarAtividadesComDetalhes(supabase, categoria, dataInicioSemana, somarDias(dataInicioSemana, 6));
@@ -107,7 +107,7 @@ export async function buscarSemana(
  * `lib/programacao/actions.ts`), que só precisa do dia de origem, não da semana inteira. */
 export async function buscarDia(
   supabase: ReturnType<typeof createClient>,
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
   data: string,
 ): Promise<AtividadeComDetalhes[]> {
   return buscarAtividadesComDetalhes(supabase, categoria, data, data);
@@ -117,7 +117,7 @@ export async function buscarDia(
  * formulário de Nova Subatividade (ver spec, "Catálogo não é modificado ao ser usado"). */
 export async function buscarCatalogo(
   supabase: ReturnType<typeof createClient>,
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
 ): Promise<ProgramacaoCatalogoSubatividadeRow[]> {
   const { data } = await supabase
     .from("programacao_catalogo_subatividades")
@@ -128,10 +128,15 @@ export async function buscarCatalogo(
 }
 
 /** Jogos já cadastrados de uma categoria, pro seletor do formulário de Nova Atividade quando o tipo
- * é 'jogo_oficial'/'jogo_treino' — evita digitar de novo dados que já existem em `jogos_base`. */
+ * é 'jogo_oficial'/'jogo_treino' — evita digitar de novo dados que já existem em `jogos_base`.
+ * Pro Profissional (`categoria === "profissional"`), sempre volta vazio: os jogos dele moram na
+ * tabela `jogos`, não em `jogos_base` (que não tem essa categoria), e não dá pra reaproveitar o
+ * atalho de seleção sem uma tabela `jogos_base`-like — ver docs/superpowers/specs/2026-10-05-
+ * programacao-profissional-design.md, "Fora de escopo". Jogo Oficial/Jogo Treino aí é preenchido
+ * manualmente, como qualquer outra atividade. */
 export async function buscarJogosParaSelecao(
   supabase: ReturnType<typeof createClient>,
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
 ): Promise<JogoResumoAtividade[]> {
   const { data } = await supabase
     .from("jogos_base")

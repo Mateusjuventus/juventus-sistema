@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { AppSidebar, type SidebarIconKey, type SidebarNavItem } from "@/components/app-sidebar";
+import { JuventusCrestMark } from "@/components/juventus-crest";
 import { DemandasFlutuante } from "@/components/demandas/demandas-flutuante";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -132,8 +133,15 @@ export async function AppShell({
   const notificacoes = nav === "full" ? await buscarNotificacoes() : [];
 
   const homeHref = departamento === "futebol_base" ? "/base" : "/profissional";
-  const homeTitle =
-    departamento === "futebol_base" ? "Início do Futebol de Base" : "Início do Futebol Profissional";
+  // O Início do Profissional virou a Programação Semanal em 05/10 (ver docs/superpowers/specs/
+  // 2026-10-05-programacao-profissional-design.md) — o item da sidebar passa a se chamar
+  // "Programação" (não mais "Início"), com um ícone próprio e um item extra "Calendário" logo
+  // abaixo (o antigo painel de calendário/mural/próximo jogo/contratos, que só mostra o
+  // calendário agora). A Base não muda nada disso — continua "Início".
+  const homeTitle = departamento === "futebol_base" ? "Início do Futebol de Base" : "Programação do Futebol Profissional";
+  const homeLabel = departamento === "futebol_base" ? undefined : "Programação";
+  const itemExtra =
+    departamento === "futebol_base" ? undefined : { href: "/profissional/calendario", label: "Calendário" };
   const departamentoLabel = departamento === "futebol_base" ? "Futebol de Base" : "Futebol Profissional";
 
   if (nav === "none") {
@@ -157,7 +165,11 @@ export async function AppShell({
       <AppSidebar
         homeHref={homeHref}
         homeTitle={homeTitle}
+        homeLabel={homeLabel}
+        homeIconeProgramacao={departamento !== "futebol_base"}
+        itemExtra={itemExtra}
         departamentoLabel={departamentoLabel}
+        departamentoAtual={departamento}
         outroDepartamento={outroDepartamento}
         navItems={navItems}
         mostrarMinhasDemandas={mostrarMinhasDemandas}
@@ -169,7 +181,8 @@ export async function AppShell({
       />
       <div className="flex min-w-0 flex-1 flex-col">
         {breadcrumb ? (
-          <div className="flex h-12 shrink-0 items-center border-b border-linha bg-white px-4 sm:h-14 sm:px-6 lg:px-8">
+          <div className="flex h-12 shrink-0 items-center gap-2.5 border-b border-linha bg-white px-4 sm:h-14 sm:px-6 lg:px-8">
+            <JuventusCrestMark className="h-6 w-6 shrink-0" />
             <p className="text-sm text-neutral-500">
               Início <span className="mx-1 text-neutral-300">/</span>
               <span className="font-semibold text-grena-escuro">{breadcrumb}</span>

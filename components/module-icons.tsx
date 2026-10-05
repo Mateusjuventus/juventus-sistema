@@ -164,6 +164,19 @@ export function IconProgramacao({ className }: { className?: string }) {
   );
 }
 
+/** Calendário (item de sidebar do Profissional, ver docs/superpowers/specs/2026-10-05-programacao-
+ * profissional-design.md) — grade completa (linhas E colunas, mês), pra diferenciar tanto de
+ * "Jogos" (calendário liso, só os dois "ganchos" de topo) quanto de "Programação" (dividido só em
+ * colunas, semana). */
+export function IconCalendario({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M16 3v4M8 3v4M3 10h18M9 10v11M15 10v11M3 15h18" />
+    </svg>
+  );
+}
+
 /** Documentos Pendentes de Assinatura (Fase 3) — folha com um "check", pra diferenciar de Tarefas
  * (Checklist) mesmo tendo um espírito parecido de "lista do que falta fazer". */
 export function IconAssinaturaPendente({ className }: { className?: string }) {

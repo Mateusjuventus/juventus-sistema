@@ -1298,7 +1298,7 @@ const PROGRAMACAO_ATIVIDADE_TIPOS_NAO_JOGO = [
 /** Formulário de "+ Nova Atividade" da Programação Semanal, pra qualquer tipo que não seja jogo
  * (esses usam `criarAtividadeDeJogoSchema`, que troca horário/local por um jogo já cadastrado). */
 export const criarAtividadeSchema = z.object({
-  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11", "profissional"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
   data: z.string().min(1, { message: "Data é obrigatória" }),
@@ -1324,7 +1324,7 @@ export type AtualizarAtividadeInput = z.infer<typeof atualizarAtividadeSchema>;
  * escolhe um jogo já cadastrado em `jogos_base` daquela categoria (ver spec, "Atividade de jogo não
  * duplica dado"). */
 export const criarAtividadeDeJogoSchema = z.object({
-  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11", "profissional"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
   tipo: z.enum(["jogo_oficial", "jogo_treino"], {
@@ -1345,7 +1345,7 @@ export type AtualizarAtividadeDeJogoInput = z.infer<typeof atualizarAtividadeDeJ
  * pra uma ou mais `datasDestino`, de qualquer semana. Mesmo padrão de array-de-enum usado em
  * `comissaoTecnicaBaseSchema.categorias`, aqui pra um array de datas em vez de categorias. */
 export const copiarDiaProgramacaoSchema = z.object({
-  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
+  categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11", "profissional"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
   dataOrigem: z.string().min(1, { message: "Data de origem é obrigatória" }),

@@ -2,6 +2,7 @@ import type { createClient } from "@/lib/supabase/server";
 import { getPerfilPermissoes, type PerfilPermissoes } from "@/lib/auth/role";
 import { TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
 import { TODOS_DEPARTAMENTOS } from "@/lib/auth/departamentos";
+import type { CategoriaProgramacao } from "./categoria-programacao";
 
 /**
  * Regra de categorias da Programação Semanal, separada da leitura em `perfis` só pra poder ser
@@ -43,4 +44,26 @@ export async function getCategoriasProgramacao(
 ): Promise<CategoriaBase[]> {
   const perfil = await getPerfilPermissoes(supabase);
   return resolverCategoriasProgramacao(perfil);
+}
+
+/**
+ * Programação do Futebol Profissional (ver docs/superpowers/specs/2026-10-05-programacao-
+ * profissional-design.md) — um "grupo" só, `"profissional"`, sem o conceito de treinador restrito
+ * a uma categoria (exclusivo da Base). Master ou qualquer regular com o departamento Futebol
+ * Profissional liberado enxerga e edita — mesma régua (nenhuma permissão extra em `/usuarios`) que
+ * `resolverCategoriasProgramacao` já aplica pra Base.
+ */
+export function resolverCategoriaProgramacaoProfissional(perfil: PerfilPermissoes | null): CategoriaProgramacao[] {
+  if (!perfil) return [];
+  if (perfil.role === "master") return ["profissional"];
+  const departamentos = perfil.departamentos_permitidos ?? TODOS_DEPARTAMENTOS;
+  return departamentos.includes("futebol_profissional") ? ["profissional"] : [];
+}
+
+/** Versão de `resolverCategoriaProgramacaoProfissional` que já busca o perfil do usuário logado. */
+export async function getCategoriasProgramacaoProfissional(
+  supabase: ReturnType<typeof createClient>,
+): Promise<CategoriaProgramacao[]> {
+  const perfil = await getPerfilPermissoes(supabase);
+  return resolverCategoriaProgramacaoProfissional(perfil);
 }

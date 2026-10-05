@@ -11,11 +11,13 @@ export interface EventoCalendarioFormState {
 }
 
 /**
- * Cria um evento manual do widget "Calendário" (Home do Futebol Profissional — ver
- * docs/superpowers/specs/2026-08-07-redesign-visual-painel-financeiro-design.md). Sem
- * `redirect()` de propósito — o formulário é inline dentro do próprio widget (não uma página à
- * parte), então só devolve `success` pro componente cliente (`calendario-form.tsx`) fechar/limpar
- * o form sozinho, igual o padrão já usado em `app/jogos/[id]/ingressos/carga-inline-form.tsx`.
+ * Cria um evento manual do widget "Calendário" — até 05/10 vivia na Home do Futebol Profissional
+ * (ver docs/superpowers/specs/2026-08-07-redesign-visual-painel-financeiro-design.md), agora é a
+ * tela própria `/profissional/calendario` (ver docs/superpowers/specs/2026-10-05-programacao-
+ * profissional-design.md). Sem `redirect()` de propósito — o formulário é inline dentro do próprio
+ * widget (não uma página à parte), então só devolve `success` pro componente cliente
+ * (`calendario-form.tsx`) fechar/limpar o form sozinho, igual o padrão já usado em
+ * `app/jogos/[id]/ingressos/carga-inline-form.tsx`.
  */
 export async function criarEventoCalendario(
   _prevState: EventoCalendarioFormState,
@@ -53,7 +55,7 @@ export async function criarEventoCalendario(
 
   if (error) return { error: "Não foi possível salvar o evento. Tente novamente." };
 
-  revalidatePath("/profissional");
+  revalidatePath("/profissional/calendario");
   return { success: true };
 }
 
@@ -65,5 +67,5 @@ export async function excluirEventoCalendario(formData: FormData): Promise<void>
   if (!id) return;
   const supabase = createClient();
   await supabase.from("eventos_calendario").delete().eq("id", id);
-  revalidatePath("/profissional");
+  revalidatePath("/profissional/calendario");
 }

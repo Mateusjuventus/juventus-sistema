@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { salvarMicrocicloTexto } from "@/lib/programacao/actions";
-import type { CategoriaBase } from "@/lib/auth/categorias-base";
+import type { CategoriaProgramacao } from "@/lib/programacao/categoria-programacao";
 
 /**
  * Campo "Descrição do microciclo" (ver docs/superpowers/specs/2026-09-02-programacao-copiar-dia-
@@ -19,7 +19,7 @@ export function MicrocicloTextoEditor({
   categoria,
   valorInicial,
 }: {
-  categoria: CategoriaBase;
+  categoria: CategoriaProgramacao;
   valorInicial: string | null;
 }) {
   const [valor, setValor] = useState(valorInicial ?? "");

@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
-import { categoriaBaseLabel, type CategoriaBase } from "@/lib/auth/categorias-base";
+import { categoriaProgramacaoLabel, type CategoriaProgramacao } from "./categoria-programacao";
 import type { ProgramacaoTurno } from "@/lib/supabase/types";
 import { buscarSemana, type AtividadeComDetalhes, type JogoResumoAtividade } from "./queries";
 import { diasDaSemana } from "./semana";
@@ -36,7 +36,7 @@ export interface MicrocicloDia {
 }
 
 export interface MicrocicloData {
-  categoria: CategoriaBase;
+  categoria: CategoriaProgramacao;
   categoriaLabel: string;
   epoca: string | null;
   microcicloAtual: number | null;
@@ -100,7 +100,7 @@ export function montarMicrocicloDias(
  */
 export async function buscarMicrocicloData(
   supabase: ReturnType<typeof createClient>,
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
   dataInicioSemana: string,
 ): Promise<MicrocicloData> {
   const dias = diasDaSemana(dataInicioSemana);
@@ -116,7 +116,7 @@ export async function buscarMicrocicloData(
 
   return {
     categoria,
-    categoriaLabel: categoriaBaseLabel(categoria),
+    categoriaLabel: categoriaProgramacaoLabel(categoria),
     epoca: configData?.epoca ?? null,
     microcicloAtual: configData?.microciclo_atual ?? null,
     microcicloTexto: configData?.microciclo_texto ?? null,
@@ -129,7 +129,7 @@ export async function buscarMicrocicloData(
  * precisa da `MicrocicloData` inteira (nem de buscar a semana de atividades). */
 export async function buscarMicrocicloTexto(
   supabase: ReturnType<typeof createClient>,
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
 ): Promise<string | null> {
   const { data } = await supabase
     .from("configuracoes_programacao_base")

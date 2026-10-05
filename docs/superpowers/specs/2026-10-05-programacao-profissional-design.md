@@ -73,7 +73,7 @@ pra `CategoriaProgramacao`: `lib/programacao/queries.ts`, `actions.ts`, `microci
 `AtividadeDetalheModal`, `AtividadeFormModal` (nova-atividade-modal.tsx), `CopiarDiaModal`,
 `MicrocicloTextoEditor`. Nenhum arquivo é duplicado — só o tipo do parâmetro muda.
 
-Migration nova (`supabase/migrations/0110_programacao_profissional.sql`): altera os 3 CHECK
+Migration nova (`supabase/migrations/0132_programacao_profissional.sql`): altera os 3 CHECK
 constraints que hoje travam `categoria` nas 7 categorias da Base (`programacao_atividades`,
 `programacao_catalogo_subatividades`, `configuracoes_programacao_base`) pra aceitar também
 `'profissional'`, e insere a linha de configuração de época/microciclo pra `'profissional'` em
@@ -130,7 +130,7 @@ conceito de "treinador" (que é exclusivo da Base).
 
 ## Arquivos críticos
 
-- `supabase/migrations/0110_programacao_profissional.sql` (novo)
+- `supabase/migrations/0132_programacao_profissional.sql` (novo)
 - `lib/programacao/categoria-programacao.ts` (novo)
 - `lib/programacao/queries.ts`, `actions.ts`, `microciclo-data.ts`, `programacao-geral-data.ts`,
   `permissoes.ts`
@@ -144,7 +144,7 @@ conceito de "treinador" (que é exclusivo da Base).
 ## Verificação
 
 - `npx tsc --noEmit`, `npx vitest run`, `npx eslint`, `npx next build` limpos.
-- Colar o SQL da migração 0110 completo no chat pro Mateus rodar no SQL Editor do Supabase antes de
+- Colar o SQL da migração 0132 completo no chat pro Mateus rodar no SQL Editor do Supabase antes de
   qualquer teste manual.
 - Roteiro manual:
   - Abrir `/profissional` → item do menu já aparece como "Programação", grade semanal vazia (sem

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCategoriasProgramacao } from "./permissoes";
+import { getCategoriasProgramacao, getCategoriasProgramacaoProfissional } from "./permissoes";
 import {
   criarAtividadeSchema,
   criarAtividadeDeJogoSchema,
@@ -11,7 +11,7 @@ import {
   criarSubatividadeSchema,
   copiarDiaProgramacaoSchema,
 } from "@/lib/validation/schemas";
-import type { CategoriaBase } from "@/lib/auth/categorias-base";
+import type { CategoriaProgramacao } from "./categoria-programacao";
 import { turnoDoHorarioInicio } from "./tipo-atividade";
 import { buscarDia } from "./queries";
 
@@ -39,12 +39,18 @@ export interface ProgramacaoFormState {
   fieldErrors?: Record<string, string>;
 }
 
+/** Checa a categoria contra as DUAS fontes de permissão da Programação — Base (`getCategoriasProgramacao`,
+ * 7 categorias) e Profissional (`getCategoriasProgramacaoProfissional`, só `"profissional"") — já
+ * que uma mesma Server Action agora atende as duas telas. */
 async function categoriaLiberada(
   supabase: ReturnType<typeof createClient>,
   categoria: string,
 ): Promise<boolean> {
-  const categorias = await getCategoriasProgramacao(supabase);
-  return (categorias as string[]).includes(categoria);
+  const [categoriasBase, categoriaProfissional] = await Promise.all([
+    getCategoriasProgramacao(supabase),
+    getCategoriasProgramacaoProfissional(supabase),
+  ]);
+  return (categoriasBase as string[]).includes(categoria) || (categoriaProfissional as string[]).includes(categoria);
 }
 
 /** "+ Nova Atividade" pra qualquer tipo que não seja jogo — ver `criarAtividadeDeJogo` pra
@@ -96,6 +102,7 @@ export async function criarAtividade(
 
   revalidatePath("/treinador");
   revalidatePath("/base");
+  revalidatePath("/profissional");
   return {};
 }
 
@@ -157,6 +164,7 @@ export async function criarAtividadeDeJogo(
 
   revalidatePath("/treinador");
   revalidatePath("/base");
+  revalidatePath("/profissional");
   return {};
 }
 
@@ -207,6 +215,7 @@ export async function atualizarAtividade(
 
   revalidatePath("/treinador");
   revalidatePath("/base");
+  revalidatePath("/profissional");
   return {};
 }
 
@@ -265,6 +274,7 @@ export async function atualizarAtividadeDeJogo(
 
   revalidatePath("/treinador");
   revalidatePath("/base");
+  revalidatePath("/profissional");
   return {};
 }
 
@@ -314,7 +324,7 @@ export async function criarSubatividade(
     .maybeSingle();
   if (!atividade) return { error: "Atividade não encontrada." };
 
-  const categoria = atividade.categoria as CategoriaBase;
+  const categoria = atividade.categoria as CategoriaProgramacao;
   if (!(await categoriaLiberada(supabase, categoria))) {
     return { error: "Você não tem permissão para editar esta atividade." };
   }
@@ -356,6 +366,7 @@ export async function criarSubatividade(
 
   revalidatePath("/treinador");
   revalidatePath("/base");
+  revalidatePath("/profissional");
   return {};
 }
 
@@ -369,7 +380,7 @@ export async function criarSubatividade(
  * treinador teria que remontar manualmente o treino que já tinha montado.
  */
 export async function copiarDiaProgramacao(
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
   dataOrigem: string,
   datasDestino: string[],
 ): Promise<ProgramacaoFormState> {
@@ -454,6 +465,7 @@ export async function copiarDiaProgramacao(
 
   revalidatePath("/treinador");
   revalidatePath("/base");
+  revalidatePath("/profissional");
   return {};
 }
 
@@ -479,6 +491,7 @@ export async function excluirAtividade(id: string): Promise<ProgramacaoFormState
 
   revalidatePath("/treinador");
   revalidatePath("/base");
+  revalidatePath("/profissional");
   return {};
 }
 
@@ -486,7 +499,7 @@ export async function excluirAtividade(id: string): Promise<ProgramacaoFormState
  * schema zod, é um texto opcional sem formato a validar; só a permissão de categoria importa. Mesmo
  * padrão de chamada direta (não `useFormState`) de `copiarDiaProgramacao` acima. */
 export async function salvarMicrocicloTexto(
-  categoria: CategoriaBase,
+  categoria: CategoriaProgramacao,
   texto: string,
 ): Promise<ProgramacaoFormState> {
   const supabase = createClient();
@@ -503,5 +516,6 @@ export async function salvarMicrocicloTexto(
 
   revalidatePath("/treinador");
   revalidatePath("/base");
+  revalidatePath("/profissional");
   return {};
 }

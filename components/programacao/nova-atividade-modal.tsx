@@ -15,7 +15,7 @@ import {
 } from "@/lib/programacao/actions";
 import { PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtividadeComDetalhes, JogoResumoAtividade } from "@/lib/programacao/queries";
-import type { CategoriaBase } from "@/lib/auth/categorias-base";
+import type { CategoriaProgramacao } from "@/lib/programacao/categoria-programacao";
 
 const ESTADO_INICIAL: ProgramacaoFormState = {};
 
@@ -37,7 +37,7 @@ function FormularioAtividadeGeral({
   defaultValues,
   onDone,
 }: {
-  categoria: CategoriaBase;
+  categoria: CategoriaProgramacao;
   tipo: string;
   action: (prevState: ProgramacaoFormState, formData: FormData) => Promise<ProgramacaoFormState>;
   /** Presente só ao editar — inclui o `id` como campo oculto pra `atualizarAtividade` saber qual
@@ -109,7 +109,7 @@ function FormularioAtividadeDeJogo({
   defaultJogoId,
   onDone,
 }: {
-  categoria: CategoriaBase;
+  categoria: CategoriaProgramacao;
   tipo: "jogo_oficial" | "jogo_treino";
   jogos: JogoResumoAtividade[];
   action: (prevState: ProgramacaoFormState, formData: FormData) => Promise<ProgramacaoFormState>;
@@ -172,7 +172,7 @@ export function AtividadeFormModal({
   atividadeExistente,
   onClose,
 }: {
-  categoria: CategoriaBase;
+  categoria: CategoriaProgramacao;
   jogosParaSelecao: JogoResumoAtividade[];
   atividadeExistente?: AtividadeComDetalhes;
   onClose: () => void;
