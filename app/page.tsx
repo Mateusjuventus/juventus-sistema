@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JuventusCrest } from "@/components/juventus-crest";
@@ -7,38 +6,30 @@ import { createClient } from "@/lib/supabase/server";
 import { getDepartamentosPermitidos } from "@/lib/auth/role";
 
 /**
- * Tela de escolha de departamento — primeira coisa que qualquer usuário vê depois do login. Com só
- * dois departamentos possíveis (e sem previsão de um terceiro), a estrutura em cards permanece
- * simples de propósito.
+ * Primeira parada depois do login — hoje só decide pra onde mandar, nunca é uma tela de verdade pra
+ * quem tem algum departamento liberado. Quem tem o Futebol Profissional entra direto nele (mesmo
+ * tendo também o Futebol de Base liberado); só quem tem SÓ o Futebol de Base vai pra lá; quem não
+ * tem nenhum departamento é quem efetivamente vê esta tela, como aviso.
  *
- * O grená cobre a tela inteira, sem cabeçalho separado (ver `AppShell` com `nav="none"`) — mesma
- * cor de preenchimento grande da sidebar/login. O brasão gigante e apagado no canto, girado, é
- * textura de fundo. O tratamento tipográfico (título em caixa alta, peso 900, risquinho diagonal
- * antes do rótulo) foi inspirado nos informativos de viagem que o Mateus já monta pro
- * Departamento — mesmo "jeito de cartaz oficial do clube", só que sem o rosa do patrocinador (fora
- * da paleta do sistema): aqui o acento é o dourado, que já é o acento pontual do resto do produto.
+ * Antes havia uma tela de escolha de verdade (dois cards, um por departamento) pra quem tinha os
+ * dois liberados — removida a pedido do Mateus em 05/10 ("continua aparecendo essa tela, eu não
+ * quero mais ela"): quem tem os dois departamentos (hoje, principalmente ele mesmo) entra direto no
+ * Profissional — é o departamento dele — e troca pro Base pelo atalho "Trocar" da sidebar
+ * (`components/app-sidebar.tsx`, prop `outroDepartamento`) em vez de passar por aqui toda vez.
  *
- * A marca da Proxis (software, ver docs/superpowers/specs/2026-10-04-rebranding-proxis-design.md)
- * entra só como uma assinatura discreta no canto inferior direito — pedido do Mateus em 05/10 pra
- * recuar a Proxis de identidade principal (como ficou numa primeira versão) pra marca secundária:
- * esta tela, e o sistema por trás dela, já é "dentro do Juventus", que segue como identidade
- * principal aqui e na sidebar/Treinador. O login continua com a Proxis em destaque — é a porta de
- * entrada do software, antes de escolher o Juventus.
- *
- * Quem só tem acesso a UM departamento pula esta tela e já entra direto nele — pedido do Mateus em
- * 05/10 ("conforme o usuário dela está cadastrado já entra direto"), não precisa clicar num card
- * único só pra confirmar o que o próprio cadastro já decidiu. A tela só aparece pra quem tem os
- * dois (escolha real) ou pra quem não tem nenhum (mensagem de "fale com quem administra").
+ * O visual (grená cheio, sem cabeçalho separado — ver `AppShell` com `nav="none"` — brasão apagado
+ * de fundo, assinatura da Proxis no canto, ver
+ * docs/superpowers/specs/2026-10-04-rebranding-proxis-design.md) continua o mesmo "jeito de cartaz
+ * oficial do clube" de antes, só que agora só serve pro aviso de "nenhum departamento liberado".
  */
 export default async function HomePage() {
   const supabase = createClient();
   const departamentosPermitidos = await getDepartamentosPermitidos(supabase);
   const temProfissional = departamentosPermitidos.includes("futebol_profissional");
   const temBase = departamentosPermitidos.includes("futebol_base");
-  const temAmbos = temProfissional && temBase;
 
-  if (temProfissional && !temBase) redirect("/profissional");
-  if (temBase && !temProfissional) redirect("/base");
+  if (temProfissional) redirect("/profissional");
+  if (temBase) redirect("/base");
 
   return (
     <AppShell nav="none">
@@ -62,10 +53,6 @@ export default async function HomePage() {
           <span className="h-px w-16 -rotate-6 bg-dourado sm:w-28" />
         </div>
 
-        {/* Espaçamento vertical bem mais justo que antes (era py-16/mt-16 com min-h-screen
-            centralizando tudo — ficava "esticado" em telas altas). Cada elemento continua com seu
-            próprio max-w (o grid de cards cresce pra max-w-3xl quando há dois departamentos), só
-            que agora empilhados bem mais próximos uns dos outros. */}
         <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-dourado/50 bg-white p-2 shadow-lg">
           <JuventusCrest className="h-full w-auto" />
         </div>
@@ -76,39 +63,10 @@ export default async function HomePage() {
         <h1 className="relative mt-1.5 text-center text-4xl font-black uppercase tracking-tight text-white sm:text-5xl">
           Juventus - SAF
         </h1>
-        <p className="relative mt-2 text-center text-sm text-white/70">Escolha um departamento para começar.</p>
 
-        {temProfissional || temBase ? (
-          <div
-            className={`relative mt-6 grid w-full gap-4 ${temAmbos ? "max-w-3xl sm:grid-cols-2" : "max-w-xs"}`}
-          >
-            {temProfissional ? (
-              <Link
-                href="/profissional"
-                className="card flex min-h-[100px] items-center justify-center p-5 text-center shadow-xl transition-all hover:-translate-y-1 hover:shadow-2xl hover:ring-2 hover:ring-dourado"
-              >
-                <h2 className="text-xl font-black uppercase tracking-tight text-grena-escuro">
-                  Futebol Profissional
-                </h2>
-              </Link>
-            ) : null}
-
-            {temBase ? (
-              <Link
-                href="/base"
-                className="card flex min-h-[100px] items-center justify-center p-5 text-center shadow-xl transition-all hover:-translate-y-1 hover:shadow-2xl hover:ring-2 hover:ring-dourado"
-              >
-                <h2 className="text-xl font-black uppercase tracking-tight text-grena-escuro">
-                  Futebol de Base
-                </h2>
-              </Link>
-            ) : null}
-          </div>
-        ) : (
-          <p className="card relative mt-6 max-w-md p-6 text-center text-sm text-neutral-500 shadow-xl">
-            Nenhum departamento liberado pro seu usuário ainda. Fale com quem administra o sistema.
-          </p>
-        )}
+        <p className="card relative mt-6 max-w-md p-6 text-center text-sm text-neutral-500 shadow-xl">
+          Nenhum departamento liberado pro seu usuário ainda. Fale com quem administra o sistema.
+        </p>
 
         <p className="relative mt-8 text-center text-xs text-white/40">
           © {new Date().getFullYear()} Clube Atlético Juventus SAF
