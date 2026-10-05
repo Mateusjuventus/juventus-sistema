@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { JuventusCrest } from "@/components/juventus-crest";
 import { ProxisMark } from "@/components/proxis-brand";
@@ -23,6 +24,11 @@ import { getDepartamentosPermitidos } from "@/lib/auth/role";
  * esta tela, e o sistema por trás dela, já é "dentro do Juventus", que segue como identidade
  * principal aqui e na sidebar/Treinador. O login continua com a Proxis em destaque — é a porta de
  * entrada do software, antes de escolher o Juventus.
+ *
+ * Quem só tem acesso a UM departamento pula esta tela e já entra direto nele — pedido do Mateus em
+ * 05/10 ("conforme o usuário dela está cadastrado já entra direto"), não precisa clicar num card
+ * único só pra confirmar o que o próprio cadastro já decidiu. A tela só aparece pra quem tem os
+ * dois (escolha real) ou pra quem não tem nenhum (mensagem de "fale com quem administra").
  */
 export default async function HomePage() {
   const supabase = createClient();
@@ -30,6 +36,9 @@ export default async function HomePage() {
   const temProfissional = departamentosPermitidos.includes("futebol_profissional");
   const temBase = departamentosPermitidos.includes("futebol_base");
   const temAmbos = temProfissional && temBase;
+
+  if (temProfissional && !temBase) redirect("/profissional");
+  if (temBase && !temProfissional) redirect("/base");
 
   return (
     <AppShell nav="none">

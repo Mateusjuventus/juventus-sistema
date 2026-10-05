@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { ProxisLogo, ProxisMark } from "@/components/proxis-brand";
+import { ProxisLockupClaro, ProxisMarkClaro } from "@/components/proxis-brand";
 import { LoginForm } from "./login-form";
 
 /**
@@ -8,41 +8,40 @@ import { LoginForm } from "./login-form";
  * `proxisAzul` — ver `lib/theme-proxis.ts`), não o grená/dourado do clube (ver
  * docs/superpowers/specs/2026-10-04-rebranding-proxis-design.md — pedido explícito do Mateus em
  * 05/10). A partir da tela de escolha de departamento pra dentro, a identidade volta a ser do
- * Juventus. A logo já traz o nome por extenso, então não repetimos "Proxis — Gestão Esportiva" em
- * texto embaixo dela.
+ * Juventus.
  *
- * A marca d'água do ícone girado nos cantos e o risquinho diagonal do eyebrow reaproveitam o mesmo
- * recurso gráfico da tela de escolha de departamento (`app/page.tsx`) — só que com o ícone e a cor
- * da Proxis em vez do Juventus, já que aqui é a Proxis quem é a identidade principal.
+ * `ProxisLockupClaro` (texto branco de verdade, não a imagem `proxis-logo.png`) no lugar da logo
+ * original + placa branca de antes — pedido do Mateus em 05/10 ("não precisa desse quadro, pode
+ * por a letra branca e aumentar a logo"). O risquinho diagonal do eyebrow reaproveita o mesmo
+ * recurso gráfico da tela de escolha de departamento (`app/page.tsx`). O fundo usa um degradê (em
+ * vez de `proxisNavy` chapado) com uma marca d'água grande do ícone — pedido do Mateus em 05/10 pra
+ * não ficar "um azul sem graça".
  */
 export default function LoginPage() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-proxisNavy px-4">
-      {/* Textura de fundo — mesmo recurso do brasão d'água gigante e girado da tela de escolha de
-          departamento, aqui com o ícone da própria Proxis. */}
-      <div aria-hidden className="pointer-events-none absolute -right-28 -top-28 rotate-[18deg] opacity-[0.05]">
-        <ProxisMark className="h-96 w-auto" />
-      </div>
-      <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-28 rotate-[18deg] opacity-[0.04]">
-        <ProxisMark className="h-80 w-auto" />
-      </div>
-
-      {/* Glow suave atrás da logo, na própria cor de acento da Proxis — só pra dar profundidade ao
-          fundo chapado, nada que compita com o card ou a logo. */}
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#0B2A4D] via-proxisNavy to-[#040B14] px-4">
+      {/* Marca d'água grande do ícone da Proxis, sangrando pra fora da tela — o elemento que dá
+          "textura" ao fundo (pedido do Mateus: o degradê sozinho ainda ficava liso demais).
+          Opacidade bem mais alta que a do brasão d'água do Juventus nas outras telas porque aqui
+          é só ela competindo com o card, não com um monte de outro conteúdo. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-28 h-72 w-72 -translate-x-1/2 rounded-full bg-proxisAzul/20 blur-3xl"
+        className="pointer-events-none absolute -right-20 top-1/2 -translate-y-1/2 rotate-[-12deg] opacity-[0.09]"
+      >
+        <ProxisMarkClaro className="h-[44rem] w-auto" />
+      </div>
+
+      {/* Glow suave atrás da logo, na própria cor de acento da Proxis — dá profundidade extra sem
+          competir com o card ou a logo. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-28 h-72 w-72 -translate-x-1/2 rounded-full bg-proxisAzul/25 blur-3xl"
       />
 
       <div className="relative w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          {/* A logo é escrita em navy escuro (pensada pra fundo claro) — num fundo tão escuro
-              quanto `proxisNavy`, o nome "PROXIS" quase some. A placa branca por trás resolve isso
-              sem precisar clarear o fundo da tela inteira. */}
-          <div className="rounded-2xl bg-white px-8 py-5 shadow-xl shadow-black/30 ring-1 ring-white/10">
-            <ProxisLogo className="h-14 w-auto" />
-          </div>
-          <p className="mt-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-proxisAzul">
+        <div className="mb-10 flex flex-col items-center text-center">
+          <ProxisLockupClaro className="drop-shadow-lg" />
+          <p className="mt-7 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-proxisAzul">
             <span aria-hidden className="inline-block h-3.5 w-1.5 -skew-x-12 bg-proxisAzul" />
             Operando para Clube Atlético Juventus
           </p>

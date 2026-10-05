@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { logout } from "@/app/actions";
 import { AppSidebar, type SidebarIconKey, type SidebarNavItem } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { getModulosPermitidos, getModulosBasePermitidos, isMaster } from "@/lib/auth/role";
+import { getModulosPermitidos, getModulosBasePermitidos, getDepartamentosPermitidos, isMaster } from "@/lib/auth/role";
 import { MODULOS, type ModuloChave } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { buscarNotificacoes } from "@/lib/notificacoes/actions";
@@ -53,11 +53,17 @@ export async function AppShell({
   const supabase = createClient();
 
   let navItems: SidebarNavItem[] = [];
+  // Preenchido só quando o usuário tem acesso aos dois departamentos — alimenta o atalho de troca
+  // rápida na sidebar (ver `outroDepartamento` em `components/app-sidebar.tsx`). `null` quando só
+  // tem um (não há "outro" pra trocar) ou quando `nav === "none"` (tela de escolha, que já é o
+  // próprio lugar de trocar).
+  let outroDepartamento: { href: string; label: string } | null = null;
   if (nav === "full") {
     if (departamento === "futebol_base") {
-      const [modulosBasePermitidos, master] = await Promise.all([
+      const [modulosBasePermitidos, master, departamentosPermitidos] = await Promise.all([
         getModulosBasePermitidos(supabase),
         isMaster(supabase),
+        getDepartamentosPermitidos(supabase),
       ]);
       navItems = MODULOS_BASE.filter((m) => modulosBasePermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
@@ -71,10 +77,14 @@ export async function AppShell({
       if (master) {
         navItems.push({ href: "/usuarios", label: "Usuários", icone: "usuarios" });
       }
+      if (departamentosPermitidos.includes("futebol_profissional")) {
+        outroDepartamento = { href: "/profissional", label: "Futebol Profissional" };
+      }
     } else {
-      const [modulosPermitidos, master] = await Promise.all([
+      const [modulosPermitidos, master, departamentosPermitidos] = await Promise.all([
         getModulosPermitidos(supabase),
         isMaster(supabase),
+        getDepartamentosPermitidos(supabase),
       ]);
       navItems = MODULOS.filter((m) => modulosPermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
@@ -90,6 +100,9 @@ export async function AppShell({
       // departamentos (ver comentário acima, no branch da Base).
       if (master) {
         navItems.push({ href: "/usuarios", label: "Usuários", icone: "usuarios" });
+      }
+      if (departamentosPermitidos.includes("futebol_base")) {
+        outroDepartamento = { href: "/base", label: "Futebol de Base" };
       }
     }
   }
@@ -127,6 +140,7 @@ export async function AppShell({
         homeHref={homeHref}
         homeTitle={homeTitle}
         departamentoLabel={departamentoLabel}
+        outroDepartamento={outroDepartamento}
         navItems={navItems}
         showAvisos={departamento !== "futebol_base"}
         email={user?.email ?? null}

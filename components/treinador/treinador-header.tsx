@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { JuventusCrestMark } from "@/components/juventus-crest";
+import { JuventusCrest } from "@/components/juventus-crest";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { SinoNotificacoes, type NotificacaoResumo } from "@/components/sino-notificacoes";
 import { PushOptIn } from "@/components/push-opt-in";
@@ -26,7 +26,7 @@ export function TreinadorHeader({
       <div className="mx-auto max-w-[1184px] px-4 py-5 sm:py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <JuventusCrestMark className="h-9 w-9 shrink-0" />
+            <JuventusCrest className="h-10 w-auto shrink-0" />
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Juventus SAF · Futebol de Base</p>
               <h1 className="text-xl font-bold text-white sm:text-2xl">Área do Treinador</h1>

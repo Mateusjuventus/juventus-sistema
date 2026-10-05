@@ -3,8 +3,8 @@
 import { useEffect, useState, type FocusEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { JuventusCrestMark } from "@/components/juventus-crest";
-import { ChecklistIcon, HomeIcon } from "@/components/department-icon";
+import { JuventusCrest } from "@/components/juventus-crest";
+import { ChecklistIcon, HomeIcon, SwitchIcon } from "@/components/department-icon";
 import {
   IconAlojamento,
   IconAssinaturaPendente,
@@ -205,6 +205,7 @@ export function AppSidebar({
   homeHref,
   homeTitle,
   departamentoLabel,
+  outroDepartamento,
   navItems,
   showAvisos,
   email,
@@ -214,6 +215,12 @@ export function AppSidebar({
   homeHref: string;
   homeTitle: string;
   departamentoLabel: string;
+  /** Preenchido só quando o usuário tem acesso aos DOIS departamentos (ver `AppShell`) — mostra um
+   * atalho pra trocar direto pro outro, sem passar pela tela de escolha (`app/page.tsx`). Pedido do
+   * Mateus em 05/10: quem tem os dois ficava tendo que voltar pra "/" e escolher de novo a cada
+   * troca, mesmo já tendo acesso liberado aos dois. `null` quando só tem um departamento — aí não
+   * há "outro" pra trocar. */
+  outroDepartamento: { href: string; label: string } | null;
   navItems: SidebarNavItem[];
   showAvisos: boolean;
   email: string | null;
@@ -284,16 +291,37 @@ export function AppSidebar({
             title={compacto ? "Juventus - SAF" : undefined}
             className="flex items-center gap-2 text-[15px] font-bold tracking-wide"
           >
-            <JuventusCrestMark className="h-8 w-8 shrink-0" />
+            <JuventusCrest className="h-9 w-auto shrink-0" />
             {!compacto ? <span>Juventus - SAF</span> : null}
           </Link>
         </div>
 
         <nav className={`flex-1 space-y-0.5 overflow-y-auto pb-4 ${compacto ? "px-2" : "px-3"}`}>
           {!compacto ? (
-            <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wide text-white/45">
-              {departamentoLabel}
-            </p>
+            <div className="flex items-center justify-between gap-2 px-3 pb-1.5 pt-2">
+              <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-white/45">
+                {departamentoLabel}
+              </p>
+              {outroDepartamento ? (
+                <Link
+                  href={outroDepartamento.href}
+                  onClick={fechar}
+                  title={`Trocar para ${outroDepartamento.label}`}
+                  className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <SwitchIcon className="h-3 w-3 shrink-0" />
+                  Trocar
+                </Link>
+              ) : null}
+            </div>
+          ) : outroDepartamento ? (
+            <Link
+              href={outroDepartamento.href}
+              title={`Trocar para ${outroDepartamento.label}`}
+              className="mb-1 flex items-center justify-center rounded-md py-2 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <SwitchIcon className="h-[18px] w-[18px]" />
+            </Link>
           ) : null}
           <Link href={homeHref} title={homeTitle} className={linkClasse(homeAtivo, compacto)}>
             <HomeIcon className="h-[18px] w-[18px] shrink-0" />

@@ -75,6 +75,29 @@ export function MegaphoneIcon({ className }: { className?: string }) {
   );
 }
 
+/** Ícone do seletor de troca rápida de departamento na sidebar (ver `outroDepartamento` em
+ * `components/app-sidebar.tsx`) — duas setas em sentidos opostos, convenção comum de "alternar". */
+export function SwitchIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 8h14M14.5 4.5 18 8l-3.5 3.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M20 16H6M9.5 12.5 6 16l3.5 3.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Ícone do gatilho do menu "Minha Conta" no cabeçalho — silhueta de pessoa. */
 export function PersonIcon({ className }: { className?: string }) {
   return (
