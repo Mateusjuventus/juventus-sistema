@@ -186,3 +186,14 @@ export function IconDepartamentoMedico({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Assistência Social (Futebol de Base) — coração sobre uma base de "amparo", pra diferenciar do
+ * Departamento Médico (cruz) mesmo sendo os dois sobre cuidado com a pessoa. */
+export function IconAssistenciaSocial({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M12 8.5c-1.5-2-5-1.5-5 1.5 0 3 5 6 5 6s5-3 5-6c0-3-3.5-3.5-5-1.5Z" />
+      <path d="M4 19c1-2 3-3 8-3s7 1 8 3" />
+    </svg>
+  );
+}
