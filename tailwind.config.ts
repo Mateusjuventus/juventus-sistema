@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 import { juventusTheme } from "./lib/theme";
+import { proxisTheme } from "./lib/theme-proxis";
 
 const config: Config = {
   // "./lib/**/*.{ts,tsx}" entrou por causa de lib/futebol/categoria-posicao.ts, que monta classes
@@ -18,6 +19,9 @@ const config: Config = {
         pagina: juventusTheme.cinzaPagina,
         linha: juventusTheme.linha,
         contexto: juventusTheme.contexto,
+        // Marca da própria Proxis (software) — só usada no Login, ver lib/theme-proxis.ts.
+        proxisAzul: proxisTheme.azul,
+        proxisNavy: proxisTheme.navy,
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],

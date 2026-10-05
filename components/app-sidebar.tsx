@@ -3,7 +3,7 @@
 import { useEffect, useState, type FocusEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ProxisMark } from "@/components/proxis-brand";
+import { JuventusCrestMark } from "@/components/juventus-crest";
 import { ChecklistIcon, HomeIcon } from "@/components/department-icon";
 import {
   IconAlojamento,
@@ -273,7 +273,7 @@ export function AppSidebar({
   /* O mesmo conteúdo serve à barra fixa do desktop (recolhida OU expandida) e à gaveta do celular
      (sempre expandida) — função em vez de duplicar a lista de itens em dois lugares, garantia de um
      item novo aparecer nos três. `compacto` só existe pra barra fixa recolhida: esconde rótulos,
-     cabeçalhos de seção e o nome da Proxis, mantendo só os ícones (com tooltip via `title`). */
+     cabeçalhos de seção e o texto do brasão, mantendo só os ícones (com tooltip via `title`). */
   function renderConteudo(compacto: boolean) {
     return (
       <>
@@ -281,11 +281,11 @@ export function AppSidebar({
           <Link
             href="/"
             onClick={fechar}
-            title={compacto ? "Proxis — Gestão Esportiva" : undefined}
+            title={compacto ? "Juventus - SAF" : undefined}
             className="flex items-center gap-2 text-[15px] font-bold tracking-wide"
           >
-            <ProxisMark className="h-8 w-8 shrink-0" />
-            {!compacto ? <span>Proxis</span> : null}
+            <JuventusCrestMark className="h-8 w-8 shrink-0" />
+            {!compacto ? <span>Juventus - SAF</span> : null}
           </Link>
         </div>
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { ProxisLogo, ProxisMark } from "@/components/proxis-brand";
+import { JuventusCrest } from "@/components/juventus-crest";
+import { ProxisMark } from "@/components/proxis-brand";
 import { createClient } from "@/lib/supabase/server";
 import { getDepartamentosPermitidos } from "@/lib/auth/role";
 
@@ -10,14 +11,18 @@ import { getDepartamentosPermitidos } from "@/lib/auth/role";
  * simples de propósito.
  *
  * O grená cobre a tela inteira, sem cabeçalho separado (ver `AppShell` com `nav="none"`) — mesma
- * cor de preenchimento grande da sidebar/login. O ícone da Proxis gigante e apagado no canto,
- * girado, é textura de fundo — essa tela é chrome do software (ver
- * docs/superpowers/specs/2026-10-04-rebranding-proxis-design.md), não a identidade do clube; o
- * Juventus continua nomeado no rodapé ("Operando para..."). O tratamento tipográfico (título em
- * caixa alta, peso 900, risquinho diagonal antes do rótulo) foi inspirado nos informativos de
- * viagem que o Mateus já monta pro Departamento — mesmo "jeito de cartaz oficial", só que sem o
- * rosa do patrocinador (fora da paleta do sistema): aqui o acento é o dourado, que já é o acento
- * pontual do resto do produto.
+ * cor de preenchimento grande da sidebar/login. O brasão gigante e apagado no canto, girado, é
+ * textura de fundo. O tratamento tipográfico (título em caixa alta, peso 900, risquinho diagonal
+ * antes do rótulo) foi inspirado nos informativos de viagem que o Mateus já monta pro
+ * Departamento — mesmo "jeito de cartaz oficial do clube", só que sem o rosa do patrocinador (fora
+ * da paleta do sistema): aqui o acento é o dourado, que já é o acento pontual do resto do produto.
+ *
+ * A marca da Proxis (software, ver docs/superpowers/specs/2026-10-04-rebranding-proxis-design.md)
+ * entra só como uma assinatura discreta no canto inferior direito — pedido do Mateus em 05/10 pra
+ * recuar a Proxis de identidade principal (como ficou numa primeira versão) pra marca secundária:
+ * esta tela, e o sistema por trás dela, já é "dentro do Juventus", que segue como identidade
+ * principal aqui e na sidebar/Treinador. O login continua com a Proxis em destaque — é a porta de
+ * entrada do software, antes de escolher o Juventus.
  */
 export default async function HomePage() {
   const supabase = createClient();
@@ -33,13 +38,13 @@ export default async function HomePage() {
           aria-hidden
           className="pointer-events-none absolute -right-32 -top-32 rotate-[18deg] opacity-[0.08] sm:-right-24 sm:-top-24"
         >
-          <ProxisMark className="h-[26rem] w-auto sm:h-[34rem]" />
+          <JuventusCrest className="h-[26rem] w-auto sm:h-[34rem]" />
         </div>
         <div
           aria-hidden
           className="pointer-events-none absolute -bottom-40 -left-32 rotate-[18deg] opacity-[0.06] sm:-bottom-32 sm:-left-24"
         >
-          <ProxisMark className="h-[22rem] w-auto sm:h-[28rem]" />
+          <JuventusCrest className="h-[22rem] w-auto sm:h-[28rem]" />
         </div>
         {/* Risquinhos diagonais do canto — mesmo recurso gráfico da capa dos informativos de
             viagem do Departamento, só que em dourado em vez do rosa do patrocinador. */}
@@ -53,14 +58,14 @@ export default async function HomePage() {
             próprio max-w (o grid de cards cresce pra max-w-3xl quando há dois departamentos), só
             que agora empilhados bem mais próximos uns dos outros. */}
         <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-dourado/50 bg-white p-2 shadow-lg">
-          <ProxisMark className="h-full w-auto" />
+          <JuventusCrest className="h-full w-auto" />
         </div>
         <p className="relative mt-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-dourado">
           <span aria-hidden className="inline-block h-3.5 w-1.5 -skew-x-12 bg-dourado" />
           Sistema de gestão
         </p>
         <h1 className="relative mt-1.5 text-center text-4xl font-black uppercase tracking-tight text-white sm:text-5xl">
-          Proxis — Gestão Esportiva
+          Juventus - SAF
         </h1>
         <p className="relative mt-2 text-center text-sm text-white/70">Escolha um departamento para começar.</p>
 
@@ -97,8 +102,16 @@ export default async function HomePage() {
         )}
 
         <p className="relative mt-8 text-center text-xs text-white/40">
-          Operando para Clube Atlético Juventus · © {new Date().getFullYear()} Proxis Gestão Esportiva
+          © {new Date().getFullYear()} Clube Atlético Juventus SAF
         </p>
+
+        {/* Assinatura discreta da Proxis (software por trás do sistema) — canto inferior direito,
+            fora do fluxo de leitura principal da tela. Mesmo espírito do rodapé dos PDFs
+            (`lib/pdf/logistica-shared.tsx`): marca pequena, não concorre com o Juventus. */}
+        <div className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-1.5 opacity-60 sm:bottom-6 sm:right-6">
+          <ProxisMark className="h-4 w-4" />
+          <span className="text-[10px] font-medium uppercase tracking-wide text-white">Proxis Gestão Esportiva</span>
+        </div>
       </div>
     </AppShell>
   );

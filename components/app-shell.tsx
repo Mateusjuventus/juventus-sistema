@@ -108,9 +108,9 @@ export async function AppShell({
   if (nav === "none") {
     // Só a tela de escolha de departamento usa `nav="none"` hoje (ver app/page.tsx) — por isso o
     // fundo grená cobre a tela inteira aqui, sem cabeçalho separado: a própria tela já abre com o
-    // ícone da Proxis e "Proxis — Gestão Esportiva" em destaque, então repetir isso numa barra
-    // fininha no topo era redundante. É a mesma cor de preenchimento grande da sidebar/login, só
-    // que ocupando a primeira tela inteira.
+    // brasão e "Juventus - SAF" em destaque, então repetir isso numa barra fininha no topo era
+    // redundante. É a mesma cor de preenchimento grande da sidebar/login, só que ocupando a
+    // primeira tela inteira.
     return (
       <div className="min-h-screen bg-grena">
         <main className="mx-auto max-w-6xl px-4">{children}</main>
