@@ -204,7 +204,7 @@ export function UsuarioForm({
 
                 {modulosMarcados.includes("departamento_medico") ? (
                   <div className="ml-4 border-l-2 border-neutral-100 pl-4">
-                    <p className="field-label">Departamento Médico</p>
+                    <p className="field-label">Saúde e Performance</p>
                     <p className="-mt-0.5 text-xs text-neutral-400">
                       Sem marcar, essa pessoa só visualiza os registros de Fisioterapia — não
                       aparecem os botões de lançar lesão, queixa ou atendimento.
@@ -267,7 +267,7 @@ export function UsuarioForm({
 
                 {departamentosMarcados.includes("futebol_base") && modulosBaseMarcados.includes("departamento_medico") ? (
                   <div className="ml-4 border-l-2 border-neutral-100 pl-4">
-                    <p className="field-label">Departamento Médico (Futebol de Base)</p>
+                    <p className="field-label">Saúde e Performance (Futebol de Base)</p>
                     <p className="-mt-0.5 text-xs text-neutral-400">
                       Sem marcar, essa pessoa só visualiza os registros de Fisioterapia da Base —
                       independente do checkbox equivalente do Profissional (normalmente é outra

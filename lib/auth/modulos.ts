@@ -33,10 +33,11 @@ export interface ModuloInfo {
    * que se usa toda semana); com `grupo`, ele desce pro bloco de mesmo nome, que abre e fecha
    * numa setinha — ver `components/app-sidebar.tsx`. A ordem dentro do bloco é a ordem daqui. */
   grupo?: string;
-  /** Rótulo do link da sidebar quando PRECISA ser diferente do rótulo da permissão (`label`) — ver
-   * `departamento_medico` abaixo: a permissão/checkbox de `/usuarios` chama-se "Departamento
-   * Médico" (a área inteira), mas dentro do grupo o link mostra "Fisioterapia" (a sub-área em si).
-   * Ausente em todo o resto dos módulos — a sidebar cai pra `label` (comportamento de sempre). */
+  /** Rótulo do link da sidebar quando PRECISA ser diferente do rótulo da permissão (`label`).
+   * Nenhum módulo usa hoje (até 06/10 era `departamento_medico`, que distinguia a permissão
+   * "Departamento Médico" do link "Fisioterapia" — virou "Saúde e Performance" nos dois lugares,
+   * sem precisar mais da distinção). Ausente em todo módulo — a sidebar cai pra `label`
+   * (comportamento de sempre). */
   subLabel?: string;
 }
 
@@ -45,30 +46,20 @@ export interface ModuloInfo {
  * de uma lista de 13 itens. */
 export const GRUPO_ADMINISTRATIVO = "Administrativo";
 
-/** Departamento Médico vira um grupo recolhível com suas sub-áreas por baixo (hoje só
- * Fisioterapia) em vez de link direto pra uma tela-hub — ver docs/superpowers/specs/
- * 2026-10-01-departamento-medico-historico-status-design.md, seção 1. Continua sendo UM módulo só
- * (uma permissão/checkbox em `/usuarios`); uma segunda sub-área no futuro (ex.: "Médico",
- * "Nutrição") precisa de um ajuste em `components/app-shell.tsx` pra virar mais de um item de
- * sidebar a partir do mesmo módulo — não construído agora, só uma sub-área existe. */
-export const GRUPO_DEPARTAMENTO_MEDICO = "Departamento Médico";
-
 export const MODULOS: ModuloInfo[] = [
   { chave: "atletas", label: "Atletas", prefixo: "/atletas" },
-  { chave: "comissao_tecnica", label: "Comissão Técnica / Diretoria", prefixo: "/comissao-tecnica" },
+  { chave: "comissao_tecnica", label: "Comissão Técnica", prefixo: "/comissao-tecnica" },
   { chave: "staff_operacional", label: "Staff Operacional", prefixo: "/staff-operacional" },
   { chave: "jogos", label: "Jogos", prefixo: "/jogos" },
   { chave: "competicoes", label: "Competições", prefixo: "/competicoes" },
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/estoque" },
   { chave: "financeiro", label: "Financeiro", prefixo: "/financeiro" },
-  {
-    chave: "departamento_medico",
-    label: "Departamento Médico",
-    subLabel: "Fisioterapia",
-    prefixo: "/departamento-medico/fisioterapia",
-    grupo: GRUPO_DEPARTAMENTO_MEDICO,
-  },
+  // Até 06/10 era "Departamento Médico" (permissão) / "Fisioterapia" (link), dentro de um grupo
+  // recolhível próprio (`GRUPO_DEPARTAMENTO_MEDICO`, removido) — pedido do Mateus em 06/10 pra
+  // virar um link solto de primeiro nível, igual aos outros, em vez de escondido atrás de uma seta.
+  // Ver docs/superpowers/specs/2026-10-06-reorganizacao-sidebar-design.md.
+  { chave: "departamento_medico", label: "Saúde e Performance", prefixo: "/departamento-medico/fisioterapia" },
   { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "veiculos", label: "Veículos / Placas", prefixo: "/veiculos", grupo: GRUPO_ADMINISTRATIVO },

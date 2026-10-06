@@ -142,9 +142,12 @@ export async function AppShell({
   // 2026-10-05-programacao-profissional-design.md) — o item da sidebar passa a se chamar
   // "Programação" (não mais "Início"), com um ícone próprio e um item extra "Calendário" logo
   // abaixo (o antigo painel de calendário/mural/próximo jogo/contratos, que só mostra o
-  // calendário agora). A Base não muda nada disso — continua "Início".
-  const homeTitle = departamento === "futebol_base" ? "Início do Futebol de Base" : "Programação do Futebol Profissional";
-  const homeLabel = departamento === "futebol_base" ? undefined : "Programação";
+  // calendário agora). A Base ganhou o mesmo nome em 06/10 (ver docs/superpowers/specs/
+  // 2026-10-06-reorganizacao-sidebar-design.md) — a home dela (`app/base/page.tsx`) já era a
+  // grade de programação desde 30/08, só o rótulo da sidebar que ainda dizia "Início"; o item
+  // extra "Calendário" continua só do Profissional (a Base não tem essa tela separada).
+  const homeTitle = departamento === "futebol_base" ? "Programação do Futebol de Base" : "Programação do Futebol Profissional";
+  const homeLabel = "Programação";
   const itemExtra =
     departamento === "futebol_base" ? undefined : { href: "/profissional/calendario", label: "Calendário" };
   const departamentoLabel = departamento === "futebol_base" ? "Futebol de Base" : "Futebol Profissional";
@@ -171,7 +174,7 @@ export async function AppShell({
         homeHref={homeHref}
         homeTitle={homeTitle}
         homeLabel={homeLabel}
-        homeIconeProgramacao={departamento !== "futebol_base"}
+        homeIconeProgramacao
         itemExtra={itemExtra}
         departamentoLabel={departamentoLabel}
         departamentoAtual={departamento}

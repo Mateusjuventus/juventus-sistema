@@ -34,18 +34,18 @@ export interface ModuloBaseInfo {
   label: string;
   prefixo: string;
   /** Rótulo do link da sidebar quando PRECISA ser diferente do rótulo da permissão (`label`) —
-   * mesmo motivo de `subLabel` em `lib/auth/modulos.ts` (Profissional): a permissão/checkbox de
-   * `/usuarios` chama-se "Departamento Médico" (a área inteira), mas o link mostra "Fisioterapia"
-   * (a sub-área em si, única hoje). Ausente em todo o resto dos módulos — a sidebar cai pra
-   * `label` (comportamento de sempre). */
+   * mesmo mecanismo de `subLabel` em `lib/auth/modulos.ts` (Profissional). Nenhum módulo usa hoje
+   * (até 06/10 era `departamento_medico`, que distinguia a permissão "Departamento Médico" do link
+   * "Fisioterapia" — virou "Saúde e Performance" nos dois lugares, sem precisar mais da distinção).
+   * Ausente em todo módulo — a sidebar cai pra `label` (comportamento de sempre). */
   subLabel?: string;
 }
 
 export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "atletas", label: "Atletas", prefixo: "/base/atletas" },
-  { chave: "comissao_tecnica", label: "Comissão Técnica / Diretoria", prefixo: "/base/comissao-tecnica" },
+  { chave: "comissao_tecnica", label: "Comissão Técnica", prefixo: "/base/comissao-tecnica" },
   { chave: "staff_operacional", label: "Staff Operacional", prefixo: "/base/staff-operacional" },
-  { chave: "jogos", label: "Jogos / Competições", prefixo: "/base/jogos" },
+  { chave: "jogos", label: "Jogos", prefixo: "/base/jogos" },
   { chave: "competicoes", label: "Competições", prefixo: "/base/competicoes" },
   { chave: "solicitacoes", label: "Solicitações", prefixo: "/base/solicitacoes" },
   { chave: "estoque", label: "Estoque", prefixo: "/base/estoque" },
@@ -56,8 +56,7 @@ export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "assistencia_social", label: "Assistência Social", prefixo: "/base/assistencia-social" },
   {
     chave: "departamento_medico",
-    label: "Departamento Médico",
-    subLabel: "Fisioterapia",
+    label: "Saúde e Performance",
     prefixo: "/base/departamento-medico/fisioterapia",
   },
 ];

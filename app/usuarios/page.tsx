@@ -219,7 +219,7 @@ export default async function UsuariosPage() {
                         <PermissaoCheckboxesForm
                           id={perfil.id}
                           fieldName="fisioterapiaPodeEditar"
-                          titulo="Departamento Médico"
+                          titulo="Saúde e Performance"
                           ajuda="Sem marcar, essa pessoa só visualiza os registros de Fisioterapia."
                           opcoes={[
                             {
@@ -265,7 +265,7 @@ export default async function UsuariosPage() {
                         <PermissaoCheckboxesForm
                           id={perfil.id}
                           fieldName="fisioterapiaPodeEditarBase"
-                          titulo="Departamento Médico (Futebol de Base)"
+                          titulo="Saúde e Performance (Futebol de Base)"
                           ajuda="Sem marcar, essa pessoa só visualiza os registros de Fisioterapia da Base — independente do checkbox equivalente do Profissional."
                           opcoes={[
                             {

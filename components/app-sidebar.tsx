@@ -4,7 +4,7 @@ import { useEffect, useState, type FocusEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { JuventusCrest } from "@/components/juventus-crest";
-import { ChecklistIcon, HomeIcon, SwitchIcon, TargetIcon } from "@/components/department-icon";
+import { HomeIcon, SwitchIcon, TargetIcon } from "@/components/department-icon";
 import {
   IconAlojamento,
   IconAssinaturaPendente,
@@ -78,18 +78,18 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
   assistencia_social: IconAssistenciaSocial,
 };
 
-/** Rótulos da sidebar são escritos por extenso ("Comissão Técnica / Diretoria") e não cabem embaixo
+/** Rótulos da sidebar são escritos por extenso (ex.: "Relatório Avulso") e não cabem embaixo
  * de um ícone de 22px. Aqui eles viram a versão curta — só na barra inferior; a gaveta e o desktop
  * continuam com o nome completo. */
 const ROTULO_CURTO: Record<string, string> = {
-  "Comissão Técnica / Diretoria": "Comissão",
+  "Comissão Técnica": "Comissão",
   "Staff Operacional": "Staff",
   "Termos de Retirada": "Termos",
   "Veículos / Placas": "Veículos",
   "Relatório Avulso": "Relatório",
-  "Jogos / Competições": "Jogos",
   "Captação/Avaliação": "Captação",
   "Assistência Social": "Social",
+  "Saúde e Performance": "Saúde",
 };
 
 function rotuloCurto(label: string): string {
@@ -227,12 +227,13 @@ export function AppSidebar({
 }: {
   homeHref: string;
   homeTitle: string;
-  /** Rótulo do primeiro item da sidebar — "Início" por padrão. O Profissional passa "Programação"
-   * (ver docs/superpowers/specs/2026-10-05-programacao-profissional-design.md: o Início do
-   * Profissional virou a grade semanal, então o item deixa de se chamar "Início"). A Base não passa
-   * nada — continua "Início", sem mudança. */
+  /** Rótulo do primeiro item da sidebar — "Início" por padrão, não usado hoje: os dois
+   * departamentos passam "Programação" (ver docs/superpowers/specs/2026-10-05-programacao-
+   * profissional-design.md e 2026-10-06-reorganizacao-sidebar-design.md). Continua opcional pra
+   * `AppShell` poder escolher, mas o padrão "Início" não tem mais nenhum chamador hoje. */
   homeLabel?: string;
-  /** Troca o ícone do item de Início/Programação por `IconProgramacao` — só o Profissional usa. */
+  /** Troca o ícone do item de Início/Programação por `IconProgramacao` — os dois departamentos
+   * usam desde 06/10 (antes só o Profissional). */
   homeIconeProgramacao?: boolean;
   /** Item fixo extra, logo abaixo do Início/Programação — hoje só "Calendário" do Profissional. */
   itemExtra?: { href: string; label: string };
@@ -401,10 +402,6 @@ export function AppSidebar({
           ) : (
             <div className="pt-2" />
           )}
-          <Link href="/tarefas" title="Tarefas" className={linkClasse(itemAtivo("/tarefas"), compacto)}>
-            <ChecklistIcon className="h-[18px] w-[18px] shrink-0" />
-            {!compacto ? "Tarefas" : null}
-          </Link>
           {mostrarMinhasDemandas ? (
             <Link
               href="/minhas-demandas"
