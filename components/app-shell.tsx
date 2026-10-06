@@ -83,7 +83,10 @@ export async function AppShell({
       ]);
       navItems = MODULOS_BASE.filter((m) => modulosBasePermitidos.includes(m.chave)).map((m) => ({
         href: m.prefixo,
-        label: m.label,
+        // `subLabel` só existe quando o nome do link precisa ser diferente do nome da permissão
+        // (ver `departamento_medico` em `lib/auth/modulos-base.ts`) — os demais módulos caem pra
+        // `label`. Mesmo raciocínio do branch do Profissional, abaixo.
+        label: m.subLabel ?? m.label,
         icone: m.chave as SidebarIconKey,
       }));
       // Usuários precisa aparecer pro master em qualquer departamento — não é uma opção "do

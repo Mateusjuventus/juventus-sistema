@@ -62,6 +62,13 @@ function parseFisioterapiaPodeEditar(formData: FormData): boolean {
   return formData.getAll("fisioterapiaPodeEditar").includes("sim");
 }
 
+/** Mesma ideia de `parseFisioterapiaPodeEditar`, pro checkbox equivalente do Departamento Médico
+ * do Futebol de Base — permissão própria, independente da do Profissional (ver docs/superpowers/
+ * specs/2026-10-06-fisioterapia-base-design.md). */
+function parseFisioterapiaPodeEditarBase(formData: FormData): boolean {
+  return formData.getAll("fisioterapiaPodeEditarBase").includes("sim");
+}
+
 /** Checkbox único "Acompanhar no painel de Demandas" — ver docs/superpowers/specs/2026-10-05-
  * assistencia-social-e-demandas-design.md, Parte 2 e `getDemandasAcompanhado` em
  * `lib/auth/role.ts`. Mesmo padrão de `parseFisioterapiaPodeEditar`. */
@@ -156,6 +163,7 @@ export async function criarUsuario(
     ? TODAS_CATEGORIAS_BASE
     : parseCategoriasBasePermitidas(formData);
   const fisioterapiaPodeEditar = parseFisioterapiaPodeEditar(formData);
+  const fisioterapiaPodeEditarBase = parseFisioterapiaPodeEditarBase(formData);
   const camposSensiveisBloqueados = parseCamposSensiveisBloqueados(formData);
   const raw = { email, role };
 
@@ -198,6 +206,7 @@ export async function criarUsuario(
     comissao_tecnica_base_id: comissaoTecnicaBaseId,
     categorias_base_permitidas: categoriasBasePermitidas,
     fisioterapia_pode_editar: fisioterapiaPodeEditar,
+    fisioterapia_pode_editar_base: fisioterapiaPodeEditarBase,
     campos_sensiveis_bloqueados: camposSensiveisBloqueados,
   });
   if (perfilError) {
@@ -403,6 +412,32 @@ export async function atualizarFisioterapiaPodeEditar(
   const { error } = await admin
     .from("perfis")
     .update({ fisioterapia_pode_editar: fisioterapiaPodeEditar })
+    .eq("id", id);
+  if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
+
+  revalidatePath("/usuarios");
+  return { success: "Salvo." };
+}
+
+/** Salva o checkbox "Pode inserir e editar registros de Fisioterapia da Base" de um usuário
+ * "regular" já existente — espelha `atualizarFisioterapiaPodeEditar`, pro módulo Departamento
+ * Médico do Futebol de Base (permissão própria, independente da do Profissional). Só master pode
+ * chamar. */
+export async function atualizarFisioterapiaPodeEditarBase(
+  _prevState: PermissaoActionState,
+  formData: FormData,
+): Promise<PermissaoActionState> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return { error: "Você não tem permissão para fazer isso." };
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Usuário inválido." };
+  const fisioterapiaPodeEditarBase = parseFisioterapiaPodeEditarBase(formData);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("perfis")
+    .update({ fisioterapia_pode_editar_base: fisioterapiaPodeEditarBase })
     .eq("id", id);
   if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
 

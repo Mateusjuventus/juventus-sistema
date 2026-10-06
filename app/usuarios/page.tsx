@@ -19,6 +19,7 @@ import {
   atualizarDepartamentos,
   atualizarEstoqueCategorias,
   atualizarFisioterapiaPodeEditar,
+  atualizarFisioterapiaPodeEditarBase,
   atualizarModulos,
   atualizarModulosBase,
   atualizarPapel,
@@ -257,6 +258,25 @@ export default async function UsuariosPage() {
                           action={atualizarModulosBase}
                           submitLabel="Salvar módulos de base"
                           className="border-t border-neutral-100 pt-3"
+                        />
+                      ) : null}
+
+                      {departamentosPermitidos.includes("futebol_base") && modulosBasePermitidos.includes("departamento_medico") ? (
+                        <PermissaoCheckboxesForm
+                          id={perfil.id}
+                          fieldName="fisioterapiaPodeEditarBase"
+                          titulo="Departamento Médico (Futebol de Base)"
+                          ajuda="Sem marcar, essa pessoa só visualiza os registros de Fisioterapia da Base — independente do checkbox equivalente do Profissional."
+                          opcoes={[
+                            {
+                              value: "sim",
+                              label: "Pode inserir e editar registros de Fisioterapia da Base (é o fisioterapeuta da Base)",
+                            },
+                          ]}
+                          valoresIniciais={perfil.fisioterapia_pode_editar_base ? ["sim"] : []}
+                          action={atualizarFisioterapiaPodeEditarBase}
+                          submitLabel="Salvar"
+                          className="ml-4 border-l-2 border-neutral-100 pl-4"
                         />
                       ) : null}
 

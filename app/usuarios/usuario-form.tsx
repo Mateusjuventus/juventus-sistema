@@ -27,6 +27,7 @@ export function UsuarioForm({
   const [state, formAction] = useFormState(criarUsuario, initialState);
   const [role, setRole] = useState(initialState.values?.role ?? "regular");
   const [modulosMarcados, setModulosMarcados] = useState<string[]>(MODULOS.map((m) => m.chave));
+  const [modulosBaseMarcados, setModulosBaseMarcados] = useState<string[]>(MODULOS_BASE.map((m) => m.chave));
   const [departamentosMarcados, setDepartamentosMarcados] = useState<string[]>(
     DEPARTAMENTOS.map((d) => d.chave),
   );
@@ -37,6 +38,10 @@ export function UsuarioForm({
 
   function alternarModulo(chave: string, marcado: boolean) {
     setModulosMarcados((atual) => (marcado ? [...atual, chave] : atual.filter((c) => c !== chave)));
+  }
+
+  function alternarModuloBase(chave: string, marcado: boolean) {
+    setModulosBaseMarcados((atual) => (marcado ? [...atual, chave] : atual.filter((c) => c !== chave)));
   }
 
   function alternarDepartamento(chave: string, marcado: boolean) {
@@ -250,12 +255,33 @@ export function UsuarioForm({
                             name="modulosBase"
                             value={modulo.chave}
                             defaultChecked
+                            onChange={(e) => alternarModuloBase(modulo.chave, e.target.checked)}
                             className={CHECKBOX_CLASS}
                           />
                           {modulo.label}
                         </label>
                       ))}
                     </div>
+                  </div>
+                ) : null}
+
+                {departamentosMarcados.includes("futebol_base") && modulosBaseMarcados.includes("departamento_medico") ? (
+                  <div className="ml-4 border-l-2 border-neutral-100 pl-4">
+                    <p className="field-label">Departamento Médico (Futebol de Base)</p>
+                    <p className="-mt-0.5 text-xs text-neutral-400">
+                      Sem marcar, essa pessoa só visualiza os registros de Fisioterapia da Base —
+                      independente do checkbox equivalente do Profissional (normalmente é outra
+                      pessoa cuidando da Base).
+                    </p>
+                    <label className="mt-1 flex items-center gap-2 text-sm text-neutral-700">
+                      <input
+                        type="checkbox"
+                        name="fisioterapiaPodeEditarBase"
+                        value="sim"
+                        className={CHECKBOX_CLASS}
+                      />
+                      Pode inserir e editar registros de Fisioterapia da Base (é o fisioterapeuta da Base)
+                    </label>
                   </div>
                 ) : null}
 

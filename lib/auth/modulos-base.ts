@@ -26,12 +26,19 @@ export type ModuloBaseChave =
   | "relatorios_avulso"
   | "captacao"
   | "alojamento"
-  | "assistencia_social";
+  | "assistencia_social"
+  | "departamento_medico";
 
 export interface ModuloBaseInfo {
   chave: ModuloBaseChave;
   label: string;
   prefixo: string;
+  /** Rótulo do link da sidebar quando PRECISA ser diferente do rótulo da permissão (`label`) —
+   * mesmo motivo de `subLabel` em `lib/auth/modulos.ts` (Profissional): a permissão/checkbox de
+   * `/usuarios` chama-se "Departamento Médico" (a área inteira), mas o link mostra "Fisioterapia"
+   * (a sub-área em si, única hoje). Ausente em todo o resto dos módulos — a sidebar cai pra
+   * `label` (comportamento de sempre). */
+  subLabel?: string;
 }
 
 export const MODULOS_BASE: ModuloBaseInfo[] = [
@@ -47,6 +54,12 @@ export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "captacao", label: "Captação/Avaliação", prefixo: "/base/captacao" },
   { chave: "alojamento", label: "Alojamento", prefixo: "/base/alojamento" },
   { chave: "assistencia_social", label: "Assistência Social", prefixo: "/base/assistencia-social" },
+  {
+    chave: "departamento_medico",
+    label: "Departamento Médico",
+    subLabel: "Fisioterapia",
+    prefixo: "/base/departamento-medico/fisioterapia",
+  },
 ];
 
 /** Todas as chaves de módulo de Base — usado como padrão de quem ainda não tem

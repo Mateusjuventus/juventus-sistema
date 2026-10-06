@@ -1416,6 +1416,10 @@ export interface PerfilRow {
    * isto é `true` (o fisioterapeuta) — os demais com o módulo liberado só visualizam. `false` por
    * padrão: liberar o módulo pra alguém não dá poder de edição sozinho. */
   fisioterapia_pode_editar: boolean;
+  /** Mesma ideia de `fisioterapia_pode_editar`, mas pro módulo Departamento Médico do Futebol de
+   * Base — permissão própria, independente (normalmente é outra pessoa cuidando da Base). Ver
+   * docs/superpowers/specs/2026-10-06-fisioterapia-base-design.md. */
+  fisioterapia_pode_editar_base: boolean;
   /** Campos sensíveis (catálogo em `lib/auth/campos-sensiveis.ts`, hoje só "salario") escondidos
    * desta pessoa mesmo com o módulo correspondente liberado — ver docs/superpowers/specs/
    * 2026-10-02-campos-sensiveis-e-atletas-por-categoria-design.md. Lista de BLOQUEIO (ao contrário
@@ -2275,6 +2279,60 @@ export interface AtletaStatusHistoricoRow {
   id: string;
   atleta_id: string;
   status: AtletaStatus;
+  data: string;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+}
+
+// ===== Fisioterapia do Futebol de Base (ver docs/superpowers/specs/
+// 2026-10-06-fisioterapia-base-design.md) — espelha as 4 interfaces acima, ligadas a
+// `atletas_base(id)` em vez de `atletas(id)`. Mesmo `FisioterapiaTipo` dos dois lados (vocabulário
+// de tipo de lesão/queixa não muda entre departamentos). Diferente do Profissional, `data_inicio`/
+// `data`/`data_fim` já nascem opcionais (sem histórico importado pra exigir isso depois).
+
+export interface FisioterapiaLesaoBaseRow {
+  id: string;
+  atleta_id: string;
+  descricao: string;
+  tipo: FisioterapiaTipo;
+  data_inicio: string | null;
+  data_fim: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FisioterapiaQueixaBaseRow {
+  id: string;
+  atleta_id: string;
+  tipo: FisioterapiaTipo;
+  data: string | null;
+  descricao: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface FisioterapiaAtendimentoBaseRow {
+  id: string;
+  atleta_id: string;
+  lesao_id: string | null;
+  data: string | null;
+  descricao: string;
+  quantidade: number | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+/** Linha do tempo de status do atleta da Base — espelha `AtletaStatusHistoricoRow`, mas com os 4
+ * valores de `AtletaBaseStatus` (inclui "suspenso"/"dispensado", que não existem no Profissional).
+ * A sincronização automática (abrir/fechar lesão) só alterna entre "departamento_medico" e
+ * "liberado" — as outras duas entram só por lançamento manual. */
+export interface AtletaBaseStatusHistoricoRow {
+  id: string;
+  atleta_id: string;
+  status: AtletaBaseStatus;
   data: string;
   criado_por_perfil_id: string | null;
   criado_por_nome: string | null;
