@@ -57,9 +57,12 @@ export const MODULOS: ModuloInfo[] = [
   { chave: "financeiro", label: "Financeiro", prefixo: "/financeiro" },
   // Até 06/10 era "Departamento Médico" (permissão) / "Fisioterapia" (link), dentro de um grupo
   // recolhível próprio (`GRUPO_DEPARTAMENTO_MEDICO`, removido) — pedido do Mateus em 06/10 pra
-  // virar um link solto de primeiro nível, igual aos outros, em vez de escondido atrás de uma seta.
-  // Ver docs/superpowers/specs/2026-10-06-reorganizacao-sidebar-design.md.
-  { chave: "departamento_medico", label: "Saúde e Performance", prefixo: "/departamento-medico/fisioterapia" },
+  // virar um link solto de primeiro nível, igual aos outros, em vez de escondido atrás de uma
+  // seta. `prefixo` aponta pro hub (`app/departamento-medico/page.tsx`, novo), não direto pra
+  // Fisioterapia — mesmo padrão de "estoque" (um módulo, várias ramificações por baixo); o
+  // middleware libera as duas rotas porque uma é prefixo da outra. Ver docs/superpowers/specs/
+  // 2026-10-06-reorganizacao-sidebar-design.md.
+  { chave: "departamento_medico", label: "Saúde e Performance", prefixo: "/departamento-medico" },
   { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "veiculos", label: "Veículos / Placas", prefixo: "/veiculos", grupo: GRUPO_ADMINISTRATIVO },

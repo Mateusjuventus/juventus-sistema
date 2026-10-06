@@ -54,11 +54,10 @@ export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "captacao", label: "Captação/Avaliação", prefixo: "/base/captacao" },
   { chave: "alojamento", label: "Alojamento", prefixo: "/base/alojamento" },
   { chave: "assistencia_social", label: "Assistência Social", prefixo: "/base/assistencia-social" },
-  {
-    chave: "departamento_medico",
-    label: "Saúde e Performance",
-    prefixo: "/base/departamento-medico/fisioterapia",
-  },
+  // `prefixo` aponta pro hub (`app/base/departamento-medico/page.tsx`, novo), não direto pra
+  // Fisioterapia — mesmo padrão de "estoque"/"departamento_medico" do Profissional, ver
+  // docs/superpowers/specs/2026-10-06-reorganizacao-sidebar-design.md.
+  { chave: "departamento_medico", label: "Saúde e Performance", prefixo: "/base/departamento-medico" },
 ];
 
 /** Todas as chaves de módulo de Base — usado como padrão de quem ainda não tem

@@ -84,3 +84,42 @@ Se o Mateus quiser also decommissionar de vez (rotas, permissão, tabela), é um
   (sem grupo recolhível) no lugar onde antes só "Fisioterapia" aparecia depois de abrir a seta;
   "Tarefas" sumiu da sidebar nos dois; checkbox de permissão em `/usuarios` lendo "Saúde e
   Performance" em vez de "Departamento Médico".
+
+## Adendo (depois da entrega): "Saúde e Performance" vira módulo com ramificações
+
+Depois da entrega do item 4 (link solto, nome "Saúde e Performance"), o Mateus pediu mais um
+ajuste: "Exemplo, Saúde e Performance, deve ficar como um modulo que tenha ramificações pra baixo a
+exemplo da Fisioterapia". A primeira leitura possível — reintroduzir um grupo recolhível com seta na
+sidebar — foi descartada depois de perguntar: ele confirmou explicitamente que o link da sidebar
+**não** deve voltar a ter seta/sub-itens embutidos ("saúde e performance não está com a seta com com
+as categorias abaixo... ela é pra ficar como tela e abaixo a fisioterapia"). Ou seja: o link da
+sidebar continua um item único, de primeiro nível, sem seta — mas clicar nele leva a uma **tela**
+(hub), e "Fisioterapia" aparece como um cartão dentro dessa tela, não na sidebar.
+
+**Padrão reaproveitado**: `app/estoque/page.tsx` já faz exatamente isso — "um módulo só, mas com
+ramificações separadas", uma tela de entrada com um cartão por sub-área, e o `prefixo` do módulo
+apontando pro hub em vez de direto pra sub-área (o middleware libera as duas rotas porque uma é
+prefixo da outra, via `startsWith`). Aplicado aqui sem precisar renomear nenhuma rota já construída
+de Fisioterapia (listagem, ficha do atleta, relatório, PDFs, Server Actions — permanecem intactas).
+
+**Mudanças**:
+
+- **`app/departamento-medico/page.tsx`** (novo, Profissional) e **`app/base/departamento-medico/
+  page.tsx`** (novo, Base): tela hub com um cartão "Fisioterapia" (estilo igual ao de
+  `app/estoque/page.tsx`: barra de acento `bg-grena`, título, subtítulo com estatística —
+  "{total} atletas · {em tratamento} em tratamento"). A versão Base restringe as contagens às
+  categorias permitidas do usuário logado (`getCategoriasBasePermitidas`), com a contagem de "em
+  tratamento" intersectada com o conjunto de atletas já permitidos (evita contar lesão de atleta de
+  categoria fora do escopo de quem está vendo).
+- **`lib/auth/modulos.ts`**: `departamento_medico.prefixo` passa de `/departamento-medico/
+  fisioterapia` pra `/departamento-medico` (o hub).
+- **`lib/auth/modulos-base.ts`**: `departamento_medico.prefixo` passa de `/base/departamento-medico/
+  fisioterapia` pra `/base/departamento-medico` (o hub).
+- Nenhuma mudança em `components/app-sidebar.tsx` — o link da sidebar já apontava pro `prefixo` do
+  módulo, então passa a abrir o hub automaticamente, sem precisar de nenhum ajuste ali. Nenhuma
+  migração SQL nova.
+
+**Verificação**: `npx tsc --noEmit`, `npx eslint` nos 4 arquivos tocados, `npx vitest run` (592/592,
+sem mudança de contagem), `npx next build` — todos limpos. Visual: clicar em "Saúde e Performance"
+(Profissional ou Base) abre a tela com o cartão "Fisioterapia"; clicar no cartão leva pra listagem
+de Fisioterapia de sempre; o link da sidebar continua sem seta/sub-itens.
