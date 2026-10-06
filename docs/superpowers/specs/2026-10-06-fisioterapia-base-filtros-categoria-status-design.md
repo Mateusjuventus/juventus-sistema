@@ -20,9 +20,20 @@ Confirmado com o usuário: a Assistência Social **não** muda — ela já tem o
 (nada a fazer lá), e o painel de status/porcentagem é só pra Fisioterapia (não existe um "status"
 de atleta na Assistência Social; lá o equivalente seria Demandas, fora de escopo aqui).
 
+## Adendo (depois da entrega): Assistência Social também ganhou os cartões de categoria
+
+Depois de ver o resultado, o Mateus pediu pra Assistência Social usar o mesmo estilo de cartão por
+categoria (em vez da pizza + legenda que ela já tinha) — mesma UI, sem painel de status (não existe
+essa dimensão lá, só uma categoria por cartão). `assistencia-social-listagem.tsx` trocou o bloco
+`PizzaCategoria` pelo mesmo bloco de cartões `Categoria · clique para filtrar (uma ou mais)` da
+Fisioterapia da Base; o componente `PizzaCategoria` (e o import de `fatiasPizza`, que só ele usava
+nesse arquivo) foi removido por ficar sem uso.
+
 ## Fora de escopo
 
-- Qualquer mudança em `app/base/assistencia-social/*` (já está como deveria ficar).
+- Extrair um componente de cartões de categoria compartilhado entre as duas telas que agora o usam
+  (Fisioterapia Base e Assistência Social) — mesmo critério do resto desta spec: cada tela mantém
+  sua própria cópia pequena, sem generalizar.
 - Extrair um componente de pizza genérico compartilhado entre as 3 telas que já têm um
   (Assistência Social, Fisioterapia Base, `AtletasResumoFiltros`) — mantém o padrão já estabelecido
   nesta base de código de cada tela ter sua própria cópia pequena do helper de pizza (mesmo critério
