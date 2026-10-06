@@ -88,6 +88,7 @@ export async function AppShell({
         // `label`. Mesmo raciocínio do branch do Profissional, abaixo.
         label: m.subLabel ?? m.label,
         icone: m.chave as SidebarIconKey,
+        subItens: m.subItens,
       }));
       // Usuários precisa aparecer pro master em qualquer departamento — não é uma opção "do
       // Profissional" nem "da Base", é administração de contas do sistema inteiro. Antes só
@@ -116,6 +117,7 @@ export async function AppShell({
         icone: m.chave,
         // Bloco recolhível da sidebar, quando o módulo pertence a um (ver `lib/auth/modulos.ts`).
         grupo: m.grupo,
+        subItens: m.subItens,
       }));
       // Só quem é master vê Usuários — é onde se cadastra/gerencia outras contas. Não é um
       // ModuloChave liberável por checkbox, por isso entra fora do filtro acima. Vale pros dois

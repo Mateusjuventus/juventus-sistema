@@ -52,6 +52,9 @@ export interface SidebarNavItem {
   /** Nome do bloco recolhível a que o item pertence (ver `grupo` em `lib/auth/modulos.ts`). Item
    * sem `grupo` fica solto na lista principal. */
   grupo?: string;
+  /** Sub-telas que abrem/fecham dentro do próprio item (ver `subItens` em `lib/auth/modulos.ts`) —
+   * quando presente, o item vira um botão expansível (`ItemComSubitens`) em vez de um link direto. */
+  subItens?: { href: string; label: string }[];
 }
 
 /** Mapa de ícone só existe aqui dentro do Client Component — um componente de ícone (função) não
@@ -192,6 +195,74 @@ function GrupoRecolhivel({
         <div className="space-y-0.5">
           {itens.map((item) => (
             <ItemLink key={item.href} item={item} ativo={itemAtivo(item.href)} classe={linkClasse} recuado />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Item de primeiro nível que expande/recolhe NO PRÓPRIO LUGAR (seta), em vez de navegar direto —
+ * pro módulo que tem telas por baixo (hoje só "Saúde e Performance" → "Fisioterapia", ver
+ * `subItens` em `lib/auth/modulos.ts`). Ao contrário do `GrupoRecolhivel` acima (que é um rótulo
+ * pequeno de SEÇÃO, agrupando vários módulos diferentes), este item continua do MESMO tamanho/peso
+ * visual de um item solto — só ganha uma seta. Pedido do Mateus em 06/10, depois de um vídeo de
+ * referência mostrando exatamente esse comportamento (a primeira versão tinha virado uma tela-hub
+ * separada, que não era o que ele queria). Mesma regra de abrir sozinho quando a página atual está
+ * aqui dentro.
+ */
+function ItemComSubitens({
+  item,
+  itemAtivo,
+  linkClasse,
+  compacto,
+}: {
+  item: SidebarNavItem & { subItens: { href: string; label: string }[] };
+  itemAtivo: (href: string) => boolean;
+  linkClasse: (ativo: boolean, compacto?: boolean) => string;
+  compacto?: boolean;
+}) {
+  const algumSubitemAtivo = item.subItens.some((sub) => itemAtivo(sub.href));
+  const [aberto, setAberto] = useState(algumSubitemAtivo);
+
+  // Barra recolhida (só ícone) não tem espaço pra seta/sub-itens — vira um link direto pro
+  // `item.href`, igual a qualquer outro item nesse modo.
+  if (compacto) {
+    return <ItemLink item={item} ativo={algumSubitemAtivo} classe={linkClasse} compacto />;
+  }
+
+  const Icone = ICONES[item.icone];
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setAberto((atual) => !atual)}
+        aria-expanded={aberto}
+        className={`${linkClasse(algumSubitemAtivo)} w-full`}
+      >
+        <Icone className="h-[18px] w-[18px] shrink-0" />
+        <span className="flex-1 text-left">{item.label}</span>
+        <svg
+          viewBox="0 0 12 12"
+          className={`h-3 w-3 shrink-0 transition-transform ${aberto ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M3 4.5 6 7.5l3-3" />
+        </svg>
+      </button>
+      {aberto ? (
+        <div className="space-y-0.5">
+          {item.subItens.map((sub) => (
+            <Link key={sub.href} href={sub.href} title={sub.label} className={`${linkClasse(itemAtivo(sub.href))} pl-6`}>
+              {sub.label}
+            </Link>
           ))}
         </div>
       ) : null}
@@ -374,15 +445,25 @@ export function AppSidebar({
               {!compacto ? itemExtra.label : null}
             </Link>
           ) : null}
-          {soltos.map((item) => (
-            <ItemLink
-              key={item.href}
-              item={item}
-              ativo={itemAtivo(item.href)}
-              classe={linkClasse}
-              compacto={compacto}
-            />
-          ))}
+          {soltos.map((item) =>
+            item.subItens && item.subItens.length > 0 ? (
+              <ItemComSubitens
+                key={item.href}
+                item={item as SidebarNavItem & { subItens: { href: string; label: string }[] }}
+                itemAtivo={itemAtivo}
+                linkClasse={linkClasse}
+                compacto={compacto}
+              />
+            ) : (
+              <ItemLink
+                key={item.href}
+                item={item}
+                ativo={itemAtivo(item.href)}
+                classe={linkClasse}
+                compacto={compacto}
+              />
+            ),
+          )}
 
           {grupos.map(([titulo, itens]) => (
             <GrupoRecolhivel

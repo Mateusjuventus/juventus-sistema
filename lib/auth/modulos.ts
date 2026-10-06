@@ -39,6 +39,14 @@ export interface ModuloInfo {
    * sem precisar mais da distinção). Ausente em todo módulo — a sidebar cai pra `label`
    * (comportamento de sempre). */
   subLabel?: string;
+  /** Sub-telas que aparecem DENTRO do próprio item da sidebar, atrás de uma seta que abre/fecha no
+   * lugar — em vez de um link direto pro `prefixo`, o item vira um botão que expande revelando essa
+   * lista (ver `ItemComSubitens` em `components/app-sidebar.tsx`). Visualmente o item continua do
+   * MESMO tamanho/peso dos outros (ao contrário de `grupo`, que é um rótulo pequeno de seção) —
+   * pedido do Mateus em 06/10 com vídeo de referência mostrando exatamente esse comportamento pra
+   * "Saúde e Performance" → "Fisioterapia". Ausente em todo módulo, exceto esse — vira link direto
+   * pro `prefixo`, como sempre. */
+  subItens?: { href: string; label: string }[];
 }
 
 /** Único grupo por ora: o que se abre de vez em quando (documento de retirada, cadastro de hotel,
@@ -57,12 +65,19 @@ export const MODULOS: ModuloInfo[] = [
   { chave: "financeiro", label: "Financeiro", prefixo: "/financeiro" },
   // Até 06/10 era "Departamento Médico" (permissão) / "Fisioterapia" (link), dentro de um grupo
   // recolhível próprio (`GRUPO_DEPARTAMENTO_MEDICO`, removido) — pedido do Mateus em 06/10 pra
-  // virar um link solto de primeiro nível, igual aos outros, em vez de escondido atrás de uma
-  // seta. `prefixo` aponta pro hub (`app/departamento-medico/page.tsx`, novo), não direto pra
-  // Fisioterapia — mesmo padrão de "estoque" (um módulo, várias ramificações por baixo); o
-  // middleware libera as duas rotas porque uma é prefixo da outra. Ver docs/superpowers/specs/
-  // 2026-10-06-reorganizacao-sidebar-design.md.
-  { chave: "departamento_medico", label: "Saúde e Performance", prefixo: "/departamento-medico" },
+  // virar um item de primeiro nível, do mesmo tamanho dos outros (não mais escondido atrás de uma
+  // seta pequena). Chegou a virar uma tela-hub própria (`app/departamento-medico/page.tsx`) nesse
+  // mesmo dia, mas um vídeo de referência enviado em seguida mostrou outro padrão: o item continua
+  // do mesmo tamanho, mas expande NO PRÓPRIO LUGAR da sidebar (seta, sem navegar), revelando as
+  // telas de baixo ali mesmo — não abre uma tela separada. `subItens` é essa lista (hoje só
+  // Fisioterapia; dá pra crescer no futuro sem mexer na sidebar de novo). `prefixo` volta a apontar
+  // direto pra Fisioterapia. Ver docs/superpowers/specs/2026-10-06-reorganizacao-sidebar-design.md.
+  {
+    chave: "departamento_medico",
+    label: "Saúde e Performance",
+    prefixo: "/departamento-medico/fisioterapia",
+    subItens: [{ href: "/departamento-medico/fisioterapia", label: "Fisioterapia" }],
+  },
   { chave: "termos_retirada", label: "Termos de Retirada", prefixo: "/termos", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "hoteis", label: "Hotéis", prefixo: "/hoteis", grupo: GRUPO_ADMINISTRATIVO },
   { chave: "veiculos", label: "Veículos / Placas", prefixo: "/veiculos", grupo: GRUPO_ADMINISTRATIVO },

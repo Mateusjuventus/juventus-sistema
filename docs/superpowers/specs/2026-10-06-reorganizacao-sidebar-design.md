@@ -123,3 +123,41 @@ de Fisioterapia (listagem, ficha do atleta, relatório, PDFs, Server Actions —
 sem mudança de contagem), `npx next build` — todos limpos. Visual: clicar em "Saúde e Performance"
 (Profissional ou Base) abre a tela com o cartão "Fisioterapia"; clicar no cartão leva pra listagem
 de Fisioterapia de sempre; o link da sidebar continua sem seta/sub-itens.
+
+## Correção (mesmo dia, antes do próximo deploy): o adendo acima está substituído
+
+O adendo logo acima (tela-hub com cartão) foi entregue, mas o Mateus mandou em seguida um vídeo de
+referência (outro sistema, ícones diferentes dos nossos) deixando claro que não era isso: "não é pra
+abrir cartão, é pra ficar igual o video enviado". O vídeo mostra um item de sidebar do MESMO
+tamanho/peso visual dos outros (não o rótulo pequeno em letras maiúsculas que o bloco
+"Administrativo" já usa), com uma seta à direita — ao clicar, ele expande **no próprio lugar da
+sidebar** (sem navegar), revelando sub-telas logo abaixo, recuadas. Ou seja, a leitura anterior
+("ela é pra ficar como tela, sem seta") estava errada — o que ele descartou da primeira vez foi
+especificamente o estilo ANTIGO de seta (pequena, três níveis escondidos, `GRUPO_DEPARTAMENTO_MEDICO`
+removido no item 4), não o mecanismo de expandir em si.
+
+**O que muda em relação ao adendo anterior**:
+
+- As telas-hub (`app/departamento-medico/page.tsx` e `app/base/departamento-medico/page.tsx`) foram
+  **removidas** — voltam a não existir. `prefixo` volta a apontar direto pra Fisioterapia
+  (`/departamento-medico/fisioterapia` e `/base/departamento-medico/fisioterapia`), como era antes
+  do adendo anterior.
+- Novo campo **`subItens`** em `ModuloInfo`/`ModuloBaseInfo` (`lib/auth/modulos.ts`/`modulos-base.ts`):
+  lista de `{href, label}` que o item da sidebar expande pra mostrar. Hoje só `departamento_medico`
+  usa, com um único item ("Fisioterapia") — dá pra crescer no futuro (Nutrição, Preparação Física
+  etc.) só adicionando entradas aqui, sem mexer em `components/app-sidebar.tsx` de novo.
+- Novo componente **`ItemComSubitens`** em `components/app-sidebar.tsx`: renderiza o item com o
+  MESMO estilo visual de um item solto (`linkClasse`), mais um ícone de seta que gira ao abrir/
+  fechar. Abre sozinho se a página atual está em algum dos `subItens` (mesma regra do
+  `GrupoRecolhivel`, que continua existindo — ele é quem renderiza o bloco "Administrativo", sem
+  mudança). Na barra recolhida (só ícone, sem espaço pra seta), vira um link direto pro `prefixo`,
+  igual a qualquer outro item nesse modo.
+- `app-shell.tsx` passa `subItens: m.subItens` ao montar `navItems`, igual já fazia com `grupo`.
+
+**Verificação**: `rm -rf .next && npx tsc --noEmit` (precisa limpar o `.next` — senão os tipos
+gerados pras telas-hub removidas quebram o build com "Cannot find module"), `npx eslint` nos
+arquivos tocados, `npx vitest run` (592/592, sem mudança de contagem), `npx next build` — todos
+limpos, rotas das telas-hub confirmadas fora da lista de rotas do build. Visual: "Saúde e
+Performance" aparece do mesmo tamanho dos outros itens, com seta à direita; clicar expande ali
+mesmo, mostrando "Fisioterapia" recuada; clicar em "Fisioterapia" leva direto pra listagem de
+sempre — nenhuma tela intermediária.

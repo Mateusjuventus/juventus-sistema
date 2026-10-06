@@ -39,6 +39,10 @@ export interface ModuloBaseInfo {
    * "Fisioterapia" — virou "Saúde e Performance" nos dois lugares, sem precisar mais da distinção).
    * Ausente em todo módulo — a sidebar cai pra `label` (comportamento de sempre). */
   subLabel?: string;
+  /** Mesmo mecanismo de `subItens` em `lib/auth/modulos.ts` (Profissional) — sub-telas que
+   * expandem dentro do próprio item da sidebar (seta, sem navegar), em vez de um link direto pro
+   * `prefixo`. Hoje só `departamento_medico` usa. */
+  subItens?: { href: string; label: string }[];
 }
 
 export const MODULOS_BASE: ModuloBaseInfo[] = [
@@ -54,10 +58,16 @@ export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "captacao", label: "Captação/Avaliação", prefixo: "/base/captacao" },
   { chave: "alojamento", label: "Alojamento", prefixo: "/base/alojamento" },
   { chave: "assistencia_social", label: "Assistência Social", prefixo: "/base/assistencia-social" },
-  // `prefixo` aponta pro hub (`app/base/departamento-medico/page.tsx`, novo), não direto pra
-  // Fisioterapia — mesmo padrão de "estoque"/"departamento_medico" do Profissional, ver
-  // docs/superpowers/specs/2026-10-06-reorganizacao-sidebar-design.md.
-  { chave: "departamento_medico", label: "Saúde e Performance", prefixo: "/base/departamento-medico" },
+  // Mesmo padrão do Profissional (ver `lib/auth/modulos.ts`): o item expande NO PRÓPRIO LUGAR da
+  // sidebar (seta), revelando `subItens`, em vez de navegar pra uma tela-hub separada — corrigido
+  // depois de um vídeo de referência (06/10). Ver docs/superpowers/specs/
+  // 2026-10-06-reorganizacao-sidebar-design.md.
+  {
+    chave: "departamento_medico",
+    label: "Saúde e Performance",
+    prefixo: "/base/departamento-medico/fisioterapia",
+    subItens: [{ href: "/base/departamento-medico/fisioterapia", label: "Fisioterapia" }],
+  },
 ];
 
 /** Todas as chaves de módulo de Base — usado como padrão de quem ainda não tem
