@@ -5,7 +5,14 @@ import { useFormState, useFormStatus } from "react-dom";
 import { DeleteButton } from "@/components/delete-button";
 import { FieldGroup, SelectField, TextAreaField, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
-import { FISIOTERAPIA_TIPO_OPTIONS, diasAfastados, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia";
+import {
+  FISIOTERAPIA_STATUS_DIA_COR,
+  FISIOTERAPIA_STATUS_DIA_LABEL,
+  FISIOTERAPIA_STATUS_DIA_OPTIONS,
+  FISIOTERAPIA_TIPO_OPTIONS,
+  diasAfastados,
+  fisioterapiaTipoLabel,
+} from "@/lib/futebol/fisioterapia";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type { FisioterapiaAtendimentoRow, FisioterapiaLesaoRow, FisioterapiaQueixaRow, FisioterapiaTipo } from "@/lib/supabase/types";
 import {
@@ -352,6 +359,22 @@ export function NovaQueixaForm({ atletaId }: { atletaId: string }) {
   );
 }
 
+/** Etiqueta colorida do status do dia (Manutenção/Tratamento/Reavaliação) — mesmo estilo visual do
+ * Modelo A de referência que o Mateus mandou (ver docs/superpowers/specs/
+ * 2026-10-07-relatorio-dia-fisioterapia-design.md). `null` não renderiza nada (atendimento sem
+ * status, o caso mais comum fora do Lançamento do dia). */
+export function EtiquetaStatusDia({ status }: { status: FisioterapiaAtendimentoRow["status_dia"] }) {
+  if (!status) return null;
+  return (
+    <span
+      className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
+      style={{ backgroundColor: FISIOTERAPIA_STATUS_DIA_COR[status] }}
+    >
+      {FISIOTERAPIA_STATUS_DIA_LABEL[status]}
+    </span>
+  );
+}
+
 export function NovoAtendimentoForm({
   atletaId,
   lesoesAtivas,
@@ -378,6 +401,14 @@ export function NovoAtendimentoForm({
             ))}
           </SelectField>
         </FieldGroup>
+        <SelectField label="Status do dia (opcional)" name="statusDia" defaultValue="">
+          <option value="">Sem status</option>
+          {FISIOTERAPIA_STATUS_DIA_OPTIONS.map((op) => (
+            <option key={op.value} value={op.value}>
+              {op.label}
+            </option>
+          ))}
+        </SelectField>
         <TextAreaField label="O que foi feito na sessão" name="descricao" error={errors.descricao} required rows={2} />
         {state.error || state.success ? <Feedback state={state} /> : null}
         <SubmitButton label="Salvar atendimento" pendingLabel="Salvando..." className="btn-secondary btn-sm" />
@@ -423,6 +454,7 @@ export function AtendimentoItem({
           </span>
         </span>
         <span className="text-xs text-neutral-500">{atendimento.descricao}</span>
+        <EtiquetaStatusDia status={atendimento.status_dia} />
         {lesaoVinculada ? (
           <span className="mt-0.5 text-xs text-neutral-400">Ligado à lesão: {lesaoVinculada.descricao}</span>
         ) : null}
@@ -451,6 +483,17 @@ export function AtendimentoItem({
               ))}
             </select>
           </div>
+        </div>
+        <div>
+          <label className="field-label">Status do dia (opcional)</label>
+          <select name="statusDia" defaultValue={atendimento.status_dia ?? ""} className="field-input">
+            <option value="">Sem status</option>
+            {FISIOTERAPIA_STATUS_DIA_OPTIONS.map((op) => (
+              <option key={op.value} value={op.value}>
+                {op.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="field-label">O que foi feito na sessão</label>

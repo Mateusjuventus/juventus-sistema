@@ -3,6 +3,7 @@ import type {
   FisioterapiaAtendimentoRow,
   FisioterapiaLesaoRow,
   FisioterapiaQueixaRow,
+  FisioterapiaStatusDia,
   FisioterapiaTipo,
 } from "@/lib/supabase/types";
 
@@ -37,6 +38,30 @@ const FISIOTERAPIA_TIPO_LABEL: Record<FisioterapiaTipo, string> = {
 export function fisioterapiaTipoLabel(tipo: FisioterapiaTipo): string {
   return FISIOTERAPIA_TIPO_LABEL[tipo];
 }
+
+/** "Status do dia" de um atendimento (ver docs/superpowers/specs/
+ * 2026-10-07-relatorio-dia-fisioterapia-design.md) — classificação opcional, escolhida ao lançar o
+ * atendimento (pela ficha do atleta ou pela tela "Lançamento do dia"), usada como etiqueta colorida
+ * no Relatório do Dia. Independente do `atletas.status`/`atletas_base.status` "oficial"
+ * (`ATLETA_STATUS_LABEL` acima) — os dois não se misturam. */
+export const FISIOTERAPIA_STATUS_DIA_OPTIONS: { value: FisioterapiaStatusDia; label: string }[] = [
+  { value: "manutencao", label: "Manutenção" },
+  { value: "tratamento", label: "Tratamento" },
+  { value: "reavaliacao", label: "Reavaliação" },
+];
+
+export const FISIOTERAPIA_STATUS_DIA_LABEL: Record<FisioterapiaStatusDia, string> = {
+  manutencao: "Manutenção",
+  tratamento: "Tratamento",
+  reavaliacao: "Reavaliação",
+};
+
+/** Mesma paleta azul/vermelho/laranja do Modelo A de referência que o Mateus mandou (ver a spec). */
+export const FISIOTERAPIA_STATUS_DIA_COR: Record<FisioterapiaStatusDia, string> = {
+  manutencao: "#3B82F6",
+  tratamento: "#EF4444",
+  reavaliacao: "#F59E0B",
+};
 
 /** Rótulo único dos 3 status do atleta do Profissional (ver docs/superpowers/specs/
  * 2026-10-01-departamento-medico-historico-status-design.md) — substitui os `STATUS_LABEL`

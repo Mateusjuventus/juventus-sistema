@@ -79,6 +79,9 @@ export default async function FisioterapiaListagemBasePage() {
     <AppShell departamento="futebol_base" largura="total" breadcrumb="Fisioterapia">
       <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="flex flex-wrap gap-2">
+          <Link href="/base/departamento-medico/fisioterapia/lancamento-dia" className="btn-primary btn-sm">
+            Lançamento do dia
+          </Link>
           <Link href="/base/departamento-medico/fisioterapia/relatorio" className="btn-secondary btn-sm">
             Relatório geral
           </Link>

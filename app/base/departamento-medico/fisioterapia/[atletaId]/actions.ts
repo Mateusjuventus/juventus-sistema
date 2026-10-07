@@ -6,7 +6,12 @@ import { getFisioterapiaPodeEditarBase } from "@/lib/auth/role";
 import { statusFisioterapiaAtletaBase } from "@/lib/futebol/fisioterapia-base";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { recomputarStatusAtualBase, registrarStatusAtletaBase } from "@/lib/futebol/status-historico-base";
-import type { AtletaBaseStatus, AtletaBaseStatusHistoricoRow, FisioterapiaTipo } from "@/lib/supabase/types";
+import type {
+  AtletaBaseStatus,
+  AtletaBaseStatusHistoricoRow,
+  FisioterapiaStatusDia,
+  FisioterapiaTipo,
+} from "@/lib/supabase/types";
 
 /**
  * Espelha `app/departamento-medico/fisioterapia/[atletaId]/actions.ts` (Profissional), gravando
@@ -24,6 +29,13 @@ const TIPOS_VALIDOS: FisioterapiaTipo[] = [
   "osseo",
   "trauma",
 ];
+
+const STATUS_DIA_VALIDOS: FisioterapiaStatusDia[] = ["manutencao", "tratamento", "reavaliacao"];
+
+function parseStatusDia(raw: FormDataEntryValue | null): FisioterapiaStatusDia | null {
+  const valor = String(raw ?? "");
+  return (STATUS_DIA_VALIDOS as string[]).includes(valor) ? (valor as FisioterapiaStatusDia) : null;
+}
 
 function parseTipo(raw: FormDataEntryValue | null): FisioterapiaTipo | null {
   const valor = String(raw ?? "");
@@ -65,6 +77,9 @@ function revalidarFichaBase(atletaId: string, categoria: string): void {
   revalidatePath(`/base/departamento-medico/fisioterapia/${atletaId}`);
   revalidatePath("/base/departamento-medico/fisioterapia");
   revalidatePath("/base/departamento-medico/fisioterapia/relatorio");
+  // Lançamento do dia reaproveita esta mesma action (ver docs/superpowers/specs/
+  // 2026-10-07-relatorio-dia-fisioterapia-design.md).
+  revalidatePath("/base/departamento-medico/fisioterapia/lancamento-dia");
   revalidatePath("/base/atletas");
   if (categoria) {
     revalidatePath(`/base/atletas/${categoria}`);
@@ -267,6 +282,7 @@ export async function registrarAtendimentoBase(
   const data = String(formData.get("data") ?? "");
   const descricao = String(formData.get("descricao") ?? "").trim();
   const lesaoId = String(formData.get("lesaoId") ?? "").trim() || null;
+  const statusDia = parseStatusDia(formData.get("statusDia"));
 
   const fieldErrors: Record<string, string> = {};
   if (!atletaId) fieldErrors.atletaId = "Atleta inválido.";
@@ -283,6 +299,7 @@ export async function registrarAtendimentoBase(
     data,
     descricao,
     lesao_id: lesaoId,
+    status_dia: statusDia,
     created_by: user?.id ?? null,
   });
   if (error) return { error: `Não foi possível salvar o atendimento. Tente novamente. (${error.message})` };
@@ -308,13 +325,14 @@ export async function atualizarAtendimentoBase(
   const data = String(formData.get("data") ?? "").trim();
   const descricao = String(formData.get("descricao") ?? "").trim();
   const lesaoId = String(formData.get("lesaoId") ?? "").trim() || null;
+  const statusDia = parseStatusDia(formData.get("statusDia"));
 
   if (!data) return { error: "Data é obrigatória." };
   if (!descricao) return { error: "Descreva o atendimento." };
 
   const { error } = await supabase
     .from("fisioterapia_atendimentos_base")
-    .update({ data, descricao, lesao_id: lesaoId })
+    .update({ data, descricao, lesao_id: lesaoId, status_dia: statusDia })
     .eq("id", atendimentoId);
   if (error) return { error: `Não foi possível salvar o atendimento. Tente novamente. (${error.message})` };
 

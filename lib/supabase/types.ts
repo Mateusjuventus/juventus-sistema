@@ -2256,10 +2256,17 @@ export interface FisioterapiaQueixaRow {
   created_at: string;
 }
 
+/** Classificação do atendimento do dia (ver docs/superpowers/specs/
+ * 2026-10-07-relatorio-dia-fisioterapia-design.md) — opcional, independente do `atletas.status`
+ * "oficial" (Apto/Depto. Médico/Transição, ver `AtletaStatus`): essa aqui é só uma etiqueta
+ * informativa de como o atendimento daquele dia correu, pro Relatório do Dia. */
+export type FisioterapiaStatusDia = "manutencao" | "tratamento" | "reavaliacao";
+
 /** Uma sessão de fisioterapia — solta (ex.: sessão preventiva) ou ligada a uma lesão em andamento
  * via `lesao_id`. `data` nula só ocorre em registros trazidos do histórico importado (ver
  * `FisioterapiaLesaoRow`); nesse caso `quantidade` guarda quantos atendimentos aquele registro
- * único representa (ex.: 57) — nulo em qualquer atendimento normal, lançado pela tela, que vale 1. */
+ * único representa (ex.: 57) — nulo em qualquer atendimento normal, lançado pela tela, que vale 1.
+ * `status_dia` é opcional e nulo em todo atendimento lançado antes de 07/10/2026. */
 export interface FisioterapiaAtendimentoRow {
   id: string;
   atleta_id: string;
@@ -2267,6 +2274,7 @@ export interface FisioterapiaAtendimentoRow {
   data: string | null;
   descricao: string;
   quantidade: number | null;
+  status_dia: FisioterapiaStatusDia | null;
   created_by: string | null;
   created_at: string;
 }
@@ -2321,6 +2329,7 @@ export interface FisioterapiaAtendimentoBaseRow {
   data: string | null;
   descricao: string;
   quantidade: number | null;
+  status_dia: FisioterapiaStatusDia | null;
   created_by: string | null;
   created_at: string;
 }
