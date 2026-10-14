@@ -9,8 +9,12 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import {
   RelatorioDespesasDocument,
+  type FaseGasto,
   type RelatorioDespesasPdfCategoria,
+  type RelatorioDespesasPdfFase,
 } from "@/lib/pdf/relatorio-despesas-document";
+
+const ORDEM_FASES: FaseGasto[] = ["pre_jogo", "pos_jogo", null];
 import { getAssinaturasFinanceiroBase, montarAssinaturasFinanceiroComDigital } from "@/lib/pdf/assinaturas";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { GastoJogoBaseComCategoriaRow } from "@/lib/supabase/types";
@@ -42,16 +46,20 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return new NextResponse("Ainda não há despesas efetuadas lançadas para este jogo.", { status: 400 });
   }
 
-  const categoriasMap = new Map<string, RelatorioDespesasPdfCategoria>();
+  const porFase = new Map<FaseGasto, Map<string, RelatorioDespesasPdfCategoria>>();
   for (const g of gastos) {
+    const fase = (g.fase as FaseGasto) ?? null;
+    const categoriasMap = porFase.get(fase) ?? new Map<string, RelatorioDespesasPdfCategoria>();
     const nomeCategoria = g.categoria?.nome ?? "Outros";
     const grupo = categoriasMap.get(nomeCategoria) ?? { nome: nomeCategoria, gastos: [] };
     grupo.gastos.push({ data: g.data, descricao: g.descricao, valorEfetuado: g.valor_efetuado as number });
     categoriasMap.set(nomeCategoria, grupo);
+    porFase.set(fase, categoriasMap);
   }
-  const categorias = Array.from(categoriasMap.values()).sort((a, b) =>
-    a.nome.localeCompare(b.nome, "pt-BR"),
-  );
+  const fases: RelatorioDespesasPdfFase[] = ORDEM_FASES.filter((fase) => porFase.has(fase)).map((fase) => ({
+    fase,
+    categorias: Array.from(porFase.get(fase)!.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+  }));
   const totalGeral = gastos.reduce((soma, g) => soma + (g.valor_efetuado as number), 0);
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
@@ -62,7 +70,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       jogo={jogo}
       juventusLogoSrc={juventusLogoSrc}
       adversarioLogoSrc={adversarioLogoUrl}
-      categorias={categorias}
+      fases={fases}
       totalGeral={totalGeral}
       geradoEm={new Date()}
       assinatura1={assinatura1}

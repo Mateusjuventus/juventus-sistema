@@ -913,6 +913,17 @@ export const demandaStatusSchema = z.object({
 
 const NOVA_CATEGORIA_GASTO_VALUE = "__nova__";
 
+/**
+ * Fase do gasto (Pré-jogo/Pós-jogo) — ver docs/superpowers/specs/2026-10-14-gastos-jogo-fase-
+ * design.md. Não confundir com os nomes dos dois PDFs de resumo financeiro do jogo ("Orçamento
+ * Previsto (Pré Jogo)"/"Relatório de Despesas (Pós Jogo)") — aqueles descrevem QUANDO cada
+ * documento costuma ser gerado, isso aqui classifica CADA gasto individualmente.
+ */
+export const FASE_GASTO_OPTIONS = [
+  { value: "pre_jogo", label: "Pré-jogo" },
+  { value: "pos_jogo", label: "Pós-jogo" },
+] as const;
+
 export const gastoJogoSchema = z
   .object({
     categoriaId: z.string().min(1, { message: "Categoria é obrigatória" }),
@@ -921,6 +932,7 @@ export const gastoJogoSchema = z
     valorPrevisto: z.coerce.number().nonnegative({ message: "Valor previsto não pode ser negativo" }),
     valorEfetuado: z.coerce.number().nonnegative().optional().nullable(),
     data: z.string().optional().or(z.literal("")),
+    fase: z.enum(["pre_jogo", "pos_jogo"], { errorMap: () => ({ message: "Fase é obrigatória" }) }),
   })
   .refine((data) => data.categoriaId !== NOVA_CATEGORIA_GASTO_VALUE || Boolean(data.novaCategoriaNome?.trim()), {
     message: "Informe o nome da nova categoria",

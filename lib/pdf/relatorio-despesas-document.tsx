@@ -13,9 +13,35 @@ import {
 } from "./logistica-shared";
 
 const styles = StyleSheet.create({
+  faseSecao: { marginTop: 5 },
+  faseHeaderBar: {
+    backgroundColor: CORES.grenaEscuro,
+    paddingVertical: 2.5,
+    paddingHorizontal: 7,
+    borderRadius: 3,
+    marginBottom: 2,
+  },
+  faseHeaderTexto: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: "#ffffff",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  faseSubtotalBox: {
+    marginTop: 2,
+    paddingTop: 2,
+    borderTopWidth: 0.75,
+    borderTopColor: CORES.grena,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  faseSubtotalLabel: { fontSize: 8, fontWeight: 700, color: CORES.grenaEscuro, textTransform: "uppercase" },
+  faseSubtotalValor: { fontSize: 9, fontWeight: 700, color: CORES.grena },
   categoriaBox: {
-    marginTop: 6,
-    padding: 6,
+    marginTop: 3,
+    padding: 4,
     borderWidth: 0.5,
     borderColor: "#e5e5e5",
     borderRadius: 4,
@@ -24,25 +50,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 3,
+    marginBottom: 1.5,
   },
-  categoriaTitulo: { fontSize: 10.5, fontWeight: 700, color: CORES.grenaEscuro },
-  categoriaSubtotal: { fontSize: 9, fontWeight: 700, color: CORES.grena },
+  categoriaTitulo: { fontSize: 9.5, fontWeight: 700, color: CORES.grenaEscuro },
+  categoriaSubtotal: { fontSize: 8, fontWeight: 700, color: CORES.grena },
   tabela: { marginTop: 0 },
   linha: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
     borderBottomColor: "#e5e5e5",
-    paddingVertical: 2.5,
+    paddingVertical: 1.5,
     alignItems: "center",
   },
   colData: { width: 56 },
   colDescricao: { flex: 1 },
   colValor: { width: 90, textAlign: "right" },
-  cell: { fontSize: 8, color: "#262626" },
+  cell: { fontSize: 7.25, color: "#262626" },
   totalGeralBox: {
-    marginTop: 10,
-    paddingTop: 6,
+    marginTop: 8,
+    paddingTop: 5,
     borderTopWidth: 1,
     borderTopColor: CORES.dourado,
     flexDirection: "row",
@@ -57,6 +83,18 @@ function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/** "pre_jogo" | "pos_jogo" | null — null = gasto lançado antes da fase existir no sistema ("sem
+ * fase definida"). Ver docs/superpowers/specs/2026-10-14-gastos-jogo-fase-design.md. Não confundir
+ * com o título deste documento ("Pós Jogo") — aquilo descreve quando o PDF costuma ser gerado, não
+ * classifica gasto nenhum. */
+export type FaseGasto = "pre_jogo" | "pos_jogo" | null;
+
+export function labelFaseGasto(fase: FaseGasto): string {
+  if (fase === "pre_jogo") return "Pré-jogo";
+  if (fase === "pos_jogo") return "Pós-jogo";
+  return "Sem fase definida";
+}
+
 export interface RelatorioDespesasPdfGasto {
   data: string | null;
   descricao: string | null;
@@ -66,6 +104,11 @@ export interface RelatorioDespesasPdfGasto {
 export interface RelatorioDespesasPdfCategoria {
   nome: string;
   gastos: RelatorioDespesasPdfGasto[];
+}
+
+export interface RelatorioDespesasPdfFase {
+  fase: FaseGasto;
+  categorias: RelatorioDespesasPdfCategoria[];
 }
 
 /**
@@ -78,7 +121,7 @@ export function RelatorioDespesasDocument({
   jogo,
   juventusLogoSrc,
   adversarioLogoSrc,
-  categorias,
+  fases,
   totalGeral,
   geradoEm,
   assinatura1,
@@ -88,7 +131,7 @@ export function RelatorioDespesasDocument({
   jogo: JogoRow;
   juventusLogoSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
-  categorias: RelatorioDespesasPdfCategoria[];
+  fases: RelatorioDespesasPdfFase[];
   totalGeral: number;
   geradoEm: Date;
   assinatura1: AssinaturaInfo;
@@ -106,32 +149,49 @@ export function RelatorioDespesasDocument({
           titulo="Relatório de Despesas (Pós Jogo)"
         />
 
-        {categorias.length === 0 ? (
+        {fases.length === 0 ? (
           <Text style={sharedStyles.emptyState}>Nenhuma despesa efetuada lançada para este jogo.</Text>
         ) : (
-          categorias.map((c) => {
-            const subtotal = c.gastos.reduce((soma, g) => soma + g.valorEfetuado, 0);
+          fases.map((f) => {
+            const subtotalFase = f.categorias.reduce(
+              (soma, c) => soma + c.gastos.reduce((s, g) => s + g.valorEfetuado, 0),
+              0,
+            );
             return (
-              <View style={styles.categoriaBox} key={c.nome} wrap={false}>
-                <View style={styles.categoriaHeaderRow}>
-                  <Text style={styles.categoriaTitulo}>{c.nome}</Text>
-                  <Text style={styles.categoriaSubtotal}>{formatMoeda(subtotal)}</Text>
+              <View style={styles.faseSecao} key={f.fase ?? "sem_fase"}>
+                <View style={styles.faseHeaderBar}>
+                  <Text style={styles.faseHeaderTexto}>{labelFaseGasto(f.fase)}</Text>
                 </View>
-                <View style={styles.tabela}>
-                  {c.gastos.map((g, i) => (
-                    <View style={styles.linha} key={i}>
-                      <Text style={[styles.colData, styles.cell]}>{formatDataBr(g.data)}</Text>
-                      <Text style={[styles.colDescricao, styles.cell]}>{g.descricao ?? "—"}</Text>
-                      <Text style={[styles.colValor, styles.cell]}>{formatMoeda(g.valorEfetuado)}</Text>
+                {f.categorias.map((c) => {
+                  const subtotal = c.gastos.reduce((soma, g) => soma + g.valorEfetuado, 0);
+                  return (
+                    <View style={styles.categoriaBox} key={c.nome} wrap={false}>
+                      <View style={styles.categoriaHeaderRow}>
+                        <Text style={styles.categoriaTitulo}>{c.nome}</Text>
+                        <Text style={styles.categoriaSubtotal}>{formatMoeda(subtotal)}</Text>
+                      </View>
+                      <View style={styles.tabela}>
+                        {c.gastos.map((g, i) => (
+                          <View style={styles.linha} key={i}>
+                            <Text style={[styles.colData, styles.cell]}>{formatDataBr(g.data)}</Text>
+                            <Text style={[styles.colDescricao, styles.cell]}>{g.descricao ?? "—"}</Text>
+                            <Text style={[styles.colValor, styles.cell]}>{formatMoeda(g.valorEfetuado)}</Text>
+                          </View>
+                        ))}
+                      </View>
                     </View>
-                  ))}
+                  );
+                })}
+                <View style={styles.faseSubtotalBox}>
+                  <Text style={styles.faseSubtotalLabel}>Subtotal {labelFaseGasto(f.fase)}</Text>
+                  <Text style={styles.faseSubtotalValor}>{formatMoeda(subtotalFase)}</Text>
                 </View>
               </View>
             );
           })
         )}
 
-        {categorias.length > 0 ? (
+        {fases.length > 0 ? (
           <View style={styles.totalGeralBox}>
             <Text style={styles.totalGeralLabel}>Total Efetuado</Text>
             <Text style={styles.totalGeralValor}>{formatMoeda(totalGeral)}</Text>

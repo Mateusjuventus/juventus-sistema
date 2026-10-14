@@ -31,6 +31,7 @@ export default async function EditarGastoPage({
     valorPrevisto: gasto.valor_previsto.toString(),
     valorEfetuado: gasto.valor_efetuado?.toString() ?? "",
     data: gasto.data ?? "",
+    fase: gasto.fase ?? "",
   };
 
   return (

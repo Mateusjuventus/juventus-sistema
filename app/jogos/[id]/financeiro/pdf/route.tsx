@@ -6,7 +6,10 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { OrcamentoDocument, type OrcamentoPdfCategoria } from "@/lib/pdf/orcamento-document";
+import { OrcamentoDocument, type OrcamentoPdfCategoria, type OrcamentoPdfFase } from "@/lib/pdf/orcamento-document";
+import type { FaseGasto } from "@/lib/pdf/relatorio-despesas-document";
+
+const ORDEM_FASES: FaseGasto[] = ["pre_jogo", "pos_jogo", null];
 import { getAssinaturasFinanceiro, montarAssinaturasFinanceiroComDigital } from "@/lib/pdf/assinaturas";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
@@ -36,16 +39,20 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return new NextResponse("Ainda não há gastos lançados para este jogo.", { status: 400 });
   }
 
-  const categoriasMap = new Map<string, OrcamentoPdfCategoria>();
+  const porFase = new Map<FaseGasto, Map<string, OrcamentoPdfCategoria>>();
   for (const g of gastos) {
+    const fase = (g.fase as FaseGasto) ?? null;
+    const categoriasMap = porFase.get(fase) ?? new Map<string, OrcamentoPdfCategoria>();
     const nomeCategoria = g.categoria?.nome ?? "Outros";
     const grupo = categoriasMap.get(nomeCategoria) ?? { nome: nomeCategoria, gastos: [] };
     grupo.gastos.push({ data: g.data, descricao: g.descricao, valorPrevisto: g.valor_previsto });
     categoriasMap.set(nomeCategoria, grupo);
+    porFase.set(fase, categoriasMap);
   }
-  const categorias = Array.from(categoriasMap.values()).sort((a, b) =>
-    a.nome.localeCompare(b.nome, "pt-BR"),
-  );
+  const fases: OrcamentoPdfFase[] = ORDEM_FASES.filter((fase) => porFase.has(fase)).map((fase) => ({
+    fase,
+    categorias: Array.from(porFase.get(fase)!.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+  }));
   const totalGeral = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
@@ -56,7 +63,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       jogo={jogo}
       juventusLogoSrc={juventusLogoSrc}
       adversarioLogoSrc={adversarioLogoUrl}
-      categorias={categorias}
+      fases={fases}
       totalGeral={totalGeral}
       geradoEm={new Date()}
       assinatura1={assinatura1}

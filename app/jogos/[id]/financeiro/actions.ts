@@ -21,6 +21,7 @@ function parseForm(formData: FormData) {
     valorPrevisto: String(formData.get("valorPrevisto") ?? ""),
     valorEfetuado: String(formData.get("valorEfetuado") ?? "") || undefined,
     data: String(formData.get("data") ?? ""),
+    fase: String(formData.get("fase") ?? ""),
   };
 
   const result = gastoJogoSchema.safeParse(raw);
@@ -87,6 +88,7 @@ export async function createGasto(
     valor_previsto: data.valorPrevisto,
     valor_efetuado: data.valorEfetuado ?? null,
     data: data.data || null,
+    fase: data.fase,
   });
 
   if (error) return { error: "Não foi possível salvar o gasto. Tente novamente.", values: raw };
@@ -169,6 +171,7 @@ export async function updateGasto(
       valor_previsto: data.valorPrevisto,
       valor_efetuado: data.valorEfetuado ?? null,
       data: data.data || null,
+      fase: data.fase,
     })
     .eq("id", id);
 

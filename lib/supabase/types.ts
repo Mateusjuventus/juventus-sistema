@@ -675,6 +675,9 @@ export interface GastoJogoRow {
   valor_previsto: number;
   valor_efetuado: number | null;
   data: string | null;
+  /** "pre_jogo" | "pos_jogo" | null — null = gasto lançado antes desta feature ("sem fase
+   * definida"). Ver docs/superpowers/specs/2026-10-14-gastos-jogo-fase-design.md. */
+  fase: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -994,6 +997,9 @@ export interface GastoJogoBaseRow {
   valor_previsto: number;
   valor_efetuado: number | null;
   data: string | null;
+  /** "pre_jogo" | "pos_jogo" | null — null = gasto lançado antes desta feature ("sem fase
+   * definida"). Ver docs/superpowers/specs/2026-10-14-gastos-jogo-fase-design.md. */
+  fase: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

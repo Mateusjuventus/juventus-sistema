@@ -1,10 +1,11 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { FieldGroup, FormSection, TextField } from "@/components/fields";
+import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CurrencyField } from "@/components/currency-field";
 import { CategoriaGastoField } from "@/components/categoria-gasto-field";
 import { SubmitButton } from "@/components/submit-button";
+import { FASE_GASTO_OPTIONS } from "@/lib/validation/schemas";
 import type { CategoriaGastoRow } from "@/lib/supabase/types";
 import type { GastoFormState } from "./actions";
 
@@ -48,6 +49,16 @@ export function GastoForm({
             error={errors.categoriaId}
             novaCategoriaError={errors.novaCategoriaNome}
           />
+          <SelectField label="Fase" name="fase" required defaultValue={values.fase} error={errors.fase}>
+            <option value="" disabled>
+              Selecione a fase
+            </option>
+            {FASE_GASTO_OPTIONS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </SelectField>
           <TextField
             label="Descrição"
             name="descricao"
