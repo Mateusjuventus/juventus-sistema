@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { SearchBar } from "@/components/search-bar";
 import { JogoCardBase } from "@/components/jogos/jogo-card-base";
+import { SecaoJogosAnteriores } from "@/components/jogos/secao-jogos-anteriores";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
@@ -57,6 +58,11 @@ export default async function JogosBasePage({
   const logoUrls = await Promise.all(
     jogos.map((j) => getSignedPhotoUrl(supabase, j.adversario_logo_path)),
   );
+  // Separa os próximos jogos (destaque, sempre visíveis) dos já realizados (escondidos atrás de
+  // "Jogos anteriores") — ver o comentário equivalente no Profissional (`app/jogos/page.tsx`).
+  const logoUrlPorJogoId = new Map(jogos.map((j, i) => [j.id, logoUrls[i]]));
+  const jogosProximos = jogos.filter((j) => j.data_jogo >= hojeStr);
+  const jogosAnteriores = jogos.filter((j) => j.data_jogo < hojeStr);
   const jogoIdsComConvocacao = new Set((convocacoesData ?? []).map((c) => c.jogo_id as string));
   const jogosSemConvocacao = (todosJogosData ?? []).filter(
     (j) => j.data_jogo >= hojeStr && !jogoIdsComConvocacao.has(j.id),
@@ -125,34 +131,69 @@ export default async function JogosBasePage({
         <div className="card mt-4 p-8 text-center text-neutral-400">Nenhum jogo encontrado.</div>
       ) : null}
 
-      {/* Grid em vez de coluna única cheia — ver o comentário equivalente no Profissional
-          (`app/jogos/page.tsx`). */}
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {jogos.map((j, i) => (
-          <JogoCardBase
-            key={j.id}
-            jogo={j}
-            logoUrl={logoUrls[i]}
-            href={`/base/jogos/${j.id}`}
-            footer={
-              <div className="flex divide-x divide-linha border-t border-linha">
-                <Link
-                  href={`/base/jogos/${j.id}/sumula`}
-                  className="flex-1 py-2.5 text-center text-xs font-semibold text-grena transition-colors hover:bg-grena hover:text-white"
-                >
-                  Súmula
-                </Link>
-                <Link
-                  href={`/base/jogos/${j.id}/checklist`}
-                  className="flex-1 py-2.5 text-center text-xs font-semibold text-grena transition-colors hover:bg-grena hover:text-white"
-                >
-                  Checklist
-                </Link>
-              </div>
-            }
-          />
-        ))}
-      </div>
+      {jogos.length > 0 ? (
+        jogosProximos.length > 0 ? (
+          // Grid em vez de coluna única cheia — ver o comentário equivalente no Profissional
+          // (`app/jogos/page.tsx`).
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {jogosProximos.map((j) => (
+              <JogoCardBase
+                key={j.id}
+                jogo={j}
+                logoUrl={logoUrlPorJogoId.get(j.id) ?? null}
+                href={`/base/jogos/${j.id}`}
+                footer={
+                  <div className="flex divide-x divide-linha border-t border-linha">
+                    <Link
+                      href={`/base/jogos/${j.id}/sumula`}
+                      className="flex-1 py-2.5 text-center text-xs font-semibold text-grena transition-colors hover:bg-grena hover:text-white"
+                    >
+                      Súmula
+                    </Link>
+                    <Link
+                      href={`/base/jogos/${j.id}/checklist`}
+                      className="flex-1 py-2.5 text-center text-xs font-semibold text-grena transition-colors hover:bg-grena hover:text-white"
+                    >
+                      Checklist
+                    </Link>
+                  </div>
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="card mt-4 p-8 text-center text-neutral-400">Nenhum jogo agendado.</div>
+        )
+      ) : null}
+
+      {jogosAnteriores.length > 0 ? (
+        <SecaoJogosAnteriores count={jogosAnteriores.length}>
+          {jogosAnteriores.map((j) => (
+            <JogoCardBase
+              key={j.id}
+              jogo={j}
+              logoUrl={logoUrlPorJogoId.get(j.id) ?? null}
+              href={`/base/jogos/${j.id}`}
+              footer={
+                <div className="flex divide-x divide-linha border-t border-linha">
+                  <Link
+                    href={`/base/jogos/${j.id}/sumula`}
+                    className="flex-1 py-2.5 text-center text-xs font-semibold text-grena transition-colors hover:bg-grena hover:text-white"
+                  >
+                    Súmula
+                  </Link>
+                  <Link
+                    href={`/base/jogos/${j.id}/checklist`}
+                    className="flex-1 py-2.5 text-center text-xs font-semibold text-grena transition-colors hover:bg-grena hover:text-white"
+                  >
+                    Checklist
+                  </Link>
+                </div>
+              }
+            />
+          ))}
+        </SecaoJogosAnteriores>
+      ) : null}
     </AppShell>
   );
 }
