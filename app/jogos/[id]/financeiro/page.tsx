@@ -22,6 +22,95 @@ function formatData(data: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+/** "pre_jogo" | "pos_jogo" | null — ordem fixa de exibição; "Sem fase definida" só aparece se
+ * houver gasto legado sem fase. Ver docs/superpowers/specs/2026-10-14-gastos-jogo-fase-design.md. */
+const ORDEM_FASES: Array<string | null> = ["pre_jogo", "pos_jogo", null];
+
+function labelFase(fase: string | null): string {
+  if (fase === "pre_jogo") return "Pré-jogo";
+  if (fase === "pos_jogo") return "Pós-jogo";
+  return "Sem fase definida";
+}
+
+function TabelaGastosFase({
+  fase,
+  gastos,
+  jogoId,
+}: {
+  fase: string | null;
+  gastos: GastoJogoComCategoriaRow[];
+  jogoId: string;
+}) {
+  const totalPrevisto = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
+  const totalEfetuado = gastos.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);
+  const totalDiferenca = totalPrevisto - totalEfetuado;
+
+  return (
+    <div className="mb-6">
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-grena-escuro">
+        {labelFase(fase)}
+      </h2>
+      <div className="card tabela-rolavel">
+        <table className="w-full min-w-[720px] text-left text-sm">
+          <thead className="bg-neutral-50 text-neutral-600">
+            <tr>
+              <th className="px-4 py-3">Data de Pagamento</th>
+              <th className="px-4 py-3">Categoria</th>
+              <th className="px-4 py-3">Descrição</th>
+              <th className="px-4 py-3">Previsto</th>
+              <th className="px-4 py-3">Efetuado</th>
+              <th className="px-4 py-3">Diferença</th>
+              <th className="px-4 py-3 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-neutral-100">
+            {gastos.map((g) => {
+              const diferenca = g.valor_efetuado === null ? null : g.valor_previsto - g.valor_efetuado;
+              return (
+                <tr key={g.id}>
+                  <td className="px-4 py-3 text-neutral-600">{formatData(g.data)}</td>
+                  <td className="px-4 py-3 font-medium text-neutral-800">{g.categoria?.nome ?? "—"}</td>
+                  <td className="px-4 py-3">{g.descricao ?? "—"}</td>
+                  <td className="px-4 py-3">{formatMoeda(g.valor_previsto)}</td>
+                  <td className="px-4 py-3">{formatMoeda(g.valor_efetuado)}</td>
+                  <td
+                    className={`px-4 py-3 ${
+                      diferenca !== null && diferenca < 0 ? "font-semibold text-red-700" : ""
+                    }`}
+                  >
+                    {diferenca === null ? "—" : formatMoeda(diferenca)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/jogos/${jogoId}/financeiro/${g.id}`} className="btn-secondary">
+                        Editar
+                      </Link>
+                      <DeleteButton action={deleteGasto} id={g.id} entityLabel="gasto" />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-neutral-200 bg-neutral-50 font-semibold text-neutral-800">
+              <td className="px-4 py-3" colSpan={3}>
+                Subtotal {labelFase(fase)}
+              </td>
+              <td className="px-4 py-3">{formatMoeda(totalPrevisto)}</td>
+              <td className="px-4 py-3">{formatMoeda(totalEfetuado)}</td>
+              <td className={`px-4 py-3 ${totalDiferenca < 0 ? "text-red-700" : ""}`}>
+                {formatMoeda(totalDiferenca)}
+              </td>
+              <td />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default async function FinanceiroJogoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
@@ -117,72 +206,29 @@ export default async function FinanceiroJogoPage({ params }: { params: { id: str
         volte no mesmo lançamento e preencha o valor efetuado — o previsto continua salvo.
       </p>
 
-      <div className="card tabela-rolavel">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3">Data de Pagamento</th>
-              <th className="px-4 py-3">Categoria</th>
-              <th className="px-4 py-3">Descrição</th>
-              <th className="px-4 py-3">Previsto</th>
-              <th className="px-4 py-3">Efetuado</th>
-              <th className="px-4 py-3">Diferença</th>
-              <th className="px-4 py-3 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {gastos.map((g) => {
-              const diferenca = g.valor_efetuado === null ? null : g.valor_previsto - g.valor_efetuado;
-              return (
-                <tr key={g.id}>
-                  <td className="px-4 py-3 text-neutral-600">{formatData(g.data)}</td>
-                  <td className="px-4 py-3 font-medium text-neutral-800">{g.categoria?.nome ?? "—"}</td>
-                  <td className="px-4 py-3">{g.descricao ?? "—"}</td>
-                  <td className="px-4 py-3">{formatMoeda(g.valor_previsto)}</td>
-                  <td className="px-4 py-3">{formatMoeda(g.valor_efetuado)}</td>
-                  <td
-                    className={`px-4 py-3 ${
-                      diferenca !== null && diferenca < 0 ? "font-semibold text-red-700" : ""
-                    }`}
-                  >
-                    {diferenca === null ? "—" : formatMoeda(diferenca)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/jogos/${jogo.id}/financeiro/${g.id}`} className="btn-secondary">
-                        Editar
-                      </Link>
-                      <DeleteButton action={deleteGasto} id={g.id} entityLabel="gasto" />
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {gastos.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-400">
-                  Nenhum gasto lançado ainda.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-          {gastos.length > 0 ? (
-            <tfoot>
-              <tr className="border-t-2 border-neutral-200 bg-neutral-50 font-semibold text-neutral-800">
-                <td className="px-4 py-3" colSpan={3}>
-                  Total
-                </td>
-                <td className="px-4 py-3">{formatMoeda(totalPrevisto)}</td>
-                <td className="px-4 py-3">{formatMoeda(totalEfetuado)}</td>
-                <td className={`px-4 py-3 ${totalDiferenca < 0 ? "text-red-700" : ""}`}>
-                  {formatMoeda(totalDiferenca)}
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          ) : null}
-        </table>
-      </div>
+      {gastos.length === 0 ? (
+        <div className="card px-4 py-8 text-center text-neutral-400">Nenhum gasto lançado ainda.</div>
+      ) : (
+        ORDEM_FASES.filter((fase) => gastos.some((g) => (g.fase ?? null) === fase)).map((fase) => (
+          <TabelaGastosFase
+            key={fase ?? "sem_fase"}
+            fase={fase}
+            gastos={gastos.filter((g) => (g.fase ?? null) === fase)}
+            jogoId={jogo.id}
+          />
+        ))
+      )}
+
+      {gastos.length > 0 ? (
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-6 rounded-md bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-800">
+          <span className="uppercase tracking-wide text-grena-escuro">Total Geral</span>
+          <span>Previsto: {formatMoeda(totalPrevisto)}</span>
+          <span>Efetuado: {formatMoeda(totalEfetuado)}</span>
+          <span className={totalDiferenca < 0 ? "text-red-700" : ""}>
+            Diferença: {formatMoeda(totalDiferenca)}
+          </span>
+        </div>
+      ) : null}
 
       {gastos.length > 0 ? (
         <div className="mt-4">
