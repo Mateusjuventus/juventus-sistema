@@ -51,10 +51,15 @@ export function DemandasFlutuantePainel({
   demandas,
   hojeStr,
   pessoas,
+  modoAgregado,
 }: {
   demandas: DemandaRow[];
   hojeStr: string;
   pessoas: PessoaParaAtribuir[];
+  /** Master vê a lista agregada de quem ele acompanha, não as próprias demandas — muda o título,
+   * o texto de vazio e o link de "ver tudo" (pro painel `/demandas`, não `/minhas-demandas`). Ver
+   * `DemandasFlutuante`. */
+  modoAgregado?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const [fixado, setFixado] = useState(false);
@@ -113,7 +118,9 @@ export function DemandasFlutuantePainel({
       {aberto ? (
         <div className="card max-h-[75vh] w-[min(92vw,22rem)] overflow-y-auto p-4 shadow-2xl">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-grena">Minhas Demandas</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-grena">
+              {modoAgregado ? "Demandas" : "Minhas Demandas"}
+            </h2>
             <button
               type="button"
               onClick={fechar}
@@ -128,7 +135,9 @@ export function DemandasFlutuantePainel({
           </div>
 
           {exibidas.length === 0 ? (
-            <p className="mt-2 text-sm text-neutral-400">Nenhuma demanda em aberto. 🎉</p>
+            <p className="mt-2 text-sm text-neutral-400">
+              {modoAgregado ? "Nenhuma pendência entre quem você acompanha. 🎉" : "Nenhuma demanda em aberto. 🎉"}
+            </p>
           ) : (
             <ul className="mt-2 space-y-2">
               {exibidas.map((d) => {
@@ -154,7 +163,10 @@ export function DemandasFlutuantePainel({
           )}
 
           {demandas.length > LIMITE_EXIBIDAS ? (
-            <Link href="/minhas-demandas" className="mt-2 block text-xs font-semibold text-grena hover:underline">
+            <Link
+              href={modoAgregado ? "/demandas" : "/minhas-demandas"}
+              className="mt-2 block text-xs font-semibold text-grena hover:underline"
+            >
               Ver tudo ({demandas.length})
             </Link>
           ) : null}

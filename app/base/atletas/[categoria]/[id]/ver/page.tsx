@@ -9,11 +9,10 @@ import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
-import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { alternarAtletaBaseAtivo } from "../../../actions";
-import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+import type { AtletaBaseContatoEmergenciaRow, AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
 
 const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
   liberado: "Liberado",
@@ -27,10 +26,6 @@ const PE_DOMINANTE_LABEL: Record<string, string> = {
   canhoto: "Canhoto",
   ambidestro: "Ambidestro",
 };
-
-const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
-  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
-);
 
 function formatData(data: string | null): string {
   if (!data) return "—";
@@ -55,11 +50,19 @@ export default async function VerAtletaBasePage({
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
 
   const supabase = createClient();
-  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+  const [{ data }, { data: contatosData }] = await Promise.all([
+    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+    supabase
+      .from("atleta_base_contatos_emergencia")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   if (!data) notFound();
 
   const atleta = data as AtletaBaseRow;
+  const contatos = (contatosData ?? []) as AtletaBaseContatoEmergenciaRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
@@ -126,6 +129,7 @@ export default async function VerAtletaBasePage({
             <DetailField label="CPF" value={atleta.cpf ? formatCPF(atleta.cpf) : null} />
             <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
             <DetailField label="Telefone" value={atleta.telefone} />
+            <DetailField label="Email" value={atleta.email} />
             <DetailField
               label="Possui alergia a algum medicamento"
               value={atleta.possui_alergia_medicamento ? "Sim" : "Não"}
@@ -154,9 +158,41 @@ export default async function VerAtletaBasePage({
             <DetailField label="CEP" value={atleta.cep} />
             <DetailField label="Nome da mãe" value={atleta.mae_nome} />
             <DetailField label="Telefone da mãe" value={atleta.mae_telefone} />
+            <DetailField label="Email da mãe" value={atleta.email_mae} />
             <DetailField label="Nome do pai" value={atleta.pai_nome} />
             <DetailField label="Telefone do pai" value={atleta.pai_telefone} />
+            <DetailField label="Email do pai" value={atleta.email_pai} />
           </FieldGroup>
+
+          <div className="mt-4">
+            <p className="field-label">Endereço de origem</p>
+            <FieldGroup>
+              <DetailField label="Logradouro" value={atleta.origem_logradouro} />
+              <DetailField label="Número" value={atleta.origem_numero} />
+              <DetailField label="Complemento" value={atleta.origem_complemento} />
+              <DetailField label="Bairro" value={atleta.origem_bairro} />
+              <DetailField label="Cidade" value={atleta.origem_cidade} />
+              <DetailField label="UF" value={atleta.origem_uf} />
+              <DetailField label="CEP" value={atleta.origem_cep} />
+            </FieldGroup>
+          </div>
+
+          <div className="mt-4">
+            <p className="field-label">Em caso de emergência, avisar</p>
+            {contatos.length > 0 ? (
+              <div className="mt-2 space-y-2">
+                {contatos.map((contato) => (
+                  <div key={contato.id} className="flex flex-wrap gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm">
+                    <span className="min-w-[160px] flex-1 font-medium text-neutral-800">{contato.nome}</span>
+                    <span className="text-neutral-500">{contato.parentesco || "—"}</span>
+                    <span className="text-neutral-500">{contato.contato || "—"}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-neutral-400">Nenhum contato de emergência cadastrado ainda.</p>
+            )}
+          </div>
         </FormSection>
 
         <FormSection title="Dados esportivos">
@@ -165,26 +201,16 @@ export default async function VerAtletaBasePage({
             <DetailField label="Posição" value={atleta.posicao} />
             <DetailField label="Número da camisa" value={atleta.numero_camisa?.toString()} />
             <DetailField label="Número CBF" value={atleta.numero_cbf?.toString()} />
-            <DetailField label="Número FPF" value={atleta.numero_fpf?.toString()} />
             <DetailField
               label="Pé dominante"
               value={atleta.pe_dominante ? PE_DOMINANTE_LABEL[atleta.pe_dominante] : null}
             />
             <DetailField label="Status" value={STATUS_LABEL[atleta.status]} />
-            <DetailField
-              label="Tipo de contrato"
-              value={atleta.tipo_contrato ? TIPO_CONTRATO_LABEL[atleta.tipo_contrato] : null}
-            />
-            {atleta.tipo_contrato === "amador" ? (
-              <DetailField
-                label="Possui contrato de formação"
-                value={atleta.possui_contrato_formacao ? "Sim" : "Não"}
-              />
-            ) : null}
             <DetailField label="Data de início no clube" value={formatData(atleta.data_inicio_clube)} />
-            <DetailField label="Data de término do contrato" value={formatData(atleta.data_fim_contrato)} />
             <DetailField label="Empresário/representante" value={atleta.empresario_nome} />
             <DetailField label="Telefone do empresário" value={atleta.empresario_telefone} />
+            <DetailField label="Email do empresário" value={atleta.empresario_email} />
+            <DetailField label="Tamanho do uniforme" value={atleta.tamanho_uniforme} />
             <DetailField label="Agência" value={atleta.agencia} />
           </FieldGroup>
         </FormSection>

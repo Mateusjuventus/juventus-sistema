@@ -9,7 +9,7 @@ export function AtletaTabsBase({
 }: {
   categoria: string;
   atletaId: string;
-  active: "dados-pessoais" | "documentacao" | "dados-de-jogo";
+  active: "dados-pessoais" | "documentacao" | "dados-de-jogo" | "contrato";
 }) {
   const base = `/base/atletas/${categoria}/${atletaId}`;
 
@@ -17,6 +17,9 @@ export function AtletaTabsBase({
     { key: "dados-pessoais", label: "Dados Pessoais", href: `${base}/ver` },
     { key: "documentacao", label: "Documentação", href: `${base}/documentacao` },
     { key: "dados-de-jogo", label: "Dados de Jogo", href: `${base}/dados-de-jogo` },
+    // Nova aba, pedido de 2026-10-16 (ver docs/superpowers/specs/
+    // 2026-10-16-atleta-dados-esportivos-contrato-design.md): contrato vigente + histórico.
+    { key: "contrato", label: "Contrato", href: `${base}/contrato` },
   ] as const;
 
   return (

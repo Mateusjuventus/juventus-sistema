@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-interface EnderecoValues {
+export interface EnderecoValues {
   cep?: string;
   logradouro?: string;
   numero?: string;
@@ -38,16 +38,30 @@ interface EnderecoErrors {
  * Profissional migrados do texto livre antigo — ver 0100_atleta_cep_do_endereco_legado.sql —, cujo
  * texto tinha o CEP mas não dava pra separar rua/número/bairro/cidade/UF com segurança), a busca no
  * ViaCEP dispara sozinha ao abrir o formulário, sem precisar clicar no campo CEP e sair dele.
+ *
+ * `namePrefix`: opcional — prefixa o `name`/`id` de cada campo (ex.: "origem" vira `origem_cep`),
+ * pra permitir mais de um bloco de endereço no mesmo formulário sem colidir nomes (pedido de
+ * 2026-10-16: "Endereço de origem" além do "Endereço atual" no cadastro do atleta). Vazio por
+ * padrão — nenhum uso existente muda.
+ *
+ * `onChange`: opcional — chamado com o endereço completo a cada campo editado. Só é preciso quando
+ * outra parte do formulário precisa acompanhar o que foi digitado aqui (ex.: o checkbox "Mesmo
+ * endereço de origem" do cadastro do atleta, que copia esses valores pro outro bloco de endereço).
  */
 export function EnderecoFields({
   defaultValues,
   errors,
   required,
+  namePrefix,
+  onChange,
 }: {
   defaultValues?: EnderecoValues;
   errors?: EnderecoErrors;
   required?: boolean;
+  namePrefix?: string;
+  onChange?: (values: EnderecoValues) => void;
 }) {
+  const fieldName = (campo: keyof EnderecoValues) => (namePrefix ? `${namePrefix}_${campo}` : campo);
   const [cep, setCep] = useState(defaultValues?.cep ?? "");
   const [logradouro, setLogradouro] = useState(defaultValues?.logradouro ?? "");
   const [numero, setNumero] = useState(defaultValues?.numero ?? "");
@@ -57,6 +71,13 @@ export function EnderecoFields({
   const [uf, setUf] = useState(defaultValues?.uf ?? "");
   const [buscando, setBuscando] = useState(false);
   const [cepStatus, setCepStatus] = useState<"idle" | "nao-encontrado" | "erro">("idle");
+
+  // Avisa quem está de fora (via `onChange`) do endereço completo depois de qualquer mudança —
+  // cada setter de campo já tem o valor novo na mão, então passa como `patch` em vez de ler os
+  // states (que ainda não teriam atualizado nesse mesmo tick).
+  function emitirMudanca(patch: EnderecoValues) {
+    onChange?.({ cep, logradouro, numero, complemento, bairro, cidade, uf, ...patch });
+  }
 
   async function buscarCep(valor: string) {
     const digitos = valor.replace(/\D/g, "");
@@ -71,10 +92,17 @@ export function EnderecoFields({
         setCepStatus("nao-encontrado");
         return;
       }
-      setLogradouro(dados.logradouro ?? "");
-      setBairro(dados.bairro ?? "");
-      setCidade(dados.localidade ?? "");
-      setUf(dados.uf ?? "");
+      const resolvido = {
+        logradouro: dados.logradouro ?? "",
+        bairro: dados.bairro ?? "",
+        cidade: dados.localidade ?? "",
+        uf: dados.uf ?? "",
+      };
+      setLogradouro(resolvido.logradouro);
+      setBairro(resolvido.bairro);
+      setCidade(resolvido.cidade);
+      setUf(resolvido.uf);
+      emitirMudanca(resolvido);
     } catch {
       setCepStatus("erro");
     } finally {
@@ -97,14 +125,17 @@ export function EnderecoFields({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
-        <label htmlFor="cep" className="field-label">
+        <label htmlFor={fieldName("cep")} className="field-label">
           CEP{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
-          id="cep"
-          name="cep"
+          id={fieldName("cep")}
+          name={fieldName("cep")}
           value={cep}
-          onChange={(e) => setCep(e.target.value)}
+          onChange={(e) => {
+            setCep(e.target.value);
+            emitirMudanca({ cep: e.target.value });
+          }}
           onBlur={(e) => buscarCep(e.target.value)}
           placeholder="00000-000"
           required={required}
@@ -123,14 +154,17 @@ export function EnderecoFields({
       </div>
 
       <div>
-        <label htmlFor="logradouro" className="field-label">
+        <label htmlFor={fieldName("logradouro")} className="field-label">
           Rua / Logradouro{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
-          id="logradouro"
-          name="logradouro"
+          id={fieldName("logradouro")}
+          name={fieldName("logradouro")}
           value={logradouro}
-          onChange={(e) => setLogradouro(e.target.value)}
+          onChange={(e) => {
+            setLogradouro(e.target.value);
+            emitirMudanca({ logradouro: e.target.value });
+          }}
           required={required}
           className="field-input"
         />
@@ -138,14 +172,17 @@ export function EnderecoFields({
       </div>
 
       <div>
-        <label htmlFor="numero" className="field-label">
+        <label htmlFor={fieldName("numero")} className="field-label">
           Número{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
-          id="numero"
-          name="numero"
+          id={fieldName("numero")}
+          name={fieldName("numero")}
           value={numero}
-          onChange={(e) => setNumero(e.target.value)}
+          onChange={(e) => {
+            setNumero(e.target.value);
+            emitirMudanca({ numero: e.target.value });
+          }}
           required={required}
           className="field-input"
         />
@@ -153,14 +190,17 @@ export function EnderecoFields({
       </div>
 
       <div>
-        <label htmlFor="complemento" className="field-label">
+        <label htmlFor={fieldName("complemento")} className="field-label">
           Complemento{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
-          id="complemento"
-          name="complemento"
+          id={fieldName("complemento")}
+          name={fieldName("complemento")}
           value={complemento}
-          onChange={(e) => setComplemento(e.target.value)}
+          onChange={(e) => {
+            setComplemento(e.target.value);
+            emitirMudanca({ complemento: e.target.value });
+          }}
           required={required}
           className="field-input"
         />
@@ -168,14 +208,17 @@ export function EnderecoFields({
       </div>
 
       <div>
-        <label htmlFor="bairro" className="field-label">
+        <label htmlFor={fieldName("bairro")} className="field-label">
           Bairro{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
-          id="bairro"
-          name="bairro"
+          id={fieldName("bairro")}
+          name={fieldName("bairro")}
           value={bairro}
-          onChange={(e) => setBairro(e.target.value)}
+          onChange={(e) => {
+            setBairro(e.target.value);
+            emitirMudanca({ bairro: e.target.value });
+          }}
           required={required}
           className="field-input"
         />
@@ -183,14 +226,17 @@ export function EnderecoFields({
       </div>
 
       <div>
-        <label htmlFor="cidade" className="field-label">
+        <label htmlFor={fieldName("cidade")} className="field-label">
           Cidade{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
-          id="cidade"
-          name="cidade"
+          id={fieldName("cidade")}
+          name={fieldName("cidade")}
           value={cidade}
-          onChange={(e) => setCidade(e.target.value)}
+          onChange={(e) => {
+            setCidade(e.target.value);
+            emitirMudanca({ cidade: e.target.value });
+          }}
           required={required}
           className="field-input"
         />
@@ -198,14 +244,18 @@ export function EnderecoFields({
       </div>
 
       <div>
-        <label htmlFor="uf" className="field-label">
+        <label htmlFor={fieldName("uf")} className="field-label">
           UF{required ? <span className="text-red-700"> *</span> : null}
         </label>
         <input
-          id="uf"
-          name="uf"
+          id={fieldName("uf")}
+          name={fieldName("uf")}
           value={uf}
-          onChange={(e) => setUf(e.target.value.toUpperCase().slice(0, 2))}
+          onChange={(e) => {
+            const valor = e.target.value.toUpperCase().slice(0, 2);
+            setUf(valor);
+            emitirMudanca({ uf: valor });
+          }}
           maxLength={2}
           required={required}
           className="field-input"

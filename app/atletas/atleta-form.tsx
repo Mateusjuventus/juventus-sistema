@@ -5,10 +5,10 @@ import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
 import { TelefoneField } from "@/components/telefone-field";
-import { EnderecoFields } from "@/components/endereco-fields";
+import { EnderecoFields, type EnderecoValues } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
-import { ATLETA_POSICAO_OPTIONS, ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { ATLETA_POSICAO_OPTIONS, TAMANHO_UNIFORME_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaFormState } from "./actions";
 
 const initialState: AtletaFormState = {};
@@ -17,7 +17,14 @@ const initialState: AtletaFormState = {};
  * autopreenchimento por CEP — ver `EnderecoFields`) em 2026-09-10, mesmo padrão que já existia em
  * `app/base/atletas/atleta-base-form.tsx` (pedido do Mateus: "no profissional, deva ter todos os
  * dados do endereço"). O campo de texto livre antigo (`enderecoAtual`) continua existindo só pra
- * não sumir com dados de cadastros antigos — ver "Ver atleta". */
+ * não sumir com dados de cadastros antigos — ver "Ver atleta".
+ *
+ * Em 2026-10-16: Tipo de contrato/datas de contrato/Número FPF saíram deste formulário (viraram a
+ * aba "Contrato" própria e deixaram de ser editáveis aqui — ver docs/superpowers/specs/
+ * 2026-10-16-atleta-dados-esportivos-contrato-design.md); ganhou Email, segundo endereço
+ * ("Endereço de origem", com checkbox "Mesmo endereço de origem" que copia pro endereço atual),
+ * telefone/e-mail do empresário e tamanho de uniforme (ver
+ * docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md pro endereço/e-mail). */
 export function AtletaForm({
   action,
   entityId,
@@ -34,8 +41,37 @@ export function AtletaForm({
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
-  const [tipoContrato, setTipoContrato] = useState(values.tipoContrato ?? "");
   const [possuiAlergia, setPossuiAlergia] = useState(values.possuiAlergiaMedicamento === "on");
+  // Valores digitados no bloco "Endereço de origem", acompanhados via `onChange` do EnderecoFields
+  // só pra alimentar a cópia do checkbox "Mesmo endereço de origem" abaixo.
+  const [origemEndereco, setOrigemEndereco] = useState<EnderecoValues>({
+    cep: values.origemCep,
+    logradouro: values.origemLogradouro,
+    numero: values.origemNumero,
+    complemento: values.origemComplemento,
+    bairro: values.origemBairro,
+    cidade: values.origemCidade,
+    uf: values.origemUf,
+  });
+  // Valores padrão do bloco "Endereço atual" — só muda (e força o bloco a remontar, via `key`
+  // abaixo) quando o checkbox "Mesmo endereço de origem" é marcado, copiando o que já estiver em
+  // Origem. Fora isso, continua vindo de `values` como sempre (edição normal).
+  const [enderecoAtualValues, setEnderecoAtualValues] = useState<EnderecoValues>({
+    cep: values.cep,
+    logradouro: values.logradouro,
+    numero: values.numero,
+    complemento: values.complemento,
+    bairro: values.bairro,
+    cidade: values.cidade,
+    uf: values.uf,
+  });
+  const [enderecoAtualKey, setEnderecoAtualKey] = useState(0);
+
+  function copiarEnderecoDeOrigem(marcado: boolean) {
+    if (!marcado) return;
+    setEnderecoAtualValues(origemEndereco);
+    setEnderecoAtualKey((k) => k + 1);
+  }
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -74,6 +110,13 @@ export function AtletaForm({
             name="telefone"
             defaultValue={values.telefone}
             error={errors.telefone}
+          />
+          <TextField
+            label="Email"
+            name="email"
+            type="email"
+            defaultValue={values.email}
+            error={errors.email}
           />
           <div className="sm:col-span-2">
             <div className="flex items-center gap-2">
@@ -116,17 +159,40 @@ export function AtletaForm({
           />
         </FieldGroup>
         <div className="mt-4">
-          <p className="field-label">Endereço atual (com busca por CEP)</p>
+          <p className="field-label">Endereço de origem (com busca por CEP)</p>
           <EnderecoFields
-            defaultValues={{
-              cep: values.cep,
-              logradouro: values.logradouro,
-              numero: values.numero,
-              complemento: values.complemento,
-              bairro: values.bairro,
-              cidade: values.cidade,
-              uf: values.uf,
+            namePrefix="origem"
+            defaultValues={origemEndereco}
+            onChange={setOrigemEndereco}
+            errors={{
+              cep: errors.origemCep,
+              logradouro: errors.origemLogradouro,
+              numero: errors.origemNumero,
+              complemento: errors.origemComplemento,
+              bairro: errors.origemBairro,
+              cidade: errors.origemCidade,
+              uf: errors.origemUf,
             }}
+          />
+        </div>
+        <div className="mt-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="field-label">Endereço atual (com busca por CEP)</p>
+            <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+              <input
+                type="checkbox"
+                onChange={(e) => copiarEnderecoDeOrigem(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              Mesmo endereço de origem
+            </label>
+          </div>
+          {/* `key` força remontar o bloco quando o checkbox acima copia o Endereço de origem pra
+              cá — é um autopreenchimento único (não fica sincronizado depois), mesmo princípio já
+              usado em `DocumentoForm` pra limpar campos de arquivo. */}
+          <EnderecoFields
+            key={enderecoAtualKey}
+            defaultValues={enderecoAtualValues}
             errors={{
               cep: errors.cep,
               logradouro: errors.logradouro,
@@ -172,14 +238,6 @@ export function AtletaForm({
             defaultValue={values.numeroCbf}
             error={errors.numeroCbf}
           />
-          <TextField
-            label="Número FPF"
-            name="numeroFpf"
-            type="number"
-            min={0}
-            defaultValue={values.numeroFpf}
-            error={errors.numeroFpf}
-          />
           <SelectField
             label="Pé dominante"
             name="peDominante"
@@ -201,34 +259,6 @@ export function AtletaForm({
             <option value="departamento_medico">Depto. Médico</option>
             <option value="transicao">Transição</option>
           </SelectField>
-          <SelectField
-            label="Tipo de contrato"
-            name="tipoContrato"
-            defaultValue={values.tipoContrato}
-            error={errors.tipoContrato}
-            onChange={setTipoContrato}
-          >
-            <option value="">Não informado</option>
-            {ATLETA_TIPO_CONTRATO_OPTIONS.map((opcao) => (
-              <option key={opcao.value} value={opcao.value}>
-                {opcao.label}
-              </option>
-            ))}
-          </SelectField>
-          {tipoContrato === "amador" ? (
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <input
-                id="possuiContratoFormacao"
-                name="possuiContratoFormacao"
-                type="checkbox"
-                defaultChecked={values.possuiContratoFormacao === "on"}
-                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
-              />
-              <label htmlFor="possuiContratoFormacao" className="text-sm font-medium text-neutral-700">
-                Possui contrato de formação
-              </label>
-            </div>
-          ) : null}
           <TextField
             label="Data de início no clube"
             name="dataInicioClube"
@@ -237,25 +267,37 @@ export function AtletaForm({
             error={errors.dataInicioClube}
           />
           <TextField
-            label="Data de início do contrato"
-            name="dataInicioContrato"
-            type="date"
-            defaultValue={values.dataInicioContrato}
-            error={errors.dataInicioContrato}
-          />
-          <TextField
-            label="Data de término do contrato"
-            name="dataFimContrato"
-            type="date"
-            defaultValue={values.dataFimContrato}
-            error={errors.dataFimContrato}
-          />
-          <TextField
             label="Empresário/representante"
             name="empresarioNome"
             defaultValue={values.empresarioNome}
             error={errors.empresarioNome}
           />
+          <TextField
+            label="Telefone do empresário"
+            name="empresarioTelefone"
+            defaultValue={values.empresarioTelefone}
+            error={errors.empresarioTelefone}
+          />
+          <TextField
+            label="Email do empresário"
+            name="empresarioEmail"
+            type="email"
+            defaultValue={values.empresarioEmail}
+            error={errors.empresarioEmail}
+          />
+          <SelectField
+            label="Tamanho do uniforme"
+            name="tamanhoUniforme"
+            defaultValue={values.tamanhoUniforme}
+            error={errors.tamanhoUniforme}
+          >
+            <option value="">Não informado</option>
+            {TAMANHO_UNIFORME_OPTIONS.map((tamanho) => (
+              <option key={tamanho} value={tamanho}>
+                {tamanho}
+              </option>
+            ))}
+          </SelectField>
         </FieldGroup>
       </FormSection>
 

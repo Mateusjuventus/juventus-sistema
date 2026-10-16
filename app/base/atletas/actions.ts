@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
-import { atletaBaseSchema } from "@/lib/validation/schemas";
+import { atletaBaseSchema, atletaContatoEmergenciaSchema } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 
 /**
@@ -32,32 +32,32 @@ function parseForm(formData: FormData) {
     posicao: String(formData.get("posicao") ?? ""),
     numeroCamisa: String(formData.get("numeroCamisa") ?? "") || undefined,
     numeroCbf: String(formData.get("numeroCbf") ?? "") || undefined,
-    numeroFpf: String(formData.get("numeroFpf") ?? "") || undefined,
     peDominante: String(formData.get("peDominante") ?? "") || undefined,
     telefone: String(formData.get("telefone") ?? ""),
+    email: String(formData.get("email") ?? ""),
     cidadeNatal: String(formData.get("cidadeNatal") ?? ""),
     ufNatal: String(formData.get("ufNatal") ?? ""),
     enderecoAtual: String(formData.get("enderecoAtual") ?? ""),
     dataInicioClube: String(formData.get("dataInicioClube") ?? ""),
-    dataInicioContrato: String(formData.get("dataInicioContrato") ?? ""),
     empresarioNome: String(formData.get("empresarioNome") ?? ""),
+    empresarioTelefone: String(formData.get("empresarioTelefone") ?? ""),
+    empresarioEmail: String(formData.get("empresarioEmail") ?? ""),
+    tamanhoUniforme: String(formData.get("tamanhoUniforme") ?? "") || undefined,
     status: String(formData.get("status") ?? "liberado"),
-    dataFimContrato: String(formData.get("dataFimContrato") ?? ""),
-    tipoContrato: String(formData.get("tipoContrato") ?? "") || undefined,
     classificacao: String(formData.get("classificacao") ?? "") || undefined,
-    possuiContratoFormacao: formData.get("possuiContratoFormacao") === "on",
     possuiAlergiaMedicamento: formData.get("possuiAlergiaMedicamento") === "on",
     alergiaMedicamentoQual: String(formData.get("alergiaMedicamentoQual") ?? ""),
-    // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis,
-    // empresário e endereço estruturado.
+    // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis e
+    // endereço estruturado.
     alojado: formData.get("alojado") === "on",
     valorAjudaCusto: String(formData.get("valorAjudaCusto") ?? "") || undefined,
     agencia: String(formData.get("agencia") ?? ""),
-    empresarioTelefone: String(formData.get("empresarioTelefone") ?? ""),
     maeNome: String(formData.get("maeNome") ?? ""),
     maeTelefone: String(formData.get("maeTelefone") ?? ""),
+    emailMae: String(formData.get("emailMae") ?? ""),
     paiNome: String(formData.get("paiNome") ?? ""),
     paiTelefone: String(formData.get("paiTelefone") ?? ""),
+    emailPai: String(formData.get("emailPai") ?? ""),
     escola: String(formData.get("escola") ?? ""),
     cep: String(formData.get("cep") ?? ""),
     logradouro: String(formData.get("logradouro") ?? ""),
@@ -66,13 +66,19 @@ function parseForm(formData: FormData) {
     bairro: String(formData.get("bairro") ?? ""),
     cidade: String(formData.get("cidade") ?? ""),
     uf: String(formData.get("uf") ?? ""),
+    origemCep: String(formData.get("origem_cep") ?? ""),
+    origemLogradouro: String(formData.get("origem_logradouro") ?? ""),
+    origemNumero: String(formData.get("origem_numero") ?? ""),
+    origemComplemento: String(formData.get("origem_complemento") ?? ""),
+    origemBairro: String(formData.get("origem_bairro") ?? ""),
+    origemCidade: String(formData.get("origem_cidade") ?? ""),
+    origemUf: String(formData.get("origem_uf") ?? ""),
   };
 
   const result = atletaBaseSchema.safeParse(raw);
   return {
     raw: {
       ...raw,
-      possuiContratoFormacao: raw.possuiContratoFormacao ? "on" : "",
       possuiAlergiaMedicamento: raw.possuiAlergiaMedicamento ? "on" : "",
       alojado: raw.alojado ? "on" : "",
     },
@@ -135,31 +141,31 @@ export async function createAtletaBase(
     posicao: data.posicao,
     numero_camisa: data.numeroCamisa ?? null,
     numero_cbf: data.numeroCbf ?? null,
-    numero_fpf: data.numeroFpf ?? null,
     pe_dominante: data.peDominante ?? null,
     telefone: data.telefone || null,
+    email: data.email || null,
     cidade_natal: data.cidadeNatal || null,
     uf_natal: data.ufNatal ? data.ufNatal.toUpperCase() : null,
     endereco_atual: data.enderecoAtual || null,
     data_inicio_clube: data.dataInicioClube || null,
-    data_inicio_contrato: data.dataInicioContrato || null,
     empresario_nome: data.empresarioNome || null,
+    empresario_telefone: data.empresarioTelefone || null,
+    empresario_email: data.empresarioEmail || null,
+    tamanho_uniforme: data.tamanhoUniforme || null,
     foto_path: fotoPath ?? null,
     status: data.status,
-    data_fim_contrato: data.dataFimContrato || null,
-    tipo_contrato: data.tipoContrato ?? null,
     classificacao: data.classificacao ?? null,
-    possui_contrato_formacao: data.tipoContrato === "amador" ? data.possuiContratoFormacao : false,
     possui_alergia_medicamento: data.possuiAlergiaMedicamento,
     alergia_medicamento_qual: data.possuiAlergiaMedicamento ? data.alergiaMedicamentoQual || null : null,
     alojado: data.alojado,
     valor_ajuda_custo: data.valorAjudaCusto ?? null,
     agencia: data.agencia || null,
-    empresario_telefone: data.empresarioTelefone || null,
     mae_nome: data.maeNome || null,
     mae_telefone: data.maeTelefone || null,
+    email_mae: data.emailMae || null,
     pai_nome: data.paiNome || null,
     pai_telefone: data.paiTelefone || null,
+    email_pai: data.emailPai || null,
     escola: data.escola || null,
     cep: data.cep || null,
     logradouro: data.logradouro || null,
@@ -168,6 +174,13 @@ export async function createAtletaBase(
     bairro: data.bairro || null,
     cidade: data.cidade || null,
     uf: data.uf ? data.uf.toUpperCase() : null,
+    origem_cep: data.origemCep || null,
+    origem_logradouro: data.origemLogradouro || null,
+    origem_numero: data.origemNumero || null,
+    origem_complemento: data.origemComplemento || null,
+    origem_bairro: data.origemBairro || null,
+    origem_cidade: data.origemCidade || null,
+    origem_uf: data.origemUf ? data.origemUf.toUpperCase() : null,
   });
 
   if (error) {
@@ -209,30 +222,30 @@ export async function updateAtletaBase(
     posicao: data.posicao,
     numero_camisa: data.numeroCamisa ?? null,
     numero_cbf: data.numeroCbf ?? null,
-    numero_fpf: data.numeroFpf ?? null,
     pe_dominante: data.peDominante ?? null,
     telefone: data.telefone || null,
+    email: data.email || null,
     cidade_natal: data.cidadeNatal || null,
     uf_natal: data.ufNatal ? data.ufNatal.toUpperCase() : null,
     endereco_atual: data.enderecoAtual || null,
     data_inicio_clube: data.dataInicioClube || null,
-    data_inicio_contrato: data.dataInicioContrato || null,
     empresario_nome: data.empresarioNome || null,
+    empresario_telefone: data.empresarioTelefone || null,
+    empresario_email: data.empresarioEmail || null,
+    tamanho_uniforme: data.tamanhoUniforme || null,
     status: data.status,
-    data_fim_contrato: data.dataFimContrato || null,
-    tipo_contrato: data.tipoContrato ?? null,
     classificacao: data.classificacao ?? null,
-    possui_contrato_formacao: data.tipoContrato === "amador" ? data.possuiContratoFormacao : false,
     possui_alergia_medicamento: data.possuiAlergiaMedicamento,
     alergia_medicamento_qual: data.possuiAlergiaMedicamento ? data.alergiaMedicamentoQual || null : null,
     alojado: data.alojado,
     valor_ajuda_custo: data.valorAjudaCusto ?? null,
     agencia: data.agencia || null,
-    empresario_telefone: data.empresarioTelefone || null,
     mae_nome: data.maeNome || null,
     mae_telefone: data.maeTelefone || null,
+    email_mae: data.emailMae || null,
     pai_nome: data.paiNome || null,
     pai_telefone: data.paiTelefone || null,
+    email_pai: data.emailPai || null,
     escola: data.escola || null,
     cep: data.cep || null,
     logradouro: data.logradouro || null,
@@ -241,6 +254,13 @@ export async function updateAtletaBase(
     bairro: data.bairro || null,
     cidade: data.cidade || null,
     uf: data.uf ? data.uf.toUpperCase() : null,
+    origem_cep: data.origemCep || null,
+    origem_logradouro: data.origemLogradouro || null,
+    origem_numero: data.origemNumero || null,
+    origem_complemento: data.origemComplemento || null,
+    origem_bairro: data.origemBairro || null,
+    origem_cidade: data.origemCidade || null,
+    origem_uf: data.origemUf ? data.origemUf.toUpperCase() : null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 
@@ -327,5 +347,71 @@ export async function alternarAtletaBaseAtivo(formData: FormData): Promise<void>
   if (categoria) {
     revalidatePath(`/base/atletas/${categoria}`);
     revalidatePath(`/base/atletas/${categoria}/${id}/ver`);
+  }
+}
+
+export interface ContatoEmergenciaFormState {
+  error?: string;
+  success?: boolean;
+}
+
+/** Espelha `adicionarContatoEmergencia` (app/atletas/actions.ts), mas grava em
+ * `atleta_base_contatos_emergencia`. Revalida `/base/atletas/[categoria]/[id]` — por isso recebe a
+ * categoria junto (campo escondido do formulário), mesmo princípio de `alternarAtletaBaseAtivo`. */
+export async function adicionarContatoEmergenciaBase(
+  _prevState: ContatoEmergenciaFormState,
+  formData: FormData,
+): Promise<ContatoEmergenciaFormState> {
+  const atletaId = String(formData.get("atletaId") ?? "");
+  const categoria = String(formData.get("categoria") ?? "");
+  if (!atletaId) return { error: "Atleta não identificado. Recarregue a página e tente novamente." };
+
+  const result = atletaContatoEmergenciaSchema.safeParse({
+    nome: String(formData.get("nome") ?? ""),
+    parentesco: String(formData.get("parentesco") ?? ""),
+    contato: String(formData.get("contato") ?? ""),
+  });
+  if (!result.success) {
+    return { error: result.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase.from("atleta_base_contatos_emergencia").insert({
+    atleta_id: atletaId,
+    nome: result.data.nome,
+    parentesco: result.data.parentesco || null,
+    contato: result.data.contato || null,
+  });
+
+  if (error) return { error: "Não foi possível salvar o contato. Tente novamente." };
+
+  if (categoria) revalidatePath(`/base/atletas/${categoria}/${atletaId}`);
+  return { success: true };
+}
+
+export async function removerContatoEmergenciaBase(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = createClient();
+  const { data: contato } = await supabase
+    .from("atleta_base_contatos_emergencia")
+    .select("atleta_id")
+    .eq("id", id)
+    .single();
+
+  await supabase.from("atleta_base_contatos_emergencia").delete().eq("id", id);
+
+  // O DeleteButton só manda o id — busca a categoria do atleta (via o atleta_id acima) só pra
+  // revalidar o caminho certo, mesmo princípio de `deleteAtletaBase`.
+  if (contato) {
+    const atletaId = (contato as { atleta_id: string }).atleta_id;
+    const { data: atleta } = await supabase
+      .from("atletas_base")
+      .select("categoria")
+      .eq("id", atletaId)
+      .maybeSingle();
+    const categoria = (atleta as { categoria?: string } | null)?.categoria;
+    if (categoria) revalidatePath(`/base/atletas/${categoria}/${atletaId}`);
   }
 }

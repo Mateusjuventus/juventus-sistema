@@ -42,6 +42,10 @@ export type AtletaPosicao =
  * (Iniciação), ver `AtletaBaseTipoContrato`. */
 export type AtletaTipoContrato = "definitivo" | "emprestimo" | "amador" | "formacao";
 
+/** Tamanho de uniforme (PP a XG) — pedido do Mateus em 2026-10-16, lista fixa de confecção
+ * esportiva (ver docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md). */
+export type TamanhoUniforme = "PP" | "P" | "M" | "G" | "GG" | "XG";
+
 export interface AtletaRow {
   id: string;
   nome_completo: string;
@@ -51,9 +55,13 @@ export interface AtletaRow {
   posicao: string;
   numero_camisa: number | null;
   numero_cbf: number | null;
+  /** Deixou de ser editável pelo formulário em 2026-10-16 (pedido do Mateus: "pode remover... nº
+   * FPF") — a coluna continua existindo só pra não perder o que já tinha cadastrado. */
   numero_fpf: number | null;
   pe_dominante: PeDominante | null;
   telefone: string | null;
+  /** Pedido de 2026-10-16 (ver docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md). */
+  email: string | null;
   cidade_natal: string | null;
   uf_natal: string | null;
   /** Texto livre antigo — o formulário de editar não grava mais nele desde a migração pro endereço
@@ -71,15 +79,37 @@ export interface AtletaRow {
   bairro: string | null;
   cidade: string | null;
   uf: string | null;
+  /** Segundo endereço estruturado, independente do "Endereço atual" acima — representa onde o
+   * atleta/família é de origem (pedido de 2026-10-16). Mesmo formato (CEP com autopreenchimento). */
+  origem_cep: string | null;
+  origem_logradouro: string | null;
+  origem_numero: string | null;
+  origem_complemento: string | null;
+  origem_bairro: string | null;
+  origem_cidade: string | null;
+  origem_uf: string | null;
   data_inicio_clube: string | null;
   /** Distinto de `data_inicio_clube` — quando o vínculo de contrato começou, não quando o atleta
-   * entrou no clube. Só cadastro interno, nunca vem do link público. */
+   * entrou no clube. Só cadastro interno, nunca vem do link público. Deixou de ser editável pelo
+   * formulário em 2026-10-16 — ver `atleta_contratos`/aba "Contrato", que passa a ser dona dessa
+   * informação daqui pra frente; esta coluna fica congelada no último valor antes da mudança (e é
+   * sincronizada automaticamente pela função `criar_contrato_atleta` sempre que um novo contrato é
+   * criado, só pra esta tela de resumo/filtros continuar precisa). */
   data_inicio_contrato: string | null;
   empresario_nome: string | null;
+  /** Pedido de 2026-10-16 — telefone/e-mail do empresário (Dados esportivos). */
+  empresario_telefone: string | null;
+  empresario_email: string | null;
+  /** Pedido de 2026-10-16 — lista fixa PP/P/M/G/GG/XG. */
+  tamanho_uniforme: TamanhoUniforme | null;
   foto_path: string | null;
   status: AtletaStatus;
+  /** Ver nota de `data_inicio_contrato` acima — mesma lógica (congelada, sincronizada pela função
+   * de criar contrato). */
   data_fim_contrato: string | null;
   apelido: string | null;
+  /** Ver nota de `data_inicio_contrato` acima — mesma lógica (congelada, sincronizada pela função
+   * de criar contrato). */
   tipo_contrato: AtletaTipoContrato | null;
   possui_contrato_formacao: boolean;
   /** Pedido de 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md):
@@ -108,6 +138,71 @@ export interface AtletaDocumentoRow {
   arquivo_path: string;
   created_by: string | null;
   created_at: string;
+}
+
+/** Contato de emergência do atleta (Dados Pessoais) — lista, pode haver mais de um por atleta (ver
+ * docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md). */
+export interface AtletaContatoEmergenciaRow {
+  id: string;
+  atleta_id: string;
+  nome: string;
+  parentesco: string | null;
+  contato: string | null;
+  created_at: string;
+}
+
+/** Espelha `AtletaContatoEmergenciaRow`, mas pra `atletas_base`. */
+export interface AtletaBaseContatoEmergenciaRow {
+  id: string;
+  atleta_id: string;
+  nome: string;
+  parentesco: string | null;
+  contato: string | null;
+  created_at: string;
+}
+
+/** Um contrato do atleta (aba "Contrato" do perfil) — histórico completo, no máximo um `vigente`
+ * por atleta (garantido por índice único parcial no banco). Ver docs/superpowers/specs/
+ * 2026-10-16-atleta-dados-esportivos-contrato-design.md. */
+export interface AtletaContratoRow {
+  id: string;
+  atleta_id: string;
+  vigente: boolean;
+  tipo_contrato: AtletaTipoContrato;
+  /** Só preenchido quando `tipo_contrato` é "emprestimo". */
+  clube_origem: string | null;
+  vigencia_inicio: string | null;
+  vigencia_fim: string | null;
+  salario_ctps: number;
+  direito_imagem: number;
+  bonificacao: number;
+  auxilio_moradia: number;
+  outros: number;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+  encerrado_em: string | null;
+}
+
+/** Espelha `AtletaContratoRow`, mas pra `atletas_base` (`tipo_contrato` aceita também
+ * "iniciacao"). */
+export interface AtletaBaseContratoRow {
+  id: string;
+  atleta_id: string;
+  vigente: boolean;
+  tipo_contrato: AtletaBaseTipoContrato;
+  clube_origem: string | null;
+  vigencia_inicio: string | null;
+  vigencia_fim: string | null;
+  salario_ctps: number;
+  direito_imagem: number;
+  bonificacao: number;
+  auxilio_moradia: number;
+  outros: number;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+  encerrado_em: string | null;
 }
 
 /** Categorias de idade do Futebol de Base (Sub20 a Sub11) — ver `lib/auth/categorias-base.ts`. */
@@ -151,19 +246,36 @@ export interface AtletaBaseRow {
   posicao: string;
   numero_camisa: number | null;
   numero_cbf: number | null;
+  /** Deixou de ser editável pelo formulário em 2026-10-16 — ver nota equivalente em `AtletaRow`. */
   numero_fpf: number | null;
   pe_dominante: PeDominante | null;
   telefone: string | null;
+  /** Pedido de 2026-10-16, junto com `email_pai`/`email_mae` abaixo (ver docs/superpowers/specs/
+   * 2026-10-16-atleta-dados-pessoais-design.md) — só na Base, por serem atletas menores de idade. */
+  email: string | null;
+  email_pai: string | null;
+  email_mae: string | null;
   cidade_natal: string | null;
   uf_natal: string | null;
   /** Texto livre antigo — os cadastros novos usam os campos estruturados abaixo (cep/logradouro/
    * etc.), que alimentam o autopreenchimento por CEP. Mantido só pra não perder o que já tinha. */
   endereco_atual: string | null;
+  /** Segundo endereço estruturado — ver nota equivalente em `AtletaRow`. */
+  origem_cep: string | null;
+  origem_logradouro: string | null;
+  origem_numero: string | null;
+  origem_complemento: string | null;
+  origem_bairro: string | null;
+  origem_cidade: string | null;
+  origem_uf: string | null;
   data_inicio_clube: string | null;
   /** Distinto de `data_inicio_clube` — quando o vínculo de contrato começou, não quando o atleta
-   * entrou no clube. Só cadastro interno, nunca vem do link público. */
+   * entrou no clube. Só cadastro interno, nunca vem do link público. Ver nota de congelamento/
+   * sincronização equivalente em `AtletaRow` — mesma lógica aqui. */
   data_inicio_contrato: string | null;
   empresario_nome: string | null;
+  empresario_email: string | null;
+  tamanho_uniforme: TamanhoUniforme | null;
   foto_path: string | null;
   status: AtletaBaseStatus;
   data_fim_contrato: string | null;
