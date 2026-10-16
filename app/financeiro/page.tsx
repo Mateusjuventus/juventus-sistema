@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import type { DespesaAvulsaComCategoriaRow, GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
+import { GeralProfissionalView } from "./geral-view";
 
 function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -23,17 +24,20 @@ function StatCard({ label, valor, destaque }: { label: string; valor: string; de
 }
 
 /**
- * Painel geral de Prestação de Contas: soma previsto x efetuado de todos os jogos + despesas
- * avulsas, comparação por categoria e o resumo financeiro de cada jogo que já tem algum gasto
- * lançado. Ver docs/superpowers/specs/2026-07-14-prestacao-contas-financeiro-design.md e
- * docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md.
+ * Aba "Jogos" — Prestação de Contas (espelha `app/base/financeiro/page.tsx`): soma previsto x
+ * efetuado de todos os jogos + despesas avulsas, comparação por categoria e o resumo financeiro de
+ * cada jogo que já tem algum gasto lançado. Ver docs/superpowers/specs/2026-07-14-prestacao-contas-
+ * financeiro-design.md e docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md.
  *
  * Nota: despesas avulsas entram nos totais gerais e na tabela "Por categoria" (somadas junto com
  * os gastos de jogo), mas NUNCA no resumo "Por jogo" — mesmo quando uma despesa avulsa está
  * marcada com "jogos relacionados", esse vínculo é só uma etiqueta de referência (ver
- * `/financeiro/despesas-avulsas`), não afeta o resumo de nenhum jogo individual.
+ * `/financeiro/despesas-avulsas`), não afeta o resumo de nenhum jogo individual. Totalmente
+ * independente da aba "Geral" (custo com Comissão Técnica + Atletas, ver `./geral-view.tsx`), por
+ * decisão explícita — mesma separação que a Base já tem entre "Jogos" e "Geral da Base" (ver
+ * docs/superpowers/specs/2026-10-16-financeiro-contrato-design.md).
  */
-export default async function FinanceiroPage() {
+async function JogosView() {
   const supabase = createClient();
 
   const [{ data: jogosData }, { data: gastosData }, { data: despesasAvulsasData }] = await Promise.all([
@@ -93,7 +97,7 @@ export default async function FinanceiroPage() {
     });
 
   return (
-    <AppShell breadcrumb="Financeiro">
+    <>
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {gastos.length > 0 || despesasAvulsas.length > 0 ? (
           <>
@@ -255,6 +259,45 @@ export default async function FinanceiroPage() {
           })}
         </div>
       )}
+    </>
+  );
+}
+
+/**
+ * `/financeiro` — duas abas, sem trocar de rota (`?aba=`): "Jogos" (Prestação de Contas, inalterada)
+ * e "Geral" (novo, custo com Comissão Técnica + Atletas) — mesma navegação que
+ * `app/base/financeiro/page.tsx` já tem. Ver docs/superpowers/specs/2026-10-16-financeiro-contrato-
+ * design.md.
+ */
+export default function FinanceiroPage({
+  searchParams,
+}: {
+  searchParams: { aba?: string };
+}) {
+  const aba = searchParams.aba === "geral" ? "geral" : "jogos";
+
+  return (
+    <AppShell breadcrumb="Financeiro">
+      <div className="tab-bar mb-1 mt-4">
+        <Link
+          href="/financeiro"
+          className={`tab-item border-b-2 px-3 py-2.5 text-sm font-medium transition-colors sm:py-2 ${
+            aba === "jogos" ? "border-grena text-grena" : "border-transparent text-neutral-500 hover:text-grena"
+          }`}
+        >
+          Jogos
+        </Link>
+        <Link
+          href="/financeiro?aba=geral"
+          className={`tab-item border-b-2 px-3 py-2.5 text-sm font-medium transition-colors sm:py-2 ${
+            aba === "geral" ? "border-grena text-grena" : "border-transparent text-neutral-500 hover:text-grena"
+          }`}
+        >
+          Geral
+        </Link>
+      </div>
+
+      {aba === "geral" ? <GeralProfissionalView /> : <JogosView />}
     </AppShell>
   );
 }

@@ -8,7 +8,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getAssinaturasFinanceiroBase } from "@/lib/pdf/assinaturas";
 import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { podeVerCampoSensivel } from "@/lib/auth/role";
-import { calcularGeralBase, tipoPagamentoAtletaBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
+import {
+  calcularGeralBase,
+  custoAtletaBase,
+  mapaContratoVigentePorAtleta,
+  tipoPagamentoAtletaBase,
+  valorDespesaBase,
+} from "@/lib/futebol/financeiro-base";
 import {
   RelatorioGeralBaseDocument,
   type RelatorioGeralBaseAtletasCategoria,
@@ -17,6 +23,7 @@ import {
   type RelatorioGeralBaseFatia,
 } from "@/lib/pdf/relatorio-geral-base-document";
 import type {
+  AtletaBaseContratoRow,
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
   DespesaAvulsaBaseComCategoriaRow,
@@ -32,6 +39,7 @@ export async function GET() {
     { data: comissaoData },
     { data: atletasData },
     { data: despesasData },
+    { data: contratosData },
     { assinatura1, assinatura2 },
     podeVerSalario,
   ] = await Promise.all([
@@ -42,6 +50,7 @@ export async function GET() {
       .select("*, categoria_gasto:categorias_gasto(nome)")
       .order("data", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
+    supabase.from("atleta_base_contratos").select("*").eq("vigente", true),
     getAssinaturasFinanceiroBase(supabase),
     podeVerCampoSensivel(supabase, "salario"),
   ]);
@@ -49,13 +58,15 @@ export async function GET() {
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
+  const contratosVigentes = (contratosData ?? []) as AtletaBaseContratoRow[];
+  const contratoPorAtleta = mapaContratoVigentePorAtleta(contratosVigentes);
 
   if (comissao.length === 0 && atletas.length === 0 && despesas.length === 0) {
     return new NextResponse("Ainda não há nada cadastrado no Gasto Geral da Base.", { status: 400 });
   }
 
   const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =
-    calcularGeralBase(comissao, atletas, despesas);
+    calcularGeralBase(comissao, atletas, despesas, contratosVigentes);
 
   // Mesmas 3 cores e mesma leitura (Comissão / Atletas / Despesas) do gráfico da tela
   // (`geral-base-view.tsx`) — só o desenho em si muda entre os dois (ver comentário em
@@ -79,11 +90,11 @@ export async function GET() {
     const doGrupo = atletas.filter((a) => a.categoria === cat.value);
     return {
       categoriaLabel: cat.label,
-      subtotal: doGrupo.reduce((soma, a) => soma + (a.valor_ajuda_custo ?? 0), 0),
+      subtotal: doGrupo.reduce((soma, a) => soma + custoAtletaBase(a, contratoPorAtleta), 0),
       atletas: doGrupo.map((a) => ({
         nome: a.nome_completo,
         tipoPagamento: tipoPagamentoAtletaBase(a.tipo_contrato),
-        valor: a.valor_ajuda_custo,
+        valor: custoAtletaBase(a, contratoPorAtleta) || null,
       })),
     };
   });

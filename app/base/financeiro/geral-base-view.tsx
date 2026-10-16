@@ -3,10 +3,17 @@ import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { podeVerCampoSensivel } from "@/lib/auth/role";
-import { calcularGeralBase, tipoPagamentoAtletaBase, valorDespesaBase } from "@/lib/futebol/financeiro-base";
+import {
+  calcularGeralBase,
+  custoAtletaBase,
+  mapaContratoVigentePorAtleta,
+  tipoPagamentoAtletaBase,
+  valorDespesaBase,
+} from "@/lib/futebol/financeiro-base";
 import { DonutComposicao, type FatiaComposicao } from "@/components/charts/donut-composicao";
 import { BarrasCategoria } from "@/components/charts/barras-categoria";
 import type {
+  AtletaBaseContratoRow,
   AtletaBaseRow,
   ComissaoTecnicaBaseRow,
   DespesaAvulsaBaseComCategoriaRow,
@@ -44,7 +51,7 @@ function StatCard({ label, valor, ajuda }: { label: string; valor: string; ajuda
 export async function GeralBaseView() {
   const supabase = createClient();
 
-  const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }, podeVerSalario] =
+  const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }, { data: contratosData }, podeVerSalario] =
     await Promise.all([
       supabase.from("comissao_tecnica_base").select("*").order("nome_completo", { ascending: true }),
       supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
@@ -53,22 +60,27 @@ export async function GeralBaseView() {
         .select("*, categoria_gasto:categorias_gasto(nome)")
         .order("data", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false }),
+      supabase.from("atleta_base_contratos").select("*").eq("vigente", true),
       podeVerCampoSensivel(supabase, "salario"),
     ]);
 
   const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
+  const contratosVigentes = (contratosData ?? []) as AtletaBaseContratoRow[];
+  const contratoPorAtleta = mapaContratoVigentePorAtleta(contratosVigentes);
 
   const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =
-    calcularGeralBase(comissao, atletas, despesas);
+    calcularGeralBase(comissao, atletas, despesas, contratosVigentes);
 
   // Todo atleta cadastrado, agrupado por categoria de idade (mesma ordem de CATEGORIAS_BASE) — o
   // pedido do Mateus foi listar todo mundo (não só quem recebe), com o tipo de pagamento
-  // (Salário/Ajuda de custo/Empréstimo/Sem contrato) vindo do tipo de contrato de cada um.
+  // (Salário/Ajuda de custo/Empréstimo/Sem contrato) vindo do tipo de contrato de cada um, e o
+  // valor vindo do contrato vigente (fallback pra `valor_ajuda_custo` só pra quem não tem contrato
+  // — ver `custoAtletaBase`).
   const atletasPorCategoria = CATEGORIAS_BASE.map((cat) => {
     const doGrupo = atletas.filter((a) => a.categoria === cat.value);
-    const subtotal = doGrupo.reduce((soma, a) => soma + (a.valor_ajuda_custo ?? 0), 0);
+    const subtotal = doGrupo.reduce((soma, a) => soma + custoAtletaBase(a, contratoPorAtleta), 0);
     return { ...cat, atletas: doGrupo, subtotal };
   });
 
@@ -201,15 +213,16 @@ export async function GeralBaseView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
-                  {grupo.atletas.map((a) => (
-                    <tr key={a.id}>
-                      <td className="px-4 py-3 font-medium text-neutral-800">{a.nome_completo}</td>
-                      <td className="px-4 py-3">{tipoPagamentoAtletaBase(a.tipo_contrato)}</td>
-                      <td className="px-4 py-3">
-                        {a.valor_ajuda_custo ? formatMoeda(a.valor_ajuda_custo) : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                  {grupo.atletas.map((a) => {
+                    const valor = custoAtletaBase(a, contratoPorAtleta);
+                    return (
+                      <tr key={a.id}>
+                        <td className="px-4 py-3 font-medium text-neutral-800">{a.nome_completo}</td>
+                        <td className="px-4 py-3">{tipoPagamentoAtletaBase(a.tipo_contrato)}</td>
+                        <td className="px-4 py-3">{valor ? formatMoeda(valor) : "—"}</td>
+                      </tr>
+                    );
+                  })}
                   {grupo.atletas.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="px-4 py-6 text-center text-neutral-400">
