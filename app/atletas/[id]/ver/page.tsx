@@ -9,8 +9,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ATLETA_STATUS_LABEL } from "@/lib/futebol/fisioterapia";
+import { ContratoSecao } from "@/components/contrato-secao";
+import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { alternarAtletaAtivo } from "../../actions";
-import type { AtletaContatoEmergenciaRow, AtletaRow } from "@/lib/supabase/types";
+import type { AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
+
+const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
+  ATLETA_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+);
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -33,19 +39,25 @@ function formatData(data: string | null): string {
  */
 export default async function VerAtletaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const [{ data }, { data: contatosData }] = await Promise.all([
+  const [{ data }, { data: contatosData }, { data: contratosData }] = await Promise.all([
     supabase.from("atletas").select("*").eq("id", params.id).single(),
     supabase
       .from("atleta_contatos_emergencia")
       .select("*")
       .eq("atleta_id", params.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("atleta_contratos")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!data) notFound();
 
   const atleta = data as AtletaRow;
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
+  const contratos = (contratosData ?? []) as AtletaContratoRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
@@ -153,6 +165,18 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             <DetailField label="Email do empresário" value={atleta.empresario_email} />
             <DetailField label="Tamanho do uniforme" value={atleta.tamanho_uniforme} />
           </FieldGroup>
+        </FormSection>
+
+        {/* Contrato deixou de ser uma aba própria em 2026-10-16 (pedido do Mateus: "não pode ficar
+            na primeira página?" / "ao abrir o cartão do atleta... conseguir adicionar") — fica
+            visível direto aqui e também na tela de Editar, pra poder lançar um novo contrato sem
+            precisar entrar em edição. */}
+        <FormSection title="Contrato">
+          <ContratoSecao
+            contratos={contratos}
+            tipoContratoLabel={TIPO_CONTRATO_LABEL}
+            novoContratoHref={`/atletas/${atleta.id}/contrato/novo?origem=ver`}
+          />
         </FormSection>
       </div>
     </AppShell>

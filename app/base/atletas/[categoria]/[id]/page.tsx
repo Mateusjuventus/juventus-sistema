@@ -3,11 +3,17 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { DeleteButton } from "@/components/delete-button";
 import { ContatoEmergenciaForm } from "@/components/contato-emergencia-form";
+import { ContratoSecao } from "@/components/contrato-secao";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
-import type { AtletaBaseContatoEmergenciaRow, AtletaBaseRow } from "@/lib/supabase/types";
+import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import type {
+  AtletaBaseContatoEmergenciaRow,
+  AtletaBaseContratoRow,
+  AtletaBaseRow,
+} from "@/lib/supabase/types";
 import { AtletaBaseForm } from "../../atleta-base-form";
 import {
   updateAtletaBase,
@@ -15,6 +21,10 @@ import {
   adicionarContatoEmergenciaBase,
   removerContatoEmergenciaBase,
 } from "../../actions";
+
+const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
+  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+);
 
 export default async function EditarAtletaBasePage({
   params,
@@ -24,19 +34,25 @@ export default async function EditarAtletaBasePage({
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
 
   const supabase = createClient();
-  const [{ data }, { data: contatosData }] = await Promise.all([
+  const [{ data }, { data: contatosData }, { data: contratosData }] = await Promise.all([
     supabase.from("atletas_base").select("*").eq("id", params.id).single(),
     supabase
       .from("atleta_base_contatos_emergencia")
       .select("*")
       .eq("atleta_id", params.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("atleta_base_contratos")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!data) notFound();
 
   const atleta = data as AtletaBaseRow;
   const contatos = (contatosData ?? []) as AtletaBaseContatoEmergenciaRow[];
+  const contratos = (contratosData ?? []) as AtletaBaseContratoRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
 
   const defaultValues: Record<string, string> = {
@@ -132,6 +148,19 @@ export default async function EditarAtletaBasePage({
           <ContatoEmergenciaForm
             action={adicionarContatoEmergenciaBase}
             camposExtras={{ atletaId: atleta.id, categoria: params.categoria }}
+          />
+        </div>
+      </section>
+
+      {/* Contrato deixou de ser uma aba própria em 2026-10-16 — ver comentário equivalente em
+          `app/atletas/[id]/page.tsx` (Profissional). */}
+      <section className="card mt-6 p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">Contrato</h2>
+        <div className="mt-3">
+          <ContratoSecao
+            contratos={contratos}
+            tipoContratoLabel={TIPO_CONTRATO_LABEL}
+            novoContratoHref={`/base/atletas/${params.categoria}/${atleta.id}/contrato/novo?origem=editar`}
           />
         </div>
       </section>

@@ -11,8 +11,19 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
+import { ContratoSecao } from "@/components/contrato-secao";
+import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { alternarAtletaBaseAtivo } from "../../../actions";
-import type { AtletaBaseContatoEmergenciaRow, AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+import type {
+  AtletaBaseContatoEmergenciaRow,
+  AtletaBaseContratoRow,
+  AtletaBaseRow,
+  AtletaBaseStatus,
+} from "@/lib/supabase/types";
+
+const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
+  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+);
 
 const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
   liberado: "Liberado",
@@ -50,19 +61,25 @@ export default async function VerAtletaBasePage({
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
 
   const supabase = createClient();
-  const [{ data }, { data: contatosData }] = await Promise.all([
+  const [{ data }, { data: contatosData }, { data: contratosData }] = await Promise.all([
     supabase.from("atletas_base").select("*").eq("id", params.id).single(),
     supabase
       .from("atleta_base_contatos_emergencia")
       .select("*")
       .eq("atleta_id", params.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("atleta_base_contratos")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!data) notFound();
 
   const atleta = data as AtletaBaseRow;
   const contatos = (contatosData ?? []) as AtletaBaseContatoEmergenciaRow[];
+  const contratos = (contratosData ?? []) as AtletaBaseContratoRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
@@ -213,6 +230,16 @@ export default async function VerAtletaBasePage({
             <DetailField label="Tamanho do uniforme" value={atleta.tamanho_uniforme} />
             <DetailField label="Agência" value={atleta.agencia} />
           </FieldGroup>
+        </FormSection>
+
+        {/* Contrato deixou de ser uma aba própria em 2026-10-16 — ver comentário equivalente em
+            `app/atletas/[id]/ver/page.tsx` (Profissional). */}
+        <FormSection title="Contrato">
+          <ContratoSecao
+            contratos={contratos}
+            tipoContratoLabel={TIPO_CONTRATO_LABEL}
+            novoContratoHref={`/base/atletas/${params.categoria}/${atleta.id}/contrato/novo?origem=ver`}
+          />
         </FormSection>
 
         <FormSection title="Alojamento e ajuda de custo">

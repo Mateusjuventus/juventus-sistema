@@ -3,28 +3,40 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { DeleteButton } from "@/components/delete-button";
 import { ContatoEmergenciaForm } from "@/components/contato-emergencia-form";
+import { ContratoSecao } from "@/components/contrato-secao";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
-import type { AtletaContatoEmergenciaRow, AtletaRow } from "@/lib/supabase/types";
+import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import type { AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
 import { AtletaForm } from "../atleta-form";
 import { updateAtleta, deleteAtleta, adicionarContatoEmergencia, removerContatoEmergencia } from "../actions";
 
+const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
+  ATLETA_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+);
+
 export default async function EditarAtletaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const [{ data }, { data: contatosData }] = await Promise.all([
+  const [{ data }, { data: contatosData }, { data: contratosData }] = await Promise.all([
     supabase.from("atletas").select("*").eq("id", params.id).single(),
     supabase
       .from("atleta_contatos_emergencia")
       .select("*")
       .eq("atleta_id", params.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("atleta_contratos")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!data) notFound();
 
   const atleta = data as AtletaRow;
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
+  const contratos = (contratosData ?? []) as AtletaContratoRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
 
   const defaultValues: Record<string, string> = {
@@ -107,6 +119,20 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
         </div>
         <div className="mt-3">
           <ContatoEmergenciaForm action={adicionarContatoEmergencia} camposExtras={{ atletaId: atleta.id }} />
+        </div>
+      </section>
+
+      {/* Contrato deixou de ser uma aba própria em 2026-10-16 (pedido do Mateus pra poder lançar um
+          contrato novo sem precisar entrar na tela de editar) — mas também aparece aqui, pra quem
+          já está editando o cadastro não precisar sair pra "Ver atleta" só por causa disso. */}
+      <section className="card mt-6 p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">Contrato</h2>
+        <div className="mt-3">
+          <ContratoSecao
+            contratos={contratos}
+            tipoContratoLabel={TIPO_CONTRATO_LABEL}
+            novoContratoHref={`/atletas/${atleta.id}/contrato/novo?origem=editar`}
+          />
         </div>
       </section>
 

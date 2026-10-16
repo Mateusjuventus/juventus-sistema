@@ -7,20 +7,24 @@ import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { criarContratoBase } from "../actions";
 
 /** Espelha `app/atletas/[id]/contrato/novo/page.tsx` para o Futebol de Base — mesma opção extra de
- * tipo de contrato (Iniciação) que o resto do cadastro da Base já tem. */
+ * tipo de contrato (Iniciação) que o resto do cadastro da Base já tem, e o mesmo `origem` (Ver
+ * atleta ou Editar atleta) pra saber pra onde voltar depois de salvar. */
 export default function NovoContratoAtletaBasePage({
   params,
+  searchParams,
 }: {
   params: { categoria: string; id: string };
+  searchParams: { origem?: string };
 }) {
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
 
+  const origem = searchParams.origem === "editar" ? "editar" : "ver";
+  const base = `/base/atletas/${params.categoria}/${params.id}`;
+  const voltarHref = origem === "editar" ? base : `${base}/ver`;
+
   return (
     <AppShell departamento="futebol_base" breadcrumb="Novo contrato">
-      <Link
-        href={`/base/atletas/${params.categoria}/${params.id}/contrato`}
-        className="text-sm font-medium text-grena hover:underline"
-      >
+      <Link href={voltarHref} className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
       <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Novo contrato</h1>
@@ -31,7 +35,7 @@ export default function NovoContratoAtletaBasePage({
         <ContratoForm
           action={criarContratoBase}
           tipoContratoOptions={ATLETA_BASE_TIPO_CONTRATO_OPTIONS}
-          camposExtras={{ atletaId: params.id, categoria: params.categoria }}
+          camposExtras={{ atletaId: params.id, categoria: params.categoria, origem }}
         />
       </div>
     </AppShell>

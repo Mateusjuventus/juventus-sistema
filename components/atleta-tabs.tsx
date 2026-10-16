@@ -12,15 +12,12 @@ export function AtletaTabs({
   active,
 }: {
   atletaId: string;
-  active: "dados-pessoais" | "documentacao" | "dados-de-jogo" | "contrato";
+  active: "dados-pessoais" | "documentacao" | "dados-de-jogo";
 }) {
   const tabs = [
     { key: "dados-pessoais", label: "Dados Pessoais", href: `/atletas/${atletaId}/ver` },
     { key: "documentacao", label: "Documentação", href: `/atletas/${atletaId}/documentacao` },
     { key: "dados-de-jogo", label: "Dados de Jogo", href: `/atletas/${atletaId}/dados-de-jogo` },
-    // Nova aba, pedido de 2026-10-16 (ver docs/superpowers/specs/
-    // 2026-10-16-atleta-dados-esportivos-contrato-design.md): contrato vigente + histórico.
-    { key: "contrato", label: "Contrato", href: `/atletas/${atletaId}/contrato` },
   ] as const;
 
   return (

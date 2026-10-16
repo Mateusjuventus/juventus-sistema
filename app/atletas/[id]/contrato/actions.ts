@@ -70,7 +70,13 @@ export async function criarContrato(
 
   if (error) return { error: "Não foi possível salvar o contrato. Tente novamente.", values: raw };
 
-  revalidatePath(`/atletas/${atletaId}/contrato`);
+  // Contrato não é mais uma aba própria (ver `components/contrato-secao.tsx`) — volta pra tela de
+  // onde "Novo contrato" foi clicado (Ver atleta ou Editar atleta), não pra uma página fixa.
+  const origem = String(formData.get("origem") ?? "") === "editar" ? "editar" : "ver";
+  const destino = origem === "editar" ? `/atletas/${atletaId}` : `/atletas/${atletaId}/ver`;
+
+  revalidatePath(`/atletas/${atletaId}`);
+  revalidatePath(`/atletas/${atletaId}/ver`);
   revalidatePath("/atletas");
-  redirect(`/atletas/${atletaId}/contrato`);
+  redirect(destino);
 }
