@@ -38,7 +38,7 @@ export function EventoFormBase({
 }: {
   action: (prevState: SumulaEventoFormState, formData: FormData) => Promise<SumulaEventoFormState>;
   jogoId: string;
-  tempo: "primeiro" | "segundo";
+  tempo: "primeiro" | "segundo" | "terceiro";
   convocados: ConvocadoOption[];
   reservas: ConvocadoOption[];
 }) {

@@ -22,11 +22,20 @@ export async function salvarDadosJogoBase(
   const golsContraRaw = String(formData.get("golsContra") ?? "").trim();
   const duracaoPrimeiroRaw = String(formData.get("duracaoPrimeiroTempo") ?? "").trim();
   const duracaoSegundoRaw = String(formData.get("duracaoSegundoTempo") ?? "").trim();
+  // Só enviado pela tela quando o jogo está numa competição de 3 tempos (ver
+  // docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md) — ausente/branco em
+  // todo o resto dos jogos, que continuam com só 2 tempos.
+  const duracaoTerceiroRaw = String(formData.get("duracaoTerceiroTempo") ?? "").trim();
 
   const duracaoPrimeiro = Number(duracaoPrimeiroRaw);
   const duracaoSegundo = Number(duracaoSegundoRaw);
   if (!duracaoPrimeiroRaw || !duracaoSegundoRaw || Number.isNaN(duracaoPrimeiro) || Number.isNaN(duracaoSegundo)) {
     return { error: "Preencha a duração dos dois tempos." };
+  }
+  let duracaoTerceiro: number | null = null;
+  if (duracaoTerceiroRaw) {
+    duracaoTerceiro = Number(duracaoTerceiroRaw);
+    if (Number.isNaN(duracaoTerceiro)) return { error: "Duração do 3º tempo inválida." };
   }
 
   const golsPro = golsProRaw ? Number(golsProRaw) : null;
@@ -44,6 +53,7 @@ export async function salvarDadosJogoBase(
         jogo_id: jogoId,
         duracao_primeiro_tempo: duracaoPrimeiro,
         duracao_segundo_tempo: duracaoSegundo,
+        duracao_terceiro_tempo: duracaoTerceiro,
       },
       { onConflict: "jogo_id" },
     ),
@@ -76,7 +86,7 @@ export async function adicionarEventoBase(
   const atletaAssistenciaId = String(formData.get("atletaAssistenciaId") ?? "").trim();
 
   if (!jogoId) return { error: "Jogo não identificado. Recarregue a página e tente novamente." };
-  if (tempo !== "primeiro" && tempo !== "segundo") return { error: "Tempo inválido." };
+  if (tempo !== "primeiro" && tempo !== "segundo" && tempo !== "terceiro") return { error: "Tempo inválido." };
   if (!["gol", "cartao_amarelo", "cartao_vermelho", "substituicao"].includes(tipo)) {
     return { error: "Tipo de evento inválido." };
   }

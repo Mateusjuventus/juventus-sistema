@@ -612,7 +612,10 @@ export interface ConvocacaoStaffRow {
 }
 
 export type SumulaEventoTipo = "gol" | "cartao_amarelo" | "cartao_vermelho" | "substituicao";
-export type SumulaTempo = "primeiro" | "segundo";
+/** "terceiro" só existe na Base, pros jogos vinculados a uma competição com `numero_tempos = 3`
+ * (ver docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md) — no Profissional
+ * (sempre 2 tempos) nunca aparece. */
+export type SumulaTempo = "primeiro" | "segundo" | "terceiro";
 
 /** Súmula do jogo — uma linha por jogo (`jogo_id` único). O placar em si continua vivendo em
  * `jogos.gols_pro`/`gols_contra` (única fonte de verdade, editável tanto na aba "Dados do jogo"
@@ -623,6 +626,10 @@ export interface SumulaRow {
   jogo_id: string;
   duracao_primeiro_tempo: number;
   duracao_segundo_tempo: number;
+  /** Sempre null no Profissional — a coluna existe só porque
+   * `lib/futebol/estatisticas-atleta-query.ts` usa o mesmo select parametrizado pros dois
+   * departamentos (ver `SumulaBaseRow.duracao_terceiro_tempo`). */
+  duracao_terceiro_tempo: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1019,6 +1026,11 @@ export interface SumulaBaseRow {
   jogo_id: string;
   duracao_primeiro_tempo: number;
   duracao_segundo_tempo: number;
+  /** Duração do 3º tempo — só preenchida quando o jogo está vinculado (via
+   * `competicao_jogos_base`) a uma competição com `numero_tempos = 3` (ver
+   * docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md). Null em todos os
+   * outros jogos da Base, exatamente como nos de 2 tempos de sempre. */
+  duracao_terceiro_tempo: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1563,6 +1575,12 @@ export interface TemporadaRow {
 
 export type CompeticaoStatus = "planejada" | "em_andamento" | "encerrada";
 
+/** Situação do Juventus NESSA competição — independente do `status` acima, que só muda quando o
+ * campeonato inteiro termina (com ou sem o Juventus ainda disputando). Campo manual (ver
+ * docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md): não há cálculo
+ * automático a partir dos jogos/classificação por enquanto. */
+export type CompeticaoSituacaoClube = "participando" | "eliminado" | "campeao" | "vice";
+
 /** A competição é identificada só pelo nome (sem "tipo", sem nome oficial à parte). As colunas
  * `regra_*` são o motor de regras disciplinares dela — cada campeonato pode ter regra própria. */
 export interface CompeticaoRow {
@@ -1585,6 +1603,11 @@ export interface CompeticaoRow {
   /** Critérios de desempate da competição, na ordem em que se aplicam (Art. 17 na Copa Paulista,
    * mas configurável — cada campeonato tem os seus). Ver lib/futebol/competicao-desempate.ts. */
   criterios_desempate: string[];
+  situacao_clube: CompeticaoSituacaoClube;
+  /** Texto livre (ex.: "Terceira Fase") — fases nem sempre estão cadastradas em
+   * `competicao_fases`, então não dá pra referenciar uma fase de verdade aqui. */
+  situacao_clube_fase: string | null;
+  situacao_clube_data: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1742,6 +1765,12 @@ export interface TemporadaBaseRow {
   created_at: string;
 }
 
+/** Regra de escalação/substituição de um tempo da partida (só Base — ver
+ * `CompeticaoBaseRow.regra_tempo_1`/`regra_tempo_2`/`regra_tempo_3`). O Campeonato Paulista de
+ * Base (Art. 19-20 do REC) usa `somente_titulares` no 1º tempo, `somente_reservas` no 2º e
+ * `livre_ilimitada` no 3º — "livre" é o padrão de qualquer competição sem essa particularidade. */
+export type RegraTempoCompeticao = "livre" | "somente_titulares" | "somente_reservas" | "livre_ilimitada";
+
 export interface CompeticaoBaseRow {
   id: string;
   temporada_id: string;
@@ -1758,6 +1787,27 @@ export interface CompeticaoBaseRow {
   regra_jogos_suspensao_vermelho: number;
   regra_observacoes: string | null;
   criterios_desempate: string[];
+  /** Formato de partida — ver docs/superpowers/specs/2026-10-21-competicoes-formato-partida-
+   * design.md. Só existe na Base: o Profissional sempre joga 2 tempos de 45min, sem
+   * particularidades, então essas colunas nem existem em `competicoes` (Profissional). */
+  numero_tempos: 2 | 3;
+  duracao_tempo_1_minutos: number | null;
+  duracao_tempo_2_minutos: number | null;
+  /** Só preenchida quando `numero_tempos = 3`. */
+  duracao_tempo_3_minutos: number | null;
+  duracao_intervalo_minutos: number | null;
+  /** Quantidade mínima obrigatória de atletas na súmula (ex.: 18 no Sub-11/12, 22 no Sub-13/14) —
+   * usada só pra gerar aviso na Súmula, nunca bloqueia o salvamento. */
+  elenco_minimo_em_campo: number | null;
+  /** Minutos mínimos que todo atleta inscrito na súmula deve jogar — mesma regra de aviso. */
+  minutos_minimos_por_atleta: number | null;
+  regra_tempo_1: RegraTempoCompeticao;
+  regra_tempo_2: RegraTempoCompeticao;
+  /** Só usado quando `numero_tempos = 3`. */
+  regra_tempo_3: RegraTempoCompeticao | null;
+  situacao_clube: CompeticaoSituacaoClube;
+  situacao_clube_fase: string | null;
+  situacao_clube_data: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

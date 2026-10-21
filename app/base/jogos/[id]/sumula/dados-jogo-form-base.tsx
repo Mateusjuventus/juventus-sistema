@@ -22,6 +22,8 @@ export function DadosJogoFormBase({
   golsContra,
   duracaoPrimeiroTempo,
   duracaoSegundoTempo,
+  duracaoTerceiroTempo,
+  temTerceiroTempo,
   nomeMandante,
   nomeVisitante,
 }: {
@@ -31,6 +33,12 @@ export function DadosJogoFormBase({
   golsContra: number | null;
   duracaoPrimeiroTempo: number;
   duracaoSegundoTempo: number;
+  /** Só relevante quando `temTerceiroTempo` é true — jogo vinculado a uma competição com
+   * `numero_tempos = 3` (ver docs/superpowers/specs/2026-10-21-competicoes-formato-partida-
+   * design.md). */
+  duracaoTerceiroTempo?: number | null;
+  /** Mostra (e exige) o campo "3º Tempo (min)" — false em todo o resto dos jogos. */
+  temTerceiroTempo?: boolean;
   nomeMandante: string;
   nomeVisitante: string;
 }) {
@@ -87,6 +95,19 @@ export function DadosJogoFormBase({
             className="field-input w-20"
           />
         </div>
+        {temTerceiroTempo ? (
+          <div>
+            <label className="field-label">3º Tempo (min)</label>
+            <input
+              type="number"
+              name="duracaoTerceiroTempo"
+              min={1}
+              required
+              defaultValue={duracaoTerceiroTempo ?? ""}
+              className="field-input w-20"
+            />
+          </div>
+        ) : null}
       </div>
 
       <SalvarButton />

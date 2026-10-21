@@ -6,9 +6,16 @@ import { createClient } from "@/lib/supabase/server";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { categoriaDaPosicao, corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
 import { SUMULA_EVENTO_TIPO_ICONE, SUMULA_EVENTO_TIPO_LABEL } from "@/lib/futebol/sumula-eventos";
-import { calcularMinutoAbsoluto } from "@/lib/futebol/estatisticas-atleta";
+import {
+  calcularMinutoAbsoluto,
+  calcularMinutosJogados,
+  type EventoParaEstatistica,
+} from "@/lib/futebol/estatisticas-atleta";
+import { avisosFormatoPartidaBase } from "@/lib/futebol/formato-partida-base";
 import type {
   AtletaBaseRow,
+  CompeticaoBaseRow,
+  CompeticaoJogoBaseRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
   SumulaBaseRow,
@@ -40,15 +47,19 @@ function LinhaEvento({
   evento,
   atletasMap,
   duracaoPrimeiroTempo,
+  duracaoSegundoTempo,
 }: {
   evento: SumulaEventoBaseRow;
   atletasMap: Map<string, AtletaBaseRow>;
   duracaoPrimeiroTempo: number;
+  /** Só precisa ser informado quando o jogo tem 3º tempo — usado pra deslocar o "relógio corrido"
+   * de eventos do 3º tempo (ver `calcularMinutoAbsoluto`). */
+  duracaoSegundoTempo?: number;
 }) {
   const atleta = evento.atleta_id ? atletasMap.get(evento.atleta_id) : undefined;
   // Mostra o "relógio corrido" do jogo (ex: 79'), igual à súmula oficial — por baixo, guardamos
   // o minuto relativo ao início de cada tempo (ver lib/futebol/estatisticas-atleta.ts).
-  const minutoExibido = calcularMinutoAbsoluto(evento.tempo, evento.minuto, duracaoPrimeiroTempo);
+  const minutoExibido = calcularMinutoAbsoluto(evento.tempo, evento.minuto, duracaoPrimeiroTempo, duracaoSegundoTempo);
 
   let descricao: string;
   if (evento.tipo === "substituicao") {
@@ -71,6 +82,9 @@ function LinhaEvento({
         {evento.tempo === "segundo" ? (
           <span className="ml-1 text-xs font-normal text-neutral-400">({evento.minuto}&apos; do 2T)</span>
         ) : null}
+        {evento.tempo === "terceiro" ? (
+          <span className="ml-1 text-xs font-normal text-neutral-400">({evento.minuto}&apos; do 3T)</span>
+        ) : null}
       </span>
       <span className="w-32 shrink-0 font-medium text-neutral-700">
         {SUMULA_EVENTO_TIPO_LABEL[evento.tipo]}
@@ -91,9 +105,10 @@ function TempoSection({
   reservas,
   liberado,
   duracaoPrimeiroTempo,
+  duracaoSegundoTempo,
 }: {
   label: string;
-  tempo: "primeiro" | "segundo";
+  tempo: "primeiro" | "segundo" | "terceiro";
   eventos: SumulaEventoBaseRow[];
   atletasMap: Map<string, AtletaBaseRow>;
   jogoId: string;
@@ -101,6 +116,8 @@ function TempoSection({
   reservas: ConvocadoOption[];
   liberado: boolean;
   duracaoPrimeiroTempo: number;
+  /** Ver `LinhaEvento.duracaoSegundoTempo` — só usado pra exibir o relógio corrido do 3º tempo. */
+  duracaoSegundoTempo?: number;
 }) {
   return (
     <section className="card p-4">
@@ -113,6 +130,7 @@ function TempoSection({
             evento={evento}
             atletasMap={atletasMap}
             duracaoPrimeiroTempo={duracaoPrimeiroTempo}
+            duracaoSegundoTempo={duracaoSegundoTempo}
           />
         ))}
         {eventos.length === 0 ? (
@@ -144,20 +162,38 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   if (!jogo) notFound();
   const categoria = jogo.categoria;
 
-  const [{ data: atletasData }, { data: convocacaoData }, { data: sumulaData }] = await Promise.all([
-    supabase
-      .from("atletas_base")
-      .select("*")
-      .eq("categoria", categoria)
-      .order("nome_completo", { ascending: true }),
-    supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
-    supabase.from("sumulas_base").select("*").eq("jogo_id", params.id).maybeSingle(),
-  ]);
+  const [{ data: atletasData }, { data: convocacaoData }, { data: sumulaData }, { data: vinculoData }] =
+    await Promise.all([
+      supabase
+        .from("atletas_base")
+        .select("*")
+        .eq("categoria", categoria)
+        .order("nome_completo", { ascending: true }),
+      supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
+      supabase.from("sumulas_base").select("*").eq("jogo_id", params.id).maybeSingle(),
+      // Formato de partida (3º tempo, regras de substituição por tempo etc.) vem da competição à
+      // qual este jogo está vinculado — ver docs/superpowers/specs/2026-10-21-competicoes-
+      // formato-partida-design.md. A maioria dos jogos não está vinculada a nenhuma: nesse caso
+      // segue tudo exatamente como antes (2 tempos, sem avisos).
+      supabase.from("competicao_jogos_base").select("competicao_id").eq("jogo_id", params.id).maybeSingle(),
+    ]);
 
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const atletasMap = new Map(atletas.map((a) => [a.id, a]));
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
   const sumula = sumulaData as SumulaBaseRow | null;
+
+  const vinculo = vinculoData as Pick<CompeticaoJogoBaseRow, "competicao_id"> | null;
+  let competicaoFormato: CompeticaoBaseRow | null = null;
+  if (vinculo) {
+    const { data: competicaoData } = await supabase
+      .from("competicoes_base")
+      .select("*")
+      .eq("id", vinculo.competicao_id)
+      .maybeSingle();
+    competicaoFormato = competicaoData as CompeticaoBaseRow | null;
+  }
+  const temTerceiroTempo = competicaoFormato?.numero_tempos === 3;
 
   let titulares: AtletaBaseRow[] = [];
   let reservasAtletas: AtletaBaseRow[] = [];
@@ -191,9 +227,54 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   }
   const eventosPrimeiro = eventos.filter((e) => e.tempo === "primeiro");
   const eventosSegundo = eventos.filter((e) => e.tempo === "segundo");
+  const eventosTerceiro = eventos.filter((e) => e.tempo === "terceiro");
 
   const nomeMandante = jogo.mandante ? "Juventus" : jogo.adversario_nome;
   const nomeVisitante = jogo.mandante ? jogo.adversario_nome : "Juventus";
+
+  // Avisos de formato de partida (elenco mínimo, minutos mínimos por atleta, substituição fora da
+  // regra do tempo) — só quando o jogo está vinculado a uma competição com essas regras
+  // preenchidas, e só depois da Convocação salva (antes disso o "elenco em campo" nem existe
+  // ainda). NUNCA bloqueiam o salvamento — ver a spec.
+  let avisosFormatoPartida: string[] = [];
+  if (competicaoFormato && convocacao) {
+    const duracaoPrimeiroTempo = sumula?.duracao_primeiro_tempo ?? 45;
+    const duracaoSegundoTempo = sumula?.duracao_segundo_tempo ?? 45;
+    const duracaoTerceiroTempo = sumula?.duracao_terceiro_tempo ?? null;
+    const eventosParaEstatistica: EventoParaEstatistica[] = eventos.map((e) => ({
+      tipo: e.tipo,
+      tempo: e.tempo,
+      minuto: e.minuto,
+      atletaId: e.atleta_id,
+      atletaEntrouId: e.atleta_entrou_id,
+      atletaAssistenciaId: e.atleta_assistencia_id,
+      ordem: e.ordem,
+    }));
+    const atletasNaSumula = [...titulares, ...reservasAtletas].map((a) => ({
+      atletaId: a.id,
+      nome: nomeAtletaEvento(a),
+      minutosJogados: calcularMinutosJogados(
+        a.id,
+        titulares.some((t) => t.id === a.id) ? "titular" : "reserva",
+        duracaoPrimeiroTempo,
+        duracaoSegundoTempo,
+        eventosParaEstatistica,
+        duracaoTerceiroTempo,
+      ),
+    }));
+    avisosFormatoPartida = avisosFormatoPartidaBase(
+      {
+        numeroTempos: competicaoFormato.numero_tempos,
+        elencoMinimoEmCampo: competicaoFormato.elenco_minimo_em_campo,
+        minutosMinimosPorAtleta: competicaoFormato.minutos_minimos_por_atleta,
+        regraTempo1: competicaoFormato.regra_tempo_1,
+        regraTempo2: competicaoFormato.regra_tempo_2,
+        regraTempo3: competicaoFormato.regra_tempo_3,
+      },
+      atletasNaSumula,
+      eventosParaEstatistica,
+    );
+  }
 
   return (
     <AppShell departamento="futebol_base" breadcrumb="Súmula">
@@ -214,9 +295,24 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
         golsContra={jogo.gols_contra}
         duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
         duracaoSegundoTempo={sumula?.duracao_segundo_tempo ?? 45}
+        duracaoTerceiroTempo={sumula?.duracao_terceiro_tempo}
+        temTerceiroTempo={temTerceiroTempo}
         nomeMandante={nomeMandante}
         nomeVisitante={nomeVisitante}
       />
+
+      {avisosFormatoPartida.length > 0 ? (
+        <div className="mt-4 card border border-amber-300 bg-amber-50 p-4">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-amber-800">
+            Avisos de formato de partida
+          </h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-900">
+            {avisosFormatoPartida.map((aviso, i) => (
+              <li key={i}>{aviso}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="mt-4">
         <ImportarSumulaFormBase
@@ -296,6 +392,20 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
           liberado={Boolean(convocacao)}
           duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
         />
+        {temTerceiroTempo ? (
+          <TempoSection
+            label="Terceiro Tempo"
+            tempo="terceiro"
+            eventos={eventosTerceiro}
+            atletasMap={atletasMap}
+            jogoId={jogo.id}
+            convocados={convocadosOptions}
+            reservas={reservasOptions}
+            liberado={Boolean(convocacao)}
+            duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
+            duracaoSegundoTempo={sumula?.duracao_segundo_tempo ?? 45}
+          />
+        ) : null}
       </div>
     </AppShell>
   );

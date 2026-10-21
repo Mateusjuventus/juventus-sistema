@@ -95,13 +95,14 @@ export async function buscarEstatisticasAtleta(
 
   const { data: sumulasData } = await supabase
     .from(tabelas.sumulas)
-    .select("id, jogo_id, duracao_primeiro_tempo, duracao_segundo_tempo")
+    .select("id, jogo_id, duracao_primeiro_tempo, duracao_segundo_tempo, duracao_terceiro_tempo")
     .in("jogo_id", jogoIds);
   const sumulas = (sumulasData ?? []) as {
     id: string;
     jogo_id: string;
     duracao_primeiro_tempo: number;
     duracao_segundo_tempo: number;
+    duracao_terceiro_tempo: number | null;
   }[];
   const sumulaPorJogoId = new Map(sumulas.map((s) => [s.jogo_id, s]));
   const sumulaIds = sumulas.map((s) => s.id);
@@ -115,7 +116,7 @@ export async function buscarEstatisticasAtleta(
     ((eventosData ?? []) as {
       sumula_id: string;
       tipo: SumulaEventoTipoStats;
-      tempo: "primeiro" | "segundo";
+      tempo: "primeiro" | "segundo" | "terceiro";
       minuto: number;
       atleta_id: string | null;
       atleta_entrou_id: string | null;
@@ -145,6 +146,7 @@ export async function buscarEstatisticasAtleta(
         statusConvocacao: statusPorJogoId.get(j.id) ?? "nao_convocado",
         duracaoPrimeiroTempo: sumula?.duracao_primeiro_tempo ?? null,
         duracaoSegundoTempo: sumula?.duracao_segundo_tempo ?? null,
+        duracaoTerceiroTempo: sumula?.duracao_terceiro_tempo ?? null,
         eventos: sumula ? eventosPorSumulaId.get(sumula.id) ?? [] : [],
       };
     });
