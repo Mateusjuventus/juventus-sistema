@@ -29,9 +29,28 @@ const ESPACO_APOS_BANNER = 8;
 const ALTURA_DIAS_HEADER = 24;
 const ALTURA_DIVISOR_CATEGORIA = 16;
 const ALTURA_ROTULO_TURNO = 10;
+/** Piso mínimo de uma linha de turno (dia sem nenhuma atividade, ou só 1) — ver `alturaLinhaTurno`
+ * pra quando há mais atividades do que isso comporta. */
 const ALTURA_LINHA_TURNO = 48;
+/** Altura reservada por atividade dentro de uma célula de dia — `atividadeBox.minHeight` (16) +
+ * `marginBottom` (2). Ver nota em `atividadeBox` sobre por que a altura não pode ser só "auto". */
+const ALTURA_CAIXA_ATIVIDADE = 18;
+/** `celulaDia.padding` (2 em cima + 2 embaixo). */
+const PADDING_CELULA_DIA = 4;
 const ALTURA_LINHA_DESCANSO = 18;
 const ESPACO_ENTRE_CATEGORIAS = 4;
+
+/**
+ * Altura de uma linha de turno (Manhã, ou Tarde+Noite) — cresce com a maior quantidade de
+ * atividades entre os dias daquele turno, em vez de uma altura fixa pra todo mundo. Antes disso,
+ * uma célula com mais de ~2 atividades (comum no Sub-17 em diante) ficava mais alta que a linha
+ * fixa e as caixas de atividade se sobrepunham (texto cortando por cima de texto) — ver
+ * docs/superpowers/specs/2026-10-20-programacao-geral-pdf-overlap-design.md.
+ */
+function alturaLinhaTurno(contagensPorDia: number[]): number {
+  const maiorContagem = Math.max(0, ...contagensPorDia);
+  return Math.max(ALTURA_LINHA_TURNO, maiorContagem * ALTURA_CAIXA_ATIVIDADE + PADDING_CELULA_DIA);
+}
 
 /** Pura — soma a altura necessária a partir dos dados reais da semana, ANTES do render (ver
  * `programacao-geral-document.test.ts`). */
@@ -42,8 +61,16 @@ export function calcularAlturaProgramacaoGeral(categorias: ProgramacaoGeralCateg
     if (!cat.temAtividadeNaSemana) {
       altura += ALTURA_LINHA_DESCANSO;
     } else {
-      if (cat.manhaVisivel) altura += ALTURA_ROTULO_TURNO + ALTURA_LINHA_TURNO;
-      if (cat.tardeVisivel) altura += ALTURA_ROTULO_TURNO + ALTURA_LINHA_TURNO;
+      if (cat.manhaVisivel) {
+        altura += ALTURA_ROTULO_TURNO + alturaLinhaTurno(cat.dias.map((d) => d.atividadesPorTurno.manha.length));
+      }
+      if (cat.tardeVisivel) {
+        altura +=
+          ALTURA_ROTULO_TURNO +
+          alturaLinhaTurno(
+            cat.dias.map((d) => d.atividadesPorTurno.tarde.length + d.atividadesPorTurno.noite.length),
+          );
+      }
     }
     altura += ESPACO_ENTRE_CATEGORIAS;
   }
@@ -102,20 +129,50 @@ const styles = StyleSheet.create({
   },
   celulaVazia: { flex: 1, alignItems: "center", justifyContent: "center" },
   celulaVaziaTexto: { fontSize: 6, color: "#d4d4d4" },
-  atividadeBox: { borderRadius: 2, padding: 2, marginBottom: 2 },
-  atividadeNome: { fontSize: 5.8, fontWeight: 700 },
-  atividadeHorario: { fontSize: 5, marginTop: 0.5 },
+  // `flexShrink: 0` + `minHeight` garantem que a caixa nunca seja espremida pra menos do que
+  // precisa (senão o nome e o horário de atividades vizinhas se sobrepõem — ver
+  // `ALTURA_CAIXA_ATIVIDADE`/`alturaLinhaTurno` acima). `alignItems: "center"` centraliza o texto
+  // horizontalmente dentro da caixa (pedido do Mateus).
+  atividadeBox: {
+    borderRadius: 2,
+    padding: 2,
+    marginBottom: 2,
+    flexShrink: 0,
+    minHeight: 16,
+    alignItems: "center",
+  },
+  atividadeNome: { fontSize: 5.8, fontWeight: 700, lineHeight: 1.25, textAlign: "center" },
+  atividadeHorario: { fontSize: 5, marginTop: 1, lineHeight: 1.25, textAlign: "center" },
 });
 
-const jogoBoxStyle = { borderRadius: 2, padding: 2, marginBottom: 2, backgroundColor: "#5C0A35" };
+const jogoBoxStyle = {
+  borderRadius: 2,
+  padding: 2,
+  marginBottom: 2,
+  backgroundColor: "#5C0A35",
+  flexShrink: 0,
+  minHeight: 16,
+  alignItems: "center" as const,
+};
 const jogoStyles = StyleSheet.create({
-  escudosRow: { flexDirection: "row", alignItems: "center", gap: 2 },
+  escudosRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2 },
   escudo: { width: 9, height: 9, objectFit: "contain" },
   escudoVazio: { width: 9, height: 9 },
   x: { fontSize: 5, fontWeight: 700, color: "#e5d4dd" },
-  texto: { fontSize: 5.2, fontWeight: 700, color: "#ffffff", marginTop: 1 },
-  horario: { fontSize: 5, color: "#e5d4dd", marginTop: 0.5 },
+  texto: { fontSize: 5.2, fontWeight: 700, color: "#ffffff", marginTop: 1, textAlign: "center" },
+  horario: { fontSize: 5, color: "#e5d4dd", marginTop: 0.5, textAlign: "center" },
 });
+
+/** `@react-pdf/renderer` (nesta versão) não suporta `numberOfLines`/truncamento nativo de texto —
+ * um nome comprido simplesmente quebra pra uma 2ª linha, que a altura da caixa (`ALTURA_CAIXA_
+ * ATIVIDADE`) não reserva espaço pra acomodar (ela espera só "nome numa linha + horário"). Em vez de
+ * tentar medir texto manualmente, corta o nome com reticências antes de desenhar — mantém a conta de
+ * altura simples e previsível. `MAX_CARACTERES_NOME` é uma estimativa pro tamanho de coluna típico
+ * (7 dias por página); nomes mais curtos que isso continuam exibidos por inteiro. */
+const MAX_CARACTERES_NOME = 22;
+function truncarNomeAtividade(nome: string): string {
+  return nome.length > MAX_CARACTERES_NOME ? `${nome.slice(0, MAX_CARACTERES_NOME - 1).trimEnd()}…` : nome;
+}
 
 function CelulaAtividades({
   atividades,
@@ -162,14 +219,16 @@ function CelulaAtividades({
                   <View style={jogoStyles.escudoVazio} />
                 )}
               </View>
-              <Text style={jogoStyles.texto}>{atividade.tipoLabel}</Text>
+              <Text style={jogoStyles.texto}>{truncarNomeAtividade(atividade.tipoLabel)}</Text>
               <Text style={jogoStyles.horario}>{atividade.horarioInicio}</Text>
             </View>
           );
         }
         return (
           <View key={atividade.id} style={[styles.atividadeBox, { backgroundColor: atividade.corBg }]}>
-            <Text style={[styles.atividadeNome, { color: atividade.corText }]}>{atividade.nome}</Text>
+            <Text style={[styles.atividadeNome, { color: atividade.corText }]}>
+              {truncarNomeAtividade(atividade.nome)}
+            </Text>
             <Text style={[styles.atividadeHorario, { color: atividade.corText }]}>{atividade.horarioInicio}</Text>
           </View>
         );
@@ -219,7 +278,12 @@ export function ProgramacaoGeralDocument({
                 {cat.manhaVisivel ? (
                   <>
                     <Text style={styles.rotuloTurno}>Manhã</Text>
-                    <View style={styles.linhaTurno}>
+                    <View
+                      style={[
+                        styles.linhaTurno,
+                        { height: alturaLinhaTurno(cat.dias.map((d) => d.atividadesPorTurno.manha.length)) },
+                      ]}
+                    >
                       {cat.dias.map((dia) => (
                         <CelulaAtividades
                           key={dia.data}
@@ -233,7 +297,18 @@ export function ProgramacaoGeralDocument({
                 {cat.tardeVisivel ? (
                   <>
                     <Text style={styles.rotuloTurno}>Tarde</Text>
-                    <View style={styles.linhaTurno}>
+                    <View
+                      style={[
+                        styles.linhaTurno,
+                        {
+                          height: alturaLinhaTurno(
+                            cat.dias.map(
+                              (d) => d.atividadesPorTurno.tarde.length + d.atividadesPorTurno.noite.length,
+                            ),
+                          ),
+                        },
+                      ]}
+                    >
                       {cat.dias.map((dia) => (
                         <CelulaAtividades
                           key={dia.data}

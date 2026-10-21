@@ -61,77 +61,14 @@ export function ConfiguracaoEncarregadoForm({
         </FieldGroup>
       </FormSection>
 
-      <FormSection title="Departamento de Compras">
-        <p className="-mt-2 text-sm text-neutral-500">
-          Assina Solicitações de Compra, Transporte, Passagem Aérea, Exame Médico e Hospedagem.
-        </p>
-        <FieldGroup>
-          <TextField label="Cargo" name="comprasCargo" defaultValue={values.comprasCargo} error={errors.comprasCargo} />
-          <SelectField
-            label="Usuário que assina digitalmente"
-            name="comprasUsuarioId"
-            defaultValue={values.comprasUsuarioId}
-          >
-            <option value="">— Não vincular (qualquer master pode assinar) —</option>
-            {perfis.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.rotulo}
-              </option>
-            ))}
-          </SelectField>
-        </FieldGroup>
-      </FormSection>
-
-      <FormSection title="Departamento Financeiro">
-        <p className="-mt-2 text-sm text-neutral-500">Assina Solicitações de Pagamento e Reembolso.</p>
-        <FieldGroup>
-          <TextField
-            label="Cargo"
-            name="financeiroCargo"
-            defaultValue={values.financeiroCargo}
-            error={errors.financeiroCargo}
-          />
-          <SelectField
-            label="Usuário que assina digitalmente"
-            name="financeiroUsuarioId"
-            defaultValue={values.financeiroUsuarioId}
-          >
-            <option value="">— Não vincular (qualquer master pode assinar) —</option>
-            {perfis.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.rotulo}
-              </option>
-            ))}
-          </SelectField>
-        </FieldGroup>
-      </FormSection>
-
-      <FormSection title="Aprovador">
-        <p className="-mt-2 text-sm text-neutral-500">
-          Assina por último, em qualquer tipo de Solicitação — ao lado do Departamento de Compras ou
-          do Departamento Financeiro, conforme o caso.
-        </p>
-        <FieldGroup>
-          <TextField
-            label="Cargo"
-            name="aprovadorCargo"
-            defaultValue={values.aprovadorCargo}
-            error={errors.aprovadorCargo}
-          />
-          <SelectField
-            label="Usuário que assina digitalmente"
-            name="aprovadorUsuarioId"
-            defaultValue={values.aprovadorUsuarioId}
-          >
-            <option value="">— Não vincular (qualquer master pode assinar) —</option>
-            {perfis.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.rotulo}
-              </option>
-            ))}
-          </SelectField>
-        </FieldGroup>
-      </FormSection>
+      {/* Seções "Departamento de Compras", "Departamento Financeiro" e "Aprovador" removidas a
+          pedido do Mateus em 2026-10-20 — só a UI: os campos `compras_*`/`financeiro_*`/
+          `aprovador_*` continuam existindo em `configuracoes_solicitacoes` e sendo lidos por
+          `papeisAssinaturaSolicitacao`/`podeAssinarPapel` (`lib/assinaturas/config.ts`), que já
+          tratam ausência de valor com os mesmos fallbacks de sempre: rótulo genérico ("Departamento
+          de Compras"/"Departamento Financeiro"/"Aprovador") quando o Cargo está vazio, e "qualquer
+          master pode assinar" quando não há usuário vinculado — exatamente o estado em que esses 3
+          papéis ficam a partir de agora. "Encarregado do Departamento" continua configurável abaixo. */}
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
