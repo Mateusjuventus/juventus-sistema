@@ -25,6 +25,7 @@ function parseRole(formData: FormData): PerfilRole {
   const role = formData.get("role");
   if (role === "master") return "master";
   if (role === "treinador") return "treinador";
+  if (role === "financeiro") return "financeiro";
   return "regular";
 }
 

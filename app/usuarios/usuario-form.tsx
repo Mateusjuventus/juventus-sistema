@@ -84,6 +84,7 @@ export function UsuarioForm({
             <option value="regular">Regular</option>
             <option value="master">Master</option>
             <option value="treinador">Treinador</option>
+            <option value="financeiro">Financeiro</option>
           </SelectField>
         </FieldGroup>
 
@@ -128,6 +129,15 @@ export function UsuarioForm({
                 </label>
               ))}
             </div>
+          </div>
+        ) : role === "financeiro" ? (
+          <div className="border-t border-neutral-100 pt-3">
+            <p className="text-sm text-neutral-500">
+              Papel Financeiro não usa departamentos nem módulos — essa pessoa cai direto na Área
+              Financeira, com os jogos do Futebol Profissional e do Futebol de Base, e o Financeiro
+              de cada um em modo só leitura (gera os PDFs, não lança/edita gasto, não assina nada).
+              Não precisa marcar nada abaixo.
+            </p>
           </div>
         ) : (
         <details className="border-t border-neutral-100 pt-3">

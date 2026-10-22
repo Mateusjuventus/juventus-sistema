@@ -91,6 +91,17 @@ export async function updateSession(request: NextRequest) {
   // (departamentos/módulos, que já saem da tela pra todo mundo — ver a spec).
   const isMinhaConta = request.nextUrl.pathname.startsWith("/minha-conta");
 
+  // Exceção: PDF do Financeiro de um jogo (Orçamento Previsto / Relatório de Despesas) — a Área
+  // Financeira (ver docs/superpowers/specs/2026-10-22-area-financeira-design.md) linka direto pra
+  // essas rotas, que continuam morando em `/jogos/[id]/financeiro/pdf` e
+  // `/jogos/[id]/financeiro/despesas/pdf` (e os equivalentes de `/base/jogos`) — sem isso o
+  // bloqueio do papel "financeiro" logo abaixo also pegaria essas URLs, já que elas não começam
+  // com "/area-financeira". A própria rota só lê dados (é um `route.tsx` que gera o PDF), não
+  // precisa do módulo "Jogos" pra isso.
+  const isPdfFinanceiroJogo = /^\/(base\/)?jogos\/[^/]+\/financeiro\/(pdf|despesas\/pdf)$/.test(
+    request.nextUrl.pathname,
+  );
+
   // Uma leitura só de `perfis` com tudo que os dois blocos abaixo (treinador e departamento/
   // módulo) precisam — antes eram duas queries sequenciais (uma só pra `role`, outra com o resto),
   // uma atrás da outra em toda navegação; juntar num select só corta essa ida a mais ao banco em
@@ -125,6 +136,23 @@ export async function updateSession(request: NextRequest) {
   ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/treinador";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // Financeiro: área própria, isolada do resto do sistema — mesmo padrão do Treinador acima (ver
+  // docs/superpowers/specs/2026-10-22-area-financeira-design.md). Único acesso liberado:
+  // `/area-financeira` (lista de jogos + Financeiro de cada um, só leitura) e os PDFs do Financeiro
+  // de um jogo específico (exceção acima).
+  if (
+    user &&
+    roleDoUsuario === "financeiro" &&
+    !request.nextUrl.pathname.startsWith("/area-financeira") &&
+    !isPdfFinanceiroJogo &&
+    !isMinhaConta
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/area-financeira";
     redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
   }

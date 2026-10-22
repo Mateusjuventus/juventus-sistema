@@ -275,6 +275,21 @@ export async function getFisioterapiaPodeEditarBase(
 }
 
 /**
+ * Se o usuário logado pode ver a Área Financeira (`/area-financeira`) — papel "financeiro" (ver
+ * docs/superpowers/specs/2026-10-22-area-financeira-design.md) ou "master" (que sempre pode
+ * acessar qualquer área do sistema). Qualquer outro papel recebe `false` — as páginas da Área
+ * Financeira usam isto pra decidir se mostram os dados de verdade ou um aviso de acesso negado,
+ * mesmo que a pessoa digite a URL direto (mesmo raciocínio de `getCategoriasTreinador`, que zera
+ * os dados pra quem não é o papel certo em vez de confiar só no middleware).
+ */
+export async function podeVerAreaFinanceira(
+  supabase: ReturnType<typeof createClient>,
+): Promise<boolean> {
+  const role = await getUserRole(supabase);
+  return role === "financeiro" || role === "master";
+}
+
+/**
  * Se o usuário logado aparece no Painel de Demandas do master e ganha o widget "Minhas Demandas"
  * na tela inicial/sidebar — ver docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-
  * design.md, Parte 2. Diferente de `getFisioterapiaPodeEditar`, não existe bypass pra "master" aqui:

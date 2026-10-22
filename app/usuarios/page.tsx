@@ -80,7 +80,13 @@ export default async function UsuariosPage() {
           const categoriasBasePermitidas = perfil.categorias_base_permitidas ?? [];
           const camposSensiveisBloqueados = perfil.campos_sensiveis_bloqueados ?? [];
           const roleLabel =
-            perfil.role === "master" ? "Master" : perfil.role === "treinador" ? "Treinador" : "Regular";
+            perfil.role === "master"
+              ? "Master"
+              : perfil.role === "treinador"
+                ? "Treinador"
+                : perfil.role === "financeiro"
+                  ? "Financeiro"
+                  : "Regular";
           return (
             <div key={perfil.id} className="card space-y-3 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -98,7 +104,9 @@ export default async function UsuariosPage() {
                         ? "bg-dourado/20 text-grena-escuro"
                         : perfil.role === "treinador"
                           ? "bg-emerald-100 text-emerald-700"
-                          : "bg-neutral-200 text-neutral-600"
+                          : perfil.role === "financeiro"
+                            ? "bg-sky-100 text-sky-700"
+                            : "bg-neutral-200 text-neutral-600"
                     }`}
                   >
                     {roleLabel}
@@ -129,6 +137,15 @@ export default async function UsuariosPage() {
                           <input type="hidden" name="role" value="treinador" />
                           <button type="submit" className="btn-secondary btn-sm">
                             Tornar treinador
+                          </button>
+                        </form>
+                      ) : null}
+                      {perfil.role !== "financeiro" ? (
+                        <form action={atualizarPapel}>
+                          <input type="hidden" name="id" value={perfil.id} />
+                          <input type="hidden" name="role" value="financeiro" />
+                          <button type="submit" className="btn-secondary btn-sm">
+                            Tornar financeiro
                           </button>
                         </form>
                       ) : null}
@@ -192,6 +209,11 @@ export default async function UsuariosPage() {
                         action={atualizarVinculoTreinador}
                       />
                     </>
+                  ) : perfil.role === "financeiro" ? (
+                    <p className="text-sm text-neutral-500">
+                      Financeiro não usa departamentos nem módulos — vê os jogos do Profissional e
+                      da Base, com o Financeiro de cada um em modo só leitura.
+                    </p>
                   ) : (
                     <>
                       <PermissaoCheckboxesForm
@@ -305,7 +327,7 @@ export default async function UsuariosPage() {
                     </>
                   )}
 
-                  {perfil.role === "treinador" ? null : (
+                  {perfil.role === "treinador" || perfil.role === "financeiro" ? null : (
                     <PermissaoCheckboxesForm
                       id={perfil.id}
                       fieldName="tarefasCategorias"
@@ -318,7 +340,7 @@ export default async function UsuariosPage() {
                     />
                   )}
 
-                  {perfil.role === "treinador" ? null : (
+                  {perfil.role === "treinador" || perfil.role === "financeiro" ? null : (
                     <PermissaoCheckboxesForm
                       id={perfil.id}
                       fieldName="demandasAcompanhado"

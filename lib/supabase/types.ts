@@ -1494,14 +1494,17 @@ export interface SolicitacaoItemBaseRow {
   created_at: string;
 }
 
-export type PerfilRole = "master" | "regular" | "treinador";
+export type PerfilRole = "master" | "regular" | "treinador" | "financeiro";
 
 /** Papel de cada usuário logado — "master" pode excluir Entrada/Saída do Estoque, acessar a tela
  * de Usuários (/usuarios) e sempre tem acesso a todos os módulos, independente de
  * `modulos_permitidos`; "regular" usa só os módulos liberados pra ele (ver `lib/auth/modulos.ts`);
  * "treinador" não usa nada disso — cai direto em `/treinador` (ver `lib/supabase/middleware.ts`) e
  * só enxerga os candidatos da Captação nas categorias de `categorias_treinador`, pra preencher o
- * Parecer Final (ver docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md). */
+ * Parecer Final (ver docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md);
+ * "financeiro" também não usa nada disso — cai direto em `/area-financeira`, uma área isolada só
+ * com os jogos (Profissional e Base) e o Financeiro de cada um em modo só-leitura (ver
+ * docs/superpowers/specs/2026-10-22-area-financeira-design.md). */
 export interface PerfilRow {
   id: string;
   email: string;
