@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastos Médicos — Base</title>
+<meta name="description" content="Relatório de gastos médicos do Futebol de Base, agosto a outubro de 2026 — Clube Atlético Juventus SAF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f6f1;
+    --surface: #ffffff;
+    --surface-sunken: #eef0e8;
+    --ink: #161a12;
+    --ink-secondary: #52594a;
+    --ink-muted: #8a9080;
+    --border: #dde0d4;
+    --accent: #1f5c3a;
+    --accent-ink: #ffffff;
+    --accent-soft: #e4ede6;
+    --gold: #a97e1f;
+    --gold-soft: #f3ead1;
+    --down: #1f5c3a;
+    --up: #a4442b;
+    --shadow: 0 1px 2px rgba(22, 26, 18, 0.06), 0 8px 24px rgba(22, 26, 18, 0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11140d;
+      --surface: #171b12;
+      --surface-sunken: #1e2317;
+      --ink: #eef1e6;
+      --ink-secondary: #b7bda9;
+      --ink-muted: #7c8370;
+      --border: #2b3122;
+      --accent: #4ea978;
+      --accent-ink: #0b1309;
+      --accent-soft: #1d2c20;
+      --gold: #d4ac4d;
+      --gold-soft: #2c2616;
+      --down: #4ea978;
+      --up: #d97a5c;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11140d;
+    --surface: #171b12;
+    --surface-sunken: #1e2317;
+    --ink: #eef1e6;
+    --ink-secondary: #b7bda9;
+    --ink-muted: #7c8370;
+    --border: #2b3122;
+    --accent: #4ea978;
+    --accent-ink: #0b1309;
+    --accent-soft: #1d2c20;
+    --gold: #d4ac4d;
+    --gold-soft: #2c2616;
+    --down: #4ea978;
+    --up: #d97a5c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    padding: 0 0 64px;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  header.page {
+    background: var(--accent);
+    color: var(--accent-ink);
+    padding: 40px 0 32px;
+    margin-bottom: 32px;
+  }
+  header.page .eyebrow {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    opacity: 0.82;
+    margin: 0 0 10px;
+  }
+  header.page h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    margin: 0 0 8px;
+    text-wrap: balance;
+    letter-spacing: 0.01em;
+  }
+  header.page p.sub {
+    margin: 0;
+    font-size: 1.02rem;
+    opacity: 0.88;
+    max-width: 60ch;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  @media (max-width: 760px) {
+    .cards { grid-template-columns: repeat(2, 1fr); }
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 18px 16px;
+    box-shadow: var(--shadow);
+  }
+  .card .label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-muted);
+    margin: 0 0 8px;
+    font-weight: 600;
+  }
+  .card .value {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.68rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+  }
+  .card .value.gold { color: var(--gold); }
+  .card .note {
+    font-size: 0.78rem;
+    color: var(--ink-secondary);
+    margin: 6px 0 0;
+  }
+
+  section { margin-bottom: 40px; }
+  h2 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin: 0 0 4px;
+    letter-spacing: 0.005em;
+  }
+  .section-sub {
+    color: var(--ink-secondary);
+    font-size: 0.92rem;
+    margin: 0 0 18px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 24px 8px;
+    box-shadow: var(--shadow);
+  }
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 28px;
+    height: 220px;
+    padding: 0 8px;
+  }
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .bar-value {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .bar {
+    width: 64px;
+    border-radius: 6px 6px 3px 3px;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent) 100%);
+    position: relative;
+  }
+  .bar.max { background: linear-gradient(180deg, var(--gold) 0%, var(--gold) 100%); }
+  .bar-label {
+    margin-top: 10px;
+    font-size: 0.86rem;
+    color: var(--ink-secondary);
+    font-weight: 500;
+  }
+  .bar-tag {
+    margin-top: 2px;
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .baseline {
+    border-top: 1px solid var(--border);
+    margin: 4px 0 18px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 0.9rem;
+  }
+  .table-wrap { overflow-x: auto; border-radius: 10px; box-shadow: var(--shadow); }
+  thead th {
+    text-align: left;
+    background: var(--surface-sunken);
+    color: var(--ink-secondary);
+    font-weight: 600;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.month-subtotal td {
+    background: var(--surface-sunken);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pill {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .delta-down { color: var(--down); font-weight: 600; }
+  .delta-up { color: var(--up); font-weight: 600; }
+  .muted { color: var(--ink-muted); }
+
+  .callout {
+    background: var(--gold-soft);
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+  .callout strong { color: var(--gold); }
+
+  footer {
+    color: var(--ink-muted);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <div class="wrap">
+    <p class="eyebrow">Clube Atlético Juventus SAF · Futebol de Base</p>
+    <h1>Relatório de Gastos Médicos</h1>
+    <p class="sub">Categoria "Medico" lançada no Relatório de Despesas dos jogos da Base — agosto a outubro de 2026. Não foram encontrados gastos médicos avulsos (sem jogo vinculado) no período.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="cards">
+    <div class="card">
+      <p class="label">Total gasto (3 meses)</p>
+      <p class="value">R$ 16.850,00</p>
+      <p class="note">32 jogos com atendimento médico</p>
+    </div>
+    <div class="card">
+      <p class="label">Custo mínimo no mês</p>
+      <p class="value">R$ 3.550,00</p>
+      <p class="note">Outubro — 7 jogos</p>
+    </div>
+    <div class="card">
+      <p class="label">Custo médio no mês</p>
+      <p class="value">R$ 5.616,67</p>
+      <p class="note">Média de ago, set e out</p>
+    </div>
+    <div class="card">
+      <p class="label">Custo máximo no mês</p>
+      <p class="value gold">R$ 7.150,00</p>
+      <p class="note">Agosto — 13 jogos</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Gasto médico por mês</h2>
+    <p class="section-sub">Soma do valor efetuado em cada mês.</p>
+    <div class="chart-card">
+      <div class="bars">
+        <div class="bar-col">
+          <div class="bar-value">R$ 7.150</div>
+          <div class="bar max" style="height: 200px;"></div>
+          <div class="bar-label">Agosto</div>
+          <div class="bar-tag">13 jogos</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar-value">R$ 6.150</div>
+          <div class="bar" style="height: 172px;"></div>
+          <div class="bar-label">Setembro</div>
+          <div class="bar-tag">12 jogos</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar-value">R$ 3.550</div>
+          <div class="bar" style="height: 99px;"></div>
+          <div class="bar-label">Outubro</div>
+          <div class="bar-tag">7 jogos</div>
+        </div>
+      </div>
+      <div class="baseline"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Variações entre previsto e efetuado</h2>
+    <p class="section-sub">Em 31 dos 32 jogos o valor efetuado bateu com o previsto (R$ 550,00, ou R$ 250,00/R$ 400,00 quando lançado menor). Só 3 jogos, todos em setembro, tiveram diferença:</p>
+    <div class="callout">
+      <strong>09/09 · Sub-17 x Água Santa (casa):</strong> previsto R$ 550,00, efetuado R$ 400,00 (economia de R$ 150,00)<br>
+      <strong>05/09 · Sub-12 x Prata da casa (casa):</strong> previsto R$ 550,00, efetuado R$ 400,00 (economia de R$ 150,00)<br>
+      <strong>12/09 · Sub-20 x Jabaquara (casa):</strong> previsto R$ 400,00, efetuado R$ 550,00 (excedeu R$ 150,00)<br>
+      <span class="muted">Saldo líquido do mês: economia de R$ 150,00 frente ao previsto.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Todos os jogos com gasto médico</h2>
+    <p class="section-sub">32 lançamentos, agosto–outubro de 2026, com subtotal por mês.</p>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Categoria</th>
+          <th>Adversário</th>
+          <th>Local</th>
+          <th class="num">Previsto</th>
+          <th class="num">Efetuado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>01/08</td><td><span class="pill">Sub-17</span></td><td>Barcelona Esportivo</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>02/08</td><td><span class="pill">Sub-14</span></td><td>SC Corinthians</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>02/08</td><td><span class="pill">Sub-20</span></td><td>Santos</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>06/08</td><td><span class="pill">Sub-20</span></td><td>Portuguesa SAF</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>08/08</td><td><span class="pill">Sub-12</span></td><td>AA Flamengo</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>08/08</td><td><span class="pill">Sub-17</span></td><td>Ibrachina</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>14/08</td><td><span class="pill">Sub-20</span></td><td>Ponte Preta</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>15/08</td><td><span class="pill">Sub-17</span></td><td>Mirassol</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>15/08</td><td><span class="pill">Sub-14</span></td><td>GO Audax</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>21/08</td><td><span class="pill">Sub-20</span></td><td>SC Corinthians</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>22/08</td><td><span class="pill">Sub-12</span></td><td>AD Guarulhos</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>29/08</td><td><span class="pill">Sub-17</span></td><td>Grêmio Novorizontino</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>30/08</td><td><span class="pill">Sub-14</span></td><td>São Caetano</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr class="month-subtotal"><td colspan="4">Subtotal agosto</td><td class="num">7.150,00</td><td class="num">7.150,00</td></tr>
+
+        <tr><td>04/09</td><td><span class="pill">Sub-20</span></td><td>Itapirense</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>05/09</td><td><span class="pill">Sub-17</span></td><td>Água Santa</td><td>Casa</td><td class="num">550,00</td><td class="num delta-down">400,00</td></tr>
+        <tr><td>05/09</td><td><span class="pill">Sub-12</span></td><td>Prata da casa</td><td>Casa</td><td class="num">550,00</td><td class="num delta-down">400,00</td></tr>
+        <tr><td>12/09</td><td><span class="pill">Sub-20</span></td><td>Jabaquara</td><td>Casa</td><td class="num">400,00</td><td class="num delta-up">550,00</td></tr>
+        <tr><td>12/09</td><td><span class="pill">Sub-17</span></td><td>Água Santa</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>13/09</td><td><span class="pill">Sub-14</span></td><td>Prata da casa</td><td>Fora</td><td class="num">400,00</td><td class="num">400,00</td></tr>
+        <tr><td>19/09</td><td><span class="pill">Sub-12</span></td><td>Palmeiras</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>19/09</td><td><span class="pill">Sub-17</span></td><td>Grêmio Novorizontino</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>23/09</td><td><span class="pill">Sub-20</span></td><td>Grêmio Prudente</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>26/09</td><td><span class="pill">Sub-17</span></td><td>Mirassol</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>26/09</td><td><span class="pill">Sub-11</span></td><td>Taquaritinga</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>29/09</td><td><span class="pill">Sub-20</span></td><td>Grêmio Prudente</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr class="month-subtotal"><td colspan="4">Subtotal setembro</td><td class="num">6.300,00</td><td class="num">6.150,00</td></tr>
+
+        <tr><td>03/10</td><td><span class="pill">Sub-17</span></td><td>Grêmio Novorizontino</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>09/10</td><td><span class="pill">Sub-20</span></td><td>Santo André</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>10/10</td><td><span class="pill">Sub-11</span></td><td>Taquaritinga</td><td>Fora</td><td class="num">250,00</td><td class="num">250,00</td></tr>
+        <tr><td>10/10</td><td><span class="pill">Sub-17</span></td><td>Grêmio Novorizontino</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>17/10</td><td><span class="pill">Sub-11</span></td><td>Santos</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>17/10</td><td><span class="pill">Sub-20</span></td><td>Santo André</td><td>Casa</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr><td>27/10</td><td><span class="pill">Sub-17</span></td><td>RedBull Bragantino</td><td>Fora</td><td class="num">550,00</td><td class="num">550,00</td></tr>
+        <tr class="month-subtotal"><td colspan="4">Subtotal outubro</td><td class="num">3.550,00</td><td class="num">3.550,00</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <footer>
+    Gerado a partir dos lançamentos de categoria "Medico" em Gastos do Jogo (Base) e Despesas Avulsas (Base), consultados em 22/10/2026. Nenhuma despesa avulsa (sem jogo) nessa categoria foi encontrada no período.
+  </footer>
+
+</div>
+</body>
+</html>
