@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { AtletaTabsBase } from "@/components/atleta-tabs-base";
@@ -42,6 +43,49 @@ function formatData(data: string | null): string {
   if (!data) return "—";
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
+}
+
+interface EnderecoEstruturado {
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+}
+
+function enderecoVazio(e: EnderecoEstruturado): boolean {
+  return !e.logradouro && !e.numero && !e.complemento && !e.bairro && !e.cidade && !e.uf && !e.cep;
+}
+
+/** Compara campo a campo (vazio e null contam como iguais) — usado pra não repetir o endereço de
+ * origem na tela quando é idêntico ao atual (pedido do Mateus em 2026-10-22: "quando o endereço de
+ * origem for o mesmo atual, deixar que fique aparecendo somente 1"). */
+function enderecosIguais(a: EnderecoEstruturado, b: EnderecoEstruturado): boolean {
+  return (
+    (a.logradouro ?? "") === (b.logradouro ?? "") &&
+    (a.numero ?? "") === (b.numero ?? "") &&
+    (a.complemento ?? "") === (b.complemento ?? "") &&
+    (a.bairro ?? "") === (b.bairro ?? "") &&
+    (a.cidade ?? "") === (b.cidade ?? "") &&
+    (a.uf ?? "") === (b.uf ?? "") &&
+    (a.cep ?? "") === (b.cep ?? "")
+  );
+}
+
+/** Caixinha com borda pra separar visualmente sub-blocos dentro do mesmo card (ex.: Atual/Origem
+ * dentro de "Endereço") — antes era só um texto pequeno acima do grupo de campos, o que o Mateus
+ * achou confuso ("fica meio que tudo junto"). */
+function BlocoDetalhe({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <div className="rounded-lg border border-neutral-200 p-4">
+      <p className="mb-3 inline-block rounded-full bg-grena/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-grena-escuro">
+        {titulo}
+      </p>
+      <FieldGroup>{children}</FieldGroup>
+    </div>
+  );
 }
 
 /** Atleta criado pela inclusão rápida do Campograma (ver docs/superpowers/specs/
@@ -161,9 +205,8 @@ export default async function VerAtletaBasePage({
         </FormSection>
 
         <FormSection title="Endereço">
-          <div>
-            <p className="field-label">Atual</p>
-            <FieldGroup>
+          <div className="space-y-4">
+            <BlocoDetalhe titulo="Atual">
               {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
                   formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
                   de cadastros antigos que só têm esse texto livre preenchido (ver
@@ -181,51 +224,64 @@ export default async function VerAtletaBasePage({
               <DetailField label="Cidade" value={atleta.cidade} />
               <DetailField label="UF" value={atleta.uf} />
               <DetailField label="CEP" value={atleta.cep} />
-            </FieldGroup>
-          </div>
+            </BlocoDetalhe>
 
-          <div className="mt-4">
-            <p className="field-label">Origem</p>
-            <FieldGroup>
-              <DetailField label="Logradouro" value={atleta.origem_logradouro} />
-              <DetailField label="Número" value={atleta.origem_numero} />
-              <DetailField label="Complemento" value={atleta.origem_complemento} />
-              <DetailField label="Bairro" value={atleta.origem_bairro} />
-              <DetailField label="Cidade" value={atleta.origem_cidade} />
-              <DetailField label="UF" value={atleta.origem_uf} />
-              <DetailField label="CEP" value={atleta.origem_cep} />
-            </FieldGroup>
+            {!enderecoVazio(atleta) &&
+            enderecosIguais(atleta, {
+              logradouro: atleta.origem_logradouro,
+              numero: atleta.origem_numero,
+              complemento: atleta.origem_complemento,
+              bairro: atleta.origem_bairro,
+              cidade: atleta.origem_cidade,
+              uf: atleta.origem_uf,
+              cep: atleta.origem_cep,
+            }) ? (
+              <p className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+                O endereço de origem é o mesmo do atual.
+              </p>
+            ) : (
+              <BlocoDetalhe titulo="Origem">
+                <DetailField label="Logradouro" value={atleta.origem_logradouro} />
+                <DetailField label="Número" value={atleta.origem_numero} />
+                <DetailField label="Complemento" value={atleta.origem_complemento} />
+                <DetailField label="Bairro" value={atleta.origem_bairro} />
+                <DetailField label="Cidade" value={atleta.origem_cidade} />
+                <DetailField label="UF" value={atleta.origem_uf} />
+                <DetailField label="CEP" value={atleta.origem_cep} />
+              </BlocoDetalhe>
+            )}
           </div>
         </FormSection>
 
         <FormSection title="Responsáveis e contato de emergência">
-          <div>
-            <p className="field-label">Responsáveis</p>
-            <FieldGroup>
+          <div className="space-y-4">
+            <BlocoDetalhe titulo="Responsáveis">
               <DetailField label="Nome da mãe" value={atleta.mae_nome} />
               <DetailField label="Telefone da mãe" value={atleta.mae_telefone} />
               <DetailField label="Email da mãe" value={atleta.email_mae} />
               <DetailField label="Nome do pai" value={atleta.pai_nome} />
               <DetailField label="Telefone do pai" value={atleta.pai_telefone} />
               <DetailField label="Email do pai" value={atleta.email_pai} />
-            </FieldGroup>
-          </div>
+            </BlocoDetalhe>
 
-          <div className="mt-4">
-            <p className="field-label">Em caso de emergência, avisar</p>
-            {contatos.length > 0 ? (
-              <div className="mt-2 space-y-2">
-                {contatos.map((contato) => (
-                  <div key={contato.id} className="flex flex-wrap gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm">
-                    <span className="min-w-[160px] flex-1 font-medium text-neutral-800">{contato.nome}</span>
-                    <span className="text-neutral-500">{contato.parentesco || "—"}</span>
-                    <span className="text-neutral-500">{contato.contato || "—"}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-neutral-400">Nenhum contato de emergência cadastrado ainda.</p>
-            )}
+            <div className="rounded-lg border border-neutral-200 p-4">
+              <p className="mb-3 inline-block rounded-full bg-grena/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-grena-escuro">
+                Em caso de emergência, avisar
+              </p>
+              {contatos.length > 0 ? (
+                <div className="space-y-2">
+                  {contatos.map((contato) => (
+                    <div key={contato.id} className="flex flex-wrap gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm">
+                      <span className="min-w-[160px] flex-1 font-medium text-neutral-800">{contato.nome}</span>
+                      <span className="text-neutral-500">{contato.parentesco || "—"}</span>
+                      <span className="text-neutral-500">{contato.contato || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-400">Nenhum contato de emergência cadastrado ainda.</p>
+              )}
+            </div>
           </div>
         </FormSection>
 
