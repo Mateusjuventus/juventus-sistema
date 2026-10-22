@@ -6,6 +6,7 @@ import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
+import { formatTelefone } from "@/lib/validation/telefone";
 import type { ComissaoTecnicaRow, ConfiguracaoCadastroComissaoTecnicaRow } from "@/lib/supabase/types";
 import { deleteComissao } from "./actions";
 import { alternarCadastroPublicoComissaoTecnica } from "./cadastro-publico-actions";
@@ -88,7 +89,7 @@ export default async function ComissaoTecnicaPage({
                 <td className="px-4 py-3 font-medium text-neutral-800">{p.nome_completo}</td>
                 <td className="px-4 py-3">{p.funcao}</td>
                 <td className="px-4 py-3">{formatCPF(p.cpf)}</td>
-                <td className="px-4 py-3">{p.telefone ?? "—"}</td>
+                <td className="px-4 py-3">{p.telefone ? formatTelefone(p.telefone) : "—"}</td>
                 <td className="px-4 py-3">{p.email ?? "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { SearchBar } from "@/components/search-bar";
 import { cidadeUf, estruturaDoHotel, formatDiaria } from "@/lib/futebol/hotel";
+import { formatTelefone } from "@/lib/validation/telefone";
 import { createClient } from "@/lib/supabase/server";
 import type { HotelRow } from "@/lib/supabase/types";
 import { HotelAtivoButton } from "./hotel-ativo-button";
@@ -117,7 +118,10 @@ function CartaoHotel({ hotel, opaco }: { hotel: HotelRow; opaco?: boolean }) {
         {hotel.telefone || hotel.whatsapp ? (
           <div>
             <span className="text-neutral-400">Telefone: </span>
-            {[hotel.telefone, hotel.whatsapp].filter(Boolean).join(" · ")}
+            {[hotel.telefone, hotel.whatsapp]
+              .filter(Boolean)
+              .map((tel) => formatTelefone(tel as string))
+              .join(" · ")}
           </div>
         ) : null}
         {hotel.email ? (

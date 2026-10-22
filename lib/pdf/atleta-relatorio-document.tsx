@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { formatTelefone } from "@/lib/validation/telefone";
 
 /**
  * Relatório do atleta em PDF — cabeçalho (foto, nome, posição, número) + o conteúdo da aba "Dados
@@ -159,7 +160,10 @@ export function AtletaRelatorioDocument({
               <DadoItem label="RG" valor={dadosPessoais.rg} />
               <DadoItem label="CPF" valor={dadosPessoais.cpf} />
               <DadoItem label="Data de nascimento" valor={formatDataBr(dadosPessoais.dataNascimento)} />
-              <DadoItem label="Telefone" valor={dadosPessoais.telefone} />
+              <DadoItem
+                label="Telefone"
+                valor={dadosPessoais.telefone ? formatTelefone(dadosPessoais.telefone) : dadosPessoais.telefone}
+              />
               <DadoItem label="Naturalidade" valor={dadosPessoais.naturalidade} />
               <DadoItem label="Tipo de contrato" valor={dadosPessoais.tipoContrato} />
               <DadoItem label="Início no clube" valor={formatDataBr(dadosPessoais.dataInicioClube)} />

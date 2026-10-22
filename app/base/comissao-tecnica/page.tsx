@@ -6,6 +6,7 @@ import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
+import { formatTelefone } from "@/lib/validation/telefone";
 import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { ComissaoTecnicaBaseTabs } from "@/components/comissao-tecnica-base-tabs";
 import type { ComissaoTecnicaBaseRow, ConfiguracaoCadastroComissaoTecnicaBaseRow } from "@/lib/supabase/types";
@@ -125,7 +126,7 @@ export default async function ComissaoTecnicaBasePage({
                 <td className="px-4 py-3">{p.funcao}</td>
                 <td className="px-4 py-3">{p.categorias.map(categoriaBaseLabel).join(" · ")}</td>
                 <td className="px-4 py-3">{formatCPF(p.cpf)}</td>
-                <td className="px-4 py-3">{p.telefone ?? "—"}</td>
+                <td className="px-4 py-3">{p.telefone ? formatTelefone(p.telefone) : "—"}</td>
                 <td className="px-4 py-3">{p.email ?? "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">

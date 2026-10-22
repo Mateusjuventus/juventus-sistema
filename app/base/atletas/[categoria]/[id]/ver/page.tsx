@@ -10,6 +10,8 @@ import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
+import { formatTelefone } from "@/lib/validation/telefone";
+import { formatCEP } from "@/lib/validation/cep";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { ContratoSecao } from "@/components/contrato-secao";
@@ -192,7 +194,7 @@ export default async function VerAtletaBasePage({
             <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
             <DetailField label="Naturalidade" value={atleta.cidade_natal} />
             <DetailField label="UF natal" value={atleta.uf_natal} />
-            <DetailField label="Telefone" value={atleta.telefone} />
+            <DetailField label="Telefone" value={atleta.telefone ? formatTelefone(atleta.telefone) : null} />
             <DetailField label="Email" value={atleta.email} />
             <DetailField
               label="Possui alergia a algum medicamento"
@@ -223,7 +225,7 @@ export default async function VerAtletaBasePage({
               <DetailField label="Bairro" value={atleta.bairro} />
               <DetailField label="Cidade" value={atleta.cidade} />
               <DetailField label="UF" value={atleta.uf} />
-              <DetailField label="CEP" value={atleta.cep} />
+              <DetailField label="CEP" value={atleta.cep ? formatCEP(atleta.cep) : null} />
             </BlocoDetalhe>
 
             {!enderecoVazio(atleta) &&
@@ -247,7 +249,7 @@ export default async function VerAtletaBasePage({
                 <DetailField label="Bairro" value={atleta.origem_bairro} />
                 <DetailField label="Cidade" value={atleta.origem_cidade} />
                 <DetailField label="UF" value={atleta.origem_uf} />
-                <DetailField label="CEP" value={atleta.origem_cep} />
+                <DetailField label="CEP" value={atleta.origem_cep ? formatCEP(atleta.origem_cep) : null} />
               </BlocoDetalhe>
             )}
           </div>
@@ -257,10 +259,10 @@ export default async function VerAtletaBasePage({
           <div className="space-y-4">
             <BlocoDetalhe titulo="Responsáveis">
               <DetailField label="Nome da mãe" value={atleta.mae_nome} />
-              <DetailField label="Telefone da mãe" value={atleta.mae_telefone} />
+              <DetailField label="Telefone da mãe" value={atleta.mae_telefone ? formatTelefone(atleta.mae_telefone) : null} />
               <DetailField label="Email da mãe" value={atleta.email_mae} />
               <DetailField label="Nome do pai" value={atleta.pai_nome} />
-              <DetailField label="Telefone do pai" value={atleta.pai_telefone} />
+              <DetailField label="Telefone do pai" value={atleta.pai_telefone ? formatTelefone(atleta.pai_telefone) : null} />
               <DetailField label="Email do pai" value={atleta.email_pai} />
             </BlocoDetalhe>
 
@@ -298,7 +300,7 @@ export default async function VerAtletaBasePage({
             <DetailField label="Status" value={STATUS_LABEL[atleta.status]} />
             <DetailField label="Data de início no clube" value={formatData(atleta.data_inicio_clube)} />
             <DetailField label="Empresário/representante" value={atleta.empresario_nome} />
-            <DetailField label="Telefone do empresário" value={atleta.empresario_telefone} />
+            <DetailField label="Telefone do empresário" value={atleta.empresario_telefone ? formatTelefone(atleta.empresario_telefone) : null} />
             <DetailField label="Email do empresário" value={atleta.empresario_email} />
             <DetailField label="Tamanho do uniforme" value={atleta.tamanho_uniforme} />
             <DetailField label="Agência" value={atleta.agencia} />

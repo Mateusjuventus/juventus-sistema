@@ -2,6 +2,8 @@ import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
+import { formatTelefone } from "@/lib/validation/telefone";
+import { formatCEP } from "@/lib/validation/cep";
 import { STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import type { StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 
@@ -46,9 +48,9 @@ export async function GET(request: NextRequest) {
     CPF: formatCPF(s.cpf),
     "Data de nascimento": formatData(s.data_nascimento),
     "Função/setor": s.funcao?.nome ?? "",
-    Telefone: s.telefone ?? "",
+    Telefone: s.telefone ? formatTelefone(s.telefone) : "",
     "E-mail": s.email ?? "",
-    CEP: s.cep ?? "",
+    CEP: s.cep ? formatCEP(s.cep) : "",
     "Rua/logradouro": s.logradouro ?? "",
     Número: s.numero ?? "",
     Complemento: s.complemento ?? "",

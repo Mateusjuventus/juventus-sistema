@@ -1,6 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { formatCPF } from "@/lib/validation/cpf";
+import { formatTelefone } from "@/lib/validation/telefone";
 import { CORES, DepartamentoEyebrow, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
 import type { RelacaoAtletasGrupo } from "@/lib/futebol/relacao-atletas-base";
 import type { CategoriaBase } from "@/lib/auth/categorias-base";
@@ -163,7 +164,7 @@ const COLUNAS_DISPONIVEIS: ColunaDef[] = [
   { chave: "nascimento", label: "Nascimento", valor: (a) => formatDataBr(a.dataNascimento) },
   { chave: "cpf", label: "CPF", valor: (a) => (a.cpf ? formatCPF(a.cpf) : "—") },
   { chave: "rg", label: "RG", valor: (a) => a.rg ?? "—" },
-  { chave: "telefone", label: "Telefone", valor: (a) => a.telefone ?? "—" },
+  { chave: "telefone", label: "Telefone", valor: (a) => (a.telefone ? formatTelefone(a.telefone) : "—") },
   { chave: "posicao", label: "Posição", valor: (a) => a.posicao ?? "—" },
   { chave: "numeroCamisa", label: "Nº Camisa", valor: (a) => (a.numeroCamisa != null ? String(a.numeroCamisa) : "—") },
   { chave: "numeroRegistro", label: "Nº CBF/FPF", valor: (a) => a.numeroRegistro ?? "—" },

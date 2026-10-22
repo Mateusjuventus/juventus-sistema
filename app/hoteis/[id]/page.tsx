@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { cidadeUf, enderecoCompleto, estruturaDoHotel, formatDiaria } from "@/lib/futebol/hotel";
+import { formatTelefone } from "@/lib/validation/telefone";
 import type { HotelRow } from "@/lib/supabase/types";
 import { excluirHotel } from "../actions";
 
@@ -48,8 +49,8 @@ export default async function HotelDetalhePage({ params }: { params: { id: strin
           <dl className="mt-3 space-y-2 text-sm">
             <Linha rotulo="Endereço" valor={endereco || null} />
             <Linha rotulo="CNPJ" valor={hotel.cnpj} />
-            <Linha rotulo="Telefone" valor={hotel.telefone} />
-            <Linha rotulo="WhatsApp" valor={hotel.whatsapp} />
+            <Linha rotulo="Telefone" valor={hotel.telefone ? formatTelefone(hotel.telefone) : null} />
+            <Linha rotulo="WhatsApp" valor={hotel.whatsapp ? formatTelefone(hotel.whatsapp) : null} />
             <Linha rotulo="E-mail" valor={hotel.email} />
             <Linha rotulo="Site" valor={hotel.site} />
           </dl>
@@ -82,7 +83,7 @@ export default async function HotelDetalhePage({ params }: { params: { id: strin
             <dl className="mt-3 space-y-2 text-sm">
               <Linha rotulo="Nome" valor={hotel.contato_nome} />
               <Linha rotulo="Função" valor={hotel.contato_funcao} />
-              <Linha rotulo="Telefone" valor={hotel.contato_telefone} />
+              <Linha rotulo="Telefone" valor={hotel.contato_telefone ? formatTelefone(hotel.contato_telefone) : null} />
               <Linha rotulo="E-mail" valor={hotel.contato_email} />
             </dl>
           </section>

@@ -3,6 +3,8 @@
  * pra poder testar direto (lib/futebol/hotel.test.ts).
  */
 
+import { formatCEP } from "@/lib/validation/cep";
+
 export interface HotelEndereco {
   logradouro?: string | null;
   numero?: string | null;
@@ -26,7 +28,7 @@ export function enderecoCompleto(hotel: HotelEndereco): string {
   const rua = [limpo(hotel.logradouro), limpo(hotel.numero)].filter(Boolean).join(", ");
   const ruaComComplemento = [rua, limpo(hotel.complemento)].filter(Boolean).join(" — ");
   const cidadeUfTexto = cidadeUf(hotel);
-  const cep = limpo(hotel.cep) ? `CEP ${limpo(hotel.cep)}` : "";
+  const cep = limpo(hotel.cep) ? `CEP ${formatCEP(limpo(hotel.cep))}` : "";
 
   return [ruaComComplemento, limpo(hotel.bairro), cidadeUfTexto, cep].filter(Boolean).join(", ");
 }

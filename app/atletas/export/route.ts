@@ -2,6 +2,7 @@ import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
+import { formatTelefone } from "@/lib/validation/telefone";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import {
   atletaPassaFiltro,
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
         "Número CBF": a.numero_cbf ?? "",
         "Número FPF": a.numero_fpf ?? "",
         "Pé dominante": a.pe_dominante ? PE_LABEL[a.pe_dominante] ?? a.pe_dominante : "",
-        Telefone: a.telefone ?? "",
+        Telefone: a.telefone ? formatTelefone(a.telefone) : "",
         Naturalidade: a.cidade_natal ?? "",
         "UF natal": a.uf_natal ?? "",
         "Endereço atual": a.endereco_atual ?? "",

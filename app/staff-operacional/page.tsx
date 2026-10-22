@@ -7,6 +7,7 @@ import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
+import { formatTelefone } from "@/lib/validation/telefone";
 import type {
   ConfiguracaoCadastroStaffRow,
   StaffFuncaoCatalogoRow,
@@ -53,7 +54,7 @@ function StaffRow({
         )}
       </td>
       <td className="px-4 py-3">{formatCPF(s.cpf)}</td>
-      <td className="px-4 py-3">{s.telefone ?? "—"}</td>
+      <td className="px-4 py-3">{s.telefone ? formatTelefone(s.telefone) : "—"}</td>
       <td className="px-4 py-3">{s.chave_pix ?? "—"}</td>
       <td className="px-4 py-3">{formatMoeda(s.valor_padrao_pagamento)}</td>
       <td className="px-4 py-3">
