@@ -5,6 +5,8 @@ import { AppShell } from "@/components/app-shell";
 import { AtletaTabsBase } from "@/components/atleta-tabs-base";
 import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
+import { GerarFichaAtletaButton } from "@/components/atletas/gerar-ficha-atleta-button";
+import { CAMPOS_FICHA_ATLETA_BASE } from "@/lib/futebol/ficha-atleta";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
@@ -174,6 +176,10 @@ export default async function VerAtletaBasePage({
               Relatório de dispensa gerado — dispensado em {formatData(atleta.dispensa_data)}
             </span>
           ) : null}
+          <GerarFichaAtletaButton
+            pdfHrefBase={`/base/atletas/${params.categoria}/${atleta.id}/ficha/pdf`}
+            campos={CAMPOS_FICHA_ATLETA_BASE}
+          />
           <Link href={`/base/atletas/${params.categoria}/${atleta.id}/dispensa`} className="btn-secondary">
             {atleta.dispensa_data ? "Ver/editar relatório de dispensa" : "Gerar relatório de dispensa"}
           </Link>

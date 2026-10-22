@@ -4,6 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import { AtletaTabs } from "@/components/atleta-tabs";
 import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
+import { GerarFichaAtletaButton } from "@/components/atletas/gerar-ficha-atleta-button";
+import { CAMPOS_FICHA_ATLETA_PROFISSIONAL } from "@/lib/futebol/ficha-atleta";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
@@ -118,7 +120,15 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
         fotoUrl={fotoUrl}
         editarHref={`/atletas/${atleta.id}`}
         ativo={atleta.ativo}
-        acoesExtra={<AtletaAtivoButton action={alternarAtletaAtivo} id={atleta.id} ativo={atleta.ativo} />}
+        acoesExtra={
+          <>
+            <GerarFichaAtletaButton
+              pdfHrefBase={`/atletas/${atleta.id}/ficha/pdf`}
+              campos={CAMPOS_FICHA_ATLETA_PROFISSIONAL}
+            />
+            <AtletaAtivoButton action={alternarAtletaAtivo} id={atleta.id} ativo={atleta.ativo} />
+          </>
+        }
       />
 
       <div className="mt-6 space-y-6">
