@@ -200,6 +200,106 @@ describe("converterMinutoPdfParaRelativo", () => {
   it("não deixa dar negativo se o minuto vier estranho", () => {
     expect(converterMinutoPdfParaRelativo(40, "segundo", 45)).toBe(0);
   });
+
+  it("converte o relógio corrido do 3º tempo, descontando os dois tempos anteriores", () => {
+    // Sub-11/12: 17min por tempo — "40:00 3T" (relógio corrido) -> 40 - 17 - 17 = 6º minuto do 3º.
+    expect(converterMinutoPdfParaRelativo(40, "terceiro", 17, 17)).toBe(6);
+  });
+
+  it("3º tempo sem duração do 2º informada cai de volta pra assumir igual ao 1º (compatibilidade)", () => {
+    expect(converterMinutoPdfParaRelativo(100, "terceiro", 45)).toBe(10);
+  });
+});
+
+describe("parsearSumulaPdf — jogo de 3 tempos (Sub-11/12/13/14, ver docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md)", () => {
+  // Texto montado no mesmo estilo do TEXTO_EXEMPLO acima (seções confirmadas + 3º tempo
+  // acrescentado seguindo o mesmo padrão), representando a súmula do jogo que motivou este ajuste:
+  // reconhecimento ficava travado em "1T"/"2T" e ignorava tudo que acontecia no 3º tempo.
+  const TEXTO_3_TEMPOS = `
+Campeonato: Campeonato Paulista Sub-11 e Sub-12 - 2026
+Rodada: 02
+Data: 18/10/2026
+
+Gols
+Juventus SAF 1 Giovanni Martinez Montanari - (Giovanni) NR 10:00 1T
+Juventus SAF 1 Giovanni Martinez Montanari - (Giovanni) NR 05:00 3T
+
+Substituições
+Juventus SAF 8 Matheus Garcia da Silva 13 Gabriel Azevedo Sousa 10:00 3T
+
+Advertências
+Palmeiras 23 Miguel Otavio dos Santos Rocha 12:00 3T
+
+1º Tempo 2º Tempo 3º Tempo
+Início 1º Tempo: 14:30 Atraso: Não Houve Início 2º Tempo: 14:52 Atraso: Não Houve Início 3º Tempo: 15:14 Atraso: Não Houve
+Término 1º Tempo: 14:47 Acrésc: 0 min Término 2º Tempo: 15:09 Acrésc: 0 min Término 3º Tempo: 15:31 Acrésc: 2 min
+Resultado do 1º Tempo: 1 X 0 Resultado do 2º Tempo: 3 X 0 Resultado do 3º Tempo: 4 X 1
+Resultado Pênalti: 12 X 13
+Motivo de atraso no início e/ou reinício, e de acréscimos
+Não houve acréscimos
+`;
+  const resultado = parsearSumulaPdf(TEXTO_3_TEMPOS, { tempo1: 17, tempo2: 17, tempo3: 17 });
+
+  it("extrai gol, substituição e cartão lançados no 3º tempo (antes, essas linhas eram simplesmente ignoradas)", () => {
+    const golTerceiro = resultado.gols.find((g) => g.tempo === "terceiro");
+    expect(resultado.gols).toHaveLength(2);
+    expect(golTerceiro?.minuto).toBe(5);
+
+    expect(resultado.substituicoes).toHaveLength(1);
+    expect(resultado.substituicoes[0].tempo).toBe("terceiro");
+
+    expect(resultado.cartoes).toHaveLength(1);
+    expect(resultado.cartoes[0].tempo).toBe("terceiro");
+  });
+
+  it("extrai o placar final cumulativo (do 3º tempo), não o parcial de um tempo anterior", () => {
+    expect(resultado.placarMandante).toBe(4);
+    expect(resultado.placarVisitante).toBe(1);
+  });
+
+  it("extrai o acréscimo do 3º tempo separado dos outros dois", () => {
+    expect(resultado.acrescimoPrimeiroTempo).toBe(0);
+    expect(resultado.acrescimoSegundoTempo).toBe(0);
+    expect(resultado.acrescimoTerceiroTempo).toBe(2);
+  });
+
+  it("extrai o placar da disputa de pênaltis, separado do placar normal", () => {
+    expect(resultado.penaltisMandante).toBe(12);
+    expect(resultado.penaltisVisitante).toBe(13);
+  });
+
+  it("não confunde a linha de pênaltis com mais uma ocorrência do placar normal", () => {
+    // "Resultado Pênalti: 12 X 13" não tem nenhum indicador de "Nº Tempo" — não pode sobrescrever
+    // o placarMandante/Visitante já lido do "Resultado do 3º Tempo".
+    expect(resultado.placarMandante).not.toBe(12);
+    expect(resultado.placarVisitante).not.toBe(13);
+  });
+});
+
+describe("parsearSumulaPdf — jogo sem disputa de pênaltis", () => {
+  it("penaltisMandante/Visitante ficam null quando a súmula não traz esse campo", () => {
+    const r = parsearSumulaPdf(TEXTO_EXEMPLO);
+    expect(r.penaltisMandante).toBeNull();
+    expect(r.penaltisVisitante).toBeNull();
+  });
+});
+
+describe("parsearSumulaPdf — '+N' de acréscimo no 3º tempo respeita a duração real da competição", () => {
+  it("usa tempo1+tempo2+tempo3 (não 135 fixo) como base do acréscimo do 3º tempo, pra competições de tempos curtos", () => {
+    // Sub-11/12: tempos de 17min — um evento "+1 3T" (acréscimo do 3º tempo) deve cair no minuto
+    // 17+17+17+1=52 do relógio corrido, nunca no "135+N" fixo do padrão profissional (45min).
+    const r = parsearSumulaPdf(
+      "Juventus SAF 1 Giovanni Martinez Montanari - (Giovanni) NR +1 3T\n",
+      { tempo1: 17, tempo2: 17, tempo3: 17 },
+    );
+    expect(r.gols).toHaveLength(1);
+    expect(r.gols[0].minuto).toBe(52);
+  });
+
+  it("sem duração informada, continua assumindo 45min por tempo (comportamento de antes, sem regressão)", () => {
+    const r = parsearSumulaPdf("Juventus SAF 1 Giovanni Martinez Montanari - (Giovanni) NR +1 3T\n");
+    expect(r.gols[0].minuto).toBe(136); // 45 + 45 + 45 + 1
+  });
 });
 
 describe("parsearSumulaPdf — tabela de Expulsões no layout 'Tempo Sigla Nº Nome Equipe'", () => {

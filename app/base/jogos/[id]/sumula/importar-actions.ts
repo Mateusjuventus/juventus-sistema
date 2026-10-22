@@ -11,13 +11,19 @@ import {
   type SumulaPdfEventoTipoGol,
 } from "@/lib/fpf/sumula-pdf";
 import { sugerirAtleta, type AtletaParaMatch } from "@/lib/fpf/atleta-match";
-import type { AtletaBaseRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
+import type { AtletaBaseRow, CompeticaoBaseRow, CompeticaoJogoBaseRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
 
 /**
  * Espelha app/jogos/[id]/sumula/importar-actions.ts (Profissional) para o Futebol de Base — ver
  * docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md. A leitura/parsing do PDF
  * (lib/fpf/sumula-pdf.ts) e a sugestão de vínculo de atleta (lib/fpf/atleta-match.ts) são
  * genéricas e reaproveitadas sem alteração — só as tabelas-fonte mudam (_base).
+ *
+ * Suporte a 3º tempo e a pênaltis (ver docs/superpowers/specs/2026-10-21-competicoes-formato-
+ * partida-design.md): a busca do formato de partida (vínculo com `competicoes_base`) espelha
+ * exatamente a mesma consulta de app/base/jogos/[id]/sumula/page.tsx — se um dia os dois
+ * precisarem de mais lógica em comum vale extrair um helper, mas por enquanto é só essas duas
+ * queries, então mantemos cada arquivo independente (padrão já usado no resto do módulo de Jogos).
  */
 
 const NOME_JUVENTUS_PARCIAL = "juventus";
@@ -54,6 +60,17 @@ export interface PreviaImportacaoSumulaBase {
   golsAdversarioContagem: number;
   duracaoPrimeiroTempoSugerida: number;
   duracaoSegundoTempoSugerida: number;
+  /** Só preenchida quando `temTerceiroTempo` é true — ver docs/superpowers/specs/2026-10-21-
+   * competicoes-formato-partida-design.md. */
+  duracaoTerceiroTempoSugerida: number | null;
+  /** Jogo vinculado a uma competição com `numero_tempos = 3` (Sub-11/12/13/14) — mostra o campo
+   * de duração do 3º tempo e os eventos lançados nele. */
+  temTerceiroTempo: boolean;
+  /** Placar da disputa de pênaltis trazido pela súmula ("Resultado Pênalti: A X B"), na convenção
+   * mandante × visitante — `null` quando o jogo não foi a pênaltis ou a súmula não traz esse
+   * campo. A tela converte pra Juventus/adversário usando `mandante`, igual já faz com o placar. */
+  penaltisMandante: number | null;
+  penaltisVisitante: number | null;
   linhasDuracaoEncontradas: string[];
   eventos: PreviaEventoImportadoBase[];
   linkPdf: string;
@@ -104,10 +121,36 @@ export async function buscarPreviaImportacaoSumulaBase(
     .in("id", idsConvocados);
   const convocados = ((atletasData ?? []) as AtletaBaseRow[]).map(paraAtletaParaMatch);
 
+  // Formato de partida (3º tempo, duração de cada tempo) — mesma consulta de
+  // app/base/jogos/[id]/sumula/page.tsx. A maioria dos jogos não está vinculada a nenhuma
+  // competição com essas regras: nesse caso segue tudo exatamente como antes (2 tempos de 45min).
+  const { data: vinculoData } = await supabase
+    .from("competicao_jogos_base")
+    .select("competicao_id")
+    .eq("jogo_id", jogoId)
+    .maybeSingle();
+  let competicaoFormato: CompeticaoBaseRow | null = null;
+  if (vinculoData) {
+    const { data: competicaoData } = await supabase
+      .from("competicoes_base")
+      .select("*")
+      .eq("id", (vinculoData as Pick<CompeticaoJogoBaseRow, "competicao_id">).competicao_id)
+      .maybeSingle();
+    competicaoFormato = competicaoData as CompeticaoBaseRow | null;
+  }
+  const temTerceiroTempo = competicaoFormato?.numero_tempos === 3;
+  const duracaoPadraoTempo1 = competicaoFormato?.duracao_tempo_1_minutos ?? 45;
+  const duracaoPadraoTempo2 = competicaoFormato?.duracao_tempo_2_minutos ?? 45;
+  const duracaoPadraoTempo3 = competicaoFormato?.duracao_tempo_3_minutos ?? 45;
+
   let dadosPdf: SumulaPdfDados;
   try {
     const texto = await baixarTextoSumulaPdf(url);
-    dadosPdf = parsearSumulaPdf(texto);
+    dadosPdf = parsearSumulaPdf(texto, {
+      tempo1: duracaoPadraoTempo1,
+      tempo2: duracaoPadraoTempo2,
+      tempo3: duracaoPadraoTempo3,
+    });
   } catch (erro) {
     const mensagem = erro instanceof SumulaPdfError ? erro.message : "Erro inesperado ao ler o PDF.";
     return { erro: mensagem };
@@ -115,17 +158,22 @@ export async function buscarPreviaImportacaoSumulaBase(
 
   const { data: sumulaExistente } = await supabase
     .from("sumulas_base")
-    .select("duracao_primeiro_tempo, duracao_segundo_tempo")
+    .select("duracao_primeiro_tempo, duracao_segundo_tempo, duracao_terceiro_tempo")
     .eq("jogo_id", jogoId)
     .maybeSingle();
   const duracaoPrimeiroTempo =
     dadosPdf.acrescimoPrimeiroTempo != null
-      ? 45 + dadosPdf.acrescimoPrimeiroTempo
-      : (sumulaExistente?.duracao_primeiro_tempo ?? 45);
+      ? duracaoPadraoTempo1 + dadosPdf.acrescimoPrimeiroTempo
+      : (sumulaExistente?.duracao_primeiro_tempo ?? duracaoPadraoTempo1);
   const duracaoSegundoTempo =
     dadosPdf.acrescimoSegundoTempo != null
-      ? 45 + dadosPdf.acrescimoSegundoTempo
-      : (sumulaExistente?.duracao_segundo_tempo ?? 45);
+      ? duracaoPadraoTempo2 + dadosPdf.acrescimoSegundoTempo
+      : (sumulaExistente?.duracao_segundo_tempo ?? duracaoPadraoTempo2);
+  const duracaoTerceiroTempo = !temTerceiroTempo
+    ? null
+    : dadosPdf.acrescimoTerceiroTempo != null
+      ? duracaoPadraoTempo3 + dadosPdf.acrescimoTerceiroTempo
+      : (sumulaExistente?.duracao_terceiro_tempo ?? duracaoPadraoTempo3);
 
   const registroPorNomeNormalizado = new Map(
     dadosPdf.jogadores.map((j) => [j.nome.toLowerCase().trim(), j.registroFpfNumero]),
@@ -138,7 +186,7 @@ export async function buscarPreviaImportacaoSumulaBase(
   const eventos: PreviaEventoImportadoBase[] = [];
 
   for (const gol of dadosPdf.gols) {
-    const minutoRelativo = converterMinutoPdfParaRelativo(gol.minuto, gol.tempo, duracaoPrimeiroTempo);
+    const minutoRelativo = converterMinutoPdfParaRelativo(gol.minuto, gol.tempo, duracaoPrimeiroTempo, duracaoSegundoTempo);
     const marcadoPeloJuventus = ehLadoJuventus(gol.equipe);
     const favoreceJuventus = golFavoreceJuventus(gol);
 
@@ -193,7 +241,7 @@ export async function buscarPreviaImportacaoSumulaBase(
       : cartao.nome;
     eventos.push({
       tipo: cartao.cor === "amarelo" ? "cartao_amarelo" : "cartao_vermelho",
-      minuto: converterMinutoPdfParaRelativo(cartao.minuto, cartao.tempo, duracaoPrimeiroTempo),
+      minuto: converterMinutoPdfParaRelativo(cartao.minuto, cartao.tempo, duracaoPrimeiroTempo, duracaoSegundoTempo),
       tempo: cartao.tempo,
       descricao: `Cartão ${cartao.cor} — ${nomeCartao}`,
       atletaId: sugerirPorNome(nomeCartao),
@@ -207,7 +255,7 @@ export async function buscarPreviaImportacaoSumulaBase(
     if (!ehLadoJuventus(sub.equipe)) continue;
     eventos.push({
       tipo: "substituicao",
-      minuto: converterMinutoPdfParaRelativo(sub.minuto, sub.tempo, duracaoPrimeiroTempo),
+      minuto: converterMinutoPdfParaRelativo(sub.minuto, sub.tempo, duracaoPrimeiroTempo, duracaoSegundoTempo),
       tempo: sub.tempo,
       descricao: `Saiu ${sub.nomeSaiu}, entrou ${sub.nomeEntrou}`,
       atletaId: sugerirPorNome(sub.nomeSaiu),
@@ -217,7 +265,11 @@ export async function buscarPreviaImportacaoSumulaBase(
     });
   }
 
-  eventos.sort((a, b) => (a.tempo === b.tempo ? a.minuto - b.minuto : a.tempo === "primeiro" ? -1 : 1));
+  // Comparador antigo (`a.tempo === "primeiro" ? -1 : 1`) só dava conta de 2 tempos — não é
+  // simétrico com 3 (comparar "segundo" com "terceiro" ia e voltava dependendo da ordem dos
+  // argumentos). `ORDEM_TEMPO` resolve isso pros três casos de uma vez.
+  const ORDEM_TEMPO: Record<SumulaTempo, number> = { primeiro: 0, segundo: 1, terceiro: 2 };
+  eventos.sort((a, b) => (a.tempo === b.tempo ? a.minuto - b.minuto : ORDEM_TEMPO[a.tempo] - ORDEM_TEMPO[b.tempo]));
 
   const golsJuventusPdf = dadosPdf.gols.filter((g) => golFavoreceJuventus(g)).length;
   const golsAdversarioPdf = dadosPdf.gols.filter((g) => !golFavoreceJuventus(g)).length;
@@ -233,6 +285,10 @@ export async function buscarPreviaImportacaoSumulaBase(
       golsAdversarioContagem: golsAdversarioPdf,
       duracaoPrimeiroTempoSugerida: duracaoPrimeiroTempo,
       duracaoSegundoTempoSugerida: duracaoSegundoTempo,
+      duracaoTerceiroTempoSugerida: duracaoTerceiroTempo,
+      temTerceiroTempo,
+      penaltisMandante: dadosPdf.penaltisMandante,
+      penaltisVisitante: dadosPdf.penaltisVisitante,
       linhasDuracaoEncontradas: dadosPdf.linhasDuracaoEncontradas,
       eventos,
       linkPdf: url,
@@ -258,6 +314,13 @@ export interface ConfirmarImportacaoInputBase {
   golsContra: number | null;
   duracaoPrimeiroTempo: number;
   duracaoSegundoTempo: number;
+  /** Só enviado quando o jogo tem 3º tempo (ver `PreviaImportacaoSumulaBase.temTerceiroTempo`). */
+  duracaoTerceiroTempo: number | null;
+  /** Placar da disputa de pênaltis, já convertido pra Juventus/adversário (ver
+   * `PreviaImportacaoSumulaBase.penaltisMandante`/`penaltisVisitante`) — `null` quando o jogo não
+   * foi a pênaltis. */
+  penaltisPro: number | null;
+  penaltisContra: number | null;
   eventos: ConfirmacaoEventoBase[];
 }
 
@@ -282,6 +345,8 @@ export async function confirmarImportacaoSumulaBase(
     .update({
       ...(input.golsPro != null ? { gols_pro: input.golsPro } : {}),
       ...(input.golsContra != null ? { gols_contra: input.golsContra } : {}),
+      penaltis_pro: input.penaltisPro,
+      penaltis_contra: input.penaltisContra,
       fpf_link_sumula: input.linkPdf,
     })
     .eq("id", input.jogoId);
@@ -294,6 +359,7 @@ export async function confirmarImportacaoSumulaBase(
         jogo_id: input.jogoId,
         duracao_primeiro_tempo: input.duracaoPrimeiroTempo,
         duracao_segundo_tempo: input.duracaoSegundoTempo,
+        duracao_terceiro_tempo: input.duracaoTerceiroTempo,
       },
       { onConflict: "jogo_id" },
     )

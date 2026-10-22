@@ -20,6 +20,8 @@ export async function salvarDadosJogoBase(
 
   const golsProRaw = String(formData.get("golsPro") ?? "").trim();
   const golsContraRaw = String(formData.get("golsContra") ?? "").trim();
+  const penaltisProRaw = String(formData.get("penaltisPro") ?? "").trim();
+  const penaltisContraRaw = String(formData.get("penaltisContra") ?? "").trim();
   const duracaoPrimeiroRaw = String(formData.get("duracaoPrimeiroTempo") ?? "").trim();
   const duracaoSegundoRaw = String(formData.get("duracaoSegundoTempo") ?? "").trim();
   // Só enviado pela tela quando o jogo está numa competição de 3 tempos (ver
@@ -44,10 +46,19 @@ export async function salvarDadosJogoBase(
     return { error: "Placar inválido." };
   }
 
+  const penaltisPro = penaltisProRaw ? Number(penaltisProRaw) : null;
+  const penaltisContra = penaltisContraRaw ? Number(penaltisContraRaw) : null;
+  if ((penaltisProRaw && Number.isNaN(penaltisPro)) || (penaltisContraRaw && Number.isNaN(penaltisContra))) {
+    return { error: "Placar de pênaltis inválido." };
+  }
+
   const supabase = createClient();
 
   const [{ error: jogoError }, { error: sumulaError }] = await Promise.all([
-    supabase.from("jogos_base").update({ gols_pro: golsPro, gols_contra: golsContra }).eq("id", jogoId),
+    supabase
+      .from("jogos_base")
+      .update({ gols_pro: golsPro, gols_contra: golsContra, penaltis_pro: penaltisPro, penaltis_contra: penaltisContra })
+      .eq("id", jogoId),
     supabase.from("sumulas_base").upsert(
       {
         jogo_id: jogoId,

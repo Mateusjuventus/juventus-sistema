@@ -960,6 +960,10 @@ export interface JogoBaseRow {
    * nos jogos da Base (ver 0128_sumula_base_importacao_fpf.sql e
    * docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md). */
   fpf_link_sumula?: string | null;
+  /** Placar da disputa de pênaltis (jogos de mata-mata que empataram) — só Base por enquanto, ver
+   * 0146_sumula_pdf_terceiro_tempo_penaltis.sql. Null = não houve disputa ou ainda não informado. */
+  penaltis_pro: number | null;
+  penaltis_contra: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

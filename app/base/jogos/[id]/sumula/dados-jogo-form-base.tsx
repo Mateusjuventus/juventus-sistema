@@ -20,6 +20,8 @@ export function DadosJogoFormBase({
   jogoId,
   golsPro,
   golsContra,
+  penaltisPro,
+  penaltisContra,
   duracaoPrimeiroTempo,
   duracaoSegundoTempo,
   duracaoTerceiroTempo,
@@ -31,6 +33,10 @@ export function DadosJogoFormBase({
   jogoId: string;
   golsPro: number | null;
   golsContra: number | null;
+  /** Placar da disputa de pênaltis (jogos de mata-mata que empataram) — opcional, qualquer jogo
+   * pode ir pra pênaltis, não só os de 3 tempos. Ver 0146_sumula_pdf_terceiro_tempo_penaltis.sql. */
+  penaltisPro: number | null;
+  penaltisContra: number | null;
   duracaoPrimeiroTempo: number;
   duracaoSegundoTempo: number;
   /** Só relevante quando `temTerceiroTempo` é true — jogo vinculado a uma competição com
@@ -67,6 +73,32 @@ export function DadosJogoFormBase({
             name="golsContra"
             min={0}
             defaultValue={golsContra ?? ""}
+            className="field-input w-16"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-end gap-2">
+        <div>
+          <label className="field-label">Pênaltis — {nomeMandante}</label>
+          <input
+            type="number"
+            name="penaltisPro"
+            min={0}
+            defaultValue={penaltisPro ?? ""}
+            placeholder="—"
+            className="field-input w-16"
+          />
+        </div>
+        <span className="pb-2 text-neutral-400">×</span>
+        <div>
+          <label className="field-label">Pênaltis — {nomeVisitante}</label>
+          <input
+            type="number"
+            name="penaltisContra"
+            min={0}
+            defaultValue={penaltisContra ?? ""}
+            placeholder="—"
             className="field-input w-16"
           />
         </div>

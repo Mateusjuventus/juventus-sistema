@@ -8,6 +8,7 @@ import {
   type ConfirmacaoEventoBase,
   type PreviaImportacaoSumulaBase,
 } from "./importar-actions";
+import { calcularMinutoAbsoluto } from "@/lib/futebol/estatisticas-atleta";
 import type { SumulaEventoTipo } from "@/lib/supabase/types";
 
 /** Espelha app/jogos/[id]/sumula/importar-sumula-form.tsx (Profissional) para o Futebol de Base —
@@ -70,6 +71,13 @@ export function ImportarSumulaFormBase({
   const [golsContra, setGolsContra] = useState<string>("");
   const [duracaoPrimeiroTempo, setDuracaoPrimeiroTempo] = useState<string>("45");
   const [duracaoSegundoTempo, setDuracaoSegundoTempo] = useState<string>("45");
+  /** Só usado (e mostrado) quando `previa.temTerceiroTempo` — jogo de Sub-11/12/13/14 (ver
+   * docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md). */
+  const [duracaoTerceiroTempo, setDuracaoTerceiroTempo] = useState<string>("");
+  /** Placar da disputa de pênaltis — opcional, independe do jogo ter 3º tempo ou não (qualquer
+   * jogo de mata-mata pode ir pra pênaltis). Vem preenchido quando a súmula trouxer esse campo. */
+  const [penaltisPro, setPenaltisPro] = useState<string>("");
+  const [penaltisContra, setPenaltisContra] = useState<string>("");
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
 
   function buscar() {
@@ -113,6 +121,17 @@ export function ImportarSumulaFormBase({
       setGolsContra(String(golsAdversario));
       setDuracaoPrimeiroTempo(String(dados.duracaoPrimeiroTempoSugerida));
       setDuracaoSegundoTempo(String(dados.duracaoSegundoTempoSugerida));
+      setDuracaoTerceiroTempo(
+        dados.temTerceiroTempo && dados.duracaoTerceiroTempoSugerida != null
+          ? String(dados.duracaoTerceiroTempoSugerida)
+          : "",
+      );
+
+      const temPenaltis = dados.penaltisMandante != null && dados.penaltisVisitante != null;
+      const penaltisJuventus = temPenaltis ? (mandante ? dados.penaltisMandante! : dados.penaltisVisitante!) : null;
+      const penaltisAdversario = temPenaltis ? (mandante ? dados.penaltisVisitante! : dados.penaltisMandante!) : null;
+      setPenaltisPro(penaltisJuventus != null ? String(penaltisJuventus) : "");
+      setPenaltisContra(penaltisAdversario != null ? String(penaltisAdversario) : "");
     });
   }
 
@@ -126,6 +145,9 @@ export function ImportarSumulaFormBase({
         golsContra: golsContra.trim() ? Number(golsContra) : null,
         duracaoPrimeiroTempo: Number(duracaoPrimeiroTempo) || 45,
         duracaoSegundoTempo: Number(duracaoSegundoTempo) || 45,
+        duracaoTerceiroTempo: previa?.temTerceiroTempo && duracaoTerceiroTempo.trim() ? Number(duracaoTerceiroTempo) : null,
+        penaltisPro: penaltisPro.trim() ? Number(penaltisPro) : null,
+        penaltisContra: penaltisContra.trim() ? Number(penaltisContra) : null,
         eventos,
       });
       if (resultado.erro) {
@@ -200,6 +222,36 @@ export function ImportarSumulaFormBase({
 
           <div className="flex items-end gap-2">
             <div>
+              <label className="field-label">Pênaltis — Juventus</label>
+              <input
+                type="number"
+                min={0}
+                value={penaltisPro}
+                onChange={(e) => setPenaltisPro(e.target.value)}
+                placeholder="—"
+                className="field-input w-20"
+              />
+            </div>
+            <span className="pb-2 text-neutral-400">×</span>
+            <div>
+              <label className="field-label">Pênaltis — Adversário</label>
+              <input
+                type="number"
+                min={0}
+                value={penaltisContra}
+                onChange={(e) => setPenaltisContra(e.target.value)}
+                placeholder="—"
+                className="field-input w-20"
+              />
+            </div>
+            <p className="pb-2 text-xs text-neutral-400">
+              Só preencha se o jogo foi a disputa de pênaltis. Vem preenchido sozinho quando a súmula traz
+              esse campo.
+            </p>
+          </div>
+
+          <div className="flex items-end gap-2">
+            <div>
               <label className="field-label">Duração 1º Tempo (min)</label>
               <input
                 type="number"
@@ -219,9 +271,21 @@ export function ImportarSumulaFormBase({
                 className="field-input w-20"
               />
             </div>
+            {previa.temTerceiroTempo ? (
+              <div>
+                <label className="field-label">Duração 3º Tempo (min)</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={duracaoTerceiroTempo}
+                  onChange={(e) => setDuracaoTerceiroTempo(e.target.value)}
+                  className="field-input w-20"
+                />
+              </div>
+            ) : null}
             <p className="pb-2 text-xs text-neutral-400">
-              Já vem com o acréscimo da súmula somado (45 + acréscimo), quando ela informa esse campo. Confira
-              e ajuste se precisar.
+              Já vem com o acréscimo da súmula somado (duração padrão + acréscimo), quando ela informa esse
+              campo. Confira e ajuste se precisar.
             </p>
           </div>
 
@@ -257,10 +321,18 @@ export function ImportarSumulaFormBase({
                     title="Incluir esse evento na importação"
                   />
                   <span className="w-28 shrink-0 font-semibold text-grena-escuro">
-                    {evento.tempo === "segundo" ? (Number(duracaoPrimeiroTempo) || 45) + evento.minuto : evento.minuto}
+                    {calcularMinutoAbsoluto(
+                      evento.tempo,
+                      evento.minuto,
+                      Number(duracaoPrimeiroTempo) || 45,
+                      Number(duracaoSegundoTempo) || 45,
+                    )}
                     &apos;
                     {evento.tempo === "segundo" ? (
                       <span className="ml-1 text-xs font-normal text-neutral-400">({evento.minuto}&apos; do 2T)</span>
+                    ) : null}
+                    {evento.tempo === "terceiro" ? (
+                      <span className="ml-1 text-xs font-normal text-neutral-400">({evento.minuto}&apos; do 3T)</span>
                     ) : null}
                   </span>
                   <span className="w-40 shrink-0 text-neutral-700">

@@ -75,13 +75,18 @@ export interface SumulaPdfJogador {
   registroFpfNumero: number | null;
 }
 
+/** "terceiro" só existe nos jogos da Base vinculados a uma competição com `numero_tempos = 3`
+ * (Sub-11/12/13/14 — ver docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md);
+ * no Profissional (e no resto da Base) a súmula nunca traz "3T". */
+export type SumulaPdfTempo = "primeiro" | "segundo" | "terceiro";
+
 export interface SumulaPdfGol {
   equipe: string;
   numero: number;
   nome: string;
   tipo: SumulaPdfEventoTipoGol;
   minuto: number;
-  tempo: "primeiro" | "segundo";
+  tempo: SumulaPdfTempo;
 }
 
 export interface SumulaPdfCartao {
@@ -90,7 +95,7 @@ export interface SumulaPdfCartao {
   nome: string;
   cor: "amarelo" | "vermelho";
   minuto: number;
-  tempo: "primeiro" | "segundo";
+  tempo: SumulaPdfTempo;
   /** true quando a linha veio no layout "Tempo Sigla Nº Nome Equipe" e não deu pra separar nome e
    * equipe (ver RE_CARTAO_TEMPO_PRIMEIRO): nesse caso `nome` e `equipe` trazem os dois juntos, e
    * quem consome deve casar por continência em vez de igualdade. */
@@ -104,8 +109,23 @@ export interface SumulaPdfSubstituicao {
   numeroEntrou: number;
   nomeEntrou: string;
   minuto: number;
-  tempo: "primeiro" | "segundo";
+  tempo: SumulaPdfTempo;
 }
+
+/** Duração padrão (min) de cada tempo, usada só pra resolver o relógio corrido de um evento que
+ * vier no formato curto de acréscimo ("+N", ver `MINUTO_ALTERNATIVAS`) — ex: "+2 2T" só vira um
+ * minuto absoluto somando ao fim regulamentar do(s) tempo(s) anterior(es), e esse fim depende da
+ * duração real da competição (45min no Profissional/Base padrão, 17min no Sub-11/12, 20min no
+ * Sub-13/14 — ver docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md).
+ * `tempo3` só importa quando a súmula é de um jogo de 3 tempos. Default: 45/45/45 (todo o
+ * Profissional e a maioria da Base), igual ao comportamento de antes desta função existir. */
+export interface SumulaPdfDuracoesTempo {
+  tempo1: number;
+  tempo2: number;
+  tempo3: number;
+}
+
+const DURACOES_PADRAO: SumulaPdfDuracoesTempo = { tempo1: 45, tempo2: 45, tempo3: 45 };
 
 export interface SumulaPdfDados {
   competicao: string | null;
@@ -115,10 +135,17 @@ export interface SumulaPdfDados {
   placarMandante: number | null;
   placarVisitante: number | null;
   /** Minutos de acréscimo de cada tempo, do campo "Acréscimo: X min" da súmula — usado pra
-   * sugerir a duração real de cada tempo (45 + acréscimo) na importação, em vez de deixar sempre
-   * no padrão de 45min. `null` quando não achou esse campo. */
+   * sugerir a duração real de cada tempo (duração padrão + acréscimo) na importação, em vez de
+   * deixar sempre no padrão. `null` quando não achou esse campo. */
   acrescimoPrimeiroTempo: number | null;
   acrescimoSegundoTempo: number | null;
+  /** Só relevante em jogos de 3 tempos (Sub-11/12/13/14) — `null` em todo o resto. */
+  acrescimoTerceiroTempo: number | null;
+  /** Placar da disputa de pênaltis ("Resultado Pênalti: A X B"), quando a súmula trouxer esse
+   * campo — `null` quando o jogo não foi a pênaltis ou a súmula não traz esse dado. Mesma
+   * convenção de `placarMandante`/`placarVisitante` (mandante × visitante). */
+  penaltisMandante: number | null;
+  penaltisVisitante: number | null;
   jogadores: SumulaPdfJogador[];
   gols: SumulaPdfGol[];
   cartoes: SumulaPdfCartao[];
@@ -127,7 +154,7 @@ export interface SumulaPdfDados {
    * esperado — mostrado ao usuário como "N linhas não reconhecidas" pra ele saber que pode
    * precisar completar manualmente. */
   avisos: string[];
-  /** Diagnóstico: toda linha do PDF que menciona "1º/2º Tempo" ou "Acréscimo", mesmo que não
+  /** Diagnóstico: toda linha do PDF que menciona "1º/2º/3º Tempo" ou "Acréscimo", mesmo que não
    * tenha batido com o padrão esperado — como não temos o texto byte-a-byte confirmado de uma
    * súmula real (ver nota no topo do arquivo), isso é exposto na tela de revisão pra o usuário
    * poder copiar e mandar de volta se o acréscimo não for reconhecido automaticamente. */
@@ -149,7 +176,7 @@ function campoRotulado(linhas: string[], rotulo: RegExp): string | null {
   return null;
 }
 
-const TEMPO_SIGLA: Record<string, "primeiro" | "segundo"> = { "1T": "primeiro", "2T": "segundo" };
+const TEMPO_SIGLA: Record<string, SumulaPdfTempo> = { "1T": "primeiro", "2T": "segundo", "3T": "terceiro" };
 
 /** "Nº Nome Completo T/R P/A Registro" — ex: "1 Giovanni Martinez Montanari T A 661239/26" */
 const RE_JOGADOR = /^(\d{1,3})\s+(.+?)\s+(T|R)\s+(A|P)\s+(\d+)\/(\d{2,4})$/;
@@ -160,16 +187,17 @@ const RE_JOGADOR = /^(\d{1,3})\s+(.+?)\s+(T|R)\s+(A|P)\s+(\d+)\/(\d{2,4})$/;
 // como alternativas dentro do mesmo grupo, resolvidas por `resolverMinutoBruto`.
 const MINUTO_ALTERNATIVAS = "(?:(\\d{1,3}):(\\d{2})|\\+\\s*(\\d{1,2}))";
 
-/** "Equipe Nº Nome - (Apelido) Tipo MM:SS 1T/2T" (apelido opcional) */
+/** "Equipe Nº Nome - (Apelido) Tipo MM:SS 1T/2T/3T" (apelido opcional; "3T" só nos jogos de 3
+ * tempos — Sub-11/12/13/14, ver `SumulaPdfTempo`). */
 const RE_GOL_COM_APELIDO = new RegExp(
-  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+-\\s+\\([^)]*\\)\\s+(NR|PN|CT|FT)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`,
+  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+-\\s+\\([^)]*\\)\\s+(NR|PN|CT|FT)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T|3T)$`,
 );
 const RE_GOL_SEM_APELIDO = new RegExp(
-  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+(NR|PN|CT|FT)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`,
+  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+(NR|PN|CT|FT)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T|3T)$`,
 );
 
-/** "Equipe Nº Nome MM:SS 1T/2T" */
-const RE_CARTAO = new RegExp(`^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`);
+/** "Equipe Nº Nome MM:SS 1T/2T/3T" */
+const RE_CARTAO = new RegExp(`^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T|3T)$`);
 
 /**
  * Layout ALTERNATIVO das tabelas de Advertências/Expulsões, visto numa súmula real da Copa
@@ -183,24 +211,32 @@ const RE_CARTAO = new RegExp(`^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+${MINUTO_ALTERNAT
  * `nome`/`equipe`, e quem consome resolve por continência (ver `nomeComEquipe`).
  */
 const RE_CARTAO_TEMPO_PRIMEIRO = new RegExp(
-  `^(?:${MINUTO_ALTERNATIVAS}|(-))\\s+(1T|2T|AJ|AP|IN)\\s+(\\d{1,3})\\s+(.+)$`,
+  `^(?:${MINUTO_ALTERNATIVAS}|(-))\\s+(1T|2T|3T|AJ|AP|IN)\\s+(\\d{1,3})\\s+(.+)$`,
 );
 
-/** "Equipe Nº Saiu Nº Entrou MM:SS 1T/2T" */
+/** "Equipe Nº Saiu Nº Entrou MM:SS 1T/2T/3T" */
 const RE_SUBSTITUICAO = new RegExp(
-  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T)$`,
+  `^(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+(\\d{1,3})\\s+(.+?)\\s+${MINUTO_ALTERNATIVAS}\\s+(1T|2T|3T)$`,
 );
 
 /** Resolve o minuto bruto (relógio corrido do jogo) a partir das duas formas possíveis vindas do
- * regex — "MM:SS" direto, ou "+N" de acréscimo (nesse caso soma aos 45/90 regulamentares, que é a
- * convenção padrão de futebol pra tempo de acréscimo, ex: "45+2", "90+3"). */
+ * regex — "MM:SS" direto, ou "+N" de acréscimo (nesse caso soma ao fim regulamentar do(s)
+ * tempo(s) anterior(es): `duracoes.tempo1` pro 1º tempo, `tempo1+tempo2` pro 2º, etc — ver
+ * `SumulaPdfDuracoesTempo`; com a duração padrão (45min) isso dá exatamente "45+2", "90+3", a
+ * convenção clássica de futebol). */
 function resolverMinutoBruto(
   minutoNormal: string | undefined,
   minutoAcrescimo: string | undefined,
-  tempo: "primeiro" | "segundo",
+  tempo: SumulaPdfTempo,
+  duracoes: SumulaPdfDuracoesTempo,
 ): number {
   if (minutoNormal != null) return Number(minutoNormal);
-  const base = tempo === "primeiro" ? 45 : 90;
+  const base =
+    tempo === "primeiro"
+      ? duracoes.tempo1
+      : tempo === "segundo"
+        ? duracoes.tempo1 + duracoes.tempo2
+        : duracoes.tempo1 + duracoes.tempo2 + duracoes.tempo3;
   return base + Number(minutoAcrescimo);
 }
 
@@ -222,7 +258,12 @@ function ehCabecalhoOuVazio(linha: string): boolean {
  * mas sem marcação por linha) — por isso o vínculo com atleta é feito depois, comparando contra
  * o elenco cadastrado (ver `lib/fpf/atleta-match.ts`), e não por "lado" do jogo.
  */
-export function parsearSumulaPdf(texto: string): SumulaPdfDados {
+export function parsearSumulaPdf(texto: string, duracoesPadrao?: Partial<SumulaPdfDuracoesTempo>): SumulaPdfDados {
+  const duracoes: SumulaPdfDuracoesTempo = {
+    tempo1: duracoesPadrao?.tempo1 ?? DURACOES_PADRAO.tempo1,
+    tempo2: duracoesPadrao?.tempo2 ?? DURACOES_PADRAO.tempo2,
+    tempo3: duracoesPadrao?.tempo3 ?? DURACOES_PADRAO.tempo3,
+  };
   const linhas = normalizarLinhas(texto);
   const avisos: string[] = [];
 
@@ -236,15 +277,30 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
   // palavra "do" entre "Resultado" e o tempo (antes só aceitava "Resultado 2º Tempo", sem "do", e
   // por isso nunca batia com o formato real — ficava sempre null, mascarado pela sugestão de
   // placar por contagem de gols na tela de importação). Usa matchAll pra pegar todas as ocorrências
-  // e fica com a ÚLTIMA (o "Resultado do 2º Tempo" é o placar final/cumulativo da partida, vem
-  // depois do "Resultado do 1º Tempo" que é só o parcial do intervalo).
+  // e fica com a ÚLTIMA (o "Resultado do Nº Tempo" é o placar final/cumulativo da partida, vem
+  // depois dos parciais de cada tempo anterior) — o grupo de tempo não precisa distinguir 1º/2º/3º
+  // porque é só um filtro opcional pra não casar em outro lugar; qualquer "Resultado ... : A X B"
+  // serve (inclusive "Resultado do 3º Tempo", que já é cumulativo nos jogos de 3 tempos).
   let placarMandante: number | null = null;
   let placarVisitante: number | null = null;
-  const RE_RESULTADO = /Resultado\s*(?:do\s*)?(?:2[ºo]?\s*Tempo)?:?\s*(\d{1,2})\s*[Xx]\s*(\d{1,2})/gi;
+  const RE_RESULTADO = /Resultado\s*(?:do\s*)?(?:[123][ºo]?\s*Tempo)?:?\s*(\d{1,2})\s*[Xx]\s*(\d{1,2})/gi;
   for (const linha of linhas) {
     for (const m of linha.matchAll(RE_RESULTADO)) {
       placarMandante = Number(m[1]);
       placarVisitante = Number(m[2]);
+    }
+  }
+
+  // "Resultado Pênalti: 12 X 13" (disputa de pênaltis, jogos de mata-mata que empataram) — rótulo
+  // tolerante a variações de grafia ("Pênalti"/"Penalti"/"Pênaltis"/"Penaltis"). Mesma convenção
+  // mandante × visitante do placar normal.
+  let penaltisMandante: number | null = null;
+  let penaltisVisitante: number | null = null;
+  const RE_RESULTADO_PENALTI = /Resultado\s*P[êe]nalt\w*:?\s*(\d{1,2})\s*[Xx]\s*(\d{1,2})/gi;
+  for (const linha of linhas) {
+    for (const m of linha.matchAll(RE_RESULTADO_PENALTI)) {
+      penaltisMandante = Number(m[1]);
+      penaltisVisitante = Number(m[2]);
     }
   }
 
@@ -269,29 +325,31 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
   // dele — funciona tanto pra essa linha com os dois tempos juntos quanto pro caso de cada tempo
   // vir numa linha separada. O rótulo real confirmado é "Acrésc:" (abreviado, sem "io" no final),
   // mas o regex aceita variações plausíveis ("Acréscimo", "Acréscimos", com/sem unidade) também.
-  let ultimoTempoMencionado: "primeiro" | "segundo" | null = null;
+  let ultimoTempoMencionado: SumulaPdfTempo | null = null;
   let acrescimoPrimeiroTempo: number | null = null;
   let acrescimoSegundoTempo: number | null = null;
+  let acrescimoTerceiroTempo: number | null = null;
   const linhasDuracaoEncontradas: string[] = [];
-  const RE_TEMPO_INDICADOR = /(1[ºo]|2[ºo])\s*Tempo/i;
+  const RE_TEMPO_INDICADOR = /([123][ºo])\s*Tempo/i;
   const RE_ACRESCIMO_ROTULO = /Acr[ée]sc\p{L}*/iu;
   // Casa OU um marcador de tempo OU um rótulo de acréscimo com número — usado com matchAll (flag
   // "g") pra pegar TODAS as ocorrências de cada um numa linha, na ordem em que aparecem. O
   // "(?!\s*[ºo])" depois do número evita confundir o acréscimo com o próprio ordinal de um tempo
   // vizinho (ex: em "Acréscimo 2º Tempo", sem valor nenhum ainda, não deixa o "2" de "2º" virar o
   // valor do acréscimo por engano).
-  const RE_TOKEN_TEMPO_OU_ACRESCIMO = /(1[ºo]|2[ºo])\s*Tempo|Acr[ée]sc\p{L}*\.?:?\s*(\d{1,2})(?!\s*[ºo])/giu;
+  const RE_TOKEN_TEMPO_OU_ACRESCIMO = /([123][ºo])\s*Tempo|Acr[ée]sc\p{L}*\.?:?\s*(\d{1,2})(?!\s*[ºo])/giu;
 
   for (const linha of linhas) {
     if (RE_TEMPO_INDICADOR.test(linha) || RE_ACRESCIMO_ROTULO.test(linha)) linhasDuracaoEncontradas.push(linha);
 
     for (const token of linha.matchAll(RE_TOKEN_TEMPO_OU_ACRESCIMO)) {
       if (token[1] != null) {
-        ultimoTempoMencionado = token[1].startsWith("1") ? "primeiro" : "segundo";
+        ultimoTempoMencionado = token[1].startsWith("1") ? "primeiro" : token[1].startsWith("2") ? "segundo" : "terceiro";
       } else if (token[2] != null && ultimoTempoMencionado) {
         const valor = Number(token[2]);
         if (ultimoTempoMencionado === "primeiro") acrescimoPrimeiroTempo = valor;
-        else acrescimoSegundoTempo = valor;
+        else if (ultimoTempoMencionado === "segundo") acrescimoSegundoTempo = valor;
+        else acrescimoTerceiroTempo = valor;
       }
     }
 
@@ -339,7 +397,7 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
         numero: Number(numero),
         nome: nome.trim(),
         tipo: TIPO_GOL_POR_SIGLA[tipoSigla] ?? "normal",
-        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo),
+        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo, duracoes),
         tempo,
       });
       continue;
@@ -356,7 +414,7 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
         nomeSaiu: nomeSaiu.trim(),
         numeroEntrou: Number(numeroEntrou),
         nomeEntrou: nomeEntrou.trim(),
-        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo),
+        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo, duracoes),
         tempo,
       });
       continue;
@@ -373,7 +431,7 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
         numero: Number(numero),
         nome: nome.trim(),
         cor: secaoCartaoAtual,
-        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo),
+        minuto: resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo, duracoes),
         tempo,
       });
       continue;
@@ -385,12 +443,12 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
     if (mCartaoTempoPrimeiro && secaoCartaoAtual) {
       const [, minutoNormal, , minutoAcrescimo, semTempo, sigla, numero, nomeEEquipe] = mCartaoTempoPrimeiro;
       // "AJ" (antes do jogo), "AP" (após a partida), "IN" (intervalo) e o traço no lugar do
-      // relógio: eventos fora das duas etapas entram como minuto 0 do 1º tempo, que é o mais
+      // relógio: eventos fora das três etapas entram como minuto 0 do 1º tempo, que é o mais
       // próximo que a nossa Súmula representa.
-      const tempo: "primeiro" | "segundo" = sigla === "2T" ? "segundo" : "primeiro";
-      const minuto = semTempo || (sigla !== "1T" && sigla !== "2T")
+      const tempo: SumulaPdfTempo = sigla === "3T" ? "terceiro" : sigla === "2T" ? "segundo" : "primeiro";
+      const minuto = semTempo || (sigla !== "1T" && sigla !== "2T" && sigla !== "3T")
         ? 0
-        : resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo);
+        : resolverMinutoBruto(minutoNormal, minutoAcrescimo, tempo, duracoes);
       const texto = nomeEEquipe.trim();
       cartoes.push({
         equipe: texto,
@@ -422,6 +480,9 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
     placarVisitante,
     acrescimoPrimeiroTempo,
     acrescimoSegundoTempo,
+    acrescimoTerceiroTempo,
+    penaltisMandante,
+    penaltisVisitante,
     jogadores,
     gols,
     cartoes,
@@ -446,9 +507,14 @@ export function parsearSumulaPdf(texto: string): SumulaPdfDados {
  */
 export function converterMinutoPdfParaRelativo(
   minutoPdf: number,
-  tempo: "primeiro" | "segundo",
+  tempo: SumulaPdfTempo,
   duracaoPrimeiroTempo: number,
+  /** Só precisa ser informado quando `tempo === "terceiro"` (jogo de 3 tempos) — usado pra
+   * deslocar o relógio corrido do 3º tempo, igual a `calcularMinutoAbsoluto` em
+   * lib/futebol/estatisticas-atleta.ts. */
+  duracaoSegundoTempo?: number,
 ): number {
   if (tempo === "primeiro") return minutoPdf;
-  return Math.max(0, minutoPdf - duracaoPrimeiroTempo);
+  if (tempo === "segundo") return Math.max(0, minutoPdf - duracaoPrimeiroTempo);
+  return Math.max(0, minutoPdf - duracaoPrimeiroTempo - (duracaoSegundoTempo ?? duracaoPrimeiroTempo));
 }

@@ -293,6 +293,8 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
         jogoId={jogo.id}
         golsPro={jogo.gols_pro}
         golsContra={jogo.gols_contra}
+        penaltisPro={jogo.penaltis_pro}
+        penaltisContra={jogo.penaltis_contra}
         duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
         duracaoSegundoTempo={sumula?.duracao_segundo_tempo ?? 45}
         duracaoTerceiroTempo={sumula?.duracao_terceiro_tempo}
