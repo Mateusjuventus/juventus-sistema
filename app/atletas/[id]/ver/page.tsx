@@ -76,11 +76,11 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
       />
 
       <div className="mt-6 space-y-6">
-        {/* Endereço e "Possui alergia a algum medicamento" viraram parte deste card em vez de seção
-            própria em 2026-09-10 (pedido do Mateus: "Endereço... fazem parte dos dados pessoais do
-            atleta"; alergia já era assim no formulário de edição, só faltava aparecer aqui também).
-            Endereço passou a ser estruturado (CEP/logradouro/etc., mesmo padrão da Base) no mesmo
-            dia (pedido do Mateus: "no profissional, deva ter todos os dados do endereço"). */}
+        {/* Dados pessoais, Endereço e Contato de emergência viraram 3 cards separados em 2026-10-22
+            (pedido do Mateus: a ficha estava "muito confusa, muito misturada" com tudo dentro de um
+            card só) — mesmo padrão visual que Dados esportivos/Contrato já usavam. Nenhum campo
+            mudou, só a organização. Espelha `app/base/atletas/[categoria]/[id]/ver/page.tsx` (lá
+            tem também um bloco de "Responsáveis" — mãe/pai —, que não existe no Profissional). */}
         <FormSection title="Dados pessoais">
           <FieldGroup>
             <DetailField label="Nome completo" value={atleta.nome_completo} />
@@ -88,6 +88,8 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             <DetailField label="RG" value={atleta.rg} />
             <DetailField label="CPF" value={formatCPF(atleta.cpf)} />
             <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
+            <DetailField label="Naturalidade" value={atleta.cidade_natal} />
+            <DetailField label="UF natal" value={atleta.uf_natal} />
             <DetailField label="Telefone" value={atleta.telefone} />
             <DetailField label="Email" value={atleta.email} />
             <DetailField
@@ -97,29 +99,35 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             {atleta.possui_alergia_medicamento ? (
               <DetailField label="Qual" value={atleta.alergia_medicamento_qual} />
             ) : null}
-            <DetailField label="Naturalidade" value={atleta.cidade_natal} />
-            <DetailField label="UF natal" value={atleta.uf_natal} />
-            {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
-                formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
-                de cadastros antigos que só têm esse texto livre preenchido (ver
-                `AtletaRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio, que é
-                o caso normal pra qualquer cadastro feito ou editado depois de 2026-09-10. */}
-            {atleta.endereco_atual ? (
-              <div className="sm:col-span-2">
-                <DetailField label="Endereço atual (cadastro antigo)" value={atleta.endereco_atual} />
-              </div>
-            ) : null}
-            <DetailField label="Logradouro" value={atleta.logradouro} />
-            <DetailField label="Número" value={atleta.numero} />
-            <DetailField label="Complemento" value={atleta.complemento} />
-            <DetailField label="Bairro" value={atleta.bairro} />
-            <DetailField label="Cidade" value={atleta.cidade} />
-            <DetailField label="UF" value={atleta.uf} />
-            <DetailField label="CEP" value={atleta.cep} />
           </FieldGroup>
+        </FormSection>
+
+        <FormSection title="Endereço">
+          <div>
+            <p className="field-label">Atual</p>
+            <FieldGroup>
+              {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
+                  formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
+                  de cadastros antigos que só têm esse texto livre preenchido (ver
+                  `AtletaRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio, que é
+                  o caso normal pra qualquer cadastro feito ou editado depois de 2026-09-10. */}
+              {atleta.endereco_atual ? (
+                <div className="sm:col-span-2">
+                  <DetailField label="Endereço atual (cadastro antigo)" value={atleta.endereco_atual} />
+                </div>
+              ) : null}
+              <DetailField label="Logradouro" value={atleta.logradouro} />
+              <DetailField label="Número" value={atleta.numero} />
+              <DetailField label="Complemento" value={atleta.complemento} />
+              <DetailField label="Bairro" value={atleta.bairro} />
+              <DetailField label="Cidade" value={atleta.cidade} />
+              <DetailField label="UF" value={atleta.uf} />
+              <DetailField label="CEP" value={atleta.cep} />
+            </FieldGroup>
+          </div>
 
           <div className="mt-4">
-            <p className="field-label">Endereço de origem</p>
+            <p className="field-label">Origem</p>
             <FieldGroup>
               <DetailField label="Logradouro" value={atleta.origem_logradouro} />
               <DetailField label="Número" value={atleta.origem_numero} />
@@ -130,8 +138,10 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
               <DetailField label="CEP" value={atleta.origem_cep} />
             </FieldGroup>
           </div>
+        </FormSection>
 
-          <div className="mt-4">
+        <FormSection title="Contato de emergência">
+          <div>
             <p className="field-label">Em caso de emergência, avisar</p>
             {contatos.length > 0 ? (
               <div className="mt-2 space-y-2">

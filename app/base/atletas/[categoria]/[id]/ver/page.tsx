@@ -135,9 +135,10 @@ export default async function VerAtletaBasePage({
       </div>
 
       <div className="mt-6 space-y-6">
-        {/* Endereço, Responsáveis e "Possui alergia a algum medicamento" viraram parte deste card em
-            vez de seções próprias em 2026-09-10 (pedido do Mateus: "Endereço e os Dados dos
-            responsáveis fazem parte dos dados pessoais do atleta"). */}
+        {/* Dados pessoais, Endereço e Responsáveis/emergência viraram 3 cards separados em
+            2026-10-22 (pedido do Mateus: a ficha estava "muito confusa, muito misturada" com tudo
+            dentro de um card só) — mesmo padrão visual que Dados esportivos/Contrato já usavam.
+            Nenhum campo mudou, só a organização. Espelha `app/atletas/[id]/ver/page.tsx`. */}
         <FormSection title="Dados pessoais">
           <FieldGroup>
             <DetailField label="Nome completo" value={atleta.nome_completo} />
@@ -145,6 +146,8 @@ export default async function VerAtletaBasePage({
             <DetailField label="RG" value={atleta.rg} />
             <DetailField label="CPF" value={atleta.cpf ? formatCPF(atleta.cpf) : null} />
             <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
+            <DetailField label="Naturalidade" value={atleta.cidade_natal} />
+            <DetailField label="UF natal" value={atleta.uf_natal} />
             <DetailField label="Telefone" value={atleta.telefone} />
             <DetailField label="Email" value={atleta.email} />
             <DetailField
@@ -154,35 +157,35 @@ export default async function VerAtletaBasePage({
             {atleta.possui_alergia_medicamento ? (
               <DetailField label="Qual" value={atleta.alergia_medicamento_qual} />
             ) : null}
-            <DetailField label="Naturalidade" value={atleta.cidade_natal} />
-            <DetailField label="UF natal" value={atleta.uf_natal} />
-            {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
-                formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
-                de cadastros antigos que só têm esse texto livre preenchido (ver
-                `AtletaBaseRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio,
-                que é o caso normal pra qualquer cadastro feito depois do endereço estruturado. */}
-            {atleta.endereco_atual ? (
-              <div className="sm:col-span-2">
-                <DetailField label="Endereço atual (cadastro antigo)" value={atleta.endereco_atual} />
-              </div>
-            ) : null}
-            <DetailField label="Logradouro" value={atleta.logradouro} />
-            <DetailField label="Número" value={atleta.numero} />
-            <DetailField label="Complemento" value={atleta.complemento} />
-            <DetailField label="Bairro" value={atleta.bairro} />
-            <DetailField label="Cidade" value={atleta.cidade} />
-            <DetailField label="UF" value={atleta.uf} />
-            <DetailField label="CEP" value={atleta.cep} />
-            <DetailField label="Nome da mãe" value={atleta.mae_nome} />
-            <DetailField label="Telefone da mãe" value={atleta.mae_telefone} />
-            <DetailField label="Email da mãe" value={atleta.email_mae} />
-            <DetailField label="Nome do pai" value={atleta.pai_nome} />
-            <DetailField label="Telefone do pai" value={atleta.pai_telefone} />
-            <DetailField label="Email do pai" value={atleta.email_pai} />
           </FieldGroup>
+        </FormSection>
+
+        <FormSection title="Endereço">
+          <div>
+            <p className="field-label">Atual</p>
+            <FieldGroup>
+              {/* Campo antigo, de antes do endereço estruturado (CEP/logradouro/etc.) existir — o
+                  formulário de editar não grava mais nele, só continua aqui pra não sumir com dados
+                  de cadastros antigos que só têm esse texto livre preenchido (ver
+                  `AtletaBaseRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio,
+                  que é o caso normal pra qualquer cadastro feito depois do endereço estruturado. */}
+              {atleta.endereco_atual ? (
+                <div className="sm:col-span-2">
+                  <DetailField label="Endereço atual (cadastro antigo)" value={atleta.endereco_atual} />
+                </div>
+              ) : null}
+              <DetailField label="Logradouro" value={atleta.logradouro} />
+              <DetailField label="Número" value={atleta.numero} />
+              <DetailField label="Complemento" value={atleta.complemento} />
+              <DetailField label="Bairro" value={atleta.bairro} />
+              <DetailField label="Cidade" value={atleta.cidade} />
+              <DetailField label="UF" value={atleta.uf} />
+              <DetailField label="CEP" value={atleta.cep} />
+            </FieldGroup>
+          </div>
 
           <div className="mt-4">
-            <p className="field-label">Endereço de origem</p>
+            <p className="field-label">Origem</p>
             <FieldGroup>
               <DetailField label="Logradouro" value={atleta.origem_logradouro} />
               <DetailField label="Número" value={atleta.origem_numero} />
@@ -191,6 +194,20 @@ export default async function VerAtletaBasePage({
               <DetailField label="Cidade" value={atleta.origem_cidade} />
               <DetailField label="UF" value={atleta.origem_uf} />
               <DetailField label="CEP" value={atleta.origem_cep} />
+            </FieldGroup>
+          </div>
+        </FormSection>
+
+        <FormSection title="Responsáveis e contato de emergência">
+          <div>
+            <p className="field-label">Responsáveis</p>
+            <FieldGroup>
+              <DetailField label="Nome da mãe" value={atleta.mae_nome} />
+              <DetailField label="Telefone da mãe" value={atleta.mae_telefone} />
+              <DetailField label="Email da mãe" value={atleta.email_mae} />
+              <DetailField label="Nome do pai" value={atleta.pai_nome} />
+              <DetailField label="Telefone do pai" value={atleta.pai_telefone} />
+              <DetailField label="Email do pai" value={atleta.email_pai} />
             </FieldGroup>
           </div>
 
