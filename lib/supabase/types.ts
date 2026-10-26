@@ -630,6 +630,14 @@ export interface SumulaRow {
    * `lib/futebol/estatisticas-atleta-query.ts` usa o mesmo select parametrizado pros dois
    * departamentos (ver `SumulaBaseRow.duracao_terceiro_tempo`). */
   duracao_terceiro_tempo: number | null;
+  /** Acréscimo (tempo extra/compensação) de cada tempo, à parte da duração regulamentar — somado
+   * só pro cálculo do relógio do jogo (fim de jogo, minutagem de cada atleta), nunca sobrescreve
+   * `duracao_primeiro_tempo` etc. Default 0 (nenhum acréscimo lançado). Ver
+   * 0147_sumula_acrescimo.sql e `lib/futebol/estatisticas-atleta.ts`. */
+  acrescimo_primeiro_tempo: number;
+  acrescimo_segundo_tempo: number;
+  /** Sempre 0 no Profissional (só existe pela mesma razão de `duracao_terceiro_tempo` acima). */
+  acrescimo_terceiro_tempo: number;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1035,6 +1043,11 @@ export interface SumulaBaseRow {
    * docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md). Null em todos os
    * outros jogos da Base, exatamente como nos de 2 tempos de sempre. */
   duracao_terceiro_tempo: number | null;
+  /** Ver comentário de `SumulaRow.acrescimo_primeiro_tempo` — mesmas 3 colunas, ver
+   * 0147_sumula_acrescimo.sql. */
+  acrescimo_primeiro_tempo: number;
+  acrescimo_segundo_tempo: number;
+  acrescimo_terceiro_tempo: number;
   created_by: string | null;
   created_at: string;
   updated_at: string;

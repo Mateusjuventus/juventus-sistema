@@ -26,6 +26,8 @@ export function DadosJogoForm({
   golsContra,
   duracaoPrimeiroTempo,
   duracaoSegundoTempo,
+  acrescimoPrimeiroTempo,
+  acrescimoSegundoTempo,
   nomeMandante,
   nomeVisitante,
 }: {
@@ -35,6 +37,11 @@ export function DadosJogoForm({
   golsContra: number | null;
   duracaoPrimeiroTempo: number;
   duracaoSegundoTempo: number;
+  /** Acréscimo (tempo extra/compensação) de cada tempo, à parte da duração acima — soma só no
+   * cálculo do relógio do jogo (fim de jogo, minutagem de cada atleta). Ver
+   * 0147_sumula_acrescimo.sql. Default 0 (nenhum acréscimo lançado ainda). */
+  acrescimoPrimeiroTempo: number;
+  acrescimoSegundoTempo: number;
   nomeMandante: string;
   nomeVisitante: string;
 }) {
@@ -49,7 +56,7 @@ export function DadosJogoForm({
       // usuário via a súmula importar certo mas o placar/duração aqui em cima continuavam com o
       // valor antigo até dar F5. A `key` abaixo muda junto com os valores; quando muda, o React
       // desmonta e remonta o formulário do zero, e aí sim o `defaultValue` novo entra em vigor.
-      key={`${golsPro}-${golsContra}-${duracaoPrimeiroTempo}-${duracaoSegundoTempo}`}
+      key={`${golsPro}-${golsContra}-${duracaoPrimeiroTempo}-${duracaoSegundoTempo}-${acrescimoPrimeiroTempo}-${acrescimoSegundoTempo}`}
       action={formAction}
       className="card flex flex-wrap items-end gap-4 p-4"
     >
@@ -99,6 +106,33 @@ export function DadosJogoForm({
             min={1}
             required
             defaultValue={duracaoSegundoTempo}
+            className="field-input w-20"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-end gap-2">
+        <div>
+          <label className="field-label" title="Tempo extra/compensação jogado no 1º tempo — some à duração acima só pra calcular o fim de jogo e a minutagem de cada atleta.">
+            Acréscimo 1º Tempo (min)
+          </label>
+          <input
+            type="number"
+            name="acrescimoPrimeiroTempo"
+            min={0}
+            defaultValue={acrescimoPrimeiroTempo}
+            className="field-input w-20"
+          />
+        </div>
+        <div>
+          <label className="field-label" title="Tempo extra/compensação jogado no 2º tempo — some à duração acima só pra calcular o fim de jogo e a minutagem de cada atleta.">
+            Acréscimo 2º Tempo (min)
+          </label>
+          <input
+            type="number"
+            name="acrescimoSegundoTempo"
+            min={0}
+            defaultValue={acrescimoSegundoTempo}
             className="field-input w-20"
           />
         </div>

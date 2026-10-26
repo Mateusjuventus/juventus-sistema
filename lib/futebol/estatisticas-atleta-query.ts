@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   calcularEstatisticasAtleta,
+  duracaoReferenciaEstatisticas,
   type EstatisticasAtleta,
   type EventoParaEstatistica,
   type JogoParaEstatistica,
@@ -41,6 +42,11 @@ export interface ResultadoEstatisticasAtleta {
    * quem quiser listar jogo a jogo além do agregado (a spec não pede isso na tela, mas o PDF pode
    * reaproveitar). */
   jogos: JogoParaEstatistica[];
+  /** Duração "de referência" (ver `duracaoReferenciaEstatisticas`) pra montar os rótulos dinâmicos
+   * "+Xmin"/"jogo completo" na tela e no PDF — varia por categoria (ex: 45/90 no padrão, 40/80 no
+   * Sub-17). Ver 0147_sumula_acrescimo.sql e docs/superpowers/specs/2026-10-21-competicoes-
+   * formato-partida-design.md. */
+  duracaoReferencia: { primeiroTempo: number; total: number };
 }
 
 export async function buscarEstatisticasAtleta(
@@ -64,7 +70,12 @@ export async function buscarEstatisticasAtleta(
   const jogoIds = jogosFiltrados.map((j) => j.id);
 
   if (jogoIds.length === 0) {
-    return { stats: calcularEstatisticasAtleta(atletaId, []), competicoesDisponiveis, jogos: [] };
+    return {
+      stats: calcularEstatisticasAtleta(atletaId, []),
+      competicoesDisponiveis,
+      jogos: [],
+      duracaoReferencia: duracaoReferenciaEstatisticas([]),
+    };
   }
 
   const { data: convocacoesData } = await supabase
@@ -95,7 +106,9 @@ export async function buscarEstatisticasAtleta(
 
   const { data: sumulasData } = await supabase
     .from(tabelas.sumulas)
-    .select("id, jogo_id, duracao_primeiro_tempo, duracao_segundo_tempo, duracao_terceiro_tempo")
+    .select(
+      "id, jogo_id, duracao_primeiro_tempo, duracao_segundo_tempo, duracao_terceiro_tempo, acrescimo_primeiro_tempo, acrescimo_segundo_tempo, acrescimo_terceiro_tempo",
+    )
     .in("jogo_id", jogoIds);
   const sumulas = (sumulasData ?? []) as {
     id: string;
@@ -103,6 +116,9 @@ export async function buscarEstatisticasAtleta(
     duracao_primeiro_tempo: number;
     duracao_segundo_tempo: number;
     duracao_terceiro_tempo: number | null;
+    acrescimo_primeiro_tempo: number | null;
+    acrescimo_segundo_tempo: number | null;
+    acrescimo_terceiro_tempo: number | null;
   }[];
   const sumulaPorJogoId = new Map(sumulas.map((s) => [s.jogo_id, s]));
   const sumulaIds = sumulas.map((s) => s.id);
@@ -147,9 +163,17 @@ export async function buscarEstatisticasAtleta(
         duracaoPrimeiroTempo: sumula?.duracao_primeiro_tempo ?? null,
         duracaoSegundoTempo: sumula?.duracao_segundo_tempo ?? null,
         duracaoTerceiroTempo: sumula?.duracao_terceiro_tempo ?? null,
+        acrescimoPrimeiroTempo: sumula?.acrescimo_primeiro_tempo ?? 0,
+        acrescimoSegundoTempo: sumula?.acrescimo_segundo_tempo ?? 0,
+        acrescimoTerceiroTempo: sumula?.acrescimo_terceiro_tempo ?? 0,
         eventos: sumula ? eventosPorSumulaId.get(sumula.id) ?? [] : [],
       };
     });
 
-  return { stats: calcularEstatisticasAtleta(atletaId, jogos), competicoesDisponiveis, jogos };
+  return {
+    stats: calcularEstatisticasAtleta(atletaId, jogos),
+    competicoesDisponiveis,
+    jogos,
+    duracaoReferencia: duracaoReferenciaEstatisticas(jogos),
+  };
 }

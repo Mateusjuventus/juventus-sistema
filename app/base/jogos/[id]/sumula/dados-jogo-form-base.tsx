@@ -26,6 +26,9 @@ export function DadosJogoFormBase({
   duracaoSegundoTempo,
   duracaoTerceiroTempo,
   temTerceiroTempo,
+  acrescimoPrimeiroTempo,
+  acrescimoSegundoTempo,
+  acrescimoTerceiroTempo,
   nomeMandante,
   nomeVisitante,
 }: {
@@ -45,6 +48,11 @@ export function DadosJogoFormBase({
   duracaoTerceiroTempo?: number | null;
   /** Mostra (e exige) o campo "3º Tempo (min)" — false em todo o resto dos jogos. */
   temTerceiroTempo?: boolean;
+  /** Acréscimo (tempo extra/compensação) de cada tempo, à parte da duração regulamentar acima —
+   * ver 0147_sumula_acrescimo.sql. Default 0 (nenhum acréscimo lançado ainda). */
+  acrescimoPrimeiroTempo: number;
+  acrescimoSegundoTempo: number;
+  acrescimoTerceiroTempo?: number;
   nomeMandante: string;
   nomeVisitante: string;
 }) {
@@ -136,6 +144,47 @@ export function DadosJogoFormBase({
               min={1}
               required
               defaultValue={duracaoTerceiroTempo ?? ""}
+              className="field-input w-20"
+            />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex items-end gap-2">
+        <div>
+          <label className="field-label" title="Tempo extra/compensação jogado no 1º tempo — some à duração acima só pra calcular o fim de jogo e a minutagem de cada atleta.">
+            Acréscimo 1º Tempo (min)
+          </label>
+          <input
+            type="number"
+            name="acrescimoPrimeiroTempo"
+            min={0}
+            defaultValue={acrescimoPrimeiroTempo}
+            className="field-input w-20"
+          />
+        </div>
+        <div>
+          <label className="field-label" title="Tempo extra/compensação jogado no 2º tempo — some à duração acima só pra calcular o fim de jogo e a minutagem de cada atleta.">
+            Acréscimo 2º Tempo (min)
+          </label>
+          <input
+            type="number"
+            name="acrescimoSegundoTempo"
+            min={0}
+            defaultValue={acrescimoSegundoTempo}
+            className="field-input w-20"
+          />
+        </div>
+        {temTerceiroTempo ? (
+          <div>
+            <label className="field-label" title="Tempo extra/compensação jogado no 3º tempo — some à duração acima só pra calcular o fim de jogo e a minutagem de cada atleta.">
+              Acréscimo 3º Tempo (min)
+            </label>
+            <input
+              type="number"
+              name="acrescimoTerceiroTempo"
+              min={0}
+              defaultValue={acrescimoTerceiroTempo ?? 0}
               className="field-input w-20"
             />
           </div>

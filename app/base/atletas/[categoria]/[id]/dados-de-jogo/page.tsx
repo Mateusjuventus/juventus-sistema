@@ -46,7 +46,7 @@ export default async function DadosDeJogoAtletaBasePage({
     ate: searchParams.ate || undefined,
     competicao: searchParams.competicao || undefined,
   };
-  const { stats, competicoesDisponiveis } = await buscarEstatisticasAtleta(
+  const { stats, competicoesDisponiveis, duracaoReferencia } = await buscarEstatisticasAtleta(
     supabase,
     atleta.id,
     TABELAS,
@@ -112,8 +112,8 @@ export default async function DadosDeJogoAtletaBasePage({
         <StatCard label="Cartões Amarelos" valor={stats.cartoesAmarelos} destaque="text-amber-600" />
         <StatCard label="Cartões Vermelhos" valor={stats.cartoesVermelhos} destaque="text-red-700" />
         <StatCard label="Minutos totais" valor={stats.minutosTotais} />
-        <StatCard label="Jogos com +60min" valor={stats.jogosMais60min} />
-        <StatCard label="Jogos com +90min" valor={stats.jogosMais90min} />
+        <StatCard label={`Jogos com +${duracaoReferencia.primeiroTempo}min`} valor={stats.jogosMaisUmTempo} />
+        <StatCard label={`Jogo completo (${duracaoReferencia.total}min)`} valor={stats.jogosJogoCompleto} />
       </section>
 
       <section className="card mt-4 p-4">

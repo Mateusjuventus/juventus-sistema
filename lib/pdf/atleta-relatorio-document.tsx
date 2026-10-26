@@ -77,8 +77,16 @@ export interface AtletaRelatorioEstatisticas {
   cartoesAmarelos: number;
   cartoesVermelhos: number;
   minutosTotais: number;
-  jogosMais60min: number;
-  jogosMais90min: number;
+  jogosMaisUmTempo: number;
+  jogosJogoCompleto: number;
+}
+
+/** Duração "de referência" pra montar os rótulos dinâmicos (ex: "+45min"/"Jogo completo (90min)"
+ * no padrão, "+40min"/"Jogo completo (80min)" no Sub-17) — ver
+ * `lib/futebol/estatisticas-atleta.ts` (`duracaoReferenciaEstatisticas`). */
+export interface AtletaRelatorioDuracaoReferencia {
+  primeiroTempo: number;
+  total: number;
 }
 
 export interface AtletaRelatorioDadosPessoais {
@@ -100,6 +108,7 @@ export function AtletaRelatorioDocument({
   subtitulo,
   periodoTexto,
   stats,
+  duracaoReferencia,
   dadosPessoais,
 }: {
   juventusLogoSrc: LogoSrc;
@@ -108,6 +117,7 @@ export function AtletaRelatorioDocument({
   subtitulo: string;
   periodoTexto: string;
   stats: AtletaRelatorioEstatisticas;
+  duracaoReferencia: AtletaRelatorioDuracaoReferencia;
   dadosPessoais: AtletaRelatorioDadosPessoais | null;
 }) {
   return (
@@ -149,8 +159,8 @@ export function AtletaRelatorioDocument({
         <Text style={styles.secaoTitulo}>Minutagem</Text>
         <View style={styles.statRow}>
           <StatBox label="Minutos totais" valor={stats.minutosTotais} />
-          <StatBox label="Jogos com +60min" valor={stats.jogosMais60min} />
-          <StatBox label="Jogos com +90min" valor={stats.jogosMais90min} />
+          <StatBox label={`Jogos com +${duracaoReferencia.primeiroTempo}min`} valor={stats.jogosMaisUmTempo} />
+          <StatBox label={`Jogo completo (${duracaoReferencia.total}min)`} valor={stats.jogosJogoCompleto} />
         </View>
 
         {dadosPessoais ? (

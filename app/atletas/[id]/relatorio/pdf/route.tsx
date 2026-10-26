@@ -43,7 +43,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
-  const { stats } = await buscarEstatisticasAtleta(supabase, atleta.id, TABELAS, { de, ate, competicao });
+  const { stats, duracaoReferencia } = await buscarEstatisticasAtleta(supabase, atleta.id, TABELAS, {
+    de,
+    ate,
+    competicao,
+  });
 
   const periodoPartes = [
     de || ate ? `Período: ${de ? formatDataBr(de) : "início"} até ${ate ? formatDataBr(ate) : "hoje"}` : "Histórico completo",
@@ -78,6 +82,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       subtitulo={subtitulo}
       periodoTexto={periodoTexto}
       stats={stats}
+      duracaoReferencia={duracaoReferencia}
       dadosPessoais={dadosPessoais}
     />,
   );

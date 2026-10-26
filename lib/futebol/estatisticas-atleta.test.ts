@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   calcularEstatisticasAtleta,
+  calcularMinutoAbsoluto,
   calcularMinutosJogados,
+  duracaoReferenciaEstatisticas,
   type EventoParaEstatistica,
   type JogoParaEstatistica,
 } from "./estatisticas-atleta";
@@ -87,6 +89,29 @@ describe("calcularMinutosJogados", () => {
     ];
     expect(calcularMinutosJogados(ATLETA, "titular", 45, 45, eventos)).toBe(90);
   });
+
+  it("acréscimo lançado soma no fim de jogo: titular que joga o jogo inteiro conta o acréscimo (ver 0147_sumula_acrescimo.sql)", () => {
+    // 45 (1T) + 2 (acréscimo 1T) + 45 (2T) + 3 (acréscimo 2T) = 95
+    expect(calcularMinutosJogados(ATLETA, "titular", 45, 45, [], null, 2, 3)).toBe(95);
+  });
+
+  it("acréscimo desloca o relógio do 2º tempo pra substituições lançadas nele", () => {
+    const eventos = [
+      evento({ tipo: "substituicao", tempo: "segundo", minuto: 10, atletaId: ATLETA, atletaEntrouId: OUTRO_ATLETA }),
+    ];
+    // 1T (45) + acréscimo do 1T (2) + 10 do 2T = 57
+    expect(calcularMinutosJogados(ATLETA, "titular", 45, 45, eventos, null, 2)).toBe(57);
+  });
+});
+
+describe("calcularMinutoAbsoluto com acréscimo", () => {
+  it("sem acréscimo informado, se comporta exatamente como antes", () => {
+    expect(calcularMinutoAbsoluto("segundo", 10, 45)).toBe(55);
+  });
+
+  it("acréscimo do 1º tempo desloca o relógio do 2º tempo", () => {
+    expect(calcularMinutoAbsoluto("segundo", 10, 45, undefined, 3)).toBe(58);
+  });
 });
 
 describe("calcularEstatisticasAtleta", () => {
@@ -157,7 +182,64 @@ describe("calcularEstatisticasAtleta", () => {
     expect(stats.cartoesVermelhos).toBe(0);
     // jogo-1: 90min, jogo-2: 0min, jogo-3: 20min, jogo-4: 0min, jogo-5: 0min (sem súmula)
     expect(stats.minutosTotais).toBe(110);
-    expect(stats.jogosMais60min).toBe(1); // só o jogo-1 (90min)
-    expect(stats.jogosMais90min).toBe(0); // jogo-1 tem exatamente 90min — "mais de 90" exige >90, não ≥90
+    expect(stats.jogosMaisUmTempo).toBe(1); // só o jogo-1 (90min > 45min de um tempo)
+    // jogo-1 tem EXATAMENTE 90min (45+45, sem acréscimo lançado) — antes exigia `>90` e nunca
+    // contava um jogo completo sem acréscimo (bug real corrigido em 0147_sumula_acrescimo.sql);
+    // agora usa `>=`, então conta.
+    expect(stats.jogosJogoCompleto).toBe(1);
+  });
+
+  it("acréscimo lançado soma na minutagem real e o limiar de jogo completo usa a duração regulamentar (sem acréscimo)", () => {
+    const jogos: JogoParaEstatistica[] = [
+      {
+        // Titular, jogo inteiro, COM 3min de acréscimo no 2º tempo — minutagem real 93, mas o
+        // limiar de "jogo completo" compara com a duração regulamentar (90), não com 93.
+        jogoId: "jogo-1",
+        statusConvocacao: "titular",
+        duracaoPrimeiroTempo: 45,
+        duracaoSegundoTempo: 45,
+        acrescimoSegundoTempo: 3,
+        eventos: [],
+      },
+    ];
+    const stats = calcularEstatisticasAtleta(ATLETA, jogos);
+    expect(stats.minutosTotais).toBe(93);
+    expect(stats.jogosJogoCompleto).toBe(1);
+    expect(stats.jogosMaisUmTempo).toBe(1);
+  });
+
+  it("categoria com duração diferente do padrão (ex: Sub-17, 40min por tempo) usa a duração daquele jogo, não 45/90 fixos", () => {
+    const jogos: JogoParaEstatistica[] = [
+      {
+        // Substituído aos 35' absolutos do 1º tempo — não chega a jogar 1 tempo inteiro de 40min.
+        jogoId: "jogo-1",
+        statusConvocacao: "titular",
+        duracaoPrimeiroTempo: 40,
+        duracaoSegundoTempo: 40,
+        eventos: [
+          evento({ tipo: "substituicao", tempo: "primeiro", minuto: 35, atletaId: ATLETA, atletaEntrouId: OUTRO_ATLETA }),
+        ],
+      },
+    ];
+    const stats = calcularEstatisticasAtleta(ATLETA, jogos);
+    expect(stats.minutosTotais).toBe(35);
+    expect(stats.jogosMaisUmTempo).toBe(0); // 35 < 40 (duração do tempo nesta categoria)
+    expect(stats.jogosJogoCompleto).toBe(0);
+  });
+});
+
+describe("duracaoReferenciaEstatisticas", () => {
+  it("sem nenhum jogo com súmula salva, usa o padrão histórico 45/90", () => {
+    const jogos: JogoParaEstatistica[] = [
+      { jogoId: "jogo-1", statusConvocacao: "titular", duracaoPrimeiroTempo: null, duracaoSegundoTempo: null, eventos: [] },
+    ];
+    expect(duracaoReferenciaEstatisticas(jogos)).toEqual({ primeiroTempo: 45, total: 90 });
+  });
+
+  it("usa a duração regulamentar do primeiro jogo com súmula salva (ex: Sub-17, 40min por tempo)", () => {
+    const jogos: JogoParaEstatistica[] = [
+      { jogoId: "jogo-1", statusConvocacao: "titular", duracaoPrimeiroTempo: 40, duracaoSegundoTempo: 40, eventos: [] },
+    ];
+    expect(duracaoReferenciaEstatisticas(jogos)).toEqual({ primeiroTempo: 40, total: 80 });
   });
 });

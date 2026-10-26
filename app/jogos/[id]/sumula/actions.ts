@@ -26,11 +26,21 @@ export async function salvarDadosJogo(
   const golsContraRaw = String(formData.get("golsContra") ?? "").trim();
   const duracaoPrimeiroRaw = String(formData.get("duracaoPrimeiroTempo") ?? "").trim();
   const duracaoSegundoRaw = String(formData.get("duracaoSegundoTempo") ?? "").trim();
+  // Acréscimo (tempo extra/compensação) de cada tempo, à parte da duração acima — ver
+  // 0147_sumula_acrescimo.sql. Em branco conta como 0 (nenhum acréscimo), nunca obrigatório.
+  const acrescimoPrimeiroRaw = String(formData.get("acrescimoPrimeiroTempo") ?? "").trim();
+  const acrescimoSegundoRaw = String(formData.get("acrescimoSegundoTempo") ?? "").trim();
 
   const duracaoPrimeiro = Number(duracaoPrimeiroRaw);
   const duracaoSegundo = Number(duracaoSegundoRaw);
   if (!duracaoPrimeiroRaw || !duracaoSegundoRaw || Number.isNaN(duracaoPrimeiro) || Number.isNaN(duracaoSegundo)) {
     return { error: "Preencha a duração dos dois tempos." };
+  }
+
+  const acrescimoPrimeiro = acrescimoPrimeiroRaw ? Number(acrescimoPrimeiroRaw) : 0;
+  const acrescimoSegundo = acrescimoSegundoRaw ? Number(acrescimoSegundoRaw) : 0;
+  if (Number.isNaN(acrescimoPrimeiro) || Number.isNaN(acrescimoSegundo) || acrescimoPrimeiro < 0 || acrescimoSegundo < 0) {
+    return { error: "Acréscimo inválido." };
   }
 
   const golsPro = golsProRaw ? Number(golsProRaw) : null;
@@ -48,6 +58,8 @@ export async function salvarDadosJogo(
         jogo_id: jogoId,
         duracao_primeiro_tempo: duracaoPrimeiro,
         duracao_segundo_tempo: duracaoSegundo,
+        acrescimo_primeiro_tempo: acrescimoPrimeiro,
+        acrescimo_segundo_tempo: acrescimoSegundo,
       },
       { onConflict: "jogo_id" },
     ),

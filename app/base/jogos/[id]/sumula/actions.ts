@@ -28,6 +28,11 @@ export async function salvarDadosJogoBase(
   // docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md) — ausente/branco em
   // todo o resto dos jogos, que continuam com só 2 tempos.
   const duracaoTerceiroRaw = String(formData.get("duracaoTerceiroTempo") ?? "").trim();
+  // Acréscimo (tempo extra/compensação) de cada tempo, à parte da duração acima — ver
+  // 0147_sumula_acrescimo.sql. Em branco conta como 0 (nenhum acréscimo), nunca obrigatório.
+  const acrescimoPrimeiroRaw = String(formData.get("acrescimoPrimeiroTempo") ?? "").trim();
+  const acrescimoSegundoRaw = String(formData.get("acrescimoSegundoTempo") ?? "").trim();
+  const acrescimoTerceiroRaw = String(formData.get("acrescimoTerceiroTempo") ?? "").trim();
 
   const duracaoPrimeiro = Number(duracaoPrimeiroRaw);
   const duracaoSegundo = Number(duracaoSegundoRaw);
@@ -38,6 +43,20 @@ export async function salvarDadosJogoBase(
   if (duracaoTerceiroRaw) {
     duracaoTerceiro = Number(duracaoTerceiroRaw);
     if (Number.isNaN(duracaoTerceiro)) return { error: "Duração do 3º tempo inválida." };
+  }
+
+  const acrescimoPrimeiro = acrescimoPrimeiroRaw ? Number(acrescimoPrimeiroRaw) : 0;
+  const acrescimoSegundo = acrescimoSegundoRaw ? Number(acrescimoSegundoRaw) : 0;
+  const acrescimoTerceiro = acrescimoTerceiroRaw ? Number(acrescimoTerceiroRaw) : 0;
+  if (
+    Number.isNaN(acrescimoPrimeiro) ||
+    Number.isNaN(acrescimoSegundo) ||
+    Number.isNaN(acrescimoTerceiro) ||
+    acrescimoPrimeiro < 0 ||
+    acrescimoSegundo < 0 ||
+    acrescimoTerceiro < 0
+  ) {
+    return { error: "Acréscimo inválido." };
   }
 
   const golsPro = golsProRaw ? Number(golsProRaw) : null;
@@ -65,6 +84,9 @@ export async function salvarDadosJogoBase(
         duracao_primeiro_tempo: duracaoPrimeiro,
         duracao_segundo_tempo: duracaoSegundo,
         duracao_terceiro_tempo: duracaoTerceiro,
+        acrescimo_primeiro_tempo: acrescimoPrimeiro,
+        acrescimo_segundo_tempo: acrescimoSegundo,
+        acrescimo_terceiro_tempo: acrescimoTerceiro,
       },
       { onConflict: "jogo_id" },
     ),

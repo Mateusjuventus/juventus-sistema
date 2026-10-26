@@ -31,13 +31,24 @@ export interface EventoParaEstatistica {
  * — nesse caso a minutagem desse jogo é tratada como 0, mas ele continua contando na participação.
  * `duracaoTerceiroTempo` é opcional (campo novo, trailing, pra não quebrar quem já constrói este
  * objeto sem ele) e só é considerado quando presente e não-nulo — jogos de 2 tempos (todo o
- * Profissional, e a maioria da Base) simplesmente não o informam. */
+ * Profissional, e a maioria da Base) simplesmente não o informam.
+ *
+ * `acrescimoPrimeiroTempo`/`acrescimoSegundoTempo`/`acrescimoTerceiroTempo` (também opcionais,
+ * trailing, default 0 quando ausentes — ver 0147_sumula_acrescimo.sql) guardam o acréscimo de cada
+ * tempo À PARTE da duração regulamentar: somam no "relógio" do jogo (fim de jogo e minutagem de
+ * cada atleta) sem alterar `duracaoPrimeiroTempo` etc., que continuam representando só o tempo
+ * regulamentar — é esse valor regulamentar (sem acréscimo) que os limiares de "+1 tempo"/"jogo
+ * completo" usam em `calcularEstatisticasAtleta`, pra não depender de quem preenche a Súmula
+ * lembrar de somar o acréscimo manualmente na duração. */
 export interface JogoParaEstatistica {
   jogoId: string;
   statusConvocacao: StatusConvocacaoJogo;
   duracaoPrimeiroTempo: number | null;
   duracaoSegundoTempo: number | null;
   duracaoTerceiroTempo?: number | null;
+  acrescimoPrimeiroTempo?: number | null;
+  acrescimoSegundoTempo?: number | null;
+  acrescimoTerceiroTempo?: number | null;
   eventos: EventoParaEstatistica[];
 }
 
@@ -50,14 +61,27 @@ export interface EstatisticasAtleta {
   cartoesAmarelos: number;
   cartoesVermelhos: number;
   minutosTotais: number;
-  jogosMais60min: number;
-  jogosMais90min: number;
+  /** Jogos em que o atleta jogou mais minutos do que a duração regulamentar de um único tempo (ver
+   * `duracaoReferenciaEstatisticas` pra saber que número mostrar no rótulo "+Xmin" — varia por
+   * categoria, ex: 45min no padrão, 40min no Sub-17). Chamava `jogosMais60min` antes de existir
+   * duração por categoria. */
+  jogosMaisUmTempo: number;
+  /** Jogos em que o atleta jogou a duração regulamentar inteira (ou mais) — usa `>=`, não `>`,
+   * de propósito: um atleta que joga o jogo inteiro sem nenhuma substituição e sem acréscimo
+   * lançado tem minutagem EXATAMENTE igual à duração total, e isso sempre deveria contar como jogo
+   * completo (bug corrigido aqui — antes, com `>`, nunca contava). Chamava `jogosMais90min` antes. */
+  jogosJogoCompleto: number;
 }
 
 /** Converte um minuto "relativo ao próprio tempo" (ex: 34 = 34º minuto do 2º tempo, do jeito que
  * lançamos manualmente na Súmula) pro "relógio" do jogo inteiro (ex: 79, se o 1º tempo durou 45)
  * — o 2º tempo continua contando a partir de onde o 1º parou. Exportada porque também é usada só
- * pra exibição (ver `LinhaEvento` na aba Súmula), não só no cálculo de estatísticas. */
+ * pra exibição (ver `LinhaEvento` na aba Súmula), não só no cálculo de estatísticas.
+ *
+ * `acrescimoPrimeiroTempo`/`acrescimoSegundoTempo` (opcionais, trailing, default 0) deslocam esse
+ * relógio quando o tempo anterior teve acréscimo lançado — ver comentário de
+ * `JogoParaEstatistica.acrescimoPrimeiroTempo`. Quem já chama esta função sem passar acréscimo
+ * continua funcionando exatamente como antes (acréscimo 0). */
 export function calcularMinutoAbsoluto(
   tempo: "primeiro" | "segundo" | "terceiro",
   minuto: number,
@@ -66,18 +90,29 @@ export function calcularMinutoAbsoluto(
    * `JogoParaEstatistica.duracaoTerceiroTempo`); trailing e opcional pra não exigir mudança nos
    * chamadores existentes, que só lidam com 1º/2º tempo. */
   duracaoSegundoTempo?: number,
+  acrescimoPrimeiroTempo = 0,
+  acrescimoSegundoTempo = 0,
 ): number {
   if (tempo === "primeiro") return minuto;
-  if (tempo === "segundo") return duracaoPrimeiroTempo + minuto;
-  return duracaoPrimeiroTempo + (duracaoSegundoTempo ?? 0) + minuto;
+  if (tempo === "segundo") return duracaoPrimeiroTempo + acrescimoPrimeiroTempo + minuto;
+  return duracaoPrimeiroTempo + acrescimoPrimeiroTempo + (duracaoSegundoTempo ?? 0) + acrescimoSegundoTempo + minuto;
 }
 
 function minutoAbsoluto(
   evento: EventoParaEstatistica,
   duracaoPrimeiroTempo: number,
   duracaoSegundoTempo?: number,
+  acrescimoPrimeiroTempo = 0,
+  acrescimoSegundoTempo = 0,
 ): number {
-  return calcularMinutoAbsoluto(evento.tempo, evento.minuto, duracaoPrimeiroTempo, duracaoSegundoTempo);
+  return calcularMinutoAbsoluto(
+    evento.tempo,
+    evento.minuto,
+    duracaoPrimeiroTempo,
+    duracaoSegundoTempo,
+    acrescimoPrimeiroTempo,
+    acrescimoSegundoTempo,
+  );
 }
 
 /**
@@ -88,6 +123,11 @@ function minutoAbsoluto(
  * - Reserva: 0 minutos se não há evento de substituição com ele entrando; senão começa no minuto
  *   da entrada e termina igual ao titular (substituição saindo depois, cartão vermelho, ou fim de
  *   jogo).
+ *
+ * O "fim de jogo" soma a duração regulamentar de cada tempo MAIS o acréscimo lançado nele (ver
+ * `acrescimoPrimeiroTempo`/`acrescimoSegundoTempo`/`acrescimoTerceiroTempo`, todos opcionais e
+ * default 0) — assim um atleta que joga até o fim de um tempo com acréscimo é contado corretamente
+ * até o minuto real em que o tempo terminou, não só até a duração regulamentar.
  */
 export function calcularMinutosJogados(
   atletaId: string,
@@ -100,12 +140,22 @@ export function calcularMinutosJogados(
    * quando o jogo pertence a uma competição com `numero_tempos = 3` (ver
    * docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md). */
   duracaoTerceiroTempo: number | null = null,
+  acrescimoPrimeiroTempo = 0,
+  acrescimoSegundoTempo = 0,
+  acrescimoTerceiroTempo = 0,
 ): number {
   if (statusConvocacao === "nao_convocado") return 0;
   if (duracaoPrimeiroTempo == null || duracaoSegundoTempo == null) return 0;
 
-  const fimDoJogo = duracaoPrimeiroTempo + duracaoSegundoTempo + (duracaoTerceiroTempo ?? 0);
-  const abs = (e: EventoParaEstatistica) => minutoAbsoluto(e, duracaoPrimeiroTempo, duracaoSegundoTempo);
+  const fimDoJogo =
+    duracaoPrimeiroTempo +
+    acrescimoPrimeiroTempo +
+    duracaoSegundoTempo +
+    acrescimoSegundoTempo +
+    (duracaoTerceiroTempo ?? 0) +
+    acrescimoTerceiroTempo;
+  const abs = (e: EventoParaEstatistica) =>
+    minutoAbsoluto(e, duracaoPrimeiroTempo, duracaoSegundoTempo, acrescimoPrimeiroTempo, acrescimoSegundoTempo);
   const ordenados = [...eventos].sort((a, b) => abs(a) - abs(b) || a.ordem - b.ordem);
 
   let minutoInicio = 0;
@@ -126,6 +176,26 @@ export function calcularMinutosJogados(
   return Math.max(0, minutoFim - minutoInicio);
 }
 
+/** Duração "de referência" a mostrar nos rótulos "+Xmin"/"jogo completo" (ex: "+45min" no padrão,
+ * "+40min" no Sub-17) — pega a duração regulamentar do primeiro jogo do universo que já tem Súmula
+ * salva (todos os jogos de um atleta normalmente pertencem à mesma categoria/competição, então
+ * praticamente sempre têm a mesma duração; quando não há nenhum jogo com Súmula, cai no padrão
+ * histórico de 45×45 = 90). Deliberadamente não tenta resolver o caso raro de um atleta com jogos
+ * de categorias/competições com durações diferentes no mesmo período filtrado — mostra a duração do
+ * primeiro desses jogos, e cada jogo individualmente já é avaliado com a SUA própria duração em
+ * `calcularEstatisticasAtleta` (os contadores agregados sempre ficam corretos; só o rótulo é uma
+ * referência aproximada quando há mistura). */
+export function duracaoReferenciaEstatisticas(jogos: JogoParaEstatistica[]): {
+  primeiroTempo: number;
+  total: number;
+} {
+  const comSumula = jogos.find((j) => j.duracaoPrimeiroTempo != null && j.duracaoSegundoTempo != null);
+  if (!comSumula) return { primeiroTempo: 45, total: 90 };
+  const total =
+    (comSumula.duracaoPrimeiroTempo ?? 0) + (comSumula.duracaoSegundoTempo ?? 0) + (comSumula.duracaoTerceiroTempo ?? 0);
+  return { primeiroTempo: comSumula.duracaoPrimeiroTempo ?? 45, total };
+}
+
 /** Agrega participação, contadores e minutagem de um atleta ao longo de vários jogos (o universo
  * já filtrado por período/competição e restrito a jogos com Convocação salva — ver a spec). */
 export function calcularEstatisticasAtleta(
@@ -141,8 +211,8 @@ export function calcularEstatisticasAtleta(
     cartoesAmarelos: 0,
     cartoesVermelhos: 0,
     minutosTotais: 0,
-    jogosMais60min: 0,
-    jogosMais90min: 0,
+    jogosMaisUmTempo: 0,
+    jogosJogoCompleto: 0,
   };
 
   for (const jogo of jogos) {
@@ -164,10 +234,21 @@ export function calcularEstatisticasAtleta(
       jogo.duracaoSegundoTempo,
       jogo.eventos,
       jogo.duracaoTerceiroTempo ?? null,
+      jogo.acrescimoPrimeiroTempo ?? 0,
+      jogo.acrescimoSegundoTempo ?? 0,
+      jogo.acrescimoTerceiroTempo ?? 0,
     );
     stats.minutosTotais += minutos;
-    if (minutos > 60) stats.jogosMais60min += 1;
-    if (minutos > 90) stats.jogosMais90min += 1;
+
+    // Limiares calculados com a duração REGULAMENTAR (sem acréscimo) deste jogo específico — cada
+    // jogo pode ter uma duração diferente (categoria/competição diferentes), então não dá pra usar
+    // um número fixo (45/90) como antes.
+    if (jogo.duracaoPrimeiroTempo != null && minutos > jogo.duracaoPrimeiroTempo) stats.jogosMaisUmTempo += 1;
+    if (jogo.duracaoPrimeiroTempo != null && jogo.duracaoSegundoTempo != null) {
+      const duracaoTotalRegulamentar =
+        jogo.duracaoPrimeiroTempo + jogo.duracaoSegundoTempo + (jogo.duracaoTerceiroTempo ?? 0);
+      if (minutos >= duracaoTotalRegulamentar) stats.jogosJogoCompleto += 1;
+    }
   }
 
   return stats;

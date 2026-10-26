@@ -48,6 +48,8 @@ function LinhaEvento({
   atletasMap,
   duracaoPrimeiroTempo,
   duracaoSegundoTempo,
+  acrescimoPrimeiroTempo,
+  acrescimoSegundoTempo,
 }: {
   evento: SumulaEventoBaseRow;
   atletasMap: Map<string, AtletaBaseRow>;
@@ -55,11 +57,22 @@ function LinhaEvento({
   /** Só precisa ser informado quando o jogo tem 3º tempo — usado pra deslocar o "relógio corrido"
    * de eventos do 3º tempo (ver `calcularMinutoAbsoluto`). */
   duracaoSegundoTempo?: number;
+  /** Acréscimo lançado em cada tempo (ver 0147_sumula_acrescimo.sql) — desloca o "relógio corrido"
+   * dos eventos do tempo seguinte, igual à duração regulamentar. */
+  acrescimoPrimeiroTempo?: number;
+  acrescimoSegundoTempo?: number;
 }) {
   const atleta = evento.atleta_id ? atletasMap.get(evento.atleta_id) : undefined;
   // Mostra o "relógio corrido" do jogo (ex: 79'), igual à súmula oficial — por baixo, guardamos
   // o minuto relativo ao início de cada tempo (ver lib/futebol/estatisticas-atleta.ts).
-  const minutoExibido = calcularMinutoAbsoluto(evento.tempo, evento.minuto, duracaoPrimeiroTempo, duracaoSegundoTempo);
+  const minutoExibido = calcularMinutoAbsoluto(
+    evento.tempo,
+    evento.minuto,
+    duracaoPrimeiroTempo,
+    duracaoSegundoTempo,
+    acrescimoPrimeiroTempo,
+    acrescimoSegundoTempo,
+  );
 
   let descricao: string;
   if (evento.tipo === "substituicao") {
@@ -106,6 +119,8 @@ function TempoSection({
   liberado,
   duracaoPrimeiroTempo,
   duracaoSegundoTempo,
+  acrescimoPrimeiroTempo,
+  acrescimoSegundoTempo,
 }: {
   label: string;
   tempo: "primeiro" | "segundo" | "terceiro";
@@ -118,6 +133,9 @@ function TempoSection({
   duracaoPrimeiroTempo: number;
   /** Ver `LinhaEvento.duracaoSegundoTempo` — só usado pra exibir o relógio corrido do 3º tempo. */
   duracaoSegundoTempo?: number;
+  /** Ver `LinhaEvento.acrescimoPrimeiroTempo`/`acrescimoSegundoTempo`. */
+  acrescimoPrimeiroTempo?: number;
+  acrescimoSegundoTempo?: number;
 }) {
   return (
     <section className="card p-4">
@@ -131,6 +149,8 @@ function TempoSection({
             atletasMap={atletasMap}
             duracaoPrimeiroTempo={duracaoPrimeiroTempo}
             duracaoSegundoTempo={duracaoSegundoTempo}
+            acrescimoPrimeiroTempo={acrescimoPrimeiroTempo}
+            acrescimoSegundoTempo={acrescimoSegundoTempo}
           />
         ))}
         {eventos.length === 0 ? (
@@ -195,6 +215,21 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   }
   const temTerceiroTempo = competicaoFormato?.numero_tempos === 3;
 
+  // Duração padrão de cada tempo quando a Súmula ainda não tem nada salvo — usa a duração
+  // configurada na competição vinculada (ex: Sub-17 = 40min, ver 0143_cadastro_formato_partida_
+  // sub15_sub17_sub20.sql) em vez de cair direto no 45 fixo do Profissional. Só os jogos SEM
+  // competição vinculada (ou vinculados a uma que não configurou duração — ex: Sub-20) continuam
+  // caindo no 45 padrão, exatamente como antes.
+  const duracaoPadraoPrimeiroTempo = competicaoFormato?.duracao_tempo_1_minutos ?? 45;
+  const duracaoPadraoSegundoTempo = competicaoFormato?.duracao_tempo_2_minutos ?? 45;
+  const duracaoPadraoTerceiroTempo = competicaoFormato?.duracao_tempo_3_minutos ?? undefined;
+
+  const duracaoPrimeiroTempoAtual = sumula?.duracao_primeiro_tempo ?? duracaoPadraoPrimeiroTempo;
+  const duracaoSegundoTempoAtual = sumula?.duracao_segundo_tempo ?? duracaoPadraoSegundoTempo;
+  const acrescimoPrimeiroTempoAtual = sumula?.acrescimo_primeiro_tempo ?? 0;
+  const acrescimoSegundoTempoAtual = sumula?.acrescimo_segundo_tempo ?? 0;
+  const acrescimoTerceiroTempoAtual = sumula?.acrescimo_terceiro_tempo ?? 0;
+
   let titulares: AtletaBaseRow[] = [];
   let reservasAtletas: AtletaBaseRow[] = [];
   if (convocacao) {
@@ -238,8 +273,8 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   // ainda). NUNCA bloqueiam o salvamento — ver a spec.
   let avisosFormatoPartida: string[] = [];
   if (competicaoFormato && convocacao) {
-    const duracaoPrimeiroTempo = sumula?.duracao_primeiro_tempo ?? 45;
-    const duracaoSegundoTempo = sumula?.duracao_segundo_tempo ?? 45;
+    const duracaoPrimeiroTempo = duracaoPrimeiroTempoAtual;
+    const duracaoSegundoTempo = duracaoSegundoTempoAtual;
     const duracaoTerceiroTempo = sumula?.duracao_terceiro_tempo ?? null;
     const eventosParaEstatistica: EventoParaEstatistica[] = eventos.map((e) => ({
       tipo: e.tipo,
@@ -260,6 +295,9 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
         duracaoSegundoTempo,
         eventosParaEstatistica,
         duracaoTerceiroTempo,
+        acrescimoPrimeiroTempoAtual,
+        acrescimoSegundoTempoAtual,
+        acrescimoTerceiroTempoAtual,
       ),
     }));
     avisosFormatoPartida = avisosFormatoPartidaBase(
@@ -295,10 +333,13 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
         golsContra={jogo.gols_contra}
         penaltisPro={jogo.penaltis_pro}
         penaltisContra={jogo.penaltis_contra}
-        duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
-        duracaoSegundoTempo={sumula?.duracao_segundo_tempo ?? 45}
-        duracaoTerceiroTempo={sumula?.duracao_terceiro_tempo}
+        duracaoPrimeiroTempo={duracaoPrimeiroTempoAtual}
+        duracaoSegundoTempo={duracaoSegundoTempoAtual}
+        duracaoTerceiroTempo={sumula?.duracao_terceiro_tempo ?? duracaoPadraoTerceiroTempo}
         temTerceiroTempo={temTerceiroTempo}
+        acrescimoPrimeiroTempo={acrescimoPrimeiroTempoAtual}
+        acrescimoSegundoTempo={acrescimoSegundoTempoAtual}
+        acrescimoTerceiroTempo={acrescimoTerceiroTempoAtual}
         nomeMandante={nomeMandante}
         nomeVisitante={nomeVisitante}
       />
@@ -381,7 +422,7 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
           convocados={convocadosOptions}
           reservas={reservasOptions}
           liberado={Boolean(convocacao)}
-          duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
+          duracaoPrimeiroTempo={duracaoPrimeiroTempoAtual}
         />
         <TempoSection
           label="Segundo Tempo"
@@ -392,7 +433,8 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
           convocados={convocadosOptions}
           reservas={reservasOptions}
           liberado={Boolean(convocacao)}
-          duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
+          duracaoPrimeiroTempo={duracaoPrimeiroTempoAtual}
+          acrescimoPrimeiroTempo={acrescimoPrimeiroTempoAtual}
         />
         {temTerceiroTempo ? (
           <TempoSection
@@ -404,8 +446,10 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
             convocados={convocadosOptions}
             reservas={reservasOptions}
             liberado={Boolean(convocacao)}
-            duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
-            duracaoSegundoTempo={sumula?.duracao_segundo_tempo ?? 45}
+            duracaoPrimeiroTempo={duracaoPrimeiroTempoAtual}
+            duracaoSegundoTempo={duracaoSegundoTempoAtual}
+            acrescimoPrimeiroTempo={acrescimoPrimeiroTempoAtual}
+            acrescimoSegundoTempo={acrescimoSegundoTempoAtual}
           />
         ) : null}
       </div>

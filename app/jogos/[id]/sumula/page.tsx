@@ -37,10 +37,14 @@ function LinhaEvento({
   evento,
   atletasMap,
   duracaoPrimeiroTempo,
+  acrescimoPrimeiroTempo,
 }: {
   evento: SumulaEventoRow;
   atletasMap: Map<string, AtletaRow>;
   duracaoPrimeiroTempo: number;
+  /** Acréscimo lançado no 1º tempo (ver 0147_sumula_acrescimo.sql) — desloca o "relógio corrido"
+   * dos eventos do 2º tempo, igual à duração regulamentar. */
+  acrescimoPrimeiroTempo?: number;
 }) {
   const atleta = evento.atleta_id ? atletasMap.get(evento.atleta_id) : undefined;
   // Um gol do adversário que conta CONTRA nós (normal) e um gol contra marcado pelo adversário que
@@ -54,7 +58,13 @@ function LinhaEvento({
     evento.tipo === "gol" && Boolean(evento.nome_adversario) && evento.gol_contra_favor_juventus;
   // Mostra o "relógio corrido" do jogo (ex: 79'), igual à súmula oficial — por baixo, guardamos
   // o minuto relativo ao início de cada tempo (ver lib/futebol/estatisticas-atleta.ts).
-  const minutoExibido = calcularMinutoAbsoluto(evento.tempo, evento.minuto, duracaoPrimeiroTempo);
+  const minutoExibido = calcularMinutoAbsoluto(
+    evento.tempo,
+    evento.minuto,
+    duracaoPrimeiroTempo,
+    undefined,
+    acrescimoPrimeiroTempo,
+  );
 
   let descricao: string;
   if (golAdversarioContraNos) {
@@ -107,6 +117,7 @@ function TempoSection({
   reservas,
   liberado,
   duracaoPrimeiroTempo,
+  acrescimoPrimeiroTempo,
 }: {
   label: string;
   tempo: "primeiro" | "segundo";
@@ -117,6 +128,8 @@ function TempoSection({
   reservas: ConvocadoOption[];
   liberado: boolean;
   duracaoPrimeiroTempo: number;
+  /** Ver `LinhaEvento.acrescimoPrimeiroTempo`. */
+  acrescimoPrimeiroTempo?: number;
 }) {
   return (
     <section className="card p-4">
@@ -129,6 +142,7 @@ function TempoSection({
             evento={evento}
             atletasMap={atletasMap}
             duracaoPrimeiroTempo={duracaoPrimeiroTempo}
+            acrescimoPrimeiroTempo={acrescimoPrimeiroTempo}
           />
         ))}
         {eventos.length === 0 ? (
@@ -208,6 +222,14 @@ export default async function SumulaPage({ params }: { params: { id: string } })
   const nomeMandante = jogo.mandante ? "Juventus" : jogo.adversario_nome;
   const nomeVisitante = jogo.mandante ? jogo.adversario_nome : "Juventus";
 
+  // Profissional sempre joga no formato padrão (2 tempos de 45min — não tem a particularidade por
+  // categoria/competição que o Base tem, ver docs/superpowers/specs/2026-10-21-competicoes-
+  // formato-partida-design.md), então aqui o 45 continua sendo o único padrão.
+  const duracaoPrimeiroTempoAtual = sumula?.duracao_primeiro_tempo ?? 45;
+  const duracaoSegundoTempoAtual = sumula?.duracao_segundo_tempo ?? 45;
+  const acrescimoPrimeiroTempoAtual = sumula?.acrescimo_primeiro_tempo ?? 0;
+  const acrescimoSegundoTempoAtual = sumula?.acrescimo_segundo_tempo ?? 0;
+
   return (
     <AppShell breadcrumb="Súmula">
       <JogoTabs jogoId={jogo.id} active="sumula" />
@@ -225,8 +247,10 @@ export default async function SumulaPage({ params }: { params: { id: string } })
         jogoId={jogo.id}
         golsPro={jogo.gols_pro}
         golsContra={jogo.gols_contra}
-        duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
-        duracaoSegundoTempo={sumula?.duracao_segundo_tempo ?? 45}
+        duracaoPrimeiroTempo={duracaoPrimeiroTempoAtual}
+        duracaoSegundoTempo={duracaoSegundoTempoAtual}
+        acrescimoPrimeiroTempo={acrescimoPrimeiroTempoAtual}
+        acrescimoSegundoTempo={acrescimoSegundoTempoAtual}
         nomeMandante={nomeMandante}
         nomeVisitante={nomeVisitante}
       />
@@ -296,7 +320,7 @@ export default async function SumulaPage({ params }: { params: { id: string } })
           convocados={convocadosOptions}
           reservas={reservasOptions}
           liberado={Boolean(convocacao)}
-          duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
+          duracaoPrimeiroTempo={duracaoPrimeiroTempoAtual}
         />
         <TempoSection
           label="Segundo Tempo"
@@ -307,7 +331,8 @@ export default async function SumulaPage({ params }: { params: { id: string } })
           convocados={convocadosOptions}
           reservas={reservasOptions}
           liberado={Boolean(convocacao)}
-          duracaoPrimeiroTempo={sumula?.duracao_primeiro_tempo ?? 45}
+          duracaoPrimeiroTempo={duracaoPrimeiroTempoAtual}
+          acrescimoPrimeiroTempo={acrescimoPrimeiroTempoAtual}
         />
       </div>
     </AppShell>
