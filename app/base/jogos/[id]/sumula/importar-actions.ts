@@ -137,22 +137,29 @@ export async function buscarPreviaImportacaoSumulaBase(
     : { data: [] as AtletaBaseRow[] };
   const atletasCompletos = ((atletasCompletosData ?? []) as AtletaBaseRow[]).map(paraAtletaParaMatch);
 
-  let convocados: AtletaParaMatch[];
+  // Uma Convocação "existe" mas sem nenhum atleta selecionado (linha órfã em `convocacoes_base`,
+  // sem `convocacao_atletas_base`) não carrega nenhuma informação real pra proteger — trata
+  // exatamente igual a "não existe Convocação" pra fins de sugestão automática (senão a
+  // importação ficava bloqueada à toa, por exemplo depois de limpar uma Convocação errada pra
+  // testar de novo).
+  let idsConvocadosExistentes: string[] = [];
   if (convocacao) {
     const { data: caData } = await supabase
       .from("convocacao_atletas_base")
       .select("atleta_id")
       .eq("convocacao_id", convocacao.id);
-    const idsConvocados = (caData ?? []).map((r) => r.atleta_id as string);
-    if (idsConvocados.length === 0) {
-      return { erro: "A convocação desse jogo ainda não tem nenhum atleta selecionado." };
-    }
-    convocados = atletasCompletos.filter((a) => idsConvocados.includes(a.id));
+    idsConvocadosExistentes = (caData ?? []).map((r) => r.atleta_id as string);
+  }
+  const convocacaoTemAtletas = idsConvocadosExistentes.length > 0;
+
+  let convocados: AtletaParaMatch[];
+  if (convocacaoTemAtletas) {
+    convocados = atletasCompletos.filter((a) => idsConvocadosExistentes.includes(a.id));
   } else {
-    // Sem Convocação salva ainda: usa o elenco inteiro da categoria como universo de candidatos ao
-    // vínculo dos eventos (era bloqueado antes — ver comentário no topo do arquivo) — liberado
-    // agora porque a sugestão de Convocação abaixo, que usa esse mesmo elenco com o matcher de
-    // maior precisão, passa pela revisão do usuário antes de qualquer coisa ser salva.
+    // Sem Convocação (ou com Convocação vazia): usa o elenco inteiro da categoria como universo de
+    // candidatos ao vínculo dos eventos (era bloqueado antes — ver comentário no topo do arquivo)
+    // — liberado agora porque a sugestão de Convocação abaixo, que usa esse mesmo elenco com o
+    // matcher de maior precisão, passa pela revisão do usuário antes de qualquer coisa ser salva.
     convocados = atletasCompletos;
   }
 
@@ -222,7 +229,7 @@ export async function buscarPreviaImportacaoSumulaBase(
   // ainda não tem Convocação salva (ver `PreviaImportacaoSumulaBase.convocacaoSugerida`). Mesma
   // lógica do Profissional (ver comentário lá) — aqui `numeroPdf` também pré-preenche
   // `numero_camisa` na confirmação.
-  const convocacaoSugerida: ConvocacaoSugeridaPreviaBase | null = convocacao
+  const convocacaoSugerida: ConvocacaoSugeridaPreviaBase | null = convocacaoTemAtletas
     ? null
     : {
         titulares: dadosPdf.jogadores
@@ -421,12 +428,24 @@ export async function confirmarImportacaoSumulaBase(
       .select("id")
       .eq("jogo_id", input.jogoId)
       .maybeSingle();
-    // Defensivo: só cria se realmente ainda não existe nenhuma — nunca sobrescreve uma Convocação
-    // que tenha sido salva manualmente nesse meio-tempo (ver "Manter como está" na spec).
-    if (!convocacaoExistente) {
+    // Defensivo: só preenche se a Convocação realmente não tem nenhum atleta ainda — nunca
+    // sobrescreve uma que já tenha sido salva (com atleta selecionado) manualmente nesse
+    // meio-tempo (ver "Manter como está" na spec). Uma linha "órfã" em `convocacoes_base` sem
+    // nenhum `convocacao_atletas_base` (ex.: sobrou de uma limpeza manual pra testar de novo)
+    // conta como vazia — não é um motivo pra bloquear, por isso usa upsert (não insert) pra
+    // reaproveitar essa linha em vez de falhar por conflito de `jogo_id`.
+    let convocacaoTemAtletas = false;
+    if (convocacaoExistente) {
+      const { count } = await supabase
+        .from("convocacao_atletas_base")
+        .select("atleta_id", { count: "exact", head: true })
+        .eq("convocacao_id", convocacaoExistente.id);
+      convocacaoTemAtletas = (count ?? 0) > 0;
+    }
+    if (!convocacaoTemAtletas) {
       const { data: novaConv, error: convError } = await supabase
         .from("convocacoes_base")
-        .insert({ jogo_id: input.jogoId })
+        .upsert({ jogo_id: input.jogoId }, { onConflict: "jogo_id" })
         .select("id")
         .single();
       if (!convError && novaConv) {
