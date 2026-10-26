@@ -178,8 +178,11 @@ function campoRotulado(linhas: string[], rotulo: RegExp): string | null {
 
 const TEMPO_SIGLA: Record<string, SumulaPdfTempo> = { "1T": "primeiro", "2T": "segundo", "3T": "terceiro" };
 
-/** "Nº Nome Completo T/R P/A Registro" — ex: "1 Giovanni Martinez Montanari T A 661239/26" */
-const RE_JOGADOR = /^(\d{1,3})\s+(.+?)\s+(T|R)\s+(A|P)\s+(\d+)\/(\d{2,4})$/;
+/** Casa UM jogador dentro da linha — "Nº Nome Completo T/R P/A Registro/Ano", ex: "1 Giovanni
+ * Martinez Montanari T A 661239/26". Sem âncoras de início/fim de linha e usada com `matchAll`
+ * (flag "g") porque a tabela de escalação real traz os dois times LADO A LADO na mesma linha de
+ * texto — ver comentário no loop principal sobre `dentroSecaoJogadores`. */
+const RE_JOGADOR = /(\d{1,3})\s+(.+?)\s+(T|R)\s+(A|P)\s+(\d+)\/(\d{2,4})/g;
 
 // O minuto de um evento normalmente vem como "MM:SS" — mas um evento no acréscimo pode vir como
 // "+N" (ex: "+2 2T" = 2º minuto do acréscimo do 2º tempo), sem nunca termos confirmado o formato
@@ -313,6 +316,10 @@ export function parsearSumulaPdf(texto: string, duracoesPadrao?: Partial<SumulaP
   // "Expulsões" são seções separadas no documento, então rastreamos qual seção estamos
   // atravessando pra saber a cor certa de cada cartão encontrado.
   let secaoCartaoAtual: "amarelo" | "vermelho" | null = null;
+  // CONFIRMADO numa súmula real (Paulista SUB17, Ibrachina FC x Juventus SAF): a tabela de
+  // "Relação de Jogadores" também vem com os dois times lado a lado, igual à seção de horários —
+  // ver comentário completo mais abaixo, perto de onde essa flag é usada.
+  let dentroSecaoJogadores = false;
 
   // CONFIRMADO numa súmula real (Copa Paulista, jogo Primavera SAF x Juventus SAF): a seção de
   // horários é uma tabela de duas colunas (1º Tempo | 2º Tempo lado a lado), e o extrator de PDF
@@ -353,6 +360,22 @@ export function parsearSumulaPdf(texto: string, duracoesPadrao?: Partial<SumulaP
       }
     }
 
+    // "Relação de Jogadores" é uma tabela com os dois times LADO A LADO — o extrator de PDF
+    // concatena as duas colunas numa linha só (mesmo fenômeno de "Término 1º/2º Tempo" acima, e
+    // confirmado numa súmula real: Paulista SUB17, Ibrachina FC x Juventus SAF), então cada linha
+    // real da tabela pode trazer 1 OU 2 jogadores (ex.: "1 Fulano de Tal T A 615497/25 1 Beltrano
+    // da Silva T A 661231/26"). A tabela não marca o time de cada jogador por coluna (ver
+    // `SumulaPdfJogador`/`jogadores` acima) — então, como já era o caso antes dessa correção, cada
+    // jogador encontrado é extraído sem time atribuído, e o vínculo com o nosso lado é feito
+    // depois, comparando contra o elenco cadastrado (ver lib/fpf/atleta-match.ts). Só ativa dentro
+    // da seção (do título da tabela até a legenda "T = Titular | R = Reserva...") pra não arriscar
+    // casar esse padrão em outro lugar do documento.
+    if (/rela[çc][ãa]o de jogadores/i.test(linha)) {
+      dentroSecaoJogadores = true;
+      secaoCartaoAtual = null;
+      continue;
+    }
+
     if (/advert[êe]ncias/i.test(linha)) {
       secaoCartaoAtual = "amarelo";
       continue;
@@ -371,21 +394,26 @@ export function parsearSumulaPdf(texto: string, duracoesPadrao?: Partial<SumulaP
       secaoCartaoAtual = "amarelo";
       continue;
     }
-    if (/^(gols?|substitui[çc][õo]es|comiss[ãa]o t[ée]cnica|rela[çc][ãa]o de jogadores)\b/i.test(linha)) {
+    if (/^(gols?|substitui[çc][õo]es|comiss[ãa]o t[ée]cnica)\b/i.test(linha) || /^T\s*=\s*Titular/i.test(linha)) {
       secaoCartaoAtual = null;
+      dentroSecaoJogadores = false;
     }
 
-    const mJogador = linha.match(RE_JOGADOR);
-    if (mJogador) {
-      const [, numero, nome, tr, , registroNumero, registroAno] = mJogador;
-      jogadores.push({
-        numero: Number(numero),
-        nome: nome.trim(),
-        titular: tr === "T",
-        registroFpf: `${registroNumero}/${registroAno}`,
-        registroFpfNumero: Number(registroNumero),
-      });
-      continue;
+    if (dentroSecaoJogadores) {
+      const jogadoresDaLinha = [...linha.matchAll(RE_JOGADOR)];
+      if (jogadoresDaLinha.length > 0) {
+        for (const m of jogadoresDaLinha) {
+          const [, numero, nome, tr, , registroNumero, registroAno] = m;
+          jogadores.push({
+            numero: Number(numero),
+            nome: nome.trim(),
+            titular: tr === "T",
+            registroFpf: `${registroNumero}/${registroAno}`,
+            registroFpfNumero: Number(registroNumero),
+          });
+        }
+        continue;
+      }
     }
 
     const mGol = linha.match(RE_GOL_COM_APELIDO) ?? linha.match(RE_GOL_SEM_APELIDO);

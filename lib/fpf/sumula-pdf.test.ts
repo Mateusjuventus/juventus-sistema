@@ -187,6 +187,57 @@ Acréscimos devido a parada técnica, substituições e atendimento médico.
   });
 });
 
+describe("parsearSumulaPdf — regressão: Relação de Jogadores com os dois times lado a lado", () => {
+  // Trecho EXATO (copiado byte-a-byte, via a mesma caixinha de diagnóstico de produção) da súmula
+  // Ibrachina FC x Juventus SAF, Paulista SUB17 2026, jogo nº 282 — o bug real reportado: a
+  // Convocação sugerida pela importação saiu praticamente vazia/errada (só 1 titular e 2 reservas
+  // de ~20 esperados). Causa: igual à seção de horários/resultado (ver describe acima), a tabela
+  // de Relação de Jogadores também vem com os dois times (Ibrachina FC | Juventus SAF) lado a
+  // lado, mescladas numa linha só por linha da tabela — o regex antigo (`^...$`, um jogador por
+  // linha inteira) não batia com NENHUMA linha real dessa tabela; quando batia por acidente (não
+  // deveria), misturava nome de um jogador com o registro do outro.
+  const TEXTO_RELACAO_REAL = `
+Relação de Jogadores
+Ibrachina FC Juventus SAF
+Nº Nome Completo do Jogador T/R P/A Registro Nº Nome Completo do Jogador T/R P/A Registro
+1 Arthur Luis de Queiroz Alves T A 615497/25 1 Isaac Duarte Marinho Costa T A 661231/26
+5 Pedro Lucas Batista Oliveira T A 640969/26 5 Gusttavo dos Santos Monteiro T A 661334/26
+20 Arthur Alves de Souza R A 662022/26 20 Keirrison Zidan do Carmo Medeiros R A 661230/26
+T = Titular | R = Reserva | P = Profissional | A = Amador
+`;
+  const resultado = parsearSumulaPdf(TEXTO_RELACAO_REAL);
+
+  it("extrai os DOIS jogadores de cada linha (um de cada time), não um nome bagunçado", () => {
+    expect(resultado.jogadores).toHaveLength(6);
+  });
+
+  it("não mistura o nome de um jogador com o registro do outro", () => {
+    const isaac = resultado.jogadores.find((j) => j.nome === "Isaac Duarte Marinho Costa");
+    expect(isaac).toBeDefined();
+    expect(isaac?.numero).toBe(1);
+    expect(isaac?.titular).toBe(true);
+    expect(isaac?.registroFpfNumero).toBe(661231);
+
+    const gusttavo = resultado.jogadores.find((j) => j.nome === "Gusttavo dos Santos Monteiro");
+    expect(gusttavo?.registroFpfNumero).toBe(661334);
+
+    const keirrison = resultado.jogadores.find((j) => j.nome === "Keirrison Zidan do Carmo Medeiros");
+    expect(keirrison?.titular).toBe(false);
+    expect(keirrison?.registroFpfNumero).toBe(661230);
+
+    // Nenhum nome deve conter texto do outro time colado (sintoma do bug antigo).
+    expect(resultado.jogadores.every((j) => !/\d{1,3}\/\d{2,4}/.test(j.nome))).toBe(true);
+  });
+
+  it("para de reconhecer jogadores depois da legenda 'T = Titular | R = Reserva...'", () => {
+    // Garante que a flag de seção não vaza pro resto do documento (ex.: gols/cartões, que também
+    // têm número + nome, mas não devem virar "jogador" da relação).
+    const r = parsearSumulaPdf(`${TEXTO_RELACAO_REAL}\nGols\nIbrachina FC 3 Estevão Parente Torres NR 37:00 1T\n`);
+    expect(r.jogadores).toHaveLength(6);
+    expect(r.gols).toHaveLength(1);
+  });
+});
+
 describe("converterMinutoPdfParaRelativo", () => {
   it("mantém o minuto do 1º tempo sem alterar", () => {
     expect(converterMinutoPdfParaRelativo(32, "primeiro", 45)).toBe(32);
