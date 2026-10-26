@@ -149,6 +149,7 @@ export function ConvocacaoForm({
 
   const [aba, setAba] = useState<"atletas" | "staff">("atletas");
   const [verLesionados, setVerLesionados] = useState(false);
+  const [busca, setBusca] = useState("");
   // Mapa atletaId -> titular (true) / reserva (false). A ORDEM de inserção das chaves é a ordem de
   // exibição nas listas — Map preserva ordem de inserção em JS.
   const [convocados, setConvocados] = useState<Map<string, boolean>>(
@@ -197,6 +198,17 @@ export function ConvocacaoForm({
   const lesionadosDisponiveis = ordenarPorNomeExibido(
     atletas.filter((a) => !convocados.has(a.id) && a.status !== "liberado"),
   );
+
+  // Busca por nome na grade de Atletas Disponíveis — puramente client-side (sem recarregar nem
+  // enviar formulário), igual ao campo de busca já usado em "Meus Atletas". Considera apelido
+  // também (`nomeExibido`), já que é o que aparece no cartão.
+  const buscaNormalizada = busca.trim().toLowerCase();
+  const disponiveisFiltrados = buscaNormalizada
+    ? disponiveis.filter((a) => nomeExibido(a).toLowerCase().includes(buscaNormalizada))
+    : disponiveis;
+  const lesionadosDisponiveisFiltrados = buscaNormalizada
+    ? lesionadosDisponiveis.filter((a) => nomeExibido(a).toLowerCase().includes(buscaNormalizada))
+    : lesionadosDisponiveis;
 
   const convocadosCandidatosCapitao = [...titularesList, ...reservasList];
 
@@ -249,10 +261,17 @@ export function ConvocacaoForm({
         <div className="space-y-6">
           <div className="card space-y-3 p-5">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">
-              Atletas disponíveis <span className="text-neutral-400">({disponiveis.length})</span>
+              Atletas disponíveis <span className="text-neutral-400">({disponiveisFiltrados.length})</span>
             </h2>
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar atleta por nome..."
+              className="field-input"
+            />
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-              {disponiveis.map((a) => (
+              {disponiveisFiltrados.map((a) => (
                 <CartaoAtletaDisponivel
                   key={a.id}
                   atleta={a}
@@ -262,25 +281,25 @@ export function ConvocacaoForm({
                   onAddReserva={() => adicionar(a.id, false)}
                 />
               ))}
-              {disponiveis.length === 0 ? (
+              {disponiveisFiltrados.length === 0 ? (
                 <p className="col-span-full py-4 text-center text-sm text-neutral-400">
-                  Nenhum atleta disponível pra convocar.
+                  {buscaNormalizada ? "Nenhum atleta encontrado pra essa busca." : "Nenhum atleta disponível pra convocar."}
                 </p>
               ) : null}
             </div>
 
-            {lesionadosDisponiveis.length > 0 ? (
+            {lesionadosDisponiveisFiltrados.length > 0 ? (
               <div className="border-t border-neutral-100 pt-3">
                 <button
                   type="button"
                   onClick={() => setVerLesionados((v) => !v)}
                   className="text-sm font-medium text-dourado hover:underline"
                 >
-                  {verLesionados ? "Ocultar lesionados" : `Ver lesionados (${lesionadosDisponiveis.length})`}
+                  {verLesionados ? "Ocultar lesionados" : `Ver lesionados (${lesionadosDisponiveisFiltrados.length})`}
                 </button>
                 {verLesionados ? (
                   <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                    {lesionadosDisponiveis.map((a) => (
+                    {lesionadosDisponiveisFiltrados.map((a) => (
                       <CartaoAtletaDisponivel
                         key={a.id}
                         atleta={a}

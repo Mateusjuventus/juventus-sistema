@@ -260,6 +260,7 @@ export default async function SumulaPage({ params }: { params: { id: string } })
           jogoId={jogo.id}
           mandante={jogo.mandante}
           atletasConvocados={convocadosOptions.map((c) => ({ id: c.id, nome: c.nome }))}
+          atletasElenco={atletas.map((a) => ({ id: a.id, nome: nomeAtletaEvento(a) }))}
         />
       </div>
 

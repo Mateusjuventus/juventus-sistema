@@ -15,9 +15,13 @@ import type { AtletaBaseRow, CompeticaoBaseRow, CompeticaoJogoBaseRow, SumulaEve
 
 /**
  * Espelha app/jogos/[id]/sumula/importar-actions.ts (Profissional) para o Futebol de Base — ver
- * docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md. A leitura/parsing do PDF
- * (lib/fpf/sumula-pdf.ts) e a sugestão de vínculo de atleta (lib/fpf/atleta-match.ts) são
- * genéricas e reaproveitadas sem alteração — só as tabelas-fonte mudam (_base).
+ * docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md e docs/superpowers/specs/
+ * 2026-10-26-importacao-sumula-auto-convocacao-design.md (sugestão de Convocação a partir da
+ * súmula). A leitura/parsing do PDF (lib/fpf/sumula-pdf.ts) e a sugestão de vínculo de atleta
+ * (lib/fpf/atleta-match.ts) são genéricas e reaproveitadas sem alteração — só as tabelas-fonte
+ * mudam (_base), e a Base também pré-preenche `numero_camisa` na Convocação sugerida a partir do
+ * número que a súmula traz pra cada jogador (Profissional não tem esse campo — a numeração lá é
+ * fixa por atleta, não por convocação).
  *
  * Suporte a 3º tempo e a pênaltis (ver docs/superpowers/specs/2026-10-21-competicoes-formato-
  * partida-design.md): a busca do formato de partida (vínculo com `competicoes_base`) espelha
@@ -74,6 +78,22 @@ export interface PreviaImportacaoSumulaBase {
   linhasDuracaoEncontradas: string[];
   eventos: PreviaEventoImportadoBase[];
   linkPdf: string;
+  /** Ver `ConvocacaoSugeridaPrevia` (mesma ideia do Profissional) — só preenchida quando esse jogo
+   * ainda não tem Convocação salva. */
+  convocacaoSugerida: ConvocacaoSugeridaPreviaBase | null;
+}
+
+/** Ver `JogadorConvocacaoSugerido` (Profissional) — aqui também carrega `numeroPdf`, usado pra
+ * pré-preencher `numero_camisa` (só existe na Base, numerado por convocação, não por atleta). */
+export interface JogadorConvocacaoSugeridoBase {
+  nomePdf: string;
+  numeroPdf: number;
+  atletaId: string | null;
+}
+
+export interface ConvocacaoSugeridaPreviaBase {
+  titulares: JogadorConvocacaoSugeridoBase[];
+  reservas: JogadorConvocacaoSugeridoBase[];
 }
 
 export interface PreviaImportacaoResultadoBase {
@@ -85,9 +105,10 @@ function paraAtletaParaMatch(a: AtletaBaseRow): AtletaParaMatch {
   return { id: a.id, nome_completo: a.nome_completo, numero_fpf: a.numero_fpf };
 }
 
-/** Busca e faz o parsing do PDF, e sugere o vínculo de cada evento do lado do Juventus com quem já
- * está convocado nesse jogo da Base. Não grava nada no banco ainda — só devolve a prévia pra
- * revisão. Exige que a Convocação do jogo já esteja salva (é o universo de candidatos ao vínculo). */
+/** Busca e faz o parsing do PDF, e sugere o vínculo de cada evento do lado do Juventus — com quem
+ * já está convocado nesse jogo da Base quando existe Convocação, ou com o elenco inteiro da
+ * categoria (mais a própria sugestão de Convocação) quando ainda não existe. Não grava nada no
+ * banco ainda — só devolve a prévia pra revisão. */
 export async function buscarPreviaImportacaoSumulaBase(
   jogoId: string,
   linkPdf: string,
@@ -102,24 +123,38 @@ export async function buscarPreviaImportacaoSumulaBase(
     .select("id")
     .eq("jogo_id", jogoId)
     .maybeSingle();
-  if (!convocacao) {
-    return { erro: "Salve a Convocação desse jogo primeiro — a importação usa os atletas já convocados pra vincular os eventos." };
-  }
 
-  const { data: caData } = await supabase
-    .from("convocacao_atletas_base")
-    .select("atleta_id")
-    .eq("convocacao_id", convocacao.id);
-  const idsConvocados = (caData ?? []).map((r) => r.atleta_id as string);
-  if (idsConvocados.length === 0) {
-    return { erro: "A convocação desse jogo ainda não tem nenhum atleta selecionado." };
-  }
+  // Precisa da categoria do jogo pra filtrar o elenco completo (atletas_base tem todas as
+  // categorias juntas) — mesma consulta de app/base/jogos/[id]/sumula/page.tsx.
+  const { data: jogoBaseData } = await supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle();
+  const categoria = (jogoBaseData?.categoria as string | undefined) ?? null;
 
-  const { data: atletasData } = await supabase
-    .from("atletas_base")
-    .select("id, nome_completo, numero_fpf")
-    .in("id", idsConvocados);
-  const convocados = ((atletasData ?? []) as AtletaBaseRow[]).map(paraAtletaParaMatch);
+  // Elenco completo DA CATEGORIA — universo de candidatos ao vínculo quando ainda não existe
+  // Convocação pra esse jogo, e também a base pra montar a sugestão de Convocação em si (ver
+  // `convocacaoSugerida` mais abaixo).
+  const { data: atletasCompletosData } = categoria
+    ? await supabase.from("atletas_base").select("id, nome_completo, numero_fpf").eq("categoria", categoria)
+    : { data: [] as AtletaBaseRow[] };
+  const atletasCompletos = ((atletasCompletosData ?? []) as AtletaBaseRow[]).map(paraAtletaParaMatch);
+
+  let convocados: AtletaParaMatch[];
+  if (convocacao) {
+    const { data: caData } = await supabase
+      .from("convocacao_atletas_base")
+      .select("atleta_id")
+      .eq("convocacao_id", convocacao.id);
+    const idsConvocados = (caData ?? []).map((r) => r.atleta_id as string);
+    if (idsConvocados.length === 0) {
+      return { erro: "A convocação desse jogo ainda não tem nenhum atleta selecionado." };
+    }
+    convocados = atletasCompletos.filter((a) => idsConvocados.includes(a.id));
+  } else {
+    // Sem Convocação salva ainda: usa o elenco inteiro da categoria como universo de candidatos ao
+    // vínculo dos eventos (era bloqueado antes — ver comentário no topo do arquivo) — liberado
+    // agora porque a sugestão de Convocação abaixo, que usa esse mesmo elenco com o matcher de
+    // maior precisão, passa pela revisão do usuário antes de qualquer coisa ser salva.
+    convocados = atletasCompletos;
+  }
 
   // Formato de partida (3º tempo, duração de cada tempo) — mesma consulta de
   // app/base/jogos/[id]/sumula/page.tsx. A maioria dos jogos não está vinculada a nenhuma
@@ -182,6 +217,29 @@ export async function buscarPreviaImportacaoSumulaBase(
     const registro = registroPorNomeNormalizado.get(nome.toLowerCase().trim()) ?? null;
     return sugerirAtleta(nome, registro, convocados).atletaId;
   }
+
+  // Convocação sugerida a partir da relação completa de jogadores da súmula — só quando o jogo
+  // ainda não tem Convocação salva (ver `PreviaImportacaoSumulaBase.convocacaoSugerida`). Mesma
+  // lógica do Profissional (ver comentário lá) — aqui `numeroPdf` também pré-preenche
+  // `numero_camisa` na confirmação.
+  const convocacaoSugerida: ConvocacaoSugeridaPreviaBase | null = convocacao
+    ? null
+    : {
+        titulares: dadosPdf.jogadores
+          .filter((j) => j.titular)
+          .map((j) => ({
+            nomePdf: j.nome,
+            numeroPdf: j.numero,
+            atletaId: sugerirAtleta(j.nome, j.registroFpfNumero, atletasCompletos).atletaId,
+          })),
+        reservas: dadosPdf.jogadores
+          .filter((j) => !j.titular)
+          .map((j) => ({
+            nomePdf: j.nome,
+            numeroPdf: j.numero,
+            atletaId: sugerirAtleta(j.nome, j.registroFpfNumero, atletasCompletos).atletaId,
+          })),
+      };
 
   const eventos: PreviaEventoImportadoBase[] = [];
 
@@ -292,6 +350,7 @@ export async function buscarPreviaImportacaoSumulaBase(
       linhasDuracaoEncontradas: dadosPdf.linhasDuracaoEncontradas,
       eventos,
       linkPdf: url,
+      convocacaoSugerida,
     },
   };
 }
@@ -305,6 +364,15 @@ export interface ConfirmacaoEventoBase {
   nomeAdversario: string | null;
   incluido: boolean;
   contraFavoreceJuventus: boolean;
+}
+
+/** Ver `ConfirmacaoJogadorConvocacao` (Profissional) — aqui também carrega `numeroCamisa`, usado
+ * pra pré-preencher `convocacao_atletas_base.numero_camisa` com o número que a súmula trouxer pra
+ * esse jogador (o usuário pode revisar depois na própria tela de Convocação). */
+export interface ConfirmacaoJogadorConvocacaoBase {
+  atletaId: string | null;
+  status: "titular" | "reserva";
+  numeroCamisa: number | null;
 }
 
 export interface ConfirmarImportacaoInputBase {
@@ -322,6 +390,10 @@ export interface ConfirmarImportacaoInputBase {
   penaltisPro: number | null;
   penaltisContra: number | null;
   eventos: ConfirmacaoEventoBase[];
+  /** Convocação revisada a partir de `PreviaImportacaoSumulaBase.convocacaoSugerida` — só enviada
+   * quando o jogo ainda não tinha Convocação salva no momento da prévia. `null`/ausente quando já
+   * existia uma (nesse caso ela nunca é tocada por essa importação). */
+  novaConvocacao?: ConfirmacaoJogadorConvocacaoBase[] | null;
 }
 
 export interface ConfirmarImportacaoResultadoBase {
@@ -331,14 +403,48 @@ export interface ConfirmarImportacaoResultadoBase {
 }
 
 /** Grava o que foi confirmado na revisão. Substitui os eventos da súmula desse jogo pelos dados
- * confirmados a partir do PDF — não mexe na Convocação, que continua sendo mantida separadamente
- * pelo usuário. */
+ * confirmados a partir do PDF. Quando `input.novaConvocacao` vem preenchida (jogo ainda não tinha
+ * Convocação no momento da prévia — ver `PreviaImportacaoSumulaBase.convocacaoSugerida`), também
+ * cria a Convocação com o que foi revisado (incluindo `numero_camisa` quando a súmula trouxer);
+ * quando o jogo já tinha uma, ela nunca é tocada por essa importação. */
 export async function confirmarImportacaoSumulaBase(
   input: ConfirmarImportacaoInputBase,
 ): Promise<ConfirmarImportacaoResultadoBase> {
   if (!input.jogoId) return { erro: "Jogo não identificado. Recarregue a página e tente novamente." };
 
   const supabase = createClient();
+
+  let convocacaoCriada = false;
+  if (input.novaConvocacao && input.novaConvocacao.length > 0) {
+    const { data: convocacaoExistente } = await supabase
+      .from("convocacoes_base")
+      .select("id")
+      .eq("jogo_id", input.jogoId)
+      .maybeSingle();
+    // Defensivo: só cria se realmente ainda não existe nenhuma — nunca sobrescreve uma Convocação
+    // que tenha sido salva manualmente nesse meio-tempo (ver "Manter como está" na spec).
+    if (!convocacaoExistente) {
+      const { data: novaConv, error: convError } = await supabase
+        .from("convocacoes_base")
+        .insert({ jogo_id: input.jogoId })
+        .select("id")
+        .single();
+      if (!convError && novaConv) {
+        const atletasValidos = input.novaConvocacao.filter((a) => a.atletaId != null);
+        if (atletasValidos.length > 0) {
+          await supabase.from("convocacao_atletas_base").insert(
+            atletasValidos.map((a) => ({
+              convocacao_id: novaConv.id,
+              atleta_id: a.atletaId as string,
+              status: a.status,
+              numero_camisa: a.numeroCamisa,
+            })),
+          );
+        }
+        convocacaoCriada = true;
+      }
+    }
+  }
 
   const { error: jogoError } = await supabase
     .from("jogos_base")
@@ -393,6 +499,10 @@ export async function confirmarImportacaoSumulaBase(
   revalidatePath(`/base/jogos/${input.jogoId}/sumula`);
   revalidatePath(`/base/jogos/${input.jogoId}`);
   revalidatePath("/base/jogos");
+  if (convocacaoCriada) {
+    revalidatePath(`/base/jogos/${input.jogoId}/convocacao`);
+    revalidatePath(`/treinador/jogos/${input.jogoId}/convocacao`);
+  }
 
   return { sucesso: true, eventosImportados: eventosParaGravar.length };
 }

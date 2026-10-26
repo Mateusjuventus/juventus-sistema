@@ -6,17 +6,27 @@ import {
   buscarPreviaImportacaoSumulaBase,
   confirmarImportacaoSumulaBase,
   type ConfirmacaoEventoBase,
+  type ConfirmacaoJogadorConvocacaoBase,
   type PreviaImportacaoSumulaBase,
 } from "./importar-actions";
 import { calcularMinutoAbsoluto } from "@/lib/futebol/estatisticas-atleta";
 import type { SumulaEventoTipo } from "@/lib/supabase/types";
 
 /** Espelha app/jogos/[id]/sumula/importar-sumula-form.tsx (Profissional) para o Futebol de Base —
- * ver docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md. */
+ * ver docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md e docs/superpowers/specs/
+ * 2026-10-26-importacao-sumula-auto-convocacao-design.md. */
 
 export interface AtletaOpcaoBase {
   id: string;
   nome: string;
+}
+
+/** Uma linha da Convocação sugerida em revisão na tela — ver `JogadorConvocacaoRevisao`
+ * (Profissional); aqui também carrega `numeroCamisa`, pré-preenchido com o número da súmula. */
+interface JogadorConvocacaoRevisaoBase extends ConfirmacaoJogadorConvocacaoBase {
+  nomePdf: string;
+  numeroPdf: number;
+  incluido: boolean;
 }
 
 const TIPO_EVENTO_LABEL: Record<SumulaEventoTipo, string> = {
@@ -55,10 +65,14 @@ export function ImportarSumulaFormBase({
   jogoId,
   mandante,
   atletasConvocados,
+  atletasElenco,
 }: {
   jogoId: string;
   mandante: boolean;
   atletasConvocados: AtletaOpcaoBase[];
+  /** Elenco completo da categoria (não só quem já está convocado) — usado pra montar os seletores
+   * da seção "Convocação sugerida", que só aparece quando o jogo ainda não tem Convocação salva. */
+  atletasElenco: AtletaOpcaoBase[];
 }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
@@ -67,6 +81,8 @@ export function ImportarSumulaFormBase({
   const [erro, setErro] = useState<string | null>(null);
   const [previa, setPrevia] = useState<PreviaImportacaoSumulaBase | null>(null);
   const [eventos, setEventos] = useState<ConfirmacaoEventoBase[]>([]);
+  const [novaConvocacaoTitulares, setNovaConvocacaoTitulares] = useState<JogadorConvocacaoRevisaoBase[]>([]);
+  const [novaConvocacaoReservas, setNovaConvocacaoReservas] = useState<JogadorConvocacaoRevisaoBase[]>([]);
   const [golsPro, setGolsPro] = useState<string>("");
   const [golsContra, setGolsContra] = useState<string>("");
   const [duracaoPrimeiroTempo, setDuracaoPrimeiroTempo] = useState<string>("45");
@@ -132,12 +148,39 @@ export function ImportarSumulaFormBase({
       const penaltisAdversario = temPenaltis ? (mandante ? dados.penaltisVisitante! : dados.penaltisMandante!) : null;
       setPenaltisPro(penaltisJuventus != null ? String(penaltisJuventus) : "");
       setPenaltisContra(penaltisAdversario != null ? String(penaltisAdversario) : "");
+
+      if (dados.convocacaoSugerida) {
+        setNovaConvocacaoTitulares(
+          dados.convocacaoSugerida.titulares.map((j) => ({
+            ...j,
+            status: "titular",
+            incluido: true,
+            numeroCamisa: j.numeroPdf,
+          })),
+        );
+        setNovaConvocacaoReservas(
+          dados.convocacaoSugerida.reservas.map((j) => ({
+            ...j,
+            status: "reserva",
+            incluido: true,
+            numeroCamisa: j.numeroPdf,
+          })),
+        );
+      } else {
+        setNovaConvocacaoTitulares([]);
+        setNovaConvocacaoReservas([]);
+      }
     });
   }
 
   function confirmar() {
     setErro(null);
     startConfirmacao(async () => {
+      const novaConvocacao = previa?.convocacaoSugerida
+        ? [...novaConvocacaoTitulares, ...novaConvocacaoReservas]
+            .filter((j) => j.incluido)
+            .map((j) => ({ atletaId: j.atletaId, status: j.status, numeroCamisa: j.numeroCamisa }))
+        : null;
       const resultado = await confirmarImportacaoSumulaBase({
         jogoId,
         linkPdf: previa?.linkPdf ?? url.trim(),
@@ -149,12 +192,15 @@ export function ImportarSumulaFormBase({
         penaltisPro: penaltisPro.trim() ? Number(penaltisPro) : null,
         penaltisContra: penaltisContra.trim() ? Number(penaltisContra) : null,
         eventos,
+        novaConvocacao,
       });
       if (resultado.erro) {
         setErro(resultado.erro);
         return;
       }
-      setMensagemSucesso(`Importado: ${resultado.eventosImportados ?? 0} evento(s) na súmula.`);
+      const mensagemConvocacao =
+        novaConvocacao && novaConvocacao.length > 0 ? " Convocação criada a partir da súmula." : "";
+      setMensagemSucesso(`Importado: ${resultado.eventosImportados ?? 0} evento(s) na súmula.${mensagemConvocacao}`);
       setPrevia(null);
       router.refresh();
     });
@@ -304,6 +350,87 @@ export function ImportarSumulaFormBase({
             </details>
           ) : null}
 
+          {previa.convocacaoSugerida ? (
+            <div className="rounded-md border border-neutral-200 p-3">
+              <h3 className="text-sm font-semibold text-grena-escuro">Convocação sugerida</h3>
+              <p className="mt-1 text-xs text-neutral-500">
+                Esse jogo ainda não tem Convocação salva — a súmula traz a relação completa de jogadores
+                (com o número da camisa), e a gente sugere vincular quem bate com o nosso cadastro. Revise,
+                ajuste quem precisar e confirme junto com os eventos: a Convocação é criada automaticamente.
+              </p>
+              <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    Titulares ({novaConvocacaoTitulares.length})
+                  </h4>
+                  <div className="mt-2 space-y-1">
+                    {novaConvocacaoTitulares.map((j, i) => (
+                      <div
+                        key={i}
+                        className={`flex flex-wrap items-center gap-2 rounded-md px-2 py-1 text-sm ${j.incluido ? "bg-neutral-50" : "bg-neutral-100 opacity-50"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={j.incluido}
+                          onChange={(e) =>
+                            setNovaConvocacaoTitulares((prev) =>
+                              prev.map((p, idx) => (idx === i ? { ...p, incluido: e.target.checked } : p)),
+                            )
+                          }
+                        />
+                        <span className="w-8 shrink-0 text-xs text-neutral-400">#{j.numeroPdf}</span>
+                        <span className="min-w-[140px] flex-1 text-neutral-700">{j.nomePdf}</span>
+                        <SeletorAtleta
+                          valor={j.atletaId}
+                          atletas={atletasElenco}
+                          onChange={(id) =>
+                            setNovaConvocacaoTitulares((prev) =>
+                              prev.map((p, idx) => (idx === i ? { ...p, atletaId: id } : p)),
+                            )
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    Reservas ({novaConvocacaoReservas.length})
+                  </h4>
+                  <div className="mt-2 space-y-1">
+                    {novaConvocacaoReservas.map((j, i) => (
+                      <div
+                        key={i}
+                        className={`flex flex-wrap items-center gap-2 rounded-md px-2 py-1 text-sm ${j.incluido ? "bg-neutral-50" : "bg-neutral-100 opacity-50"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={j.incluido}
+                          onChange={(e) =>
+                            setNovaConvocacaoReservas((prev) =>
+                              prev.map((p, idx) => (idx === i ? { ...p, incluido: e.target.checked } : p)),
+                            )
+                          }
+                        />
+                        <span className="w-8 shrink-0 text-xs text-neutral-400">#{j.numeroPdf}</span>
+                        <span className="min-w-[140px] flex-1 text-neutral-700">{j.nomePdf}</span>
+                        <SeletorAtleta
+                          valor={j.atletaId}
+                          atletas={atletasElenco}
+                          onChange={(id) =>
+                            setNovaConvocacaoReservas((prev) =>
+                              prev.map((p, idx) => (idx === i ? { ...p, atletaId: id } : p)),
+                            )
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <div>
             <h3 className="text-sm font-semibold text-grena-escuro">Eventos encontrados ({eventos.length})</h3>
             <div className="mt-2 space-y-1">
@@ -384,8 +511,9 @@ export function ImportarSumulaFormBase({
               {confirmando ? "Salvando..." : "Confirmar e importar"}
             </button>
             <p className="text-xs text-neutral-400">
-              Isso substitui os eventos já lançados nesse jogo pelos dados confirmados acima. Desmarque a
-              caixinha de um evento pra não importar ele.
+              Isso substitui os eventos já lançados nesse jogo pelos dados confirmados acima
+              {previa.convocacaoSugerida ? " e cria a Convocação sugerida" : ""}. Desmarque a caixinha de um
+              evento (ou de um nome da Convocação sugerida) pra não importar ele.
             </p>
           </div>
         </div>
