@@ -12,7 +12,7 @@ import {
   buscarEstatisticasAtleta,
   type CompeticaoDisponivelAtleta,
 } from "@/lib/futebol/estatisticas-atleta-query";
-import { confrontoComPlacar, dataHorarioJogo, resumoDetalheJogo } from "@/lib/futebol/ficha-atleta";
+import { JogoDetalheLinha } from "@/components/atletas/jogo-detalhe-linha";
 import { juventusTheme } from "@/lib/theme";
 import type { AtletaRow } from "@/lib/supabase/types";
 
@@ -184,18 +184,7 @@ export default async function DadosDeJogoAtletaPage({
                 <h3 className="text-sm font-semibold text-grena-escuro">{grupo.titulo}</h3>
                 <div className="mt-2 space-y-1.5">
                   {grupo.jogos.map((jogo) => (
-                    <div
-                      key={jogo.jogoId}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-neutral-50 px-3 py-2 text-sm"
-                    >
-                      <div>
-                        <p className="font-medium text-neutral-800">
-                          {confrontoComPlacar(jogo.adversarioNome, jogo.mandante, jogo.golsPro, jogo.golsContra)}
-                        </p>
-                        <p className="text-xs text-neutral-500">{dataHorarioJogo(jogo.dataJogo, jogo.horario)}</p>
-                      </div>
-                      <p className="text-sm text-neutral-600">{resumoDetalheJogo(jogo)}</p>
-                    </div>
+                    <JogoDetalheLinha key={jogo.jogoId} jogo={jogo} duracaoTotalReferencia={duracaoReferencia.total} />
                   ))}
                 </div>
               </div>
