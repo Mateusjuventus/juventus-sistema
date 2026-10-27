@@ -18,10 +18,32 @@ import {
   camposFichaAtletaDaQueryString,
   construirSecoesFichaAtleta,
   enderecoFichaAtleta,
+  extrasFichaAtletaDaQueryString,
 } from "@/lib/futebol/ficha-atleta";
-import { FichaAtletaDocument } from "@/lib/pdf/ficha-atleta-document";
+import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
+import { montarHistoricoAtletaBase } from "@/lib/futebol/anotacoes-atleta";
+import { FichaAtletaDocument, type FichaAtletaAnotacaoItem, type FichaAtletaDadosDeJogo } from "@/lib/pdf/ficha-atleta-document";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
-import type { AtletaBaseContatoEmergenciaRow, AtletaBaseContratoRow, AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+import type {
+  AtletaBaseAnotacaoRow,
+  AtletaBaseContatoEmergenciaRow,
+  AtletaBaseContratoRow,
+  AtletaBaseRow,
+  AtletaBaseStatus,
+} from "@/lib/supabase/types";
+
+const TABELAS_JOGO = {
+  jogos: "jogos_base",
+  convocacoes: "convocacoes_base",
+  convocacaoAtletas: "convocacao_atletas_base",
+  sumulas: "sumulas_base",
+  sumulaEventos: "sumula_eventos_base",
+};
+
+function formatDataHora(iso: string): string {
+  const data = new Date(iso);
+  return data.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
+}
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -53,38 +75,91 @@ function formatMoeda(valor: number): string {
  * Gera a ficha individual do atleta (Futebol de Base) em PDF — espelha `app/atletas/[id]/ficha/pdf/
  * route.tsx` (Profissional), com os campos que só existem no cadastro da Base (Responsáveis,
  * Categoria, Classificação G1/G2/G3, Agência, Alojamento, Escola). Ver `lib/futebol/ficha-atleta.ts`.
+ *
+ * Ficha "mestre" (ver docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md):
+ * além dos campos de sempre, inclui opcionalmente Dados de Jogo (com gráfico de participação,
+ * ?incluirDadosDeJogo=nao pra tirar, ?de=/&ate= pra filtrar período) e Anotações (histórico com
+ * autor/data, ?incluirAnotacoes=nao pra tirar) — essa última já misturando o Relatório de Dispensa
+ * na timeline quando houver, igual à aba "Anotações" da tela.
  */
 export async function GET(request: Request, { params }: { params: { categoria: string; id: string } }) {
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
 
   const url = new URL(request.url);
   const selecionados = camposFichaAtletaDaQueryString(url.searchParams, CAMPOS_FICHA_ATLETA_BASE);
+  const extras = extrasFichaAtletaDaQueryString(url.searchParams);
 
   const supabase = createClient();
-  const [{ data: atletaData }, { data: contatosData }, { data: contratosData }] = await Promise.all([
-    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
-    supabase
-      .from("atleta_base_contatos_emergencia")
-      .select("*")
-      .eq("atleta_id", params.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("atleta_base_contratos")
-      .select("*")
-      .eq("atleta_id", params.id)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data: atletaData }, { data: contatosData }, { data: contratosData }, { data: anotacoesData }] =
+    await Promise.all([
+      supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+      supabase
+        .from("atleta_base_contatos_emergencia")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("atleta_base_contratos")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("atleta_base_anotacoes")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: false }),
+    ]);
   if (!atletaData) return new NextResponse("Atleta não encontrado.", { status: 404 });
 
   const atleta = atletaData as AtletaBaseRow;
   const contatos = (contatosData ?? []) as AtletaBaseContatoEmergenciaRow[];
   const contratos = (contratosData ?? []) as AtletaBaseContratoRow[];
+  const anotacoes = (anotacoesData ?? []) as AtletaBaseAnotacaoRow[];
   const vigente = contratos.find((c) => c.vigente) ?? null;
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}${
     atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""
   }`;
+
+  const dadosDeJogo: FichaAtletaDadosDeJogo | null = extras.dadosDeJogo
+    ? await (async () => {
+        const { stats, duracaoReferencia } = await buscarEstatisticasAtleta(supabase, atleta.id, TABELAS_JOGO, {
+          de: extras.de,
+          ate: extras.ate,
+        });
+        const periodoTexto =
+          extras.de || extras.ate
+            ? `Período: ${extras.de ? formatDataBr(extras.de) : "início"} até ${extras.ate ? formatDataBr(extras.ate) : "hoje"}`
+            : "Histórico completo";
+        return { periodoTexto, stats, duracaoReferencia };
+      })()
+    : null;
+
+  let anotacoesPdf: FichaAtletaAnotacaoItem[] | null = null;
+  if (extras.anotacoes) {
+    let dispensadoPorNome: string | null = null;
+    if (atleta.dispensado_por) {
+      const { data: perfilDispensa } = await supabase
+        .from("perfis")
+        .select("nome, email")
+        .eq("id", atleta.dispensado_por)
+        .maybeSingle();
+      const perfil = perfilDispensa as { nome: string | null; email: string } | null;
+      dispensadoPorNome = perfil?.nome?.trim() ? perfil.nome : (perfil?.email ?? null);
+    }
+    anotacoesPdf = montarHistoricoAtletaBase(
+      anotacoes,
+      atleta,
+      dispensadoPorNome,
+      `/base/atletas/${params.categoria}/${atleta.id}/dispensa/pdf`,
+    ).map((item) => ({
+      tipo: item.tipo,
+      texto: item.texto,
+      autor: item.autor ?? "—",
+      dataTexto: formatDataHora(item.data),
+    }));
+  }
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
@@ -197,6 +272,8 @@ export async function GET(request: Request, { params }: { params: { categoria: s
       nome={atleta.nome_completo}
       subtitulo={subtitulo}
       secoes={secoes}
+      dadosDeJogo={dadosDeJogo}
+      anotacoes={anotacoesPdf}
     />,
   );
 

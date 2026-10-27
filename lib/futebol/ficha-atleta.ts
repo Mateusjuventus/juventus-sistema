@@ -11,6 +11,11 @@
  * bloco, porque o pedido foi "campo por campo". As rotas de PDF (`app/atletas/[id]/ficha/pdf/
  * route.tsx` e `app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx`) e o modal
  * (`components/atletas/ficha-atleta-modal.tsx`) só chamam essas funções.
+ *
+ * Virou a Ficha "mestre" em 2026-10-27 (ver docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-
+ * anotacoes-design.md): além dos campos de sempre, ganhou duas seções "ricas" opcionais — Dados de
+ * Jogo (gráfico + números) e Anotações (histórico com autor/data) — ver `FichaAtletaExtras` mais
+ * abaixo. Essas duas não entram no modelo campo a campo.
  */
 
 export type FichaSecaoChave = "pessoais" | "esportivos" | "contrato";
@@ -156,6 +161,60 @@ export function construirSecoesFichaAtleta(
       dados: camposSelecionadosDaSecao.map((c) => ({ label: c.label, valor: valores[c.chave] ?? null })),
     };
   });
+}
+
+/**
+ * As duas seções "ricas" da Ficha mestre — Dados de Jogo e Anotações (ver docs/superpowers/specs/
+ * 2026-10-27-ficha-atleta-dossie-anotacoes-design.md). Ficam fora do modelo campo a campo
+ * (`CampoFichaAtleta`) de propósito: não são pares label/valor simples, são um bloco com
+ * gráfico+números (Dados de Jogo) ou uma lista com autor/data (Anotações) — por isso o modal marca
+ * cada uma com um único checkbox (a seção inteira), nunca campo a campo. Vale pros dois
+ * departamentos (Base e Profissional); só a Base mistura o Relatório de Dispensa na timeline de
+ * Anotações (ver `montarHistoricoAtletaBase`) — isso é decidido na rota, não aqui.
+ */
+export interface FichaAtletaExtras {
+  dadosDeJogo: boolean;
+  anotacoes: boolean;
+}
+
+/** Estado inicial do modal pras duas seções extras — também começam marcadas, mesmo espírito de
+ * `todosCamposFichaAtleta` (quem só clica "Gerar PDF" direto continua recebendo a ficha completa). */
+export function todosExtrasFichaAtleta(): FichaAtletaExtras {
+  return { dadosDeJogo: true, anotacoes: true };
+}
+
+/** Serializa os dois checkboxes extras + o período (só relevante quando Dados de Jogo estiver
+ * marcado) na query string do PDF. Cada checkbox tem seu próprio parâmetro (ausente = marcado,
+ * `"nao"` = desmarcado) — note a inversão em relação a `camposFichaAtletaParaQueryString`: aqui o
+ * padrão "tudo marcado" precisa continuar dando uma query vazia pra link antigo nenhum mudar, e
+ * como só tem 2 flags (não uma lista), é mais simples marcar só a exceção. Mesmo padrão de
+ * `incluirDadosPessoais` (`app/atletas/[id]/relatorio/pdf/route.tsx`) pro nome dos parâmetros de
+ * período (`de`/`ate`). */
+export function extrasFichaAtletaParaQueryString(
+  extras: FichaAtletaExtras,
+  periodo: { de?: string; ate?: string },
+): string {
+  const partes: string[] = [];
+  if (!extras.dadosDeJogo) partes.push("incluirDadosDeJogo=nao");
+  if (!extras.anotacoes) partes.push("incluirAnotacoes=nao");
+  if (extras.dadosDeJogo) {
+    if (periodo.de) partes.push(`de=${periodo.de}`);
+    if (periodo.ate) partes.push(`ate=${periodo.ate}`);
+  }
+  return partes.join("&");
+}
+
+/** Caminho inverso — usado pelas rotas de PDF. Sem os parâmetros (link antigo, ou quem gerou sem
+ * passar pelo modal), assume as duas seções marcadas e sem filtro de período. */
+export function extrasFichaAtletaDaQueryString(
+  searchParams: URLSearchParams,
+): FichaAtletaExtras & { de?: string; ate?: string } {
+  return {
+    dadosDeJogo: searchParams.get("incluirDadosDeJogo") !== "nao",
+    anotacoes: searchParams.get("incluirAnotacoes") !== "nao",
+    de: searchParams.get("de") || undefined,
+    ate: searchParams.get("ate") || undefined,
+  };
 }
 
 interface EnderecoLinha {

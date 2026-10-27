@@ -16,10 +16,26 @@ import {
   camposFichaAtletaDaQueryString,
   construirSecoesFichaAtleta,
   enderecoFichaAtleta,
+  extrasFichaAtletaDaQueryString,
 } from "@/lib/futebol/ficha-atleta";
-import { FichaAtletaDocument } from "@/lib/pdf/ficha-atleta-document";
+import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
+import { montarHistoricoAtleta } from "@/lib/futebol/anotacoes-atleta";
+import { FichaAtletaDocument, type FichaAtletaAnotacaoItem, type FichaAtletaDadosDeJogo } from "@/lib/pdf/ficha-atleta-document";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
-import type { AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
+import type { AtletaAnotacaoRow, AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
+
+const TABELAS_JOGO = {
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
+};
+
+function formatDataHora(iso: string): string {
+  const data = new Date(iso);
+  return data.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
+}
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -46,31 +62,67 @@ function formatMoeda(valor: number): string {
  * `components/atletas/ficha-atleta-modal.tsx`). Sem o parâmetro, sai a ficha completa — mesmo
  * padrão de `app/atletas/[id]/relatorio/pdf/route.tsx`. Pedido do Mateus em 2026-10-22: "gerar a
  * ficha do atleta" com "a opção de eu selecionar quais dados que eu quero que apareça".
+ *
+ * Ficha "mestre" (ver docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md):
+ * além dos campos de sempre, inclui opcionalmente Dados de Jogo (com gráfico de participação,
+ * ?incluirDadosDeJogo=nao pra tirar, ?de=/&ate= pra filtrar período) e Anotações (histórico com
+ * autor/data, ?incluirAnotacoes=nao pra tirar).
  */
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const url = new URL(request.url);
   const selecionados = camposFichaAtletaDaQueryString(url.searchParams, CAMPOS_FICHA_ATLETA_PROFISSIONAL);
+  const extras = extrasFichaAtletaDaQueryString(url.searchParams);
 
   const supabase = createClient();
-  const [{ data: atletaData }, { data: contatosData }, { data: contratosData }] = await Promise.all([
-    supabase.from("atletas").select("*").eq("id", params.id).single(),
-    supabase
-      .from("atleta_contatos_emergencia")
-      .select("*")
-      .eq("atleta_id", params.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("atleta_contratos")
-      .select("*")
-      .eq("atleta_id", params.id)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data: atletaData }, { data: contatosData }, { data: contratosData }, { data: anotacoesData }] =
+    await Promise.all([
+      supabase.from("atletas").select("*").eq("id", params.id).single(),
+      supabase
+        .from("atleta_contatos_emergencia")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("atleta_contratos")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("atleta_anotacoes")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: false }),
+    ]);
   if (!atletaData) return new NextResponse("Atleta não encontrado.", { status: 404 });
 
   const atleta = atletaData as AtletaRow;
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
   const contratos = (contratosData ?? []) as AtletaContratoRow[];
+  const anotacoes = (anotacoesData ?? []) as AtletaAnotacaoRow[];
   const vigente = contratos.find((c) => c.vigente) ?? null;
+
+  const dadosDeJogo: FichaAtletaDadosDeJogo | null = extras.dadosDeJogo
+    ? await (async () => {
+        const { stats, duracaoReferencia } = await buscarEstatisticasAtleta(supabase, atleta.id, TABELAS_JOGO, {
+          de: extras.de,
+          ate: extras.ate,
+        });
+        const periodoTexto =
+          extras.de || extras.ate
+            ? `Período: ${extras.de ? formatDataBr(extras.de) : "início"} até ${extras.ate ? formatDataBr(extras.ate) : "hoje"}`
+            : "Histórico completo";
+        return { periodoTexto, stats, duracaoReferencia };
+      })()
+    : null;
+
+  const anotacoesPdf: FichaAtletaAnotacaoItem[] | null = extras.anotacoes
+    ? montarHistoricoAtleta(anotacoes).map((item) => ({
+        tipo: item.tipo,
+        texto: item.texto,
+        autor: item.autor ?? "—",
+        dataTexto: formatDataHora(item.data),
+      }))
+    : null;
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
@@ -165,6 +217,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       nome={atleta.nome_completo}
       subtitulo={subtitulo}
       secoes={secoes}
+      dadosDeJogo={dadosDeJogo}
+      anotacoes={anotacoesPdf}
     />,
   );
 
