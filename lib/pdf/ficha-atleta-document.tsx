@@ -17,14 +17,17 @@ import { CORES, DocumentoFooter, sharedStyles, type LogoSrc } from "./logistica-
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 4 },
-  foto: { width: 64, height: 64, borderRadius: 32, objectFit: "cover" },
+  // Retrato (não circular) — mesmo padrão do Relatório de Dispensa (lib/pdf/relatorio-dispensa-
+  // document.tsx), que é como a foto do atleta aparece no resto do sistema (cards/telas de
+  // listagem). Pedido do Mateus em 2026-10-27: a Ficha estava com a foto circular, destoando disso.
+  foto: { width: 84, height: 104, borderRadius: 3, objectFit: "cover", borderWidth: 0.75, borderColor: "#c4c4c4" },
   fotoPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 84,
+    height: 104,
+    borderRadius: 3,
     backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#d4d4d4",
+    borderWidth: 0.75,
+    borderColor: "#c4c4c4",
   },
   tituloDocumento: { fontSize: 8.5, fontWeight: 700, color: CORES.grena, textTransform: "uppercase", letterSpacing: 1 },
   nome: { fontSize: 16, fontWeight: 700, color: CORES.grenaEscuro, marginTop: 2 },
