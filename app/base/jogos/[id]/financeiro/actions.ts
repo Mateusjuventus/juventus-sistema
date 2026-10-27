@@ -115,7 +115,7 @@ async function avisarSeNovoBlocoAssinavel(
   temEfetuado: boolean,
 ): Promise<void> {
   const [{ data: jogo }, { data: gastos }] = await Promise.all([
-    supabase.from("jogos_base").select("adversario_nome, data_jogo").eq("id", jogoId).maybeSingle(),
+    supabase.from("jogos_base").select("adversario_nome, data_jogo, categoria").eq("id", jogoId).maybeSingle(),
     supabase.from("gastos_jogo_base").select("valor_efetuado").eq("jogo_id", jogoId),
   ]);
   if (!jogo) return;
@@ -124,10 +124,13 @@ async function avisarSeNovoBlocoAssinavel(
   const totalEfetuados = (gastos ?? []).filter((g) => g.valor_efetuado !== null).length;
   const link = caminhoFinanceiro(jogoId);
 
+  // `categoria` decide quem é avisado pela Assinatura 1 (Supervisor) — ver
+  // docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md.
   if (total === 1) {
     await notificarAssinantesFinanceiro({
       tabelaConfig: "configuracoes_financeiro_base",
       jogoId,
+      categoria: jogo.categoria,
       adversarioNome: jogo.adversario_nome,
       dataJogo: jogo.data_jogo,
       bloco: "Orçamento",
@@ -138,6 +141,7 @@ async function avisarSeNovoBlocoAssinavel(
     await notificarAssinantesFinanceiro({
       tabelaConfig: "configuracoes_financeiro_base",
       jogoId,
+      categoria: jogo.categoria,
       adversarioNome: jogo.adversario_nome,
       dataJogo: jogo.data_jogo,
       bloco: "Despesas",

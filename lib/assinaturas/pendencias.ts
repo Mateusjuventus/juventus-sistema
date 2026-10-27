@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { podeAssinarPapel } from "./config";
+import { getPerfilPermissoes, resolverEhSupervisorDaCategoriaBase } from "@/lib/auth/role";
+import type { CategoriaBase } from "@/lib/auth/categorias-base";
 import type {
   AtletaBaseRow,
   CaptacaoBaseRow,
@@ -128,27 +130,44 @@ async function pendenciasParecer(supabase: Supabase, userId: string, master: boo
 }
 
 /** Financeiro de jogo (Orçamento/Despesas), Profissional e Base — só entra na lista se o jogo já
- * tiver gastos lançados (mesma condição que já gate o bloco de assinatura na tela do jogo). */
+ * tiver gastos lançados (mesma condição que já gate o bloco de assinatura na tela do jogo).
+ *
+ * Assinatura 1 (Supervisor) não funciona mais igual nos dois departamentos: no Profissional
+ * continua um usuário vinculado fixo; na Base agora depende da categoria de CADA jogo (função
+ * "Supervisor" cadastrada na Comissão Técnica da Base + aquela categoria entre as dela — ver
+ * docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md), por isso
+ * é resolvida jogo a jogo dentro do loop, não de uma vez só antes de buscar os jogos. */
 async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: boolean): Promise<PendenciaAssinatura[]> {
+  const perfil = await getPerfilPermissoes(supabase);
+  // Gate grosseiro (evita a query de jogos quando é impossível essa pessoa ter qualquer papel 1
+  // da Base) — a checagem fina de verdade é por jogo, dentro do loop.
+  const podeTalvezAssinatura1Base =
+    master || (perfil?.comissao_tecnica_base?.funcao.toLowerCase().includes("supervisor") ?? false);
+
   async function paraDepartamento(
     tabelaJogos: "jogos" | "jogos_base",
     tabelaGastos: "gastos_jogo" | "gastos_jogo_base",
     tabelaConfig: "configuracoes_financeiro" | "configuracoes_financeiro_base",
     linkBase: (jogoId: string) => string,
+    departamento: "profissional" | "base",
   ): Promise<PendenciaAssinatura[]> {
     const { data: configData } = await supabase.from(tabelaConfig).select("*").limit(1).maybeSingle();
     const config = configData as (ConfiguracaoFinanceiroRow | ConfiguracaoFinanceiroBaseRow) | null;
-    const papeisElegiveis = (["assinatura1", "assinatura2"] as const).filter((papel) =>
-      podeAssinarPapel(
-        papel === "assinatura1" ? config?.assinatura1_usuario_id : config?.assinatura2_usuario_id,
-        userId,
-        master,
-      ),
-    );
-    if (papeisElegiveis.length === 0) return [];
 
-    const { data: jogosData } = await supabase.from(tabelaJogos).select("id, adversario_nome, data_jogo");
-    const jogos = (jogosData ?? []) as Pick<JogoRow | JogoBaseRow, "id" | "adversario_nome" | "data_jogo">[];
+    const podeAssinatura2 = podeAssinarPapel(config?.assinatura2_usuario_id, userId, master);
+    const podeAssinatura1Profissional =
+      departamento === "profissional" &&
+      podeAssinarPapel((config as ConfiguracaoFinanceiroRow | null)?.assinatura1_usuario_id, userId, master);
+    const podeTalvezAssinatura1 = departamento === "profissional" ? podeAssinatura1Profissional : podeTalvezAssinatura1Base;
+
+    if (!podeTalvezAssinatura1 && !podeAssinatura2) return [];
+
+    const { data: jogosData } = await supabase
+      .from(tabelaJogos)
+      .select(departamento === "base" ? "id, adversario_nome, data_jogo, categoria" : "id, adversario_nome, data_jogo");
+    const jogos = (jogosData ?? []) as (Pick<JogoRow | JogoBaseRow, "id" | "adversario_nome" | "data_jogo"> & {
+      categoria?: CategoriaBase;
+    })[];
     if (jogos.length === 0) return [];
 
     const { data: gastosData } = await supabase
@@ -175,10 +194,20 @@ async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: 
     for (const jogo of jogos) {
       const info = gastosPorJogo.get(jogo.id);
       if (!info || info.total === 0) continue;
+
+      const podeAssinatura1 =
+        departamento === "profissional"
+          ? podeAssinatura1Profissional
+          : jogo.categoria !== undefined && resolverEhSupervisorDaCategoriaBase(perfil, jogo.categoria);
+      const papeisElegiveisDoJogo: Array<"assinatura1" | "assinatura2"> = [];
+      if (podeAssinatura1) papeisElegiveisDoJogo.push("assinatura1");
+      if (podeAssinatura2) papeisElegiveisDoJogo.push("assinatura2");
+      if (papeisElegiveisDoJogo.length === 0) continue;
+
       const titulo = `Financeiro — vs. ${jogo.adversario_nome}, ${formatDataBr(jogo.data_jogo)}`;
       const jaOrcamento = assinadoOrcamento.get(jogo.id) ?? new Set();
       const jaDespesas = assinadoDespesas.get(jogo.id) ?? new Set();
-      for (const papel of papeisElegiveis) {
+      for (const papel of papeisElegiveisDoJogo) {
         const rotulo = (papel === "assinatura1" ? config?.assinatura1_cargo : config?.assinatura2_cargo) || papel;
         if (!jaOrcamento.has(papel)) {
           pendencias.push({ titulo: `${titulo} (Orçamento)`, papelRotulo: rotulo, link: linkBase(jogo.id) });
@@ -192,8 +221,14 @@ async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: 
   }
 
   const [profissional, base] = await Promise.all([
-    paraDepartamento("jogos", "gastos_jogo", "configuracoes_financeiro", (id) => `/jogos/${id}/financeiro`),
-    paraDepartamento("jogos_base", "gastos_jogo_base", "configuracoes_financeiro_base", (id) => `/base/jogos/${id}/financeiro`),
+    paraDepartamento("jogos", "gastos_jogo", "configuracoes_financeiro", (id) => `/jogos/${id}/financeiro`, "profissional"),
+    paraDepartamento(
+      "jogos_base",
+      "gastos_jogo_base",
+      "configuracoes_financeiro_base",
+      (id) => `/base/jogos/${id}/financeiro`,
+      "base",
+    ),
   ]);
   return [...profissional, ...base];
 }
