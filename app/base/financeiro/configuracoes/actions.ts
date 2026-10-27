@@ -13,13 +13,16 @@ export interface ConfiguracaoFormState {
   values?: Record<string, string>;
 }
 
+// Assinatura 1 não tem mais "Usuário que assina digitalmente" aqui — quem pode assinar vem da
+// função/categorias cadastradas na Comissão Técnica da Base (ver
+// docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md). O campo
+// (e a coluna `assinatura1_usuario_id`) deixaram de existir.
 function parseForm(formData: FormData) {
   const raw = {
     assinatura1Nome: String(formData.get("assinatura1Nome") ?? ""),
     assinatura1Cargo: String(formData.get("assinatura1Cargo") ?? ""),
     assinatura2Nome: String(formData.get("assinatura2Nome") ?? ""),
     assinatura2Cargo: String(formData.get("assinatura2Cargo") ?? ""),
-    assinatura1UsuarioId: String(formData.get("assinatura1UsuarioId") ?? ""),
     assinatura2UsuarioId: String(formData.get("assinatura2UsuarioId") ?? ""),
   };
 
@@ -48,7 +51,6 @@ export async function updateConfiguracaoFinanceiroBase(
     assinatura1_cargo: data.assinatura1Cargo,
     assinatura2_nome: data.assinatura2Nome,
     assinatura2_cargo: data.assinatura2Cargo,
-    assinatura1_usuario_id: data.assinatura1UsuarioId || null,
     assinatura2_usuario_id: data.assinatura2UsuarioId || null,
   };
 

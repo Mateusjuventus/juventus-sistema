@@ -1176,14 +1176,16 @@ export interface GastoJogoBaseComCategoriaRow extends GastoJogoBaseRow {
   categoria: { nome: string } | null;
 }
 
-/** Configurações do Financeiro (Base) — tabela singleton independente da do Profissional. */
+/** Configurações do Financeiro (Base) — tabela singleton independente da do Profissional.
+ * `assinatura1_usuario_id` deixou de existir (ver docs/superpowers/specs/2026-10-27-assinatura-
+ * financeiro-base-por-supervisor-design.md) — quem pode assinar a Assinatura 1 de cada jogo agora
+ * vem da função/categorias cadastradas na Comissão Técnica da Base, não de um vínculo fixo aqui. */
 export interface ConfiguracaoFinanceiroBaseRow {
   id: string;
   assinatura1_nome: string;
   assinatura1_cargo: string;
   assinatura2_nome: string;
   assinatura2_cargo: string;
-  assinatura1_usuario_id: string | null;
   assinatura2_usuario_id: string | null;
   updated_at: string;
 }

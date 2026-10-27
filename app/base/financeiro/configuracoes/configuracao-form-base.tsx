@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { SubmitButton } from "@/components/submit-button";
@@ -28,6 +29,16 @@ export function ConfiguracaoFormBase({
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="id" value={entityId} />
       <FormSection title="Assinatura 1">
+        <p className="text-sm text-neutral-500">
+          Nome e cargo aqui aparecem no PDF do Relatório Geral da Base. Quem pode assinar a
+          Assinatura 1 de cada jogo é decidido pela categoria: só quem tiver a função
+          &ldquo;Supervisor&rdquo; cadastrada na{" "}
+          <Link href="/base/comissao-tecnica" className="font-medium text-grena hover:underline">
+            Comissão Técnica da Base
+          </Link>{" "}
+          com a categoria daquele jogo entre as dela (além de qualquer master, que sempre pode
+          assinar qualquer categoria como reserva).
+        </p>
         <FieldGroup>
           <TextField
             label="Nome"
@@ -43,14 +54,6 @@ export function ConfiguracaoFormBase({
             defaultValue={values.assinatura1Cargo}
             error={errors.assinatura1Cargo}
           />
-          <SelectField label="Usuário que assina digitalmente" name="assinatura1UsuarioId" defaultValue={values.assinatura1UsuarioId}>
-            <option value="">— Não vincular (qualquer master pode assinar) —</option>
-            {perfis.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.rotulo}
-              </option>
-            ))}
-          </SelectField>
         </FieldGroup>
       </FormSection>
 

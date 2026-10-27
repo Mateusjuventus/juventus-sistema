@@ -27,7 +27,6 @@ export default async function ConfiguracoesFinanceiroBasePage() {
     assinatura1Cargo: config?.assinatura1_cargo ?? PADRAO.assinatura1_cargo,
     assinatura2Nome: config?.assinatura2_nome ?? PADRAO.assinatura2_nome,
     assinatura2Cargo: config?.assinatura2_cargo ?? PADRAO.assinatura2_cargo,
-    assinatura1UsuarioId: config?.assinatura1_usuario_id ?? "",
     assinatura2UsuarioId: config?.assinatura2_usuario_id ?? "",
   };
 

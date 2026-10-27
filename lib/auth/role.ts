@@ -32,8 +32,10 @@ export interface PerfilPermissoes {
   /** Embed do PostgREST — só vem preenchido quando `comissao_tecnica_base_id` aponta pra um
    * registro existente (ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-
    * tecnica-design.md). Resolvido no mesmo round-trip da query de `buscarPerfilPermissoes`, sem
-   * query adicional nem quebra da memoização por request. */
-  comissao_tecnica_base: { categorias: string[] } | null;
+   * query adicional nem quebra da memoização por request. `funcao` foi acrescentado ao embed em
+   * docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md, pra
+   * decidir quem é Supervisor sem precisar de outra query. */
+  comissao_tecnica_base: { categorias: string[]; funcao: string } | null;
   /** Sub-área Fisioterapia do módulo Departamento Médico — ver
    * docs/superpowers/specs/2026-09-30-fisioterapia-design.md e `getFisioterapiaPodeEditar` abaixo. */
   fisioterapia_pode_editar: boolean | null;
@@ -88,7 +90,7 @@ const buscarPerfilPermissoes = cache(async (): Promise<PerfilPermissoes | null> 
         "tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador, " +
         "comissao_tecnica_id, comissao_tecnica_base_id, categorias_base_permitidas, " +
         "fisioterapia_pode_editar, fisioterapia_pode_editar_base, campos_sensiveis_bloqueados, " +
-        "demandas_acompanhado, comissao_tecnica_base:comissao_tecnica_base_id(categorias)",
+        "demandas_acompanhado, comissao_tecnica_base:comissao_tecnica_base_id(categorias, funcao)",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -242,6 +244,41 @@ export async function getCategoriasBasePermitidas(
 ): Promise<CategoriaBase[]> {
   const perfil = await getPerfilPermissoes(supabase);
   return resolverCategoriasBasePermitidas(perfil);
+}
+
+/**
+ * Se o usuário logado pode assinar a Assinatura 1 ("Supervisor de Futebol de Base") do Orçamento
+ * Previsto/Relatório de Despesas de um jogo de uma categoria específica — ver
+ * docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md. "Master"
+ * sempre pode, mesmo com um Supervisor certo já vinculado àquela categoria (reserva, ex.: o
+ * Supervisor está de férias). Sem vínculo com a Comissão Técnica da Base, nunca pode — ao
+ * contrário de `resolverCategoriasBasePermitidas`, aqui não existe fallback manual: o objetivo é
+ * justamente não deixar o Supervisor de uma categoria assinar o jogo de outra (ou alguém que não é
+ * Supervisor assinar qualquer jogo). Com vínculo, só pode se a função cadastrada contiver
+ * "supervisor" (comparação sem diferenciar maiúsculas/minúsculas, cobre variações como "Supervisor
+ * de Futebol de Base") e a categoria do jogo estiver entre as categorias cadastradas dela.
+ */
+export function resolverEhSupervisorDaCategoriaBase(
+  perfil: PerfilPermissoes | null,
+  categoria: CategoriaBase,
+): boolean {
+  if (!perfil) return false;
+  if (perfil.role === "master") return true;
+  if (!perfil.comissao_tecnica_base_id || !perfil.comissao_tecnica_base) return false;
+
+  const { funcao, categorias } = perfil.comissao_tecnica_base;
+  if (!funcao.toLowerCase().includes("supervisor")) return false;
+  return (categorias as CategoriaBase[]).includes(categoria);
+}
+
+/** Versão de `resolverEhSupervisorDaCategoriaBase` que já busca o perfil do usuário logado — usada
+ * pela tela de Financeiro de jogo da Base. */
+export async function ehSupervisorDaCategoriaBase(
+  supabase: ReturnType<typeof createClient>,
+  categoria: CategoriaBase,
+): Promise<boolean> {
+  const perfil = await getPerfilPermissoes(supabase);
+  return resolverEhSupervisorDaCategoriaBase(perfil, categoria);
 }
 
 /**

@@ -5,7 +5,7 @@ import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { DeleteButton } from "@/components/delete-button";
 import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { createClient } from "@/lib/supabase/server";
-import { isMaster } from "@/lib/auth/role";
+import { ehSupervisorDaCategoriaBase, isMaster } from "@/lib/auth/role";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { papeisAssinaturaFinanceiro, podeAssinarPapel } from "@/lib/assinaturas/config";
 import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
@@ -158,15 +158,18 @@ export default async function FinanceiroJogoBasePage({
     assinatura1Cargo: configFinanceiro?.assinatura1_cargo ?? "",
     assinatura2Cargo: configFinanceiro?.assinatura2_cargo ?? "",
   });
-  const papeisQuePossoAssinar = user
-    ? (["assinatura1", "assinatura2"] as const).filter((papel) =>
-        podeAssinarPapel(
-          papel === "assinatura1" ? configFinanceiro?.assinatura1_usuario_id : configFinanceiro?.assinatura2_usuario_id,
-          user.id,
-          master,
-        ),
-      )
-    : [];
+  // Assinatura 1 (Supervisor) depende da categoria deste jogo específico — ver
+  // docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md. A
+  // Assinatura 2 (Coordenador) não muda, continua um papel único pra toda a Base.
+  const papeisQuePossoAssinar: Array<"assinatura1" | "assinatura2"> = [];
+  if (user) {
+    const [possoAssinatura1, possoAssinatura2] = await Promise.all([
+      ehSupervisorDaCategoriaBase(supabase, jogo.categoria),
+      Promise.resolve(podeAssinarPapel(configFinanceiro?.assinatura2_usuario_id, user.id, master)),
+    ]);
+    if (possoAssinatura1) papeisQuePossoAssinar.push("assinatura1");
+    if (possoAssinatura2) papeisQuePossoAssinar.push("assinatura2");
+  }
   const [assinaturasOrcamentoComImagem, assinaturasDespesasComImagem, minhaAssinaturaCadastrada] = await Promise.all([
     resolverImagensAssinaturas(supabase, assinaturasOrcamento),
     resolverImagensAssinaturas(supabase, assinaturasDespesas),
