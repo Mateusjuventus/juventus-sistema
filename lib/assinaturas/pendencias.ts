@@ -162,9 +162,15 @@ async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: 
 
     if (!podeTalvezAssinatura1 && !podeAssinatura2) return [];
 
-    const { data: jogosData } = await supabase
-      .from(tabelaJogos)
-      .select(departamento === "base" ? "id, adversario_nome, data_jogo, categoria" : "id, adversario_nome, data_jogo");
+    // `.select()` precisa de uma string literal só (nunca um ternário) pra o parser de tipos do
+    // Supabase conseguir inferir as colunas direito — por isso os dois ramos chamam `.from()` com
+    // o nome literal da tabela (`tabelaJogos` já garante que o ramo certo é escolhido pelos dois
+    // lugares que chamam `paraDepartamento`), em vez de um `.select()` condicional por cima do
+    // mesmo `.from(tabelaJogos)`.
+    const jogosData =
+      tabelaJogos === "jogos_base"
+        ? (await supabase.from("jogos_base").select("id, adversario_nome, data_jogo, categoria")).data
+        : (await supabase.from("jogos").select("id, adversario_nome, data_jogo")).data;
     const jogos = (jogosData ?? []) as (Pick<JogoRow | JogoBaseRow, "id" | "adversario_nome" | "data_jogo"> & {
       categoria?: CategoriaBase;
     })[];
