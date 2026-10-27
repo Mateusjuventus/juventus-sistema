@@ -17,6 +17,7 @@ import {
   construirSecoesFichaAtleta,
   enderecoFichaAtleta,
   extrasFichaAtletaDaQueryString,
+  textoFiltroCompeticaoAtleta,
 } from "@/lib/futebol/ficha-atleta";
 import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { montarHistoricoAtleta } from "@/lib/futebol/anotacoes-atleta";
@@ -30,6 +31,9 @@ const TABELAS_JOGO = {
   convocacaoAtletas: "convocacao_atletas",
   sumulas: "sumulas",
   sumulaEventos: "sumula_eventos",
+  competicaoJogos: "competicao_jogos",
+  competicoes: "competicoes",
+  temporadas: "temporadas",
 };
 
 function formatDataHora(iso: string): string {
@@ -103,15 +107,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const dadosDeJogo: FichaAtletaDadosDeJogo | null = extras.dadosDeJogo
     ? await (async () => {
-        const { stats, duracaoReferencia } = await buscarEstatisticasAtleta(supabase, atleta.id, TABELAS_JOGO, {
-          de: extras.de,
-          ate: extras.ate,
-        });
-        const periodoTexto =
-          extras.de || extras.ate
-            ? `Período: ${extras.de ? formatDataBr(extras.de) : "início"} até ${extras.ate ? formatDataBr(extras.ate) : "hoje"}`
-            : "Histórico completo";
-        return { periodoTexto, stats, duracaoReferencia };
+        const { stats, duracaoReferencia, detalhePorCompeticao } = await buscarEstatisticasAtleta(
+          supabase,
+          atleta.id,
+          TABELAS_JOGO,
+          { competicaoIds: extras.competicaoIds, incluirSemCompeticao: extras.incluirSemCompeticao },
+        );
+        const periodoTexto = textoFiltroCompeticaoAtleta(
+          extras.competicaoIds,
+          detalhePorCompeticao.map((g) => g.titulo),
+        );
+        return { periodoTexto, stats, duracaoReferencia, detalhePorCompeticao };
       })()
     : null;
 

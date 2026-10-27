@@ -11,6 +11,7 @@ import {
   type CampoFichaAtleta,
   type FichaAtletaExtras,
 } from "@/lib/futebol/ficha-atleta";
+import { ROTULO_SEM_COMPETICAO, type CompeticaoDisponivelAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 
 /**
  * Escolha de quais dados saem na ficha do atleta antes de gerar o PDF (pedido do Mateus em
@@ -22,23 +23,33 @@ import {
  *
  * As duas seções novas da Ficha mestre (Dados de Jogo, Anotações — ver docs/superpowers/specs/
  * 2026-10-27-ficha-atleta-dossie-anotacoes-design.md) não são campo a campo: cada uma é um único
- * checkbox (a seção inteira), também começando marcada. "Dados de Jogo" ganha um filtro de período
- * opcional, só visível quando ela estiver marcada — mesmo "de"/"até" já usado na aba Dados de Jogo
- * (vazio = histórico completo).
+ * checkbox (a seção inteira), também começando marcada. "Dados de Jogo" ganha um checklist de
+ * Competições (agrupado por Temporada) pra filtrar — substituiu o filtro de período em 2026-10-27
+ * (pedido do Mateus: "quero selecionar as competições que captam a participação dele e eu
+ * seleciono. e não por período"); todas as Competições (e "sem competição", quando existir) começam
+ * marcadas, igual ao resto do modal.
  */
 export function FichaAtletaModal({
   pdfHrefBase,
   campos,
+  competicoesDisponiveis,
+  temJogosSemCompeticao,
   onClose,
 }: {
   pdfHrefBase: string;
   campos: CampoFichaAtleta[];
+  /** Competições formais disponíveis pro checklist de "Dados de Jogo" (ver
+   * `buscarCompeticoesDisponiveisAtleta`) — já ordenadas por Temporada mais recente primeiro. */
+  competicoesDisponiveis: CompeticaoDisponivelAtleta[];
+  temJogosSemCompeticao: boolean;
   onClose: () => void;
 }) {
   const [selecionados, setSelecionados] = useState<Set<string>>(todosCamposFichaAtleta(campos));
   const [extras, setExtras] = useState<FichaAtletaExtras>(todosExtrasFichaAtleta());
-  const [periodoDe, setPeriodoDe] = useState("");
-  const [periodoAte, setPeriodoAte] = useState("");
+  const [competicaoIdsSelecionados, setCompeticaoIdsSelecionados] = useState<Set<string>>(
+    new Set(competicoesDisponiveis.map((c) => c.competicaoId)),
+  );
+  const [semCompeticaoSelecionado, setSemCompeticaoSelecionado] = useState(temJogosSemCompeticao);
 
   function alternar(chave: string) {
     setSelecionados((atual) => {
@@ -53,11 +64,26 @@ export function FichaAtletaModal({
     setExtras((atual) => ({ ...atual, [chave]: !atual[chave] }));
   }
 
+  function alternarCompeticao(competicaoId: string) {
+    setCompeticaoIdsSelecionados((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(competicaoId)) novo.delete(competicaoId);
+      else novo.add(competicaoId);
+      return novo;
+    });
+  }
+
   function gerar() {
     const extraCampos = camposFichaAtletaParaQueryString(selecionados, campos);
+    // Tudo marcado (todas as Competições + "sem competição", quando existir) == sem filtro algum —
+    // mesma lógica de `camposFichaAtletaParaQueryString` (não muda o link de quem nunca desmarcou
+    // nada no checklist).
+    const tudoMarcado =
+      competicaoIdsSelecionados.size >= competicoesDisponiveis.length &&
+      (!temJogosSemCompeticao || semCompeticaoSelecionado);
     const extraSecoes = extrasFichaAtletaParaQueryString(extras, {
-      de: periodoDe || undefined,
-      ate: periodoAte || undefined,
+      competicaoIds: tudoMarcado ? undefined : [...competicaoIdsSelecionados],
+      incluirSemCompeticao: tudoMarcado ? undefined : semCompeticaoSelecionado,
     });
     const extra = [extraCampos, extraSecoes].filter(Boolean).join("&");
     const href = extra ? `${pdfHrefBase}${pdfHrefBase.includes("?") ? "&" : "?"}${extra}` : pdfHrefBase;
@@ -118,26 +144,60 @@ export function FichaAtletaModal({
               Dados de Jogo (participação, gols, cartões — com gráfico)
             </label>
             {extras.dadosDeJogo ? (
-              <div className="ml-6 flex flex-wrap items-end gap-3">
-                <div>
-                  <label className="field-label">De</label>
-                  <input
-                    type="date"
-                    value={periodoDe}
-                    onChange={(e) => setPeriodoDe(e.target.value)}
-                    className="field-input"
-                  />
-                </div>
-                <div>
-                  <label className="field-label">Até</label>
-                  <input
-                    type="date"
-                    value={periodoAte}
-                    onChange={(e) => setPeriodoAte(e.target.value)}
-                    className="field-input"
-                  />
-                </div>
-                <p className="text-xs text-neutral-400">Vazio = histórico completo</p>
+              <div className="ml-6">
+                {competicoesDisponiveis.length === 0 && !temJogosSemCompeticao ? (
+                  <p className="text-xs text-neutral-400">
+                    Nenhum jogo com Convocação salva encontrado ainda — a lista de Competições aparece aqui
+                    quando houver.
+                  </p>
+                ) : (
+                  <>
+                    <p className="mb-2 text-xs text-neutral-500">
+                      Competições que entram no gráfico e na lista jogo a jogo:
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {(() => {
+                        const grupos: { temporadaId: string; temporadaNome: string; itens: CompeticaoDisponivelAtleta[] }[] = [];
+                        for (const c of competicoesDisponiveis) {
+                          const ultimo = grupos[grupos.length - 1];
+                          if (ultimo && ultimo.temporadaId === c.temporadaId) ultimo.itens.push(c);
+                          else grupos.push({ temporadaId: c.temporadaId, temporadaNome: c.temporadaNome, itens: [c] });
+                        }
+                        return grupos.map((grupo) => (
+                          <div key={grupo.temporadaId}>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                              {grupo.temporadaNome}
+                            </p>
+                            <div className="mt-1 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                              {grupo.itens.map((c) => (
+                                <label key={c.competicaoId} className="flex items-center gap-2 text-sm text-neutral-700">
+                                  <input
+                                    type="checkbox"
+                                    checked={competicaoIdsSelecionados.has(c.competicaoId)}
+                                    onChange={() => alternarCompeticao(c.competicaoId)}
+                                    className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                                  />
+                                  {c.competicaoNome}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                      {temJogosSemCompeticao ? (
+                        <label className="flex items-center gap-2 text-sm text-neutral-700">
+                          <input
+                            type="checkbox"
+                            checked={semCompeticaoSelecionado}
+                            onChange={() => setSemCompeticaoSelecionado((v) => !v)}
+                            className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                          />
+                          {ROTULO_SEM_COMPETICAO}
+                        </label>
+                      ) : null}
+                    </div>
+                  </>
+                )}
               </div>
             ) : null}
             <label className="flex items-center gap-2 text-sm text-neutral-700">

@@ -1,6 +1,8 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
 import { formatTelefone } from "@/lib/validation/telefone";
+import { confrontoComPlacar, dataHorarioJogo, resumoDetalheJogo } from "@/lib/futebol/ficha-atleta";
+import type { GrupoCompeticaoDetalhe } from "@/lib/futebol/estatisticas-atleta-query";
 
 /**
  * Relatório do atleta em PDF — cabeçalho (foto, nome, posição, número) + o conteúdo da aba "Dados
@@ -48,6 +50,21 @@ const styles = StyleSheet.create({
   dadoItem: { width: "50%", marginBottom: 8, paddingRight: 8 },
   dadoLabel: { fontSize: 7.5, color: "#737373", textTransform: "uppercase", letterSpacing: 0.3 },
   dadoValor: { fontSize: 9.5, color: "#1f1f1f", marginTop: 1 },
+
+  // Lista jogo a jogo (pedido do Mateus em 2026-10-27) — mesmo padrão de `ficha-atleta-document.tsx`.
+  grupoJogoTitulo: { fontSize: 9, fontWeight: 700, color: CORES.grenaEscuro, marginTop: 12, marginBottom: 4 },
+  linhaJogo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "#fafafa",
+    borderRadius: 3,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    marginTop: 3,
+  },
+  linhaJogoConfronto: { fontSize: 8.5, fontWeight: 700, color: "#1f1f1f" },
+  linhaJogoData: { fontSize: 7.5, color: "#737373", marginTop: 1 },
+  linhaJogoResumo: { fontSize: 8, color: "#404040", textAlign: "right" },
 });
 
 function StatBox({ label, valor }: { label: string; valor: string | number }) {
@@ -110,6 +127,7 @@ export function AtletaRelatorioDocument({
   stats,
   duracaoReferencia,
   dadosPessoais,
+  detalhePorCompeticao,
 }: {
   juventusLogoSrc: LogoSrc;
   fotoSrc: LogoSrc;
@@ -119,6 +137,9 @@ export function AtletaRelatorioDocument({
   stats: AtletaRelatorioEstatisticas;
   duracaoReferencia: AtletaRelatorioDuracaoReferencia;
   dadosPessoais: AtletaRelatorioDadosPessoais | null;
+  /** Lista jogo a jogo (minutagem, gols, assistências, cartões e placar individuais — pedido do
+   * Mateus em 2026-10-27), agrupada por Competição/Temporada. */
+  detalhePorCompeticao: GrupoCompeticaoDetalhe[];
 }) {
   return (
     <Document>
@@ -162,6 +183,28 @@ export function AtletaRelatorioDocument({
           <StatBox label={`Jogos com +${duracaoReferencia.primeiroTempo}min`} valor={stats.jogosMaisUmTempo} />
           <StatBox label={`Jogo completo (${duracaoReferencia.total}min)`} valor={stats.jogosJogoCompleto} />
         </View>
+
+        {detalhePorCompeticao.length > 0 ? (
+          <View>
+            <Text style={styles.secaoTitulo}>Jogo a jogo</Text>
+            {detalhePorCompeticao.map((grupo) => (
+              <View key={grupo.titulo}>
+                <Text style={styles.grupoJogoTitulo}>{grupo.titulo}</Text>
+                {grupo.jogos.map((jogo) => (
+                  <View key={jogo.jogoId} style={styles.linhaJogo} wrap={false}>
+                    <View>
+                      <Text style={styles.linhaJogoConfronto}>
+                        {confrontoComPlacar(jogo.adversarioNome, jogo.mandante, jogo.golsPro, jogo.golsContra)}
+                      </Text>
+                      <Text style={styles.linhaJogoData}>{dataHorarioJogo(jogo.dataJogo, jogo.horario)}</Text>
+                    </View>
+                    <Text style={styles.linhaJogoResumo}>{resumoDetalheJogo(jogo)}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {dadosPessoais ? (
           <>

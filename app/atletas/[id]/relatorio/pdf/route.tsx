@@ -7,8 +7,8 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
+import { textoFiltroCompeticaoAtleta } from "@/lib/futebol/ficha-atleta";
 import { AtletaRelatorioDocument } from "@/lib/pdf/atleta-relatorio-document";
-import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaRow } from "@/lib/supabase/types";
 
@@ -18,6 +18,9 @@ const TABELAS = {
   convocacaoAtletas: "convocacao_atletas",
   sumulas: "sumulas",
   sumulaEventos: "sumula_eventos",
+  competicaoJogos: "competicao_jogos",
+  competicoes: "competicoes",
+  temporadas: "temporadas",
 };
 
 function naturalidade(cidade: string | null, uf: string | null): string | null {
@@ -26,13 +29,14 @@ function naturalidade(cidade: string | null, uf: string | null): string | null {
 }
 
 /** Gera o relatório em PDF da aba "Dados de Jogo" do atleta (Futebol Profissional) — respeita o
- * período (de/ate/competicao) que estava filtrado na tela, e inclui os Dados Pessoais quando
+ * filtro de Competição que estava marcado na tela (substituiu o filtro de período em 2026-10-27,
+ * ver `lib/futebol/estatisticas-atleta-query.ts`), e inclui os Dados Pessoais quando
  * `incluirDadosPessoais=sim`. Ver docs/superpowers/specs/2026-08-04-estatisticas-atleta-design.md. */
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const url = new URL(request.url);
-  const de = url.searchParams.get("de") || undefined;
-  const ate = url.searchParams.get("ate") || undefined;
-  const competicao = url.searchParams.get("competicao") || undefined;
+  const filtrado = url.searchParams.get("filtrado") === "1";
+  const competicaoIds = filtrado ? url.searchParams.getAll("competicaoId") : undefined;
+  const incluirSemCompeticao = filtrado ? url.searchParams.get("semCompeticao") === "sim" : undefined;
   const incluirDadosPessoais = url.searchParams.get("incluirDadosPessoais") === "sim";
 
   const supabase = createClient();
@@ -43,17 +47,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
-  const { stats, duracaoReferencia } = await buscarEstatisticasAtleta(supabase, atleta.id, TABELAS, {
-    de,
-    ate,
-    competicao,
-  });
+  const { stats, duracaoReferencia, detalhePorCompeticao } = await buscarEstatisticasAtleta(
+    supabase,
+    atleta.id,
+    TABELAS,
+    { competicaoIds, incluirSemCompeticao },
+  );
 
-  const periodoPartes = [
-    de || ate ? `Período: ${de ? formatDataBr(de) : "início"} até ${ate ? formatDataBr(ate) : "hoje"}` : "Histórico completo",
-    competicao || null,
-  ].filter(Boolean);
-  const periodoTexto = periodoPartes.join(" · ");
+  const periodoTexto = textoFiltroCompeticaoAtleta(competicaoIds, detalhePorCompeticao.map((g) => g.titulo));
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
@@ -84,6 +85,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       stats={stats}
       duracaoReferencia={duracaoReferencia}
       dadosPessoais={dadosPessoais}
+      detalhePorCompeticao={detalhePorCompeticao}
     />,
   );
 

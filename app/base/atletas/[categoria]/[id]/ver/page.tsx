@@ -7,6 +7,7 @@ import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
 import { GerarFichaAtletaButton } from "@/components/atletas/gerar-ficha-atleta-button";
 import { CAMPOS_FICHA_ATLETA_BASE } from "@/lib/futebol/ficha-atleta";
+import { buscarCompeticoesDisponiveisAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
@@ -41,6 +42,20 @@ const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
   canhoto: "Canhoto",
   ambidestro: "Ambidestro",
+};
+
+/** Mesmas tabelas de `app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx`/`.../dados-de-jogo/
+ * page.tsx` — usada só pra listar as Competições disponíveis pro checklist do botão "Gerar ficha"
+ * (ver `buscarCompeticoesDisponiveisAtleta`). */
+const TABELAS_JOGO = {
+  jogos: "jogos_base",
+  convocacoes: "convocacoes_base",
+  convocacaoAtletas: "convocacao_atletas_base",
+  sumulas: "sumulas_base",
+  sumulaEventos: "sumula_eventos_base",
+  competicaoJogos: "competicao_jogos_base",
+  competicoes: "competicoes_base",
+  temporadas: "temporadas_base",
 };
 
 function formatData(data: string | null): string {
@@ -109,19 +124,21 @@ export default async function VerAtletaBasePage({
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
 
   const supabase = createClient();
-  const [{ data }, { data: contatosData }, { data: contratosData }] = await Promise.all([
-    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
-    supabase
-      .from("atleta_base_contatos_emergencia")
-      .select("*")
-      .eq("atleta_id", params.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("atleta_base_contratos")
-      .select("*")
-      .eq("atleta_id", params.id)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data }, { data: contatosData }, { data: contratosData }, competicoesDisponiveisAtleta] =
+    await Promise.all([
+      supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+      supabase
+        .from("atleta_base_contatos_emergencia")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("atleta_base_contratos")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: false }),
+      buscarCompeticoesDisponiveisAtleta(supabase, TABELAS_JOGO),
+    ]);
 
   if (!data) notFound();
 
@@ -179,6 +196,8 @@ export default async function VerAtletaBasePage({
           <GerarFichaAtletaButton
             pdfHrefBase={`/base/atletas/${params.categoria}/${atleta.id}/ficha/pdf`}
             campos={CAMPOS_FICHA_ATLETA_BASE}
+            competicoesDisponiveis={competicoesDisponiveisAtleta.competicoes}
+            temJogosSemCompeticao={competicoesDisponiveisAtleta.temJogosSemCompeticao}
           />
           <Link href={`/base/atletas/${params.categoria}/${atleta.id}/dispensa`} className="btn-secondary">
             {atleta.dispensa_data ? "Ver/editar relatório de dispensa" : "Gerar relatório de dispensa"}

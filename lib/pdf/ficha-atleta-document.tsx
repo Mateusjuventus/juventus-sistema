@@ -1,5 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet, Svg, Path } from "@react-pdf/renderer";
 import { CORES, DocumentoFooter, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { confrontoComPlacar, dataHorarioJogo, resumoDetalheJogo } from "@/lib/futebol/ficha-atleta";
+import type { GrupoCompeticaoDetalhe } from "@/lib/futebol/estatisticas-atleta-query";
 
 /**
  * Ficha individual do atleta em PDF — cabeçalho (foto, nome, posição) + os campos marcados no modal
@@ -67,6 +69,28 @@ const styles = StyleSheet.create({
   statBox: { width: 118, borderWidth: 0.5, borderColor: "#e5e5e5", borderRadius: 4, padding: 8 },
   statLabel: { fontSize: 7, color: "#737373", textTransform: "uppercase", letterSpacing: 0.3 },
   statValor: { fontSize: 15, fontWeight: 700, color: CORES.grenaEscuro, marginTop: 2 },
+
+  // Lista jogo a jogo (pedido do Mateus em 2026-10-27) — um título por grupo (Competição/Temporada
+  // ou "Sem competição vinculada") seguido de uma linha por jogo.
+  grupoJogoTitulo: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: CORES.grenaEscuro,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  linhaJogo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "#fafafa",
+    borderRadius: 3,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    marginTop: 3,
+  },
+  linhaJogoConfronto: { fontSize: 8.5, fontWeight: 700, color: "#1f1f1f" },
+  linhaJogoData: { fontSize: 7.5, color: "#737373", marginTop: 1 },
+  linhaJogoResumo: { fontSize: 8, color: "#404040", textAlign: "right" },
 
   // Anotações — histórico com autor/data; a entrada de Relatório de Dispensa (só na Base) ganha uma
   // faixa à esquerda, mesmo recurso visual da tela (`border-l-4 border-l-grena` em
@@ -162,11 +186,14 @@ export interface FichaAtletaDadosDeJogoStats {
 }
 
 export interface FichaAtletaDadosDeJogo {
-  /** Já formatado pela rota — ex.: "Período: completo (toda a passagem pelo clube)" ou "Período:
-   * 01/01/2026 – 30/06/2026". */
+  /** Já formatado pela rota (ver `textoFiltroCompeticaoAtleta`) — ex.: "Histórico completo" ou
+   * "Competições selecionadas: Campeonato Paulista Sub 17 - 2026". */
   periodoTexto: string;
   stats: FichaAtletaDadosDeJogoStats;
   duracaoReferencia: { primeiroTempo: number; total: number };
+  /** Lista jogo a jogo (minutagem, gols, assistências, cartões e placar individuais — pedido do
+   * Mateus em 2026-10-27), agrupada por Competição/Temporada. */
+  detalhePorCompeticao: GrupoCompeticaoDetalhe[];
 }
 
 function fatiasParticipacao(stats: FichaAtletaDadosDeJogoStats) {
@@ -305,6 +332,23 @@ export function FichaAtletaDocument({
                 valor={dadosDeJogo.stats.jogosJogoCompleto}
               />
             </View>
+
+            {dadosDeJogo.detalhePorCompeticao.map((grupo) => (
+              <View key={grupo.titulo}>
+                <Text style={styles.grupoJogoTitulo}>{grupo.titulo}</Text>
+                {grupo.jogos.map((jogo) => (
+                  <View key={jogo.jogoId} style={styles.linhaJogo} wrap={false}>
+                    <View>
+                      <Text style={styles.linhaJogoConfronto}>
+                        {confrontoComPlacar(jogo.adversarioNome, jogo.mandante, jogo.golsPro, jogo.golsContra)}
+                      </Text>
+                      <Text style={styles.linhaJogoData}>{dataHorarioJogo(jogo.dataJogo, jogo.horario)}</Text>
+                    </View>
+                    <Text style={styles.linhaJogoResumo}>{resumoDetalheJogo(jogo)}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
           </View>
         ) : null}
 

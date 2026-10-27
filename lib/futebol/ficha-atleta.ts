@@ -183,37 +183,49 @@ export function todosExtrasFichaAtleta(): FichaAtletaExtras {
   return { dadosDeJogo: true, anotacoes: true };
 }
 
-/** Serializa os dois checkboxes extras + o período (só relevante quando Dados de Jogo estiver
- * marcado) na query string do PDF. Cada checkbox tem seu próprio parâmetro (ausente = marcado,
- * `"nao"` = desmarcado) — note a inversão em relação a `camposFichaAtletaParaQueryString`: aqui o
- * padrão "tudo marcado" precisa continuar dando uma query vazia pra link antigo nenhum mudar, e
- * como só tem 2 flags (não uma lista), é mais simples marcar só a exceção. Mesmo padrão de
- * `incluirDadosPessoais` (`app/atletas/[id]/relatorio/pdf/route.tsx`) pro nome dos parâmetros de
- * período (`de`/`ate`). */
+/** Seleção de Competições pro filtro de "Dados de Jogo" — substituiu o filtro por período (`de`/
+ * `ate`) em 2026-10-27 (pedido do Mateus: "quero selecionar as competições que captam a
+ * participação dele e eu seleciono. e não por período"). `competicaoIds === undefined` significa
+ * "sem filtro" (histórico completo, modo antigo) — mesma semântica de
+ * `FiltroEstatisticasAtleta.competicaoIds` em `estatisticas-atleta-query.ts`. */
+export interface FiltroCompeticaoFichaAtleta {
+  competicaoIds?: string[];
+  incluirSemCompeticao?: boolean;
+}
+
+/** Serializa os dois checkboxes extras + o filtro de Competição (só relevante quando Dados de Jogo
+ * estiver marcado) na query string do PDF. Os checkboxes de seção têm seu próprio parâmetro
+ * (ausente = marcado, `"nao"` = desmarcado) — note a inversão em relação a
+ * `camposFichaAtletaParaQueryString`: aqui o padrão "tudo marcado" precisa continuar dando uma
+ * query vazia pra link antigo nenhum mudar. Já o filtro de Competição funciona ao contrário:
+ * `competicaoIds` ausente (undefined) = sem filtro algum (link antigo, ou modal com tudo marcado —
+ * o modal só passa `competicaoIds` quando o usuário desmarcou pelo menos uma opção do checklist). */
 export function extrasFichaAtletaParaQueryString(
   extras: FichaAtletaExtras,
-  periodo: { de?: string; ate?: string },
+  filtroCompeticao: FiltroCompeticaoFichaAtleta,
 ): string {
   const partes: string[] = [];
   if (!extras.dadosDeJogo) partes.push("incluirDadosDeJogo=nao");
   if (!extras.anotacoes) partes.push("incluirAnotacoes=nao");
-  if (extras.dadosDeJogo) {
-    if (periodo.de) partes.push(`de=${periodo.de}`);
-    if (periodo.ate) partes.push(`ate=${periodo.ate}`);
+  if (extras.dadosDeJogo && filtroCompeticao.competicaoIds !== undefined) {
+    partes.push(`competicaoIds=${filtroCompeticao.competicaoIds.map(encodeURIComponent).join(",")}`);
+    if (filtroCompeticao.incluirSemCompeticao) partes.push("semCompeticao=sim");
   }
   return partes.join("&");
 }
 
 /** Caminho inverso — usado pelas rotas de PDF. Sem os parâmetros (link antigo, ou quem gerou sem
- * passar pelo modal), assume as duas seções marcadas e sem filtro de período. */
+ * passar pelo modal, ou modal com todas as Competições marcadas), assume as duas seções marcadas e
+ * sem filtro de Competição (histórico completo). */
 export function extrasFichaAtletaDaQueryString(
   searchParams: URLSearchParams,
-): FichaAtletaExtras & { de?: string; ate?: string } {
+): FichaAtletaExtras & FiltroCompeticaoFichaAtleta {
+  const competicaoIdsRaw = searchParams.get("competicaoIds");
   return {
     dadosDeJogo: searchParams.get("incluirDadosDeJogo") !== "nao",
     anotacoes: searchParams.get("incluirAnotacoes") !== "nao",
-    de: searchParams.get("de") || undefined,
-    ate: searchParams.get("ate") || undefined,
+    competicaoIds: competicaoIdsRaw !== null ? competicaoIdsRaw.split(",").filter(Boolean) : undefined,
+    incluirSemCompeticao: searchParams.get("semCompeticao") === "sim",
   };
 }
 
@@ -241,4 +253,92 @@ export function enderecoFichaAtleta(endereco: EnderecoLinha): string | null {
 
   const linha = [ruaComComplemento, limpo(endereco.bairro), cidadeUf, cep].filter(Boolean).join(", ");
   return linha || null;
+}
+
+/**
+ * Formatação da lista "jogo a jogo" (ver `GrupoCompeticaoDetalhe`/`JogoDetalheComContexto` em
+ * `estatisticas-atleta-query.ts`) — pedido do Mateus em 2026-10-27: "quais jogos ele foi convocado,
+ * a minutagem individualizada de cada jogo e quais foram os jogos que ele fez os gols [...] Juventus
+ * x Ibrachina 27/10/2026 ás 15h00 - 59min e 2 Gols [...] e coloque o placar do jogo". Compartilhada
+ * pelos 3 lugares que mostram essa lista (aba Dados de Jogo, seu PDF, e a Ficha mestre — Profissional
+ * e Base). Funções puras de propósito, sem depender de `lib/pdf/logistica-shared` (que importa
+ * `@react-pdf/renderer`) pra este módulo continuar livre de dependências — ver docstring no topo.
+ */
+
+function formatDataSimples(data: string): string {
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+/** Horário do jogo no formato "15h00" (aceita "HH:MM" ou "HH:MM:SS", formato do campo `horario` no
+ * banco) — `null` quando não há horário lançado. */
+export function formatHorarioExtenso(horario: string | null): string | null {
+  if (!horario) return null;
+  const [hora, minuto] = horario.split(":");
+  if (!hora || !minuto) return null;
+  return `${hora}h${minuto}`;
+}
+
+/** "27/10/2026 às 15h00" (ou só "27/10/2026" quando o jogo não tem horário lançado). */
+export function dataHorarioJogo(dataJogo: string, horario: string | null): string {
+  const dataFormatada = formatDataSimples(dataJogo);
+  const horarioFormatado = formatHorarioExtenso(horario);
+  return horarioFormatado ? `${dataFormatada} às ${horarioFormatado}` : dataFormatada;
+}
+
+/** Nome dos dois times na ordem mandante-aware ("Juventus x Adversário" ou "Adversário x Juventus")
+ * já com o placar quando os dois gols estiverem lançados — sem placar lançado (jogo futuro, ou
+ * resultado ainda não preenchido em `jogos.gols_pro`/`gols_contra`), mostra só "Time x Time" sem
+ * números. */
+export function confrontoComPlacar(
+  adversarioNome: string,
+  mandante: boolean,
+  golsPro: number | null,
+  golsContra: number | null,
+): string {
+  const nossoNome = "Juventus";
+  const timeA = mandante ? nossoNome : adversarioNome;
+  const timeB = mandante ? adversarioNome : nossoNome;
+  if (golsPro == null || golsContra == null) return `${timeA} x ${timeB}`;
+  const golsA = mandante ? golsPro : golsContra;
+  const golsB = mandante ? golsContra : golsPro;
+  return `${timeA} ${golsA} x ${golsB} ${timeB}`;
+}
+
+/** "59min · 2 gols · 1 assistência" — só lista os contadores maiores que zero, sempre com a
+ * minutagem primeiro. */
+export function resumoDetalheJogo(detalhe: {
+  minutos: number;
+  gols: number;
+  assistencias: number;
+  cartoesAmarelos: number;
+  cartoesVermelhos: number;
+}): string {
+  const partes: string[] = [`${detalhe.minutos}min`];
+  if (detalhe.gols > 0) partes.push(detalhe.gols === 1 ? "1 gol" : `${detalhe.gols} gols`);
+  if (detalhe.assistencias > 0) {
+    partes.push(detalhe.assistencias === 1 ? "1 assistência" : `${detalhe.assistencias} assistências`);
+  }
+  if (detalhe.cartoesAmarelos > 0) {
+    partes.push(detalhe.cartoesAmarelos === 1 ? "1 cartão amarelo" : `${detalhe.cartoesAmarelos} cartões amarelos`);
+  }
+  if (detalhe.cartoesVermelhos > 0) {
+    partes.push(
+      detalhe.cartoesVermelhos === 1 ? "1 cartão vermelho" : `${detalhe.cartoesVermelhos} cartões vermelhos`,
+    );
+  }
+  return partes.join(" · ");
+}
+
+/** Descrição curta do filtro de Competição ativo, pro subtítulo da lista jogo a jogo/gráfico —
+ * "Histórico completo" sem filtro (`competicaoIds === undefined`), ou a lista dos títulos dos
+ * grupos encontrados (ver `GrupoCompeticaoDetalhe.titulo`) quando filtrado. Compartilhada pelas 3
+ * rotas que montam esse texto (Ficha mestre Profissional/Base + relatório de Dados de Jogo). */
+export function textoFiltroCompeticaoAtleta(
+  competicaoIds: string[] | undefined,
+  titulosGruposEncontrados: string[],
+): string {
+  if (competicaoIds === undefined) return "Histórico completo";
+  if (titulosGruposEncontrados.length === 0) return "Nenhum jogo encontrado nas competições selecionadas";
+  return `Competições selecionadas: ${titulosGruposEncontrados.join(", ")}`;
 }

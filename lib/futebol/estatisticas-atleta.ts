@@ -253,3 +253,46 @@ export function calcularEstatisticasAtleta(
 
   return stats;
 }
+
+/** Minutos/gols/assistências/cartões deste atleta EM CADA jogo individualmente — mesmo cálculo de
+ * `calcularEstatisticasAtleta`, só que sem agregar, pra montar a lista "jogo a jogo" (ver
+ * docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md, adendo "Lista jogo a
+ * jogo"). Pedido do Mateus em 2026-10-27: "quais jogos ele foi convocado, a minutagem
+ * individualizada de cada jogo e quais foram os jogos que ele fez os gols". Pura — quem chama
+ * cruza isto com os dados de exibição (adversário, data, competição) que não entram em
+ * `JogoParaEstatistica` de propósito (esse tipo é só o que o cálculo precisa). */
+export interface DetalheJogoAtleta {
+  jogoId: string;
+  minutos: number;
+  gols: number;
+  assistencias: number;
+  cartoesAmarelos: number;
+  cartoesVermelhos: number;
+}
+
+export function calcularDetalhePorJogo(atletaId: string, jogos: JogoParaEstatistica[]): DetalheJogoAtleta[] {
+  return jogos.map((jogo) => {
+    let gols = 0;
+    let assistencias = 0;
+    let cartoesAmarelos = 0;
+    let cartoesVermelhos = 0;
+    for (const evento of jogo.eventos) {
+      if (evento.tipo === "gol" && evento.atletaId === atletaId) gols += 1;
+      if (evento.tipo === "gol" && evento.atletaAssistenciaId === atletaId) assistencias += 1;
+      if (evento.tipo === "cartao_amarelo" && evento.atletaId === atletaId) cartoesAmarelos += 1;
+      if (evento.tipo === "cartao_vermelho" && evento.atletaId === atletaId) cartoesVermelhos += 1;
+    }
+    const minutos = calcularMinutosJogados(
+      atletaId,
+      jogo.statusConvocacao,
+      jogo.duracaoPrimeiroTempo,
+      jogo.duracaoSegundoTempo,
+      jogo.eventos,
+      jogo.duracaoTerceiroTempo ?? null,
+      jogo.acrescimoPrimeiroTempo ?? 0,
+      jogo.acrescimoSegundoTempo ?? 0,
+      jogo.acrescimoTerceiroTempo ?? 0,
+    );
+    return { jogoId: jogo.jogoId, minutos, gols, assistencias, cartoesAmarelos, cartoesVermelhos };
+  });
+}

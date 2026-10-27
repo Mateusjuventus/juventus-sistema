@@ -6,7 +6,13 @@ import { DonutChart } from "@/components/donut-chart";
 import { StatCard } from "@/components/stat-card";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
+import {
+  ROTULO_SEM_COMPETICAO,
+  buscarCompeticoesDisponiveisAtleta,
+  buscarEstatisticasAtleta,
+  type CompeticaoDisponivelAtleta,
+} from "@/lib/futebol/estatisticas-atleta-query";
+import { confrontoComPlacar, dataHorarioJogo, resumoDetalheJogo } from "@/lib/futebol/ficha-atleta";
 import { juventusTheme } from "@/lib/theme";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { AtletaBaseRow } from "@/lib/supabase/types";
@@ -17,7 +23,24 @@ const TABELAS = {
   convocacaoAtletas: "convocacao_atletas_base",
   sumulas: "sumulas_base",
   sumulaEventos: "sumula_eventos_base",
+  competicaoJogos: "competicao_jogos_base",
+  competicoes: "competicoes_base",
+  temporadas: "temporadas_base",
 };
+
+/** Agrupa a lista de Competições disponíveis por Temporada pra exibir no checklist — espelha a
+ * mesma função de `app/atletas/[id]/dados-de-jogo/page.tsx` (Profissional). */
+function agruparPorTemporada(
+  competicoes: CompeticaoDisponivelAtleta[],
+): { temporadaId: string; temporadaNome: string; itens: CompeticaoDisponivelAtleta[] }[] {
+  const grupos: { temporadaId: string; temporadaNome: string; itens: CompeticaoDisponivelAtleta[] }[] = [];
+  for (const c of competicoes) {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.temporadaId === c.temporadaId) ultimo.itens.push(c);
+    else grupos.push({ temporadaId: c.temporadaId, temporadaNome: c.temporadaNome, itens: [c] });
+  }
+  return grupos;
+}
 
 /** Espelha `app/atletas/[id]/dados-de-jogo/page.tsx` para o Futebol de Base — mesma lógica, só
  * trocando as tabelas consultadas (ver `buscarEstatisticasAtleta`). Como o resto de Jogos no Base,
@@ -29,28 +52,42 @@ export default async function DadosDeJogoAtletaBasePage({
   searchParams,
 }: {
   params: { categoria: string; id: string };
-  searchParams: { de?: string; ate?: string; competicao?: string };
+  /** Ver comentário equivalente em `app/atletas/[id]/dados-de-jogo/page.tsx` — substituiu
+   * `de`/`ate`/`competicao` em 2026-10-27. */
+  searchParams: { filtrado?: string; competicaoId?: string | string[]; semCompeticao?: string };
 }) {
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
 
   const supabase = createClient();
-  const { data: atletaData } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+  const [{ data: atletaData }, competicoesDisponiveisAtleta] = await Promise.all([
+    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+    buscarCompeticoesDisponiveisAtleta(supabase, TABELAS),
+  ]);
   if (!atletaData) notFound();
 
   const atleta = atletaData as AtletaBaseRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
-  const filtro = {
-    de: searchParams.de || undefined,
-    ate: searchParams.ate || undefined,
-    competicao: searchParams.competicao || undefined,
-  };
-  const { stats, competicoesDisponiveis, duracaoReferencia } = await buscarEstatisticasAtleta(
+  const filtroAplicado = searchParams.filtrado === "1";
+  const competicaoIdsSelecionados = filtroAplicado
+    ? Array.isArray(searchParams.competicaoId)
+      ? searchParams.competicaoId
+      : searchParams.competicaoId
+        ? [searchParams.competicaoId]
+        : []
+    : competicoesDisponiveisAtleta.competicoes.map((c) => c.competicaoId);
+  const incluirSemCompeticaoSelecionado = filtroAplicado
+    ? searchParams.semCompeticao === "sim"
+    : competicoesDisponiveisAtleta.temJogosSemCompeticao;
+
+  const { stats, duracaoReferencia, detalhePorCompeticao } = await buscarEstatisticasAtleta(
     supabase,
     atleta.id,
     TABELAS,
-    filtro,
+    filtroAplicado
+      ? { competicaoIds: competicaoIdsSelecionados, incluirSemCompeticao: incluirSemCompeticaoSelecionado }
+      : {},
   );
 
   return (
@@ -66,31 +103,54 @@ export default async function DadosDeJogoAtletaBasePage({
       />
 
       <section className="card mt-6 p-4">
-        <h2 className="text-lg font-bold text-grena-escuro">Filtro de período</h2>
-        <form method="get" className="mt-3 flex flex-wrap items-end gap-3">
-          <div>
-            <label className="field-label">De</label>
-            <input type="date" name="de" defaultValue={searchParams.de ?? ""} className="field-input" />
-          </div>
-          <div>
-            <label className="field-label">Até</label>
-            <input type="date" name="ate" defaultValue={searchParams.ate ?? ""} className="field-input" />
-          </div>
-          <div className="min-w-[200px]">
-            <label className="field-label">Competição</label>
-            <select name="competicao" defaultValue={searchParams.competicao ?? ""} className="field-input">
-              <option value="">Todas</option>
-              {competicoesDisponiveis.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+        <h2 className="text-lg font-bold text-grena-escuro">Filtro por Competição</h2>
+        {competicoesDisponiveisAtleta.competicoes.length === 0 && !competicoesDisponiveisAtleta.temJogosSemCompeticao ? (
+          <p className="mt-2 text-sm text-neutral-400">
+            Nenhum jogo com Convocação salva encontrado ainda — o filtro aparece aqui quando houver.
+          </p>
+        ) : (
+          <form method="get" className="mt-3">
+            <input type="hidden" name="filtrado" value="1" />
+            <div className="flex flex-col gap-3">
+              {agruparPorTemporada(competicoesDisponiveisAtleta.competicoes).map((grupo) => (
+                <div key={grupo.temporadaId}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    {grupo.temporadaNome}
+                  </p>
+                  <div className="mt-1 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                    {grupo.itens.map((c) => (
+                      <label key={c.competicaoId} className="flex items-center gap-2 text-sm text-neutral-700">
+                        <input
+                          type="checkbox"
+                          name="competicaoId"
+                          value={c.competicaoId}
+                          defaultChecked={competicaoIdsSelecionados.includes(c.competicaoId)}
+                          className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                        />
+                        {c.competicaoNome}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
-            </select>
-          </div>
-          <button type="submit" className="btn-secondary">
-            Filtrar
-          </button>
-        </form>
+              {competicoesDisponiveisAtleta.temJogosSemCompeticao ? (
+                <label className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    name="semCompeticao"
+                    value="sim"
+                    defaultChecked={incluirSemCompeticaoSelecionado}
+                    className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                  />
+                  {ROTULO_SEM_COMPETICAO}
+                </label>
+              ) : null}
+            </div>
+            <button type="submit" className="btn-secondary mt-3">
+              Filtrar
+            </button>
+          </form>
+        )}
       </section>
 
       <section className="card mt-4 p-4">
@@ -117,9 +177,40 @@ export default async function DadosDeJogoAtletaBasePage({
       </section>
 
       <section className="card mt-4 p-4">
+        <h2 className="text-lg font-bold text-grena-escuro">Jogo a jogo</h2>
+        {detalhePorCompeticao.length === 0 ? (
+          <p className="mt-2 text-sm text-neutral-400">Nenhum jogo encontrado no filtro selecionado.</p>
+        ) : (
+          <div className="mt-3 space-y-5">
+            {detalhePorCompeticao.map((grupo) => (
+              <div key={grupo.titulo}>
+                <h3 className="text-sm font-semibold text-grena-escuro">{grupo.titulo}</h3>
+                <div className="mt-2 space-y-1.5">
+                  {grupo.jogos.map((jogo) => (
+                    <div
+                      key={jogo.jogoId}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-neutral-50 px-3 py-2 text-sm"
+                    >
+                      <div>
+                        <p className="font-medium text-neutral-800">
+                          {confrontoComPlacar(jogo.adversarioNome, jogo.mandante, jogo.golsPro, jogo.golsContra)}
+                        </p>
+                        <p className="text-xs text-neutral-500">{dataHorarioJogo(jogo.dataJogo, jogo.horario)}</p>
+                      </div>
+                      <p className="text-sm text-neutral-600">{resumoDetalheJogo(jogo)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="card mt-4 p-4">
         <h2 className="text-lg font-bold text-grena-escuro">Relatório em PDF</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          O PDF usa o mesmo período filtrado acima.
+          O PDF usa o mesmo filtro de Competição selecionado acima.
         </p>
         <form
           action={`/base/atletas/${params.categoria}/${atleta.id}/relatorio/pdf`}
@@ -127,9 +218,15 @@ export default async function DadosDeJogoAtletaBasePage({
           target="_blank"
           className="mt-3 flex flex-wrap items-center gap-3"
         >
-          <input type="hidden" name="de" value={searchParams.de ?? ""} />
-          <input type="hidden" name="ate" value={searchParams.ate ?? ""} />
-          <input type="hidden" name="competicao" value={searchParams.competicao ?? ""} />
+          {filtroAplicado ? (
+            <>
+              <input type="hidden" name="filtrado" value="1" />
+              {competicaoIdsSelecionados.map((id) => (
+                <input key={id} type="hidden" name="competicaoId" value={id} />
+              ))}
+              {incluirSemCompeticaoSelecionado ? <input type="hidden" name="semCompeticao" value="sim" /> : null}
+            </>
+          ) : null}
           <label className="flex items-center gap-2 text-sm text-neutral-600">
             <input type="checkbox" name="incluirDadosPessoais" value="sim" />
             Incluir dados pessoais

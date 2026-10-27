@@ -6,6 +6,7 @@ import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
 import { GerarFichaAtletaButton } from "@/components/atletas/gerar-ficha-atleta-button";
 import { CAMPOS_FICHA_ATLETA_PROFISSIONAL } from "@/lib/futebol/ficha-atleta";
+import { buscarCompeticoesDisponiveisAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
@@ -22,6 +23,20 @@ import type { AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
   ATLETA_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
 );
+
+/** Mesmas tabelas de `app/atletas/[id]/ficha/pdf/route.tsx`/`.../dados-de-jogo/page.tsx` — usada só
+ * pra listar as Competições disponíveis pro checklist do botão "Gerar ficha" (ver
+ * `buscarCompeticoesDisponiveisAtleta`). */
+const TABELAS_JOGO = {
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
+  competicaoJogos: "competicao_jogos",
+  competicoes: "competicoes",
+  temporadas: "temporadas",
+};
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -87,19 +102,21 @@ function BlocoDetalhe({ titulo, children }: { titulo: string; children: ReactNod
  */
 export default async function VerAtletaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const [{ data }, { data: contatosData }, { data: contratosData }] = await Promise.all([
-    supabase.from("atletas").select("*").eq("id", params.id).single(),
-    supabase
-      .from("atleta_contatos_emergencia")
-      .select("*")
-      .eq("atleta_id", params.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("atleta_contratos")
-      .select("*")
-      .eq("atleta_id", params.id)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data }, { data: contatosData }, { data: contratosData }, competicoesDisponiveisAtleta] =
+    await Promise.all([
+      supabase.from("atletas").select("*").eq("id", params.id).single(),
+      supabase
+        .from("atleta_contatos_emergencia")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("atleta_contratos")
+        .select("*")
+        .eq("atleta_id", params.id)
+        .order("created_at", { ascending: false }),
+      buscarCompeticoesDisponiveisAtleta(supabase, TABELAS_JOGO),
+    ]);
 
   if (!data) notFound();
 
@@ -125,6 +142,8 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             <GerarFichaAtletaButton
               pdfHrefBase={`/atletas/${atleta.id}/ficha/pdf`}
               campos={CAMPOS_FICHA_ATLETA_PROFISSIONAL}
+              competicoesDisponiveis={competicoesDisponiveisAtleta.competicoes}
+              temJogosSemCompeticao={competicoesDisponiveisAtleta.temJogosSemCompeticao}
             />
             <AtletaAtivoButton action={alternarAtletaAtivo} id={atleta.id} ativo={atleta.ativo} />
           </>
