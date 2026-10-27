@@ -275,6 +275,35 @@ export function parsearSumulaPdf(texto: string, duracoesPadrao?: Partial<SumulaP
   const data = campoRotulado(linhas, /^Data:?\s*(\d{2}\/\d{2}\/\d{4})/i);
   const estadio = campoRotulado(linhas, /Est[aá]dio:?\s*(.+)/i);
 
+  // "Jogo: Ibrachina FC X Juventus SAF" — nomes dos dois times, na ordem mandante X visitante.
+  // Precisa estar no INÍCIO da linha e ter " X " no meio pra não casar com o outro "Jogo:" do
+  // cabeçalho, que é o número da partida ("...CEAF Jogo: 282 / 2026", sem " X " e não no início da
+  // linha). Usada só pra saber qual coluna da tabela de Relação de Jogadores (ver mais abaixo) é a
+  // nossa — a MESMA ordem mandante/visitante dessa linha é a ordem das duas colunas da tabela.
+  let mandanteNome: string | null = null;
+  let visitanteNome: string | null = null;
+  const RE_JOGO_TIMES = /^Jogo:\s*(.+?)\s+X\s+(.+)$/i;
+  for (const linha of linhas) {
+    const mTimes = linha.match(RE_JOGO_TIMES);
+    if (mTimes) {
+      mandanteNome = mTimes[1].trim();
+      visitanteNome = mTimes[2].trim();
+      break;
+    }
+  }
+  // `null` quando não deu pra identificar os dois nomes, ou quando nenhum/os dois batem com
+  // "juventus" (formato inesperado) — nesse caso a filtragem por time da Relação de Jogadores (ver
+  // `dentroSecaoJogadores` mais abaixo) fica desligada, mantendo o comportamento antigo de trazer
+  // os jogadores dos dois lados e confiar só no vínculo por nome/registro feito depois.
+  const ladoJuventusEhMandante: boolean | null =
+    mandanteNome != null && visitanteNome != null
+      ? mandanteNome.toLowerCase().includes("juventus")
+        ? true
+        : visitanteNome.toLowerCase().includes("juventus")
+          ? false
+          : null
+      : null;
+
   // CONFIRMADO numa súmula real: "Resultado do 1º Tempo: 0 X 0 Resultado do 2º Tempo: 0 X 1" — as
   // duas colunas (1º/2º Tempo) numa linha só, igual ao caso do acréscimo acima. O regex precisa da
   // palavra "do" entre "Resultado" e o tempo (antes só aceitava "Resultado 2º Tempo", sem "do", e
@@ -402,7 +431,17 @@ export function parsearSumulaPdf(texto: string, duracoesPadrao?: Partial<SumulaP
     if (dentroSecaoJogadores) {
       const jogadoresDaLinha = [...linha.matchAll(RE_JOGADOR)];
       if (jogadoresDaLinha.length > 0) {
-        for (const m of jogadoresDaLinha) {
+        // A coluna da ESQUERDA é o mandante, a da DIREITA o visitante — mesma ordem de "Jogo: A X
+        // B" (ver `ladoJuventusEhMandante` no topo da função). Só filtra pro nosso lado quando dá
+        // pra saber com certeza qual coluna é a nossa E a linha realmente trouxe os dois jogadores
+        // esperados (uma linha com só 1 pode ser um time com elenco mais curto que o outro —
+        // melhor manter do que arriscar descartar à toa); fora isso, mantém os dois lados, como
+        // já era o comportamento antes dessa melhoria.
+        const jogadoresDoNossoLado =
+          ladoJuventusEhMandante != null && jogadoresDaLinha.length === 2
+            ? [jogadoresDaLinha[ladoJuventusEhMandante ? 0 : 1]]
+            : jogadoresDaLinha;
+        for (const m of jogadoresDoNossoLado) {
           const [, numero, nome, tr, , registroNumero, registroAno] = m;
           jogadores.push({
             numero: Number(numero),

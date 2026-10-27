@@ -238,6 +238,54 @@ T = Titular | R = Reserva | P = Profissional | A = Amador
   });
 });
 
+describe("parsearSumulaPdf — Relação de Jogadores traz só o nosso lado quando dá pra identificar os times", () => {
+  // Pedido do Mateus: a Convocação sugerida (ver app/jogos/[id]/sumula/importar-actions.ts) não
+  // deve trazer jogadores do adversário — mesmo texto real do describe acima, agora com a linha
+  // "Jogo: A X B" (também real, do mesmo PDF) que informa a ordem mandante/visitante. Mandante é
+  // sempre a coluna da ESQUERDA da tabela, visitante a da DIREITA — aqui o Juventus é o visitante.
+  const TEXTO_COM_TIMES = `
+Jogo: Ibrachina FC X Juventus SAF
+Relação de Jogadores
+Ibrachina FC Juventus SAF
+Nº Nome Completo do Jogador T/R P/A Registro Nº Nome Completo do Jogador T/R P/A Registro
+1 Arthur Luis de Queiroz Alves T A 615497/25 1 Isaac Duarte Marinho Costa T A 661231/26
+20 Arthur Alves de Souza R A 662022/26 20 Keirrison Zidan do Carmo Medeiros R A 661230/26
+T = Titular | R = Reserva | P = Profissional | A = Amador
+`;
+  const resultado = parsearSumulaPdf(TEXTO_COM_TIMES);
+
+  it("traz só os jogadores do Juventus (visitante nesse exemplo), não os do adversário", () => {
+    expect(resultado.jogadores).toHaveLength(2);
+    expect(resultado.jogadores.map((j) => j.nome)).toEqual([
+      "Isaac Duarte Marinho Costa",
+      "Keirrison Zidan do Carmo Medeiros",
+    ]);
+  });
+
+  it("também filtra certo quando o Juventus é o mandante (coluna da esquerda)", () => {
+    const texto = TEXTO_COM_TIMES.replace("Jogo: Ibrachina FC X Juventus SAF", "Jogo: Juventus SAF X Ibrachina FC");
+    const r = parsearSumulaPdf(texto);
+    expect(r.jogadores).toHaveLength(2);
+    // Nesse texto a coluna da esquerda continua sendo "Ibrachina FC" (a linha da tabela em si não
+    // mudou) — só o campo "Jogo:" inverteu, então agora o parser deve ler a ESQUERDA como nossa.
+    expect(r.jogadores.map((j) => j.nome)).toEqual([
+      "Arthur Luis de Queiroz Alves",
+      "Arthur Alves de Souza",
+    ]);
+  });
+
+  it("sem a linha 'Jogo: A X B', mantém os dois lados (comportamento antigo, sem risco de descartar à toa)", () => {
+    const resultado = parsearSumulaPdf(`
+Relação de Jogadores
+Ibrachina FC Juventus SAF
+Nº Nome Completo do Jogador T/R P/A Registro Nº Nome Completo do Jogador T/R P/A Registro
+1 Arthur Luis de Queiroz Alves T A 615497/25 1 Isaac Duarte Marinho Costa T A 661231/26
+T = Titular | R = Reserva | P = Profissional | A = Amador
+`);
+    expect(resultado.jogadores).toHaveLength(2);
+  });
+});
+
 describe("converterMinutoPdfParaRelativo", () => {
   it("mantém o minuto do 1º tempo sem alterar", () => {
     expect(converterMinutoPdfParaRelativo(32, "primeiro", 45)).toBe(32);
