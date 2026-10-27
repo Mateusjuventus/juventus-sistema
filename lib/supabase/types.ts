@@ -161,6 +161,31 @@ export interface AtletaBaseContatoEmergenciaRow {
   created_at: string;
 }
 
+/** Anotação do histórico do atleta (aba "Anotações") — texto livre, nunca editada depois de criada;
+ * só apagada por quem é "master" (ver `removerAnotacao` em `app/atletas/actions.ts`). Na Base, a
+ * tela mistura isto com uma entrada "virtual" de Dispensa (montada a partir dos campos `dispensa_*`
+ * de `AtletaBaseRow`, não gravada aqui) — ver docs/superpowers/specs/
+ * 2026-10-27-ficha-atleta-dossie-anotacoes-design.md. */
+export interface AtletaAnotacaoRow {
+  id: string;
+  atleta_id: string;
+  texto: string;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+}
+
+/** Espelha `AtletaAnotacaoRow`, mas pra `atletas_base` — também escrita pelo Treinador (só cria,
+ * nunca apaga). */
+export interface AtletaBaseAnotacaoRow {
+  id: string;
+  atleta_id: string;
+  texto: string;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+}
+
 /** Um contrato do atleta (aba "Contrato" do perfil) — histórico completo, no máximo um `vigente`
  * por atleta (garantido por índice único parcial no banco). Ver docs/superpowers/specs/
  * 2026-10-16-atleta-dados-esportivos-contrato-design.md. */

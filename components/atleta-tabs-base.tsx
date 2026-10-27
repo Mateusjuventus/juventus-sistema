@@ -9,7 +9,7 @@ export function AtletaTabsBase({
 }: {
   categoria: string;
   atletaId: string;
-  active: "dados-pessoais" | "documentacao" | "dados-de-jogo";
+  active: "dados-pessoais" | "documentacao" | "dados-de-jogo" | "anotacoes";
 }) {
   const base = `/base/atletas/${categoria}/${atletaId}`;
 
@@ -17,6 +17,7 @@ export function AtletaTabsBase({
     { key: "dados-pessoais", label: "Dados Pessoais", href: `${base}/ver` },
     { key: "documentacao", label: "Documentação", href: `${base}/documentacao` },
     { key: "dados-de-jogo", label: "Dados de Jogo", href: `${base}/dados-de-jogo` },
+    { key: "anotacoes", label: "Anotações", href: `${base}/anotacoes` },
   ] as const;
 
   return (

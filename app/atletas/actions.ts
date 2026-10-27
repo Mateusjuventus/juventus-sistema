@@ -5,10 +5,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
-import { atletaContatoEmergenciaSchema, atletaSchema } from "@/lib/validation/schemas";
+import { atletaAnotacaoSchema, atletaContatoEmergenciaSchema, atletaSchema } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { registrarStatusAtleta } from "@/lib/futebol/status-historico";
+import { nomeDaContaAtual } from "@/lib/auth/perfis";
+import { isMaster } from "@/lib/auth/role";
 import type { AtletaStatus } from "@/lib/supabase/types";
 
 export interface AtletaFormState {
@@ -348,4 +350,58 @@ export async function removerContatoEmergencia(formData: FormData): Promise<void
   await supabase.from("atleta_contatos_emergencia").delete().eq("id", id);
 
   if (contato) revalidatePath(`/atletas/${(contato as { atleta_id: string }).atleta_id}`);
+}
+
+export interface AnotacaoFormState {
+  error?: string;
+  success?: boolean;
+}
+
+/** Adiciona uma anotação ao histórico do atleta (aba "Anotações") — texto livre, nunca editado
+ * depois de criado. Autor nunca vem do formulário: sempre o perfil logado. Ver docs/superpowers/
+ * specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md. */
+export async function adicionarAnotacao(
+  _prevState: AnotacaoFormState,
+  formData: FormData,
+): Promise<AnotacaoFormState> {
+  const atletaId = String(formData.get("atletaId") ?? "");
+  if (!atletaId) return { error: "Atleta não identificado. Recarregue a página e tente novamente." };
+
+  const result = atletaAnotacaoSchema.safeParse({ texto: String(formData.get("texto") ?? "") });
+  if (!result.success) return { error: result.error.issues[0]?.message ?? "Dados inválidos." };
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const nomeAtual = await nomeDaContaAtual(supabase);
+
+  const { error } = await supabase.from("atleta_anotacoes").insert({
+    atleta_id: atletaId,
+    texto: result.data.texto,
+    criado_por_perfil_id: user?.id ?? null,
+    criado_por_nome: nomeAtual,
+  });
+
+  if (error) return { error: "Não foi possível salvar a anotação. Tente novamente." };
+
+  revalidatePath(`/atletas/${atletaId}/anotacoes`);
+  return { success: true };
+}
+
+/** Apaga uma anotação — só quem é "master" (ver docs/superpowers/specs/2026-10-27-ficha-atleta-
+ * dossie-anotacoes-design.md, "Exclusão"). A tela já esconde o botão pra quem não é master; esta
+ * checagem no servidor é a que de fato impede a exclusão, não só a tela. */
+export async function removerAnotacao(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return;
+
+  const { data: anotacao } = await supabase.from("atleta_anotacoes").select("atleta_id").eq("id", id).single();
+
+  await supabase.from("atleta_anotacoes").delete().eq("id", id);
+
+  if (anotacao) revalidatePath(`/atletas/${(anotacao as { atleta_id: string }).atleta_id}/anotacoes`);
 }

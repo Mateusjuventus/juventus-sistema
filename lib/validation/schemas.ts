@@ -236,6 +236,13 @@ export const atletaContatoEmergenciaSchema = z.object({
 });
 export type AtletaContatoEmergenciaInput = z.infer<typeof atletaContatoEmergenciaSchema>;
 
+/** Aba "Anotações" do perfil do atleta (Profissional, Base e a página do Treinador) — ver
+ * docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md. */
+export const atletaAnotacaoSchema = z.object({
+  texto: z.string().min(1, { message: "Escreva alguma coisa antes de salvar." }),
+});
+export type AtletaAnotacaoInput = z.infer<typeof atletaAnotacaoSchema>;
+
 /** Campos compartilhados do "Novo contrato" (aba Contrato) — mesmo raciocínio de
  * `atletaCamposBase`: o tipo de contrato tem uma opção a mais na Base ("Iniciação"), então o objeto
  * cru fica separado do `.refine()` final (exige Clube de origem quando Empréstimo), igual já é

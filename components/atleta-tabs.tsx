@@ -12,12 +12,13 @@ export function AtletaTabs({
   active,
 }: {
   atletaId: string;
-  active: "dados-pessoais" | "documentacao" | "dados-de-jogo";
+  active: "dados-pessoais" | "documentacao" | "dados-de-jogo" | "anotacoes";
 }) {
   const tabs = [
     { key: "dados-pessoais", label: "Dados Pessoais", href: `/atletas/${atletaId}/ver` },
     { key: "documentacao", label: "Documentação", href: `/atletas/${atletaId}/documentacao` },
     { key: "dados-de-jogo", label: "Dados de Jogo", href: `/atletas/${atletaId}/dados-de-jogo` },
+    { key: "anotacoes", label: "Anotações", href: `/atletas/${atletaId}/anotacoes` },
   ] as const;
 
   return (
