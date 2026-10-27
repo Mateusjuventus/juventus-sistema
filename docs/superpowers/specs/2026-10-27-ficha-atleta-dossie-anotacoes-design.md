@@ -42,8 +42,7 @@ Antes de desenhar, um levantamento do que já existe (tudo isso já está no ar,
   mudança de categoria já entram juntos nas estatísticas dele, sem precisar de nenhuma mudança aqui.
 - **Anotações do treinador/staff** — um histórico por atleta, texto livre, com autor e data gravados
   automaticamente (autor vem do perfil logado, nunca digitado). Sem edição depois de criada (mesmo
-  princípio já usado no Parecer Final, na Dispensa e nos Contratos) — pra corrigir, apaga e escreve
-  de novo.
+  princípio já usado no Parecer Final, na Dispensa e nos Contratos).
 - **Quem escreve:** o treinador (Base, só nas categorias dele) e o Mateus/staff pelo cadastro
   interno — nos dois departamentos.
 - **Escopo:** Profissional e Base. A Classificação G1/G2/G3 e o Relatório de Dispensa formal (que
@@ -57,8 +56,9 @@ Antes de desenhar, um levantamento do que já existe (tudo isso já está no ar,
 - **Gráficos no relatório** — reaproveita o gráfico de participação que já existe em Dados de Jogo.
   Nenhum gráfico novo nesta rodada (ex.: evolução de classificação/notas ao longo do tempo fica de
   fora, por decisão do Mateus).
-- **Exclusão:** o Mateus/staff pode apagar qualquer anotação (limpeza, pelo cadastro interno); o
-  treinador só apaga as próprias. Nenhum dos dois edita uma anotação já salva.
+- **Exclusão:** só quem tem o papel **Master** pode apagar uma anotação (limpeza, pelo cadastro
+  interno) — nem o treinador, nem um usuário "regular" apagam, nem a própria que escreveram. Ninguém
+  edita uma anotação já salva.
 - **Ficha vira documento "mestre"** — ganha Dados de Jogo e Anotações como seções opcionais a mais,
   junto das 3 que já existem. Os atalhos que já existem continuam exatamente como estão: o "Gerar
   PDF" dentro da aba Dados de Jogo, e o PDF de Dispensa — pra quem só quer aquele relatório pontual
@@ -127,7 +127,9 @@ Dados de Jogo/Contrato:
 - `app/atletas/[id]/anotacoes/page.tsx` e `app/base/atletas/[categoria]/[id]/anotacoes/page.tsx` —
   lista cronológica (mais recente primeiro) + formulário "+ Nova anotação" (textarea), mesmo padrão
   de lista-mais-mini-formulário já usado em Contatos de Emergência e Documentação. Cada item mostra
-  o texto, o nome de quem criou e a data. Um botão remover por linha (`DeleteButton` compartilhado).
+  o texto, o nome de quem criou e a data. Um botão remover por linha (`DeleteButton` compartilhado),
+  visível **só pra quem está logado como Master** — qualquer outro papel (inclusive "regular" pelo
+  cadastro interno) vê a lista sem o botão.
 - Na Base, a entrada de Dispensa (quando o atleta tiver `dispensa_data` preenchida) aparece misturada
   na mesma linha do tempo, na posição cronológica certa, com um estilo visualmente diferente (ex.:
   borda à esquerda na cor do clube + rótulo "Relatório de Dispensa") e um link "Ver PDF" pra rota que
@@ -136,7 +138,9 @@ Dados de Jogo/Contrato:
 - Server actions `adicionarAnotacao`/`removerAnotacao` (e espelho `_base`) em
   `app/atletas/actions.ts`/`app/base/atletas/actions.ts`, mesmo molde de
   `adicionarDocumento`/`removerDocumento`. O autor nunca vem de um campo do formulário — a action lê
-  o perfil logado (nome + id) e grava os dois.
+  o perfil logado (nome + id) e grava os dois. `removerAnotacao` confere de novo, no próprio servidor,
+  que quem chamou é Master — a mesma checagem dupla (tela esconde o botão, action confirma o papel)
+  já usada em outras ações sensíveis do sistema.
 
 ### Treinador (só Base)
 
@@ -144,11 +148,12 @@ Hoje o treinador não tem uma página de detalhe do atleta — só o card dele d
 (`treinador-atletas-view.tsx`) e a tela de Dispensa. Fica criada `app/treinador/atletas/[id]/
 page.tsx`: cabeçalho do atleta, os Dados de Jogo dele (só leitura, reaproveitando
 `buscarEstatisticasAtleta` + `DonutChart`, sem filtro de período — só o histórico completo, pra
-manter simples) e a mesma lista + formulário de Anotações. Ações próprias em
-`app/treinador/atletas/actions.ts` (`adicionarAnotacaoTreinador`/`removerAnotacaoTreinador`), com a
-mesma dupla checagem de categoria já usada em `salvarClassificacaoTreinador` — confirma que quem está
-logado é treinador e que a categoria do atleta está entre as `categorias_treinador` dele. O treinador
-só apaga anotações onde `criado_por_perfil_id` é o dele mesmo. O card em "Meus atletas" ganha um link
+manter simples) e a mesma lista + formulário de Anotações — **sem** botão de apagar: o treinador só
+cria, nunca remove, nem a própria anotação (se escrever algo errado, pode deixar uma anotação nova
+corrigindo — só o Master apaga, pelo cadastro interno). Ação própria em
+`app/treinador/atletas/actions.ts` (`adicionarAnotacaoTreinador`), com a mesma dupla checagem de
+categoria já usada em `salvarClassificacaoTreinador` — confirma que quem está logado é treinador e
+que a categoria do atleta está entre as `categorias_treinador` dele. O card em "Meus atletas" ganha um link
 pra essa página nova (além do link "Gerar relatório de dispensa" que já existe, que passa a morar
 dentro dela também).
 
@@ -192,10 +197,11 @@ Dispensa — ninguém perde o caminho rápido que já tinha.
 - `app/atletas/[id]/anotacoes/page.tsx`, `app/base/atletas/[categoria]/[id]/anotacoes/page.tsx`
   (novos)
 - `app/atletas/actions.ts`, `app/base/atletas/actions.ts` — `adicionarAnotacao`/`removerAnotacao`
+  (`removerAnotacao` só executa se quem chamou é Master)
 - `app/atletas/[id]/ficha/pdf/route.tsx`, `app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx` —
   seções novas + parâmetros de período
 - `app/treinador/atletas/[id]/page.tsx` (novo) — Dados de Jogo + Anotações do treinador
-- `app/treinador/atletas/actions.ts` — `adicionarAnotacaoTreinador`/`removerAnotacaoTreinador`
+- `app/treinador/atletas/actions.ts` — `adicionarAnotacaoTreinador` (sem ação de apagar)
 - `app/treinador/atletas/treinador-atletas-view.tsx` — link pra página nova do atleta
 
 ## Fora de escopo (deliberado)
@@ -205,7 +211,8 @@ Dispensa — ninguém perde o caminho rápido que já tinha.
 - Nenhuma mudança na Convocação — continua restrita a atletas da própria categoria do jogo.
 - Nenhum gráfico novo além do gráfico de participação que já existe em Dados de Jogo (ex.: evolução
   de classificação/notas ao longo do tempo).
-- Edição de uma anotação já criada (só apagar e escrever de novo).
+- Edição de uma anotação já criada — pra corrigir, quem é Master apaga e escreve de novo; o
+  treinador só pode deixar uma anotação nova corrigindo a anterior, nunca apagar.
 - Anotação visível só pra quem escreveu — por decisão do Mateus, qualquer anotação é visível pra
   todo mundo com acesso ao atleta (mesma transparência já usada na Dispensa e no Parecer).
 
