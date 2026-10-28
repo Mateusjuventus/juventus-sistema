@@ -1,0 +1,640 @@
+Claude outputs/2026-09-11-captacao-documentos-termo-auto-cadastro-design.md:175:3. Monta o payload de `atletas_base` copiando os campos que a Captação já tem: nome, RG, CPF
+Claude outputs/2026-09-11-captacao-documentos-termo-auto-cadastro-design.md:183:5. Insere em `atletas_base`. Em caso de conflito de RG/CPF duplicado (já existe um atleta com esse
+End:53:[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m44[m[36m:[m- Categoria como dimensão de dado: só `atletas_base`, `[1;31mcomissao_tecnica_base[m` e `jogos_base` têm
+End:90:[35mlib/auth/categorias-base.ts[m[36m:[m[32m8[m[36m:[m * `atletas_base`, `[1;31mcomissao_tecnica_base[m` e `jogos_base` (ver as migrations correspondentes) — se
+End:145:[35msupabase/migrations/0094_programacao_semanal.sql[m[36m:[m[32m12[m[36m:[m-- jeito que atletas_base/[1;31mcomissao_tecnica_base[m já são filtradas hoje via getCategoriasTreinador() —
+app/base/alojamento/actions.ts:12: * alojado continua vindo direto de `atletas_base.alojado`, editado no cadastro de cada atleta. */
+app/base/alojamento/page.tsx:6:import type { AlojamentoBaseConfigRow, AtletaBaseRow } from "@/lib/supabase/types";
+app/base/alojamento/page.tsx:12: * lido direto de `atletas_base.alojado = true` (ver docs/superpowers/specs/
+app/base/alojamento/page.tsx:21:      .from("atletas_base")
+app/base/alojamento/page.tsx:28:  const alojados = (alojadosData ?? []) as AtletaBaseRow[];
+app/base/assistencia-social/[id]/page.tsx:12:import type { AssistenciaSocialAtendimentoRow, AtletaBaseRow } from "@/lib/supabase/types";
+app/base/assistencia-social/[id]/page.tsx:24:    supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle(),
+app/base/assistencia-social/[id]/page.tsx:33:  const atleta = atletaData as AtletaBaseRow;
+app/base/assistencia-social/[id]/parecer/route.tsx:12:import type { AssistenciaSocialAtendimentoRow, AtletaBaseRow } from "@/lib/supabase/types";
+app/base/assistencia-social/[id]/parecer/route.tsx:29:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+app/base/assistencia-social/[id]/parecer/route.tsx:31:  const atleta = data as AtletaBaseRow;
+app/base/assistencia-social/page.tsx:5:import type { AtletaBaseRow } from "@/lib/supabase/types";
+app/base/assistencia-social/page.tsx:21:    .from("atletas_base")
+app/base/assistencia-social/page.tsx:26:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/atletas/[categoria]/[id]/anotacoes/page.tsx:11:import type { AtletaBaseAnotacaoRow, AtletaBaseRow } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/[id]/anotacoes/page.tsx:34:    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+app/base/atletas/[categoria]/[id]/anotacoes/page.tsx:36:      .from("atleta_base_anotacoes")
+app/base/atletas/[categoria]/[id]/anotacoes/page.tsx:45:  const atleta = atletaData as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/contrato/novo/page.tsx:6:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+app/base/atletas/[categoria]/[id]/contrato/novo/page.tsx:37:          tipoContratoOptions={ATLETA_BASE_TIPO_CONTRATO_OPTIONS}
+app/base/atletas/[categoria]/[id]/dados-de-jogo/page.tsx:18:import type { AtletaBaseRow } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/[id]/dados-de-jogo/page.tsx:23:  convocacaoAtletas: "convocacao_atletas_base",
+app/base/atletas/[categoria]/[id]/dados-de-jogo/page.tsx:63:    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+app/base/atletas/[categoria]/[id]/dados-de-jogo/page.tsx:68:  const atleta = atletaData as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/dispensa/actions.ts:17: * "Dispensado" — só em `atletas_base`.
+app/base/atletas/[categoria]/[id]/dispensa/actions.ts:56:    .from("atletas_base")
+app/base/atletas/[categoria]/[id]/dispensa/page.tsx:11:import type { AtletaBaseRow, ConfiguracaoDispensaBaseRow } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/[id]/dispensa/page.tsx:28:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle();
+app/base/atletas/[categoria]/[id]/dispensa/page.tsx:30:  const atleta = data as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/dispensa/pdf/route.tsx:12:import type { AtletaBaseRow } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/[id]/dispensa/pdf/route.tsx:22:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+app/base/atletas/[categoria]/[id]/dispensa/pdf/route.tsx:25:  const atleta = data as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/documentacao/actions.ts:73:    .from("atletas_base")
+app/base/atletas/[categoria]/[id]/documentacao/page.tsx:9:import type { AtletaBaseRow, AtletaDocumentoBaseRow } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/[id]/documentacao/page.tsx:29:    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+app/base/atletas/[categoria]/[id]/documentacao/page.tsx:39:  const atleta = atletaData as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:15:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:32:  AtletaBaseRow,
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:39:  convocacaoAtletas: "convocacao_atletas_base",
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:66:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((o) => [o.value, o.label]),
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:99:      supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:101:        .from("atleta_base_contatos_emergencia")
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:106:        .from("atleta_base_contratos")
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:111:        .from("atleta_base_anotacoes")
+app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:118:  const atleta = atletaData as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/page.tsx:11:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+app/base/atletas/[categoria]/[id]/page.tsx:15:  AtletaBaseRow,
+app/base/atletas/[categoria]/[id]/page.tsx:26:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+app/base/atletas/[categoria]/[id]/page.tsx:38:    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+app/base/atletas/[categoria]/[id]/page.tsx:40:      .from("atleta_base_contatos_emergencia")
+app/base/atletas/[categoria]/[id]/page.tsx:45:      .from("atleta_base_contratos")
+app/base/atletas/[categoria]/[id]/page.tsx:53:  const atleta = data as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:12:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:14:import type { AtletaBaseRow } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:19:  convocacaoAtletas: "convocacao_atletas_base",
+app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:41:  const { data: atletaData } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:44:  const atleta = atletaData as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:68:          ? ATLETA_BASE_TIPO_CONTRATO_OPTIONS.find((o) => o.value === atleta.tipo_contrato)?.label ??
+app/base/atletas/[categoria]/[id]/ver/page.tsx:21:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+app/base/atletas/[categoria]/[id]/ver/page.tsx:26:  AtletaBaseRow,
+app/base/atletas/[categoria]/[id]/ver/page.tsx:31:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+app/base/atletas/[categoria]/[id]/ver/page.tsx:53:  convocacaoAtletas: "convocacao_atletas_base",
+app/base/atletas/[categoria]/[id]/ver/page.tsx:114:function cadastroIncompleto(atleta: Pick<AtletaBaseRow, "rg" | "cpf" | "data_nascimento">): boolean {
+app/base/atletas/[categoria]/[id]/ver/page.tsx:129:      supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+app/base/atletas/[categoria]/[id]/ver/page.tsx:131:        .from("atleta_base_contatos_emergencia")
+app/base/atletas/[categoria]/[id]/ver/page.tsx:136:        .from("atleta_base_contratos")
+app/base/atletas/[categoria]/[id]/ver/page.tsx:145:  const atleta = data as AtletaBaseRow;
+app/base/atletas/[categoria]/[id]/ver/page.tsx:240:                  `AtletaBaseRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio,
+app/base/atletas/[categoria]/export/pdf/route.tsx:20:import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/export/pdf/route.tsx:57:    .from("atletas_base")
+app/base/atletas/[categoria]/export/pdf/route.tsx:61:  const atletas = ((data ?? []) as AtletaBaseRow[]).filter(
+app/base/atletas/[categoria]/export/route.ts:8:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+app/base/atletas/[categoria]/export/route.ts:16:import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/export/route.ts:28:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+app/base/atletas/[categoria]/export/route.ts:83:    .from("atletas_base")
+app/base/atletas/[categoria]/export/route.ts:87:  const atletas = ((data ?? []) as AtletaBaseRow[]).filter(
+app/base/atletas/[categoria]/page.tsx:9:import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+app/base/atletas/[categoria]/page.tsx:34:// ATLETA_BASE_TIPO_CONTRATO_OPTIONS.
+app/base/atletas/[categoria]/page.tsx:54:    .from("atletas_base")
+app/base/atletas/[categoria]/page.tsx:58:  const atletas = (data ?? []) as AtletaBaseRow[];
+app/base/atletas/actions.ts:14: * Espelha `app/atletas/actions.ts`, mas grava em `atletas_base` (tabela totalmente independente —
+app/base/atletas/actions.ts:135:  const { error } = await supabase.from("atletas_base").insert({
+app/base/atletas/actions.ts:269:  const { error } = await supabase.from("atletas_base").update(updatePayload).eq("id", id);
+app/base/atletas/actions.ts:292:  const { data } = await supabase.from("atletas_base").select("categoria").eq("id", id).maybeSingle();
+app/base/atletas/actions.ts:295:  const { error } = await supabase.from("atletas_base").delete().eq("id", id);
+app/base/atletas/actions.ts:346:  await supabase.from("atletas_base").update({ ativo: novoValor }).eq("id", id);
+app/base/atletas/actions.ts:361: * `atleta_base_contatos_emergencia`. Revalida `/base/atletas/[categoria]/[id]` — por isso recebe a
+app/base/atletas/actions.ts:381:  const { error } = await supabase.from("atleta_base_contatos_emergencia").insert({
+app/base/atletas/actions.ts:400:    .from("atleta_base_contatos_emergencia")
+app/base/atletas/actions.ts:405:  await supabase.from("atleta_base_contatos_emergencia").delete().eq("id", id);
+app/base/atletas/actions.ts:412:      .from("atletas_base")
+app/base/atletas/actions.ts:426:/** Espelha `adicionarAnotacao` (app/atletas/actions.ts), gravando em `atleta_base_anotacoes`. Usada
+app/base/atletas/actions.ts:446:  const { error } = await supabase.from("atleta_base_anotacoes").insert({
+app/base/atletas/actions.ts:469:    .from("atleta_base_anotacoes")
+app/base/atletas/actions.ts:474:  await supabase.from("atleta_base_anotacoes").delete().eq("id", id);
+app/base/atletas/actions.ts:479:      .from("atletas_base")
+app/base/atletas/campograma/actions.ts:15: * `atletas_base.posicao`, o mesmo campo do cadastro completo. Não reaproveita o `atletaBaseSchema`
+app/base/atletas/campograma/actions.ts:29:  const { error } = await supabase.from("atletas_base").update({ posicao: novaPosicao }).eq("id", atletaId);
+app/base/atletas/campograma/actions.ts:49: * `atletas_base`, sem passar pelo `atletaBaseSchema` inteiro. "Dispensa (pendente)" é só um valor de
+app/base/atletas/campograma/actions.ts:68:    .from("atletas_base")
+app/base/atletas/campograma/actions.ts:74:    .from("atletas_base")
+app/base/atletas/campograma/actions.ts:97: * `atletas_base` (não passa pela Captação/Avaliação: é um atleta já ocupando uma posição no elenco
+app/base/atletas/campograma/actions.ts:114:  const { error } = await supabase.from("atletas_base").insert({
+app/base/atletas/campograma/page.tsx:8:import type { AtletaBaseRow } from "@/lib/supabase/types";
+app/base/atletas/campograma/page.tsx:25:    .from("atletas_base")
+app/base/atletas/campograma/page.tsx:34:    AtletaBaseRow,
+app/base/atletas/campograma/pdf/route.tsx:12:import type { AtletaBaseRow } from "@/lib/supabase/types";
+app/base/atletas/campograma/pdf/route.tsx:26:    .from("atletas_base")
+app/base/atletas/campograma/pdf/route.tsx:33:    AtletaBaseRow,
+app/base/atletas/page.tsx:7:import type { AtletaBaseRow, CategoriaBase, ConfiguracaoCadastroAtletaBaseRow } from "@/lib/supabase/types";
+app/base/atletas/page.tsx:22:    supabase.from("atletas_base").select("categoria"),
+app/base/atletas/page.tsx:26:  const todos = (data ?? []) as Pick<AtletaBaseRow, "categoria">[];
+app/base/atletas/page.tsx:27:  const config = configData as ConfiguracaoCadastroAtletaBaseRow | null;
+app/base/atletas/relacao/pdf/route.tsx:22:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+app/base/atletas/relacao/pdf/route.tsx:23:import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+app/base/atletas/relacao/pdf/route.tsx:92:    .from("atletas_base")
+app/base/atletas/relacao/pdf/route.tsx:98:  const atletas: RelacaoAtletaLinha[] = ((data ?? []) as AtletaBaseRow[]).map((a) => ({
+app/base/atletas/relacao/pdf/route.tsx:114:      ? ATLETA_BASE_TIPO_CONTRATO_OPTIONS.find((o) => o.value === a.tipo_contrato)?.label ?? a.tipo_contrato
+app/base/captacao/actions.ts:15: * Server Actions da Captação/Avaliação — banco TOTALMENTE separado de `atletas_base` desde o
+app/base/captacao/captacao-form.tsx:18: * telefone e o resto entrar conforme a avaliação anda. Banco totalmente separado de `atletas_base`.
+app/base/captacao/dashboard/page.tsx:20: * 2026-08-19-captacao-atletas-separacao-design.md) — não mostra mais nada de `atletas_base` aqui.
+app/base/competicoes/[id]/condicao/page.tsx:18: * `convocacoes_base`/`convocacao_atletas_base`/`atletas_base` no lugar das tabelas do Profissional.
+app/base/competicoes/[id]/condicao/page.tsx:50:        .from("convocacao_atletas_base")
+app/base/competicoes/[id]/condicao/page.tsx:64:    const { data } = await supabase.from("atletas_base").select("id, nome_completo, posicao").in("id", faltando);
+app/base/competicoes/[id]/condicao/pdf/route.tsx:44:      .from("convocacao_atletas_base")
+app/base/competicoes/[id]/condicao/pdf/route.tsx:56:    const { data } = await supabase.from("atletas_base").select("id, nome_completo, posicao").in("id", faltando);
+app/base/competicoes/[id]/inscritos/page.tsx:34:    .from("atletas_base")
+app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:51:/** Recalcula `atletas_base.status` a partir das lesões que sobraram sem `data_fim` pra esse atleta
+app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:69:  const { data: atletaAtual } = await supabase.from("atletas_base").select("status").eq("id", atletaId).maybeSingle();
+app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:237:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:266:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:366:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:480:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:511:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+app/base/departamento-medico/fisioterapia/[atletaId]/page.tsx:12:  AtletaBaseRow,
+app/base/departamento-medico/fisioterapia/[atletaId]/page.tsx:43:    supabase.from("atletas_base").select("*").eq("id", params.atletaId).maybeSingle(),
+app/base/departamento-medico/fisioterapia/[atletaId]/page.tsx:64:  const atleta = atletaData as AtletaBaseRow;
+app/base/departamento-medico/fisioterapia/[atletaId]/pdf/route.tsx:12:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+app/base/departamento-medico/fisioterapia/[atletaId]/pdf/route.tsx:20:  const { data: atletaData } = await supabase.from("atletas_base").select("*").eq("id", params.atletaId).maybeSingle();
+app/base/departamento-medico/fisioterapia/[atletaId]/pdf/route.tsx:22:  const atleta = atletaData as AtletaBaseRow;
+app/base/departamento-medico/fisioterapia/lancamento-dia/page.tsx:9:import type { AtletaBaseRow, CategoriaBase, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow } from "@/lib/supabase/types";
+app/base/departamento-medico/fisioterapia/lancamento-dia/page.tsx:32:        .from("atletas_base")
+app/base/departamento-medico/fisioterapia/lancamento-dia/page.tsx:46:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/departamento-medico/fisioterapia/lancamento-dia/pdf/route.tsx:13:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow } from "@/lib/supabase/types";
+app/base/departamento-medico/fisioterapia/lancamento-dia/pdf/route.tsx:32:          .from("atletas_base")
+app/base/departamento-medico/fisioterapia/lancamento-dia/pdf/route.tsx:37:  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido" | "categoria">[];
+app/base/departamento-medico/fisioterapia/page.tsx:7:import type { AtletaBaseRow, AtletaBaseStatus, CategoriaBase, FisioterapiaLesaoBaseRow } from "@/lib/supabase/types";
+app/base/departamento-medico/fisioterapia/page.tsx:36:      .from("atletas_base")
+app/base/departamento-medico/fisioterapia/page.tsx:52:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/departamento-medico/fisioterapia/relatorio-completo/pdf/route.tsx:13:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+app/base/departamento-medico/fisioterapia/relatorio-completo/pdf/route.tsx:34:    .from("atletas_base")
+app/base/departamento-medico/fisioterapia/relatorio-completo/pdf/route.tsx:39:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/departamento-medico/fisioterapia/relatorio/page.tsx:8:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+app/base/departamento-medico/fisioterapia/relatorio/page.tsx:27:    .from("atletas_base")
+app/base/departamento-medico/fisioterapia/relatorio/page.tsx:30:  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[];
+app/base/departamento-medico/fisioterapia/relatorio/pdf/route.tsx:13:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+app/base/departamento-medico/fisioterapia/relatorio/pdf/route.tsx:24:    .from("atletas_base")
+app/base/departamento-medico/fisioterapia/relatorio/pdf/route.tsx:27:  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[];
+app/base/financeiro/geral-base-view.tsx:17:  AtletaBaseRow,
+app/base/financeiro/geral-base-view.tsx:57:      supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
+app/base/financeiro/geral-base-view.tsx:63:      supabase.from("atleta_base_contratos").select("*").eq("vigente", true),
+app/base/financeiro/geral-base-view.tsx:73:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/financeiro/pdf-geral/route.tsx:27:  AtletaBaseRow,
+app/base/financeiro/pdf-geral/route.tsx:47:    supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
+app/base/financeiro/pdf-geral/route.tsx:53:    supabase.from("atleta_base_contratos").select("*").eq("vigente", true),
+app/base/financeiro/pdf-geral/route.tsx:63:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/jogos/[id]/convocacao/convocacao-form-base.tsx:8:import type { AtletaBaseRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
+app/base/jogos/[id]/convocacao/convocacao-form-base.tsx:18:type AtletaComFoto = AtletaBaseRow & { fotoUrl: string | null };
+app/base/jogos/[id]/convocacao/page.tsx:8:  AtletaBaseRow,
+app/base/jogos/[id]/convocacao/page.tsx:10:  ConvocacaoAtletaBaseRow,
+app/base/jogos/[id]/convocacao/page.tsx:39:      supabase.from("atletas_base").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
+app/base/jogos/[id]/convocacao/page.tsx:48:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/jogos/[id]/convocacao/page.tsx:57:  // jogo, ver comentário em ConvocacaoAtletaBaseRow). Vem em branco (sem entrada no map) até
+app/base/jogos/[id]/convocacao/page.tsx:64:      supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
+app/base/jogos/[id]/convocacao/page.tsx:68:    ((caData ?? []) as ConvocacaoAtletaBaseRow[]).forEach((row) => {
+app/base/jogos/[id]/onibus/page.tsx:8:  AtletaBaseRow,
+app/base/jogos/[id]/onibus/page.tsx:40:      .from("atletas_base")
+app/base/jogos/[id]/onibus/page.tsx:50:  const todosAtletas = (todosAtletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "posicao">[];
+app/base/jogos/[id]/onibus/pdf/route.tsx:12:  AtletaBaseRow,
+app/base/jogos/[id]/onibus/pdf/route.tsx:47:      atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+app/base/jogos/[id]/onibus/pdf/route.tsx:57:  const atletaMap = new Map(((atletasData ?? []) as AtletaBaseRow[]).map((a) => [a.id, a]));
+app/base/jogos/[id]/operacao-data.ts:4:  AtletaBaseRow,
+app/base/jogos/[id]/operacao-data.ts:6:  ConvocacaoAtletaBaseRow,
+app/base/jogos/[id]/operacao-data.ts:21:  atletas: AtletaBaseRow[];
+app/base/jogos/[id]/operacao-data.ts:44:    supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
+app/base/jogos/[id]/operacao-data.ts:51:  const convocacaoAtletaIds = ((caData ?? []) as ConvocacaoAtletaBaseRow[]).map((c) => c.atleta_id);
+app/base/jogos/[id]/operacao-data.ts:56:  let atletas: AtletaBaseRow[] = [];
+app/base/jogos/[id]/operacao-data.ts:58:    const { data: atletasData } = await supabase.from("atletas_base").select("*").in("id", convocacaoAtletaIds);
+app/base/jogos/[id]/operacao-data.ts:59:    atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/jogos/[id]/presskit/route.tsx:13:  AtletaBaseRow,
+app/base/jogos/[id]/presskit/route.tsx:15:  ConvocacaoAtletaBaseRow,
+app/base/jogos/[id]/presskit/route.tsx:44:    supabase.from("convocacao_atletas_base").select("*, atleta:atletas_base(*)").eq("convocacao_id", convocacao.id),
+app/base/jogos/[id]/presskit/route.tsx:52:  const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
+app/base/jogos/[id]/presskit/route.tsx:58:  // 0059_convocacao_atleta_base_numero_camisa.sql), COM O GOLEIRO SEMPRE NA FRENTE: é regra do
+app/base/jogos/[id]/presskit/route.tsx:60:  const comNumeroDaConvocacao = (c: ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow }): AtletaBaseRow => ({
+app/base/jogos/[id]/presskit/route.tsx:73:  const comFoto = async (atletas: AtletaBaseRow[]): Promise<AtletaPresskitItem[]> =>
+app/base/jogos/[id]/rooming-list/pdf-envio/route.tsx:17:  AtletaBaseRow,
+app/base/jogos/[id]/rooming-list/pdf-envio/route.tsx:67:      ? supabase.from("atletas_base").select("id, nome_completo, apelido").in("id", atletaIds)
+app/base/jogos/[id]/rooming-list/pdf-envio/route.tsx:79:    ((atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[]).map((a) => [a.id, a]),
+app/base/jogos/[id]/rooming-list/pdf/route.tsx:13:  AtletaBaseRow,
+app/base/jogos/[id]/rooming-list/pdf/route.tsx:62:    atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+app/base/jogos/[id]/rooming-list/pdf/route.tsx:72:  const atletaMap = new Map(((atletasData ?? []) as AtletaBaseRow[]).map((a) => [a.id, a]));
+app/base/jogos/[id]/rooming-list/pdf/route.tsx:85:    const nome = o.pessoa_tipo === "atleta" ? (registro as AtletaBaseRow | undefined)?.apelido || registro?.nome_completo || "—" : registro?.nome_completo ?? "—";
+app/base/jogos/[id]/rooming-list/rooming-list-form-base.tsx:7:import type { AtletaBaseRow, ComissaoTecnicaRow, PessoaTipoRooming, TipoQuarto } from "@/lib/supabase/types";
+app/base/jogos/[id]/rooming-list/rooming-list-form-base.tsx:66:  atletas: AtletaBaseRow[];
+app/base/jogos/[id]/sumula/importar-actions.ts:14:import type { AtletaBaseRow, CompeticaoBaseRow, CompeticaoJogoBaseRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
+app/base/jogos/[id]/sumula/importar-actions.ts:104:function paraAtletaParaMatch(a: AtletaBaseRow): AtletaParaMatch {
+app/base/jogos/[id]/sumula/importar-actions.ts:127:  // Precisa da categoria do jogo pra filtrar o elenco completo (atletas_base tem todas as
+app/base/jogos/[id]/sumula/importar-actions.ts:136:    ? await supabase.from("atletas_base").select("id, nome_completo, numero_fpf").eq("categoria", categoria)
+app/base/jogos/[id]/sumula/importar-actions.ts:137:    : { data: [] as AtletaBaseRow[] };
+app/base/jogos/[id]/sumula/importar-actions.ts:138:  const atletasCompletos = ((atletasCompletosData ?? []) as AtletaBaseRow[]).map(paraAtletaParaMatch);
+app/base/jogos/[id]/sumula/importar-actions.ts:141:  // sem `convocacao_atletas_base`) não carrega nenhuma informação real pra proteger — trata
+app/base/jogos/[id]/sumula/importar-actions.ts:148:      .from("convocacao_atletas_base")
+app/base/jogos/[id]/sumula/importar-actions.ts:377: * pra pré-preencher `convocacao_atletas_base.numero_camisa` com o número que a súmula trouxer pra
+app/base/jogos/[id]/sumula/importar-actions.ts:434:    // nenhum `convocacao_atletas_base` (ex.: sobrou de uma limpeza manual pra testar de novo)
+app/base/jogos/[id]/sumula/importar-actions.ts:440:        .from("convocacao_atletas_base")
+app/base/jogos/[id]/sumula/importar-actions.ts:454:          await supabase.from("convocacao_atletas_base").insert(
+app/base/jogos/[id]/sumula/page.tsx:16:  AtletaBaseRow,
+app/base/jogos/[id]/sumula/page.tsx:19:  ConvocacaoAtletaBaseRow,
+app/base/jogos/[id]/sumula/page.tsx:32:function paraOpcao(atleta: AtletaBaseRow): ConvocadoOption {
+app/base/jogos/[id]/sumula/page.tsx:41:function nomeAtletaEvento(atleta: AtletaBaseRow | undefined): string {
+app/base/jogos/[id]/sumula/page.tsx:55:  atletasMap: Map<string, AtletaBaseRow>;
+app/base/jogos/[id]/sumula/page.tsx:128:  atletasMap: Map<string, AtletaBaseRow>;
+app/base/jogos/[id]/sumula/page.tsx:188:        .from("atletas_base")
+app/base/jogos/[id]/sumula/page.tsx:201:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/base/jogos/[id]/sumula/page.tsx:233:  let titulares: AtletaBaseRow[] = [];
+app/base/jogos/[id]/sumula/page.tsx:234:  let reservasAtletas: AtletaBaseRow[] = [];
+app/base/jogos/[id]/sumula/page.tsx:237:      .from("convocacao_atletas_base")
+app/base/jogos/[id]/sumula/page.tsx:240:    const rows = (caData ?? []) as ConvocacaoAtletaBaseRow[];
+app/base/jogos/[id]/sumula/page.tsx:244:      .filter((a): a is AtletaBaseRow => Boolean(a));
+app/base/jogos/[id]/sumula/page.tsx:248:      .filter((a): a is AtletaBaseRow => Boolean(a));
+app/base/relatorios/avulso/page.tsx:5:  AtletaBaseRow,
+app/base/relatorios/avulso/page.tsx:18:      supabase.from("atletas_base").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
+app/base/relatorios/avulso/page.tsx:34:  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "posicao">[];
+app/base/relatorios/avulso/pdf/route.tsx:14:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+app/base/relatorios/avulso/pdf/route.tsx:16:import type { AtletaBaseRow, ComissaoTecnicaRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
+app/base/relatorios/avulso/pdf/route.tsx:113:    atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+app/base/relatorios/avulso/pdf/route.tsx:125:  const atletas: RelatorioAvulsoPessoa[] = ((atletasData ?? []) as AtletaBaseRow[])
+app/base/relatorios/avulso/pdf/route.tsx:144:        ? ATLETA_BASE_TIPO_CONTRATO_OPTIONS.find((o) => o.value === a.tipo_contrato)?.label ?? a.tipo_contrato
+app/cadastro-atleta-base/actions.ts:13: * `atletas_base`, com `status: "liberado"` fixado no servidor — sem relação nenhuma com a Captação
+app/cadastro-atleta-base/actions.ts:25: * quem preenche não tem sessão. Precisa do GRANT em `atletas_base` pro service_role, que nasceu
+app/cadastro-atleta-base/actions.ts:152:  const { error } = await admin.from("atletas_base").insert({
+app/cadastro-atleta-base/page.tsx:3:import type { ConfiguracaoCadastroAtletaBaseRow } from "@/lib/supabase/types";
+app/cadastro-atleta-base/page.tsx:11: * em `atletas_base` (sem relação nenhuma com a Captação, ver docs/superpowers/specs/
+app/cadastro-atleta-base/page.tsx:26:  const config = configData as ConfiguracaoCadastroAtletaBaseRow | null;
+app/treinador/atletas/[id]/dispensa/actions.ts:45:    .from("atletas_base")
+app/treinador/atletas/[id]/dispensa/actions.ts:70:    .from("atletas_base")
+app/treinador/atletas/[id]/dispensa/page.tsx:11:import type { AtletaBaseRow } from "@/lib/supabase/types";
+app/treinador/atletas/[id]/dispensa/page.tsx:25:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle();
+app/treinador/atletas/[id]/dispensa/page.tsx:27:  const atleta = data as AtletaBaseRow;
+app/treinador/atletas/[id]/dispensa/pdf/route.tsx:13:import type { AtletaBaseRow } from "@/lib/supabase/types";
+app/treinador/atletas/[id]/dispensa/pdf/route.tsx:27:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+app/treinador/atletas/[id]/dispensa/pdf/route.tsx:30:  const atleta = data as AtletaBaseRow;
+app/treinador/atletas/[id]/page.tsx:12:import type { AtletaBaseAnotacaoRow, AtletaBaseRow } from "@/lib/supabase/types";
+app/treinador/atletas/[id]/page.tsx:18:  convocacaoAtletas: "convocacao_atletas_base",
+app/treinador/atletas/[id]/page.tsx:49:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle();
+app/treinador/atletas/[id]/page.tsx:51:  const atleta = data as AtletaBaseRow;
+app/treinador/atletas/[id]/page.tsx:56:      .from("atleta_base_anotacoes")
+app/treinador/atletas/actions.ts:33:    .from("atletas_base")
+app/treinador/atletas/actions.ts:39:  await supabase.from("atletas_base").update({ classificacao }).eq("id", atletaId);
+app/treinador/atletas/actions.ts:68:    .from("atletas_base")
+app/treinador/atletas/actions.ts:81:  const { error } = await supabase.from("atleta_base_anotacoes").insert({
+app/treinador/atletas/page.tsx:10:import type { AtletaBaseRow, CaptacaoBaseRow } from "@/lib/supabase/types";
+app/treinador/atletas/page.tsx:59:  // design.md, seção 2) — o elenco já do clube (atletas_base) das categorias do treinador, à parte
+app/treinador/atletas/page.tsx:63:    .from("atletas_base")
+app/treinador/atletas/page.tsx:68:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/treinador/atletas/treinador-atletas-view.tsx:14:import type { AtletaBaseRow, AtletaBaseStatus, CaptacaoBaseRow } from "@/lib/supabase/types";
+app/treinador/atletas/treinador-atletas-view.tsx:46:export type AtletaComFoto = AtletaBaseRow & { fotoUrl: string | null };
+app/treinador/jogos/[id]/convocacao/page.tsx:11:  AtletaBaseRow,
+app/treinador/jogos/[id]/convocacao/page.tsx:13:  ConvocacaoAtletaBaseRow,
+app/treinador/jogos/[id]/convocacao/page.tsx:42:    supabase.from("atletas_base").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
+app/treinador/jogos/[id]/convocacao/page.tsx:51:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+app/treinador/jogos/[id]/convocacao/page.tsx:64:      supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
+app/treinador/jogos/[id]/convocacao/page.tsx:68:    ((caData ?? []) as ConvocacaoAtletaBaseRow[]).forEach((row) => {
+docs/superpowers/plans/2026-10-05-assistencia-social-e-demandas-plan.md:19:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:9:from atletas_base
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:20:2. Adicionar em `atletas` as colunas que só existem em `atletas_base` hoje: `email_pai`, `email_mae`, `alojado`, `classificacao`, `dispensa_motivo`, `dispensa_nota_tecnica`, `dispensa_nota_fisica`, `dispensa_nota_tatica`, `dispensa_nota_comportamental`, `dispensa_data`, `dispensado_por`, `dispensado_em`, `valor_ajuda_custo`, `agencia`, `mae_nome`, `mae_telefone`, `pai_nome`, `pai_telefone`, `escola` — todas nullable.
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:22:4. Inserir as linhas de `atletas_base` em `atletas` (convertendo `status = 'suspenso'` pra `'liberado'` antes/durante o insert), mapeando toda coluna equivalente + as novas do passo 2 + `categoria` = valor escalar que já tinham.
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:25:   - `atleta_contatos_emergencia` ← dados de `atleta_base_contatos_emergencia`
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:27:   - `atleta_contratos` ← dados de `atleta_base_contratos` (ajustando `tipo_contrato` pra aceitar os 5 valores antes do insert)
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:32:9. Renomear `atletas_base` → `atletas_base_old` e as 5 tabelas filhas absorvidas → `_old` (backup, não apagar — mesmo tratamento de `comissao_tecnica_base_old`). NÃO apagar `captacao_base`, `assistencia_social_atendimentos`, `fisioterapia_historico_importado` (fora de escopo).
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:38:- `AtletaBaseRow` é removida (ou marcada deprecated/redirecionada pra `AtletaRow`, a decidir no código — mesmo padrão de `ComissaoTecnicaBaseRow` removido na unificação anterior).
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:79:- Action final de aprovação (que hoje insere em `atletas_base`) passa a inserir em `atletas` com a `categoria` correspondente.
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:83:- `git grep -n -i "atletas_base\b" ` no repo real (pedir ao Mateus, mesmo padrão usado na Comissão Técnica) pra achar qualquer referência que ficou presa — provavelmente vai aparecer bastante coisa em Jogos/Convocação/Competições/Fisioterapia/Financeiro/Programação/Relatórios, que é esperado (fora de escopo desta fase) — só confirmar que não quebrou nada que É desta fase.
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:89:Em vez de view de compatibilidade, o Mateus decidiu trocar a referência de tabela/tipo em TODO módulo que ainda lê/escreve `atletas_base` — sem redesenhar a tela de cada um ainda (isso continua pras fases futuras), só trocando `.from("atletas_base")` → `.from("atletas")` com o filtro de categoria certo, e `AtletaBaseRow` → `AtletaRow`, em: Jogos/Convocação, Competições/Súmulas, Fisioterapia, Financeiro, Programação, Relatório Avulso, Organograma/Campograma, Treinador, e qualquer outro lugar que apareça. Isso muda o tamanho real desta fase — não é mais só "núcleo", é núcleo + sweep completo de referências.
+docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:94:git grep -n -i "atletas_base\b\|AtletaBaseRow\|atleta_base_" > atletas-grep.txt
+docs/superpowers/specs/2026-07-20-futebol-de-base-design.md:87:- **Tabela nova `atletas_base`**: os mesmos campos de `atletas` hoje (nome completo, apelido, rg,
+docs/superpowers/specs/2026-07-20-futebol-de-base-design.md:128:  `convocacao_atletas_base` + `convocacao_comissao_base` + `convocacao_staff_base`), Recibo de
+docs/superpowers/specs/2026-08-04-convocacao-redesign-design.md:26:Novo campo `categoria_posicao` nas tabelas `atletas` e `atletas_base`, enum com 5 valores fixos:
+docs/superpowers/specs/2026-08-04-sumula-design.md:39:`convocacao_atletas_base`) — não redefine quem joga aqui, só serve de referência visual e de fonte
+docs/superpowers/specs/2026-08-19-captacao-atletas-separacao-design.md:24:Não cria mais nada em `atletas_base`. Ganhou um status novo, `inscricao`, que fica ANTES de "Em
+docs/superpowers/specs/2026-08-19-captacao-atletas-separacao-design.md:35:DIRETO em `atletas_base`, com `status: "liberado"` e sem passar pela Captação. Coleta o cadastro
+docs/superpowers/specs/2026-08-19-captacao-atletas-separacao-design.md:48:| `/cadastro-atleta-base` (Ficha de Cadastro) | `atletas_base` direto | `configuracoes_cadastro_atleta_base` | `/base/atletas` |
+docs/superpowers/specs/2026-08-19-captacao-atletas-separacao-design.md:55:GRANT que faltava pro service_role em `atletas_base` (a Ficha de Cadastro pública precisa gravar lá
+docs/superpowers/specs/2026-08-19-captacao-base-design.md:18:cadastro completo em Atletas** (por isso RG/CPF viram opcionais em `atletas_base` — quem vem da
+docs/superpowers/specs/2026-08-19-captacao-base-design.md:38:Atleta não teria como nascer com um cadastro esportivo mínimo — e cria a linha em `atletas_base`
+docs/superpowers/specs/2026-08-19-captacao-base-design.md:49:`atletas_base` ganhou: `alojado`, `valor_ajuda_custo`, `agencia`, `empresario_telefone`,
+docs/superpowers/specs/2026-08-19-captacao-base-design.md:60:relação de quem está alojado — lida direto de `atletas_base.alojado = true`, sem tabela própria pra
+docs/superpowers/specs/2026-08-19-captacao-base-design.md:79:## Por que RG/CPF viram opcionais em `atletas_base`
+docs/superpowers/specs/2026-08-19-parecer-final-treinador-design.md:94:| `foto_path` | `text`, nullable | Mesmo padrão de `atletas_base.foto_path` — caminho no Storage. |
+docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md:54:- Banco: nova coluna `data_inicio_contrato` (date, nullable) em `atletas` e `atletas_base`.
+docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md:111:- A coluna `categoria_posicao` (Postgres) é **removida** das tabelas `atletas` e `atletas_base` —
+docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md:216:- `lib/supabase/types.ts` — `AtletaRow`/`AtletaBaseRow` perdem `categoria_posicao`, ganham
+docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md:225:- Adiciona `data_inicio_contrato` em `atletas` e `atletas_base`.
+docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md:229:- Remove a coluna `categoria_posicao` de `atletas` e `atletas_base`.
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:28:Campo novo `classificacao` em `atletas_base`: `"g1" | "g2" | "g3"`, **opcional** (nem todo atleta
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:56:treinador. Passa a ter uma seção nova, **"Meus atletas"**, com o elenco (`atletas_base`) dessas mesmas
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:83:Liberado/Suspenso/Departamento Médico) — só em `atletas_base`, o Profissional não ganha esse status.
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:121:Migration nova em `atletas_base`, só nessa tabela:
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:124:alter table public.atletas_base
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:135:alter table public.atletas_base drop constraint atletas_base_status_check;
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:136:alter table public.atletas_base add constraint atletas_base_status_check
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:140:Nenhuma mudança de RLS/grant necessária — `atletas_base` já tem a política
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:147:- `AtletaBaseStatus = AtletaStatus | "dispensado"` (novo tipo, só para `AtletaBaseRow.status` —
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:150:- `AtletaClassificacao = "g1" | "g2" | "g3"` novo, usado em `AtletaBaseRow.classificacao: AtletaClassificacao | null`.
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:151:- Novos campos em `AtletaBaseRow`: `classificacao`, `dispensa_motivo`, `dispensa_nota_tecnica`,
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:157:- `supabase/migrations/0087_atleta_base_classificacao_dispensa.sql` (novo).
+docs/superpowers/specs/2026-08-25-classificacao-dispensa-atleta-base-design.md:158:- `lib/supabase/types.ts` — `AtletaBaseStatus`, `AtletaClassificacao`, novos campos em `AtletaBaseRow`.
+docs/superpowers/specs/2026-08-26-campograma-foto-classificacao-design.md:126:(`atletas_base.posicao`) e a tela re-renderiza com o atleta já na linha nova.
+docs/superpowers/specs/2026-08-26-campograma-foto-classificacao-design.md:134:`atletas_base`.
+docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md:25:1. **Relatório de Dispensa** (`atletas_base`) — 2 assinantes: você (papel "Departamento de Futebol
+docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md:63:documento_id     uuid   -- id da linha do documento (atletas_base.id, captacao_base.id, jogos.id, etc.)
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:134:status)` — mesmo padrão de `moverAtletaCampograma` (grava direto os dois campos em `atletas_base`,
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:160:que **cria de verdade** uma linha em `atletas_base` na hora (não passa pela Captação/Avaliação — esse
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:181:RG e CPF já são opcionais em `atletas_base` desde a migração 0076 (herança do fluxo de Captação
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:201:Migration nova, só em `atletas_base`:
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:206:alter table public.atletas_base alter column data_nascimento drop not null;
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:210:alter table public.atletas_base drop constraint atletas_base_classificacao_check;
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:211:alter table public.atletas_base add constraint atletas_base_classificacao_check
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:215:Nenhuma mudança de RLS/grant — `atletas_base` já tem a política `authenticated_full_access`.
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:220:- `AtletaBaseRow.data_nascimento: string | null` (era `string`).
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:226:- `supabase/migrations/0095_atleta_base_dispensa_pendente_data_nascimento_opcional.sql` (novo).
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:227:- `lib/supabase/types.ts` — `AtletaClassificacao` com o 4º valor, `AtletaBaseRow.data_nascimento`
+docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md:260:- O cadastro rápido pelo Campograma não passa pela Captação/Avaliação — cria direto em `atletas_base`.
+docs/superpowers/specs/2026-09-04-relacao-atletas-base-design.md:82:Action). Busca `atletas_base` (`categoria` = valor escolhido, se não for `"todas"`; filtro `.in("status", [...])`
+docs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md:44:- Categoria como dimensão de dado: só `atletas_base`, `comissao_tecnica_base` e `jogos_base` têm
+docs/superpowers/specs/2026-10-03-competicoes-base-design.md:193:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+docs/superpowers/specs/2026-10-03-competicoes-base-design.md:206:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+docs/superpowers/specs/2026-10-03-competicoes-base-design.md:364:tabelas (`jogos`→`jogos_base`, `atletas`→`atletas_base`, `competicoes`→`competicoes_base` e as
+docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md:46:numero_fpf}`. Não precisam de nenhuma alteração: `atletas_base` já tem a coluna `numero_fpf` no
+docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md:96:  `convocacao_atletas_base` (exige Convocação já salva, mesma mensagem de erro) pra montar o
+docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md:97:  universo de candidatos, busca em `atletas_base` (`id, nome_completo, numero_fpf`), lê
+docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md:54:Nova tabela `assistencia_social_atendimentos`: `id`, `atleta_id` (referência a `atletas_base`),
+docs/superpowers/specs/2026-10-06-fisioterapia-base-filtros-categoria-status-design.md:98:cadastral do atleta (`atletas_base.status`), que já pode divergir por um dia até a sincronização
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:27:- Escopo: Profissional (`atletas`) e Base (`atletas_base`) — contrato salarial estruturado existe
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:66:-- atletas_base já tem empresario_telefone (ver 0076_captacao_alojamento_base.sql) — só falta e-mail
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:68:alter table public.atletas_base add column if not exists empresario_email text;
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:69:alter table public.atletas_base add column if not exists tamanho_uniforme text
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:108:create table public.atleta_base_contratos (
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:110:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:128:create unique index atleta_base_contratos_vigente_unico_idx
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:129:  on public.atleta_base_contratos (atleta_id) where vigente;
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:131:create index atleta_base_contratos_atleta_id_idx on public.atleta_base_contratos (atleta_id);
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:133:alter table public.atleta_base_contratos enable row level security;
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:135:create policy "authenticated_full_access" on public.atleta_base_contratos
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:138:grant select, insert, update, delete on public.atleta_base_contratos to authenticated;
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:147:insert into public.atleta_base_contratos (atleta_id, tipo_contrato, vigencia_inicio, vigencia_fim, criado_por_nome)
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:149:from public.atletas_base
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:201:-- Mesma função, pra atleta_base_contratos (idêntica sincronização com atletas_base).
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:215:) returns public.atleta_base_contratos
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:219:  novo public.atleta_base_contratos;
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:221:  update public.atleta_base_contratos
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:225:  insert into public.atleta_base_contratos (
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:235:  update public.atletas_base
+docs/superpowers/specs/2026-10-16-atleta-dados-esportivos-contrato-design.md:299:- `lib/supabase/types.ts` — `AtletaRow`/`AtletaBaseRow` (empresario_telefone/email, tamanho_uniforme),
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:19:- Escopo: Profissional (`atletas`) **e** Base (`atletas_base`).
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:20:- E-mail do atleta: campo novo nas duas tabelas. E-mail do pai/mãe: só em `atletas_base` (não faz
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:37:alter table public.atletas_base add column if not exists email text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:38:alter table public.atletas_base add column if not exists email_pai text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:39:alter table public.atletas_base add column if not exists email_mae text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:52:alter table public.atletas_base add column if not exists origem_cep text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:53:alter table public.atletas_base add column if not exists origem_logradouro text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:54:alter table public.atletas_base add column if not exists origem_numero text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:55:alter table public.atletas_base add column if not exists origem_complemento text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:56:alter table public.atletas_base add column if not exists origem_bairro text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:57:alter table public.atletas_base add column if not exists origem_cidade text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:58:alter table public.atletas_base add column if not exists origem_uf text;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:81:create table public.atleta_base_contatos_emergencia (
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:83:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:90:create index atleta_base_contatos_emergencia_atleta_id_idx
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:91:  on public.atleta_base_contatos_emergencia (atleta_id);
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:93:alter table public.atleta_base_contatos_emergencia enable row level security;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:95:create policy "authenticated_full_access" on public.atleta_base_contatos_emergencia
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:98:grant select, insert, update, delete on public.atleta_base_contatos_emergencia to authenticated;
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:104:`AtletaBaseRow`; `email_pai`/`email_mae` só em `AtletaBaseRow`; `AtletaContatoEmergenciaRow` e
+docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md:137:- `lib/supabase/types.ts` — `AtletaRow`, `AtletaBaseRow`, `AtletaContatoEmergenciaRow`,
+docs/superpowers/specs/2026-10-16-financeiro-contrato-design.md:6:contrato "vigente" por vez (`atleta_contratos` no Profissional, `atleta_base_contratos` na Base),
+docs/superpowers/specs/2026-10-16-financeiro-contrato-design.md:15:Essa aba hoje usa sempre `atletas_base.valor_ajuda_custo` como custo de cada atleta, seja qual for
+docs/superpowers/specs/2026-10-16-financeiro-contrato-design.md:33:(`atleta_base_contratos` filtrados por `vigente = true`, buscados em `GeralBaseView` junto com
+docs/superpowers/specs/2026-10-21-competicoes-formato-partida-design.md:100:A escalação titular/reserva já existe (`convocacao_atletas_base.status`, vinculada à
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:23:  de Base. `atletas_base.classificacao`, campos `dispensa_*`, e a tela do treinador em
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:53:  Dados de Jogo) a partir dos campos que já existem em `atletas_base` (`dispensa_data`,
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:96:create table public.atleta_base_anotacoes (
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:98:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:105:create index atleta_base_anotacoes_atleta_id_idx on public.atleta_base_anotacoes (atleta_id);
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:107:alter table public.atleta_base_anotacoes enable row level security;
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:109:create policy "authenticated_full_access" on public.atleta_base_anotacoes
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:112:grant select, insert, update, delete on public.atleta_base_anotacoes to authenticated;
+docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md:173:  `atleta_base_anotacoes` com a entrada virtual de dispensa, ordenado por data).
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:7:Um levantamento do estado atual (ver sessão de 28/10) mostrou que isso é bem maior do que a Comissão Técnica: existem hoje pelo menos 10 pares de módulos espelhados `app/X` ↔ `app/base/X` (Atletas, Jogos, Competições, Financeiro, Fisioterapia, Programação, Estoque, Staff Operacional, Relatório Avulso, Solicitações), e `atletas`/`atletas_base` especificamente têm assimetrias reais de schema — não são só duas cópias com nomes diferentes como Comissão Técnica era.
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:15:- **Classificação G1/G2/G3**: passa a valer pra qualquer atleta, Profissional incluído (hoje é só `atletas_base.classificacao`).
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:16:- **Captação/Avaliação**: fica fora do escopo desta fase como funcionalidade (funil de inscrição pública → avaliação → aprovação continua só da Base, sem mudança de comportamento) — só o passo final de aprovação passa a inserir na tabela unificada em vez de `atletas_base`. Porém, ver próximo item: a exigência de RG/CPF/data de nascimento obrigatórios afeta o formulário de inscrição.
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:22:### Tabela `atletas` (canônica, absorve `atletas_base`)
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:24:Mantém o nome `atletas` (mesmo padrão de `comissao_tecnica`: a tabela do Profissional já existia e vira a canônica; `atletas_base` é renomeada para `atletas_base_old` como backup, não apagada, mesmo tratamento dado a `comissao_tecnica_base_old`).
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:26:**Coluna nova**: `categoria` (`text not null`, `check (categoria in ('profissional','sub20','sub17','sub15','sub14','sub13','sub12','sub11'))`). Diferente de `comissao_tecnica.categorias` (array — uma pessoa podia estar em Profissional e numa categoria de Base ao mesmo tempo), aqui é **um valor só por atleta** — um atleta nunca está em duas categorias simultaneamente. Toda linha hoje em `atletas` recebe `categoria = 'profissional'`; as linhas vindas de `atletas_base` recebem o valor que já tinham na coluna `categoria` escalar de lá.
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:28:**Colunas só em `atletas_base` hoje, que passam a existir em `atletas` (nullable, sem uso definido pro Profissional ainda — ficam disponíveis, não exibidas no formulário quando a categoria é "profissional", exceto classificação/dispensa que valem pros dois por decisão acima)**: `email_pai`, `email_mae`, `alojado`, `classificacao`, `dispensa_motivo`, `dispensa_nota_tecnica`, `dispensa_nota_fisica`, `dispensa_nota_tatica`, `dispensa_nota_comportamental`, `dispensa_data`, `dispensado_por`, `dispensado_em`, `valor_ajuda_custo`, `agencia`, `mae_nome`, `mae_telefone`, `pai_nome`, `pai_telefone`, `escola`.
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:34:**`tipo_contrato`** (em `atleta_contratos`, ver abaixo): passa a aceitar os 5 valores (`definitivo|emprestimo|amador|formacao|iniciacao`) pros dois lados — hoje só `atleta_base_contratos` tem "iniciacao".
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:36:**RG/CPF/data de nascimento**: trocam de `nullable` (em `atletas_base`) pra `not null` nos dois. **Risco de migração**: se existir hoje algum atleta em `atletas_base` com algum desses 3 campos nulo (cadastro incompleto vindo da Captação, ainda não completado), a migração de ALTER COLUMN ... SET NOT NULL vai falhar até esses registros serem completados. A migration SQL desta fase precisa incluir uma consulta de verificação antes do ALTER, e qualquer registro pendente precisa ser completado manualmente (pelo Mateus ou por quem for) antes de rodar a migration em produção.
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:45:| `atleta_contatos_emergencia` | `atleta_base_contatos_emergencia` |
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:46:| `atleta_anotacoes` | `atleta_base_anotacoes` (nome exato a confirmar no código) |
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:47:| `atleta_contratos` | `atleta_base_contratos` |
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:54:- `captacao_base` e tabelas relacionadas (documentos de captação, configs de inscrição/parecer, alojamento) — continuam só da Base; só o passo de aprovação final passa a inserir em `atletas` em vez de `atletas_base`.
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:57:- Toda tabela de outro módulo que referencia `atleta_id`/`atleta_base_id` (convocação, súmula, inscrição em competição, fisioterapia) — continua apontando pro id de origem por enquanto; ajustar essas FKs é trabalho da fase de cada módulo, não desta.
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:63:- **Formulário único**: seletor de Categoria (Profissional + as 7 da Base) no topo, condicionando quais campos aparecem — Dados Pessoais e Esportivos comuns sempre visíveis; Classificação (G1/G2/G3) visível pra qualquer categoria; mãe/pai/escola/alojado/ajuda de custo/agência visíveis só quando a categoria é de Base; "Novo contrato"/histórico de contrato continuam como já estão hoje (já eram compartilhados em `components/contrato-secao.tsx`, só trocam de ler `atletas_base`/`atleta_base_contratos` quando for o caso).
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:71:3. Confirmar o nome exato da tabela de anotações da Base (`atleta_base_anotacoes` é uma suposição a partir do padrão de nomenclatura; precisa confirmar lendo o arquivo da migration/tipo real antes de escrever o SQL).
+docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md:72:4. Esta fase não toca em Jogos/Convocação, Competições/Súmulas, Fisioterapia, Financeiro, Programação, Relatório Avulso nem Organograma/Campograma — todos continuam funcionando sobre `atletas_base` até a fase deles chegar; a FK desses módulos só é repontada quando cada um for unificado.
+docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md:28:  também por `atletas_base` e `jogos_base`. **Não são alterados** — essas duas tabelas continuam
+docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md:123:- Unificar `atletas`/`atletas_base`, `jogos`/`jogos_base`, Financeiro, Competições, Estoque,
+lib/assinaturas/pendencias.ts:6:  AtletaBaseRow,
+lib/assinaturas/pendencias.ts:67:    .from("atletas_base")
+lib/assinaturas/pendencias.ts:70:  const atletas = (data ?? []) as Pick<AtletaBaseRow, "id" | "categoria" | "nome_completo">[];
+lib/auth/categorias-base.ts:8: * `atletas_base`, `comissao_tecnica_base` e `jogos_base` (ver as migrations correspondentes) — se
+lib/auth/categorias-base.ts:56: * `atletas_base`/`jogos_base`, que continuam só com as 7 categorias de `CategoriaBase` acima — por
+lib/futebol/alojamento.ts:4: * `atletas_base.alojado = true` — a única coisa configurável é a capacidade total
+lib/futebol/anotacoes-atleta.ts:27:   * de apagar nessa entrada (ela não é uma linha de `atleta_anotacoes`/`atleta_base_anotacoes`, não
+lib/futebol/captacao-para-atleta.ts:8: * Cria o cadastro em `atletas_base` a partir de um candidato aprovado na Captação — ver spec
+lib/futebol/captacao-para-atleta.ts:15: * INSERT em `atletas_base`, nunca lê `atletas_base` de volta pra Captação.
+lib/futebol/captacao-para-atleta.ts:48:  const { error } = await supabase.from("atletas_base").insert({
+lib/futebol/competicao-query-base.ts:39: * tabelas-fonte pelas `_base` (jogos_base, atletas_base, sumulas_base, sumula_eventos_base,
+lib/futebol/competicao-query-base.ts:233:      .from("atletas_base")
+lib/futebol/contrato-atleta.ts:1:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+lib/futebol/contrato-atleta.ts:7:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+lib/futebol/contrato-atleta.ts:17: * ver `ATLETA_TIPO_CONTRATO_OPTIONS`/`ATLETA_BASE_TIPO_CONTRATO_OPTIONS` em
+lib/futebol/financeiro-base.test.ts:3:import type { AtletaBaseRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
+lib/futebol/financeiro-base.test.ts:31:function atleta(overrides: Partial<AtletaBaseRow> & Pick<AtletaBaseRow, "id" | "categoria">): AtletaBaseRow {
+lib/futebol/financeiro-base.test.ts:47:  } as AtletaBaseRow;
+lib/futebol/financeiro-base.ts:4:  AtletaBaseRow,
+lib/futebol/financeiro-base.ts:53:  atleta: Pick<AtletaBaseRow, "id" | "valor_ajuda_custo">,
+lib/futebol/financeiro-base.ts:61: * (ver `ATLETA_BASE_TIPO_CONTRATO_OPTIONS` em `lib/validation/schemas.ts`). O mesmo campo
+lib/futebol/financeiro-base.ts:69:export function tipoPagamentoAtletaBase(tipoContrato: AtletaBaseRow["tipo_contrato"]): string {
+lib/futebol/financeiro-base.ts:119:  atletas: AtletaBaseRow[],
+lib/futebol/fisioterapia.ts:45: * no Relatório do Dia. Independente do `atletas.status`/`atletas_base.status` "oficial"
+lib/futebol/status-historico-base.ts:7: * (Profissional), mas gravando em `atletas_base_status_historico`/`atletas_base` e tipada em
+lib/futebol/status-historico-base.ts:59: * logado) e, só se ela for a mais recente depois de gravada, atualiza `atletas_base.status` pra
+lib/futebol/status-historico-base.ts:86:/** Relê todo o histórico do atleta da Base e atualiza `atletas_base.status` pra combinar com a
+lib/futebol/status-historico-base.ts:100:  await supabase.from("atletas_base").update({ status: atual.status }).eq("id", atletaId);
+lib/jogos-base/convocacao-actions.ts:46:  // Profissional (ver ConvocacaoAtletaBaseRow). Em branco vira `null`.
+lib/jogos-base/convocacao-actions.ts:80:    supabase.from("convocacao_atletas_base").delete().eq("convocacao_id", convocacaoId),
+lib/jogos-base/convocacao-actions.ts:88:        supabase.from("convocacao_atletas_base").insert(
+lib/jogos-base/permissoes.ts:9: * `lib/programacao/permissoes.ts` (RLS de `convocacoes_base`/`convocacao_atletas_base`/
+lib/pdf/presskit-document.tsx:194: * (Profissional) quanto pra `AtletaBaseRow` (Futebol de Base), mesmo que os dois tenham divergido
+lib/pdf/presskit-document.tsx:204:    // `string | null` (não só `string` como em `AtletaRow`) — `AtletaBaseRow.data_nascimento`
+lib/posters/relacionados-data.ts:5:  AtletaBaseRow,
+lib/posters/relacionados-data.ts:7:  ConvocacaoAtletaBaseRow,
+lib/posters/relacionados-data.ts:128:      .from("convocacao_atletas_base")
+lib/posters/relacionados-data.ts:129:      .select("*, atleta:atletas_base(*)")
+lib/posters/relacionados-data.ts:134:  const convocados = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
+lib/supabase/types.ts:13: * — a Base continua com "suspenso" (fora de escopo, constraint própria em `atletas_base`, sem
+lib/supabase/types.ts:25: * em `AtletaRow.posicao`/`AtletaBaseRow.posicao` (texto legível, não um código) — o tipo aqui é só
+lib/supabase/types.ts:72:   * padrão que `AtletaBaseRow` já tinha desde 0076_captacao_alojamento_base.sql, estendido pro
+lib/supabase/types.ts:154:/** Espelha `AtletaContatoEmergenciaRow`, mas pra `atletas_base`. */
+lib/supabase/types.ts:167: * de `AtletaBaseRow`, não gravada aqui) — ver docs/superpowers/specs/
+lib/supabase/types.ts:178:/** Espelha `AtletaAnotacaoRow`, mas pra `atletas_base` — também escrita pelo Treinador (só cria,
+lib/supabase/types.ts:212:/** Espelha `AtletaContratoRow`, mas pra `atletas_base` (`tipo_contrato` aceita também
+lib/supabase/types.ts:239: * (atletas_base/jogos_base continuam sem "profissional"). */
+lib/supabase/types.ts:248: * 0087_atleta_base_classificacao_dispensa.sql) — tipo próprio, independente de `AtletaStatus`
+lib/supabase/types.ts:262:/** Espelha `AtletaRow`, mas para o departamento Futebol de Base — tabela `atletas_base`, totalmente
+lib/supabase/types.ts:264:export interface AtletaBaseRow {
+lib/supabase/types.ts:958:// interfaces acima, só acrescentando `categoria` em jogos_base (igual a atletas_base/
+lib/supabase/types.ts:1026:export interface ConvocacaoAtletaBaseRow {
+lib/supabase/types.ts:1030:  /** Número da camisa NESSA convocação (jogo) — diferente de `atletas_base.numero_camisa`, que é
+lib/supabase/types.ts:1033:   * 0059_convocacao_atleta_base_numero_camisa.sql. Só Futebol de Base — `ConvocacaoAtletaRow`
+lib/supabase/types.ts:1071: * referenciam `atletas_base`. */
+lib/supabase/types.ts:2161: * sempre — a Captação não cria mais nada em `atletas_base`, é um banco totalmente separado. */
+lib/supabase/types.ts:2164:/** Um candidato em teste/avaliação — banco TOTALMENTE separado de `atletas_base` (ajuste de 19/08:
+lib/supabase/types.ts:2207:   * Aponta pro id em `atletas_base`, não em `atletas` (Profissional). */
+lib/supabase/types.ts:2209:  /** Caminho no bucket `entity-photos` (mesmo padrão de `atletas_base.foto_path`). Upload feito
+lib/supabase/types.ts:2277: * `atletas_base` desde o ajuste de 19/08. Mesmo formato de `ConfiguracaoCadastroStaffBaseRow`,
+lib/supabase/types.ts:2279:export interface ConfiguracaoCadastroAtletaBaseRow {
+lib/supabase/types.ts:2321:/** Capacidade total do alojamento (singleton) — quem está alojado vem de `atletas_base.alojado`,
+lib/supabase/types.ts:2504:// `atletas_base(id)` em vez de `atletas(id)`. Mesmo `FisioterapiaTipo` dos dois lados (vocabulário
+lib/validation/schemas.ts:74:export const ATLETA_BASE_TIPO_CONTRATO_OPTIONS = [
+lib/validation/schemas.ts:190: * mais (Iniciação — ver `ATLETA_BASE_TIPO_CONTRATO_OPTIONS`). */
+lib/validation/schemas.ts:311: * 2026-08-19-captacao-atletas-separacao-design.md) — banco TOTALMENTE separado de `atletas_base`.
+lib/validation/schemas.ts:590: * entrando) do clube, a família preenche o cadastro completo. Grava DIRETO em `atletas_base`, sem
+lib/validation/schemas.ts:657: * está com `atletas_base.alojado = true` (ver lib/futebol/alojamento.ts). */
+supabase/migrations/0031_futebol_base_infra_atletas.sql:20:-- 2) `atletas_base` — mesmos campos de `atletas` (nome completo, apelido, rg, cpf, data de
+supabase/migrations/0031_futebol_base_infra_atletas.sql:26:create table public.atletas_base (
+supabase/migrations/0031_futebol_base_infra_atletas.sql:55:  before update on public.atletas_base
+supabase/migrations/0031_futebol_base_infra_atletas.sql:58:create index atletas_base_categoria_idx on public.atletas_base (categoria);
+supabase/migrations/0031_futebol_base_infra_atletas.sql:59:create index atletas_base_nome_idx on public.atletas_base using gin (to_tsvector('portuguese', nome_completo));
+supabase/migrations/0031_futebol_base_infra_atletas.sql:61:alter table public.atletas_base enable row level security;
+supabase/migrations/0031_futebol_base_infra_atletas.sql:62:create policy "authenticated_full_access" on public.atletas_base for all
+supabase/migrations/0031_futebol_base_infra_atletas.sql:64:grant select, insert, update, delete on public.atletas_base to authenticated;
+supabase/migrations/0032_futebol_base_comissao_staff.sql:6:--    `categoria` (mesmo enum de 7 valores usado em `atletas_base`). Mesmo padrão de cards por
+supabase/migrations/0033_futebol_base_jogos_financeiro.sql:66:  capitao_atleta_id uuid references public.atletas_base(id),
+supabase/migrations/0033_futebol_base_jogos_financeiro.sql:76:create table public.convocacao_atletas_base (
+supabase/migrations/0033_futebol_base_jogos_financeiro.sql:78:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0033_futebol_base_jogos_financeiro.sql:235:alter table public.convocacao_atletas_base enable row level security;
+supabase/migrations/0033_futebol_base_jogos_financeiro.sql:254:create policy "authenticated_full_access" on public.convocacao_atletas_base for all
+supabase/migrations/0033_futebol_base_jogos_financeiro.sql:285:grant select, insert, update, delete on public.convocacao_atletas_base to authenticated;
+supabase/migrations/0037_tipo_contrato_atletas.sql:6:-- Futebol de Base (`atletas_base.tipo_contrato`): definitivo, emprestimo, amador, iniciacao.
+supabase/migrations/0037_tipo_contrato_atletas.sql:19:alter table public.atletas_base
+supabase/migrations/0037_tipo_contrato_atletas.sql:23:alter table public.atletas_base
+supabase/migrations/0037_tipo_contrato_atletas.sql:26:alter table public.atletas_base
+supabase/migrations/0041_numero_cbf_fpf_atletas.sql:9:alter table public.atletas_base
+supabase/migrations/0045_normalizar_nomes_atletas.sql:46:update public.atletas_base set nome_completo = public._normalizar_nome_proprio(nome_completo);
+supabase/migrations/0046_capitao_atleta_delete_set_null.sql:18:  foreign key (capitao_atleta_id) references public.atletas_base(id) on delete set null;
+supabase/migrations/0051_atleta_categoria_posicao.sql:8:alter table public.atletas_base
+supabase/migrations/0051_atleta_categoria_posicao.sql:37:update public.atletas_base
+supabase/migrations/0051_atleta_categoria_posicao.sql:41:update public.atletas_base
+supabase/migrations/0051_atleta_categoria_posicao.sql:45:update public.atletas_base
+supabase/migrations/0051_atleta_categoria_posicao.sql:49:update public.atletas_base
+supabase/migrations/0051_atleta_categoria_posicao.sql:53:update public.atletas_base
+supabase/migrations/0052_atleta_categoria_posicao_ampliar.sql:33:update public.atletas_base
+supabase/migrations/0052_atleta_categoria_posicao_ampliar.sql:37:update public.atletas_base
+supabase/migrations/0052_atleta_categoria_posicao_ampliar.sql:41:update public.atletas_base
+supabase/migrations/0052_atleta_categoria_posicao_ampliar.sql:45:update public.atletas_base
+supabase/migrations/0052_atleta_categoria_posicao_ampliar.sql:50:update public.atletas_base
+supabase/migrations/0052_atleta_categoria_posicao_ampliar.sql:54:update public.atletas_base
+supabase/migrations/0053_sumula.sql:55:  atleta_id uuid references public.atletas_base(id),
+supabase/migrations/0053_sumula.sql:56:  atleta_entrou_id uuid references public.atletas_base(id),
+supabase/migrations/0053_sumula.sql:57:  atleta_assistencia_id uuid references public.atletas_base(id),
+supabase/migrations/0054_atleta_documentos.sql:21:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0059_convocacao_atleta_base_numero_camisa.sql:3:-- `atletas_base.numero_camisa` (esse campo continua existindo, mas não é mais o usado no fluxo de
+supabase/migrations/0059_convocacao_atleta_base_numero_camisa.sql:8:alter table public.convocacao_atletas_base add column numero_camisa integer;
+supabase/migrations/0063_competicoes.sql:19:-- Só Futebol Profissional neste primeiro passo (jogos_base/atletas_base ficam pra depois).
+supabase/migrations/0076_captacao_alojamento_base.sql:4:-- junto) não precisa de tabela nova — é só uma visualização de `atletas_base` já existente.
+supabase/migrations/0076_captacao_alojamento_base.sql:7:-- cadastro completo em `atletas_base` (por isso RG/CPF viram opcionais nessa tabela — quem vem da
+supabase/migrations/0076_captacao_alojamento_base.sql:13:-- 1) Mais campos em `atletas_base` — alojamento, responsáveis, empresário e endereço estruturado
+supabase/migrations/0076_captacao_alojamento_base.sql:18:alter table public.atletas_base
+supabase/migrations/0076_captacao_alojamento_base.sql:36:-- RG/CPF viram OPCIONAIS só em `atletas_base` (a tabela do Profissional não é tocada aqui): quem é
+supabase/migrations/0076_captacao_alojamento_base.sql:40:alter table public.atletas_base alter column rg drop not null;
+supabase/migrations/0076_captacao_alojamento_base.sql:41:alter table public.atletas_base alter column cpf drop not null;
+supabase/migrations/0076_captacao_alojamento_base.sql:46:--    empresário, endereço e escola são os MESMOS que passaram a existir em `atletas_base`: ao
+supabase/migrations/0076_captacao_alojamento_base.sql:85:  atleta_gerado_id uuid references public.atletas_base(id) on delete set null,
+supabase/migrations/0076_captacao_alojamento_base.sql:122:create trigger configuracoes_cadastro_atleta_base_set_updated_at
+supabase/migrations/0076_captacao_alojamento_base.sql:136:--    direto de `atletas_base.alojado = true`; "vagas disponíveis" é capacidade menos essa contagem
+supabase/migrations/0077_captacao_atletas_separacao.sql:9:--    mais nada em `atletas_base`. `atleta_gerado_id` fica só como registro histórico de quando isso
+supabase/migrations/0077_captacao_atletas_separacao.sql:13:--    passa a gravar DIRETO em `atletas_base`, com o cliente admin (service_role) — antes gravava em
+supabase/migrations/0077_captacao_atletas_separacao.sql:16:--    `atletas_base` (não tinha, porque antes só Captação usava o cliente admin) — grant já nasce
+supabase/migrations/0077_captacao_atletas_separacao.sql:50:-- A "Ficha de Cadastro" pública (`/cadastro-atleta-base`) agora grava direto em `atletas_base` via
+supabase/migrations/0077_captacao_atletas_separacao.sql:52:grant select, insert on public.atletas_base to service_role;
+supabase/migrations/0079_parecer_final_treinador.sql:4:-- `captacao_base` ganha os campos do Parecer Final: foto (mesmo padrão de atletas_base.foto_path),
+supabase/migrations/0085_atleta_contrato_posicao.sql:10:alter table public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:19:alter table public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:92:-- Mesmo backfill, agora em atletas_base.
+supabase/migrations/0085_atleta_contrato_posicao.sql:93:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:97:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:101:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:105:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:109:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:113:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:117:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:121:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:127:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:133:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:139:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:144:update public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:156:alter table public.atletas_base
+supabase/migrations/0085_atleta_contrato_posicao.sql:167:alter table public.atletas_base drop column if exists categoria_posicao;
+supabase/migrations/0085_atleta_contrato_posicao.sql:173:--   select nome_completo, posicao from public.atletas_base where posicao_revisar order by nome_completo;
+supabase/migrations/0086_atleta_alergia_medicamento.sql:3:-- Vale para Profissional (atletas) e Base (atletas_base), cadastro interno e link público.
+supabase/migrations/0086_atleta_alergia_medicamento.sql:9:alter table public.atletas_base
+supabase/migrations/0087_atleta_base_classificacao_dispensa.sql:3:-- `atletas_base` — o Futebol Profissional não ganha nem classificação nem dispensa nesta rodada.
+supabase/migrations/0087_atleta_base_classificacao_dispensa.sql:9:alter table public.atletas_base
+supabase/migrations/0087_atleta_base_classificacao_dispensa.sql:23:alter table public.atletas_base drop constraint atletas_base_status_check;
+supabase/migrations/0087_atleta_base_classificacao_dispensa.sql:24:alter table public.atletas_base add constraint atletas_base_status_check
+supabase/migrations/0087_atleta_base_classificacao_dispensa.sql:27:-- Nenhuma mudança de RLS/grant necessária — `atletas_base` já tem a política
+supabase/migrations/0094_programacao_semanal.sql:12:-- jeito que atletas_base/comissao_tecnica_base já são filtradas hoje via getCategoriasTreinador() —
+supabase/migrations/0095_atleta_base_dispensa_pendente_data_nascimento_opcional.sql:4:alter table public.atletas_base alter column data_nascimento drop not null;
+supabase/migrations/0095_atleta_base_dispensa_pendente_data_nascimento_opcional.sql:9:alter table public.atletas_base drop constraint atletas_base_classificacao_check;
+supabase/migrations/0095_atleta_base_dispensa_pendente_data_nascimento_opcional.sql:10:alter table public.atletas_base add constraint atletas_base_classificacao_check
+supabase/migrations/0096_programacao_copiar_dia_microciclo_texto.sql:11:--    já usado em 0087_atleta_base_classificacao_dispensa.sql (nome default gerado pelo Postgres pro
+supabase/migrations/0097_atleta_contrato_formacao_tipo.sql:21:alter table public.atletas_base
+supabase/migrations/0097_atleta_contrato_formacao_tipo.sql:24:alter table public.atletas_base
+supabase/migrations/0097_atleta_contrato_formacao_tipo.sql:37:update public.atletas_base
+supabase/migrations/0097_atleta_contrato_formacao_tipo.sql:45:--   select count(*) from public.atletas_base where tipo_contrato = 'formacao';
+supabase/migrations/0098_atleta_ativo.sql:13:alter table public.atletas_base add column ativo boolean not null default true;
+supabase/migrations/0098_atleta_ativo.sql:14:create index atletas_base_ativo_idx on public.atletas_base (ativo);
+supabase/migrations/0099_atleta_endereco_estruturado.sql:2:-- cidade/UF), mesmo padrão que atletas_base já tem desde 0076_captacao_alojamento_base.sql
+supabase/migrations/0125_atletas_status_transicao.sql:4:-- do vocabulário; "Transição" é novo). Importante: isso NÃO mexe em `atletas_base` (Futebol de
+supabase/migrations/0130_competicoes_base.sql:119:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0130_competicoes_base.sql:132:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0131_assistencia_social_e_demandas.sql:5:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0133_fisioterapia_base.sql:2:-- design.md. Espelha a migração 0111 (Profissional), mas ligada a `atletas_base(id)`. Nenhuma
+supabase/migrations/0133_fisioterapia_base.sql:7:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0133_fisioterapia_base.sql:20:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0133_fisioterapia_base.sql:30:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0133_fisioterapia_base.sql:63:-- 4 valores que atletas_base.status já aceita (liberado/suspenso/departamento_medico/dispensado,
+supabase/migrations/0133_fisioterapia_base.sql:69:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0133_fisioterapia_base.sql:89:from public.atletas_base
+supabase/migrations/0134_fisioterapia_status_dia.sql:3:-- do `atletas.status`/`atletas_base.status` "oficial" (Apto/Depto. Médico/Transição) — é só uma
+supabase/migrations/0136_atleta_dados_pessoais.sql:4:alter table public.atletas_base add column if not exists email text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:5:alter table public.atletas_base add column if not exists email_pai text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:6:alter table public.atletas_base add column if not exists email_mae text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:19:alter table public.atletas_base add column if not exists origem_cep text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:20:alter table public.atletas_base add column if not exists origem_logradouro text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:21:alter table public.atletas_base add column if not exists origem_numero text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:22:alter table public.atletas_base add column if not exists origem_complemento text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:23:alter table public.atletas_base add column if not exists origem_bairro text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:24:alter table public.atletas_base add column if not exists origem_cidade text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:25:alter table public.atletas_base add column if not exists origem_uf text;
+supabase/migrations/0136_atleta_dados_pessoais.sql:48:create table public.atleta_base_contatos_emergencia (
+supabase/migrations/0136_atleta_dados_pessoais.sql:50:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0136_atleta_dados_pessoais.sql:57:create index atleta_base_contatos_emergencia_atleta_id_idx
+supabase/migrations/0136_atleta_dados_pessoais.sql:58:  on public.atleta_base_contatos_emergencia (atleta_id);
+supabase/migrations/0136_atleta_dados_pessoais.sql:60:alter table public.atleta_base_contatos_emergencia enable row level security;
+supabase/migrations/0136_atleta_dados_pessoais.sql:62:create policy "authenticated_full_access" on public.atleta_base_contatos_emergencia
+supabase/migrations/0136_atleta_dados_pessoais.sql:65:grant select, insert, update, delete on public.atleta_base_contatos_emergencia to authenticated;
+supabase/migrations/0137_atleta_contrato.sql:7:-- atletas_base já tem empresario_telefone (ver 0076_captacao_alojamento_base.sql) — só falta e-mail
+supabase/migrations/0137_atleta_contrato.sql:9:alter table public.atletas_base add column if not exists empresario_email text;
+supabase/migrations/0137_atleta_contrato.sql:10:alter table public.atletas_base add column if not exists tamanho_uniforme text
+supabase/migrations/0137_atleta_contrato.sql:49:create table public.atleta_base_contratos (
+supabase/migrations/0137_atleta_contrato.sql:51:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0137_atleta_contrato.sql:69:create unique index atleta_base_contratos_vigente_unico_idx
+supabase/migrations/0137_atleta_contrato.sql:70:  on public.atleta_base_contratos (atleta_id) where vigente;
+supabase/migrations/0137_atleta_contrato.sql:72:create index atleta_base_contratos_atleta_id_idx on public.atleta_base_contratos (atleta_id);
+supabase/migrations/0137_atleta_contrato.sql:74:alter table public.atleta_base_contratos enable row level security;
+supabase/migrations/0137_atleta_contrato.sql:76:create policy "authenticated_full_access" on public.atleta_base_contratos
+supabase/migrations/0137_atleta_contrato.sql:79:grant select, insert, update, delete on public.atleta_base_contratos to authenticated;
+supabase/migrations/0137_atleta_contrato.sql:88:insert into public.atleta_base_contratos (atleta_id, tipo_contrato, vigencia_inicio, vigencia_fim, criado_por_nome)
+supabase/migrations/0137_atleta_contrato.sql:90:from public.atletas_base
+supabase/migrations/0137_atleta_contrato.sql:142:-- Mesma função, pra atleta_base_contratos (idêntica sincronização com atletas_base).
+supabase/migrations/0137_atleta_contrato.sql:156:) returns public.atleta_base_contratos
+supabase/migrations/0137_atleta_contrato.sql:160:  novo public.atleta_base_contratos;
+supabase/migrations/0137_atleta_contrato.sql:162:  update public.atleta_base_contratos
+supabase/migrations/0137_atleta_contrato.sql:166:  insert into public.atleta_base_contratos (
+supabase/migrations/0137_atleta_contrato.sql:176:  update public.atletas_base
+supabase/migrations/0148_atleta_anotacoes.sql:26:create table public.atleta_base_anotacoes (
+supabase/migrations/0148_atleta_anotacoes.sql:28:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+supabase/migrations/0148_atleta_anotacoes.sql:35:create index atleta_base_anotacoes_atleta_id_idx on public.atleta_base_anotacoes (atleta_id);
+supabase/migrations/0148_atleta_anotacoes.sql:37:alter table public.atleta_base_anotacoes enable row level security;
+supabase/migrations/0148_atleta_anotacoes.sql:39:create policy "authenticated_full_access" on public.atleta_base_anotacoes
+supabase/migrations/0148_atleta_anotacoes.sql:42:grant select, insert, update, delete on public.atleta_base_anotacoes to authenticated;
