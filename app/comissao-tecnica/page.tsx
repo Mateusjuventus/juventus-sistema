@@ -92,7 +92,10 @@ export default async function ComissaoTecnicaPage({
           {
             value: "base",
             label: "Base",
-            pessoas: pessoas.filter((p) => p.categorias.some((c) => categoriasBasePermitidas.includes(c))),
+            // `categoriasBasePermitidas` é `CategoriaBase[]` (subconjunto de `CategoriaComissaoTecnica`,
+            // sem "profissional") — percorrer ela e checar contra `p.categorias` (mais amplo) tipa
+            // certo; o contrário (`categoriasBasePermitidas.includes(c)` com `c` mais amplo) não tipa.
+            pessoas: pessoas.filter((p) => categoriasBasePermitidas.some((permitida) => p.categorias.includes(permitida))),
           },
         ]
       : []),
