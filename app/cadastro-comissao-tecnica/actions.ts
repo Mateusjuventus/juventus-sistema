@@ -13,8 +13,7 @@ import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import { normalizeCPF } from "@/lib/validation/cpf";
 import { normalizeTelefone } from "@/lib/validation/telefone";
 
-const CADASTRO_FECHADO_MSG =
-  "O cadastro público está fechado no momento. Fale com o responsável do Futebol Profissional.";
+const CADASTRO_FECHADO_MSG = "O cadastro público está fechado no momento. Fale com o responsável da Comissão Técnica.";
 
 async function cadastroPublicoAtivo(admin: ReturnType<typeof createAdminClient>): Promise<boolean> {
   const { data } = await admin
@@ -28,15 +27,23 @@ async function cadastroPublicoAtivo(admin: ReturnType<typeof createAdminClient>)
 /** Espelha `app/cadastro-staff-base/actions.ts`, mas grava em `comissao_tecnica` e confere
  * `configuracoes_cadastro_comissao_tecnica` — totalmente independente do fluxo de Staff Operacional.
  * Diferente de lá, TODOS os campos são obrigatórios aqui (ver
- * docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md). */
+ * docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md).
+ *
+ * Único link público de cadastro desde a unificação Profissional + Base (ver
+ * docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md) — o link antigo da Base
+ * (`/cadastro-comissao-tecnica-base`) foi desativado permanentemente, sem redirecionar pra aqui
+ * (pedido explícito do Mateus). A pessoa escolhe sua(s) categoria(s) no próprio formulário,
+ * incluindo "Profissional" como mais uma opção. */
 export interface CadastroPublicoComissaoTecnicaFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
+  categoriasSelecionadas?: string[];
   success?: boolean;
 }
 
 function parseForm(formData: FormData) {
+  const categorias = formData.getAll("categorias").map(String);
   const raw = {
     nomeCompleto: String(formData.get("nomeCompleto") ?? ""),
     apelido: String(formData.get("apelido") ?? ""),
@@ -51,8 +58,8 @@ function parseForm(formData: FormData) {
     dataInicio: String(formData.get("dataInicio") ?? ""),
   };
 
-  const result = cadastroPublicoComissaoTecnicaSchema.safeParse(raw);
-  return { raw, result };
+  const result = cadastroPublicoComissaoTecnicaSchema.safeParse({ ...raw, categorias });
+  return { raw, categorias, result };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -92,12 +99,12 @@ export async function cadastrarComissaoTecnicaPublico(
   _prevState: CadastroPublicoComissaoTecnicaFormState,
   formData: FormData,
 ): Promise<CadastroPublicoComissaoTecnicaFormState> {
-  const { raw, result } = parseForm(formData);
+  const { raw, categorias, result } = parseForm(formData);
 
   if (!result.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
-    return { fieldErrors, values: raw };
+    return { fieldErrors, values: raw, categoriasSelecionadas: categorias };
   }
 
   const admin = createAdminClient();
@@ -109,20 +116,20 @@ export async function cadastrarComissaoTecnicaPublico(
   const fotoFile = formData.get("foto");
   const temFotoNova = fotoFile instanceof File && fotoFile.size > 0;
   if (!temFotoNova) {
-    return { fieldErrors: { foto: "A foto é obrigatória." }, values: raw };
+    return { fieldErrors: { foto: "A foto é obrigatória." }, values: raw, categoriasSelecionadas: categorias };
   }
 
   const data = result.data;
   const id = randomUUID();
   const { error: uploadError, path: fotoPath } = await uploadFoto(admin, formData, id);
-  if (uploadError) return { error: uploadError, values: raw };
+  if (uploadError) return { error: uploadError, values: raw, categoriasSelecionadas: categorias };
 
   const { error } = await admin.from("comissao_tecnica").insert({
     id,
-    // Desde a unificação (ver docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-
-    // design.md), `categorias` é obrigatória (NOT NULL, sem default) — quem se cadastra por aqui é
-    // sempre "profissional" (o link público da Base é outro, `/cadastro-comissao-tecnica-base`).
-    categorias: ["profissional"],
+    // Desde a unificação do link público (ver docs/superpowers/specs/2026-10-28-unificacao-
+    // comissao-tecnica-design.md), a pessoa escolhe sua(s) própria(s) categoria(s) no formulário —
+    // "profissional" é só mais uma opção, junto das 7 de Base (não é mais hardcoded).
+    categorias: data.categorias,
     nome_completo: data.nomeCompleto,
     apelido: data.apelido,
     rg: data.rg,

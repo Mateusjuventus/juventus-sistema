@@ -717,14 +717,21 @@ function comissaoPublicoRequiredField(mensagem: string) {
   return z.string().min(1, { message: mensagem });
 }
 
-/** Formulário público de auto-cadastro da Comissão Técnica (`/cadastro-comissao-tecnica`,
- * Profissional) — ver seção 4 da spec de 25/08. Link único, sempre cria um cadastro novo. */
+/** Formulário público único de auto-cadastro da Comissão Técnica (`/cadastro-comissao-tecnica`,
+ * Profissional + Base juntos num só link — ver docs/superpowers/specs/2026-10-28-unificacao-
+ * comissao-tecnica-design.md). Link único, sempre cria um cadastro novo. Antes desta unificação
+ * existia um segundo schema (`cadastroPublicoComissaoTecnicaBaseSchema`, removido) que só
+ * acrescentava `categorias` pro link separado da Base — agora é um único schema, com `categorias`
+ * sempre obrigatória ("profissional" é só mais uma opção, junto das 7 categorias de Base). */
 export const cadastroPublicoComissaoTecnicaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }).transform(normalizarNomeProprio),
   apelido: comissaoPublicoRequiredField("Apelido é obrigatório"),
   rg: comissaoPublicoRequiredField("RG é obrigatório"),
   cpf: cpfField,
   dataNascimento: comissaoPublicoRequiredField("Data de nascimento é obrigatória"),
+  categorias: z
+    .array(z.enum(["profissional", "sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"]))
+    .min(1, { message: "Selecione ao menos uma categoria" }),
   funcao: comissaoPublicoRequiredField("Função/cargo é obrigatória"),
   telefone: z
     .string()
@@ -748,15 +755,6 @@ export const cadastroPublicoComissaoTecnicaSchema = z.object({
   dataInicio: comissaoPublicoRequiredField("Data de início é obrigatória"),
 });
 export type CadastroPublicoComissaoTecnicaInput = z.infer<typeof cadastroPublicoComissaoTecnicaSchema>;
-
-/** Mesmo formulário do público Profissional, mais categoria(s) obrigatórias — usado em
- * `/cadastro-comissao-tecnica-base`. */
-export const cadastroPublicoComissaoTecnicaBaseSchema = cadastroPublicoComissaoTecnicaSchema.extend({
-  categorias: z
-    .array(z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"]))
-    .min(1, { message: "Selecione ao menos uma categoria" }),
-});
-export type CadastroPublicoComissaoTecnicaBaseInput = z.infer<typeof cadastroPublicoComissaoTecnicaBaseSchema>;
 
 /** Fluxo de "completar cadastro" no mesmo link público da Comissão Técnica (Profissional e Base) —
  * ver docs/superpowers/specs/2026-08-26-comissao-tecnica-completar-cadastro-design.md. Passo 1: só

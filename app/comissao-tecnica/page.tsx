@@ -9,25 +9,29 @@ import { formatCPF } from "@/lib/validation/cpf";
 import { formatTelefone } from "@/lib/validation/telefone";
 import { getCategoriasBasePermitidas, getDepartamentosPermitidos } from "@/lib/auth/role";
 import { CATEGORIAS_COMISSAO_TECNICA, ehCategoriaComissaoTecnicaValida } from "@/lib/auth/categorias-base";
-import type {
-  ComissaoTecnicaRow,
-  ConfiguracaoCadastroComissaoTecnicaRow,
-  ConfiguracaoCadastroComissaoTecnicaBaseRow,
-} from "@/lib/supabase/types";
+import type { ComissaoTecnicaRow, ConfiguracaoCadastroComissaoTecnicaRow } from "@/lib/supabase/types";
 import { deleteComissao } from "./actions";
 import { alternarCadastroPublicoComissaoTecnica } from "./cadastro-publico-actions";
-import { alternarCadastroPublicoComissaoTecnicaBase } from "../base/comissao-tecnica/cadastro-publico-actions";
 
 /**
  * Lista única da Comissão Técnica/Diretoria — Profissional e Base unificados num só cadastro, com
  * "Profissional" tratado como mais uma categoria (ver docs/superpowers/specs/2026-10-28-
  * unificacao-comissao-tecnica-design.md). Rota canônica, acessível pela sidebar dos dois
  * departamentos (mesmo padrão de Demandas/Programação) — `/base/comissao-tecnica` agora só
- * redireciona pra aqui. Mostrada em blocos por categoria (nunca uma lista inteira misturada — pedido
- * explícito do Mateus), cada pessoa pode aparecer em mais de um bloco quando atua em mais de uma
- * categoria. Os cadastros públicos de auto-registro continuam em URLs separadas por departamento
- * (`/cadastro-comissao-tecnica` e `/cadastro-comissao-tecnica-base`) — por isso os dois toggles
- * aparecem aqui juntos, cada um com sua configuração própria.
+ * redireciona pra aqui.
+ *
+ * Mostrada em só 2 blocos — "Profissional" e "Base" — em vez de um bloco por categoria (pedido
+ * explícito do Mateus: "deixar 2 blocos (1 profissional e 1 base)"); o bloco "Base" junta as 7
+ * categorias de Base, cada pessoa aparecendo nele se tiver qualquer uma delas em `categorias`. O
+ * filtro de busca por categoria (abaixo, no `<select>`) continua granular — pode filtrar por uma
+ * categoria específica (ex.: Sub-14) mesmo com a exibição agrupada em só 2 blocos.
+ *
+ * Cadastro público: desde a mesma unificação, existe um único link (`/cadastro-comissao-tecnica`,
+ * com seleção de categoria dentro do próprio formulário) e um único toggle de ativação — o antigo
+ * link e toggle da Base foram desativados permanentemente (ver
+ * `app/cadastro-comissao-tecnica-base/page.tsx`). Os dois interruptores de MÓDULO (Profissional e
+ * Base) continuam separados e decidindo o que cada conta vê aqui (pedido explícito do Mateus:
+ * "Manter 2 interruptores") — isso é independente do link público, que agora é um só.
  */
 export default async function ComissaoTecnicaPage({
   searchParams,
@@ -42,17 +46,15 @@ export default async function ComissaoTecnicaPage({
   if (q) query = query.ilike("nome_completo", `%${q}%`);
   if (categoria) query = query.contains("categorias", [categoria]);
 
-  const [{ data, error }, { data: configData }, { data: configBaseData }, departamentosPermitidos, categoriasBasePermitidas] =
+  const [{ data, error }, { data: configData }, departamentosPermitidos, categoriasBasePermitidas] =
     await Promise.all([
       query,
       supabase.from("configuracoes_cadastro_comissao_tecnica").select("*").limit(1).maybeSingle(),
-      supabase.from("configuracoes_cadastro_comissao_tecnica_base").select("*").limit(1).maybeSingle(),
       getDepartamentosPermitidos(supabase),
       getCategoriasBasePermitidas(supabase),
     ]);
   const pessoas = (data ?? []) as ComissaoTecnicaRow[];
   const config = configData as ConfiguracaoCadastroComissaoTecnicaRow | null;
-  const configBase = configBaseData as ConfiguracaoCadastroComissaoTecnicaBaseRow | null;
   const fotoUrlPorId = new Map(
     await Promise.all(pessoas.map(async (p) => [p.id, await getSignedPhotoUrl(supabase, p.foto_path)] as const)),
   );
@@ -64,20 +66,37 @@ export default async function ComissaoTecnicaPage({
       : "futebol_profissional";
 
   const novaPessoaHref = categoria ? `/comissao-tecnica/novo?categoria=${categoria}` : "/comissao-tecnica/novo";
-  // Cada bloco só aparece se o interruptor de módulo do departamento dele estiver liberado pra essa
-  // conta — "Profissional" depende de `futebol_profissional`; cada categoria da Base depende de
-  // `getCategoriasBasePermitidas` (que já cobre o interruptor `futebol_base` + o vínculo com a
-  // Comissão Técnica, ver `lib/auth/role.ts`). A tela é única, mas os dois interruptores de módulo
-  // continuam mandando no que aparece (pedido explícito do Mateus: "Manter 2 interruptores").
-  const blocosVisiveis = CATEGORIAS_COMISSAO_TECNICA.filter((cat) =>
+  // Opções do `<select>` de filtro por categoria — continua granular (Profissional + as 7 de Base),
+  // mesmo com os BLOCOS exibidos agrupados em só 2 (ver `blocos` abaixo). Cada opção só aparece se o
+  // interruptor de módulo do departamento dela estiver liberado pra essa conta.
+  const categoriasFiltro = CATEGORIAS_COMISSAO_TECNICA.filter((cat) =>
     cat.value === "profissional"
       ? departamentosPermitidos.includes("futebol_profissional")
       : categoriasBasePermitidas.includes(cat.value),
   );
-  const blocos = blocosVisiveis.map((cat) => ({
-    ...cat,
-    pessoas: pessoas.filter((p) => p.categorias.includes(cat.value)),
-  }));
+  // Só 2 blocos (pedido explícito do Mateus) — "Profissional" aparece se o módulo Profissional
+  // estiver liberado; "Base" aparece se houver QUALQUER categoria de Base liberada pra essa conta, e
+  // junta todas as categorias de Base permitidas num só bloco (não só as que têm gente cadastrada).
+  const blocos = [
+    ...(departamentosPermitidos.includes("futebol_profissional")
+      ? [
+          {
+            value: "profissional",
+            label: "Profissional",
+            pessoas: pessoas.filter((p) => p.categorias.includes("profissional")),
+          },
+        ]
+      : []),
+    ...(categoriasBasePermitidas.length > 0
+      ? [
+          {
+            value: "base",
+            label: "Base",
+            pessoas: pessoas.filter((p) => p.categorias.some((c) => categoriasBasePermitidas.includes(c))),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <AppShell departamento={departamento} breadcrumb="Comissão Técnica / Diretoria">
@@ -93,24 +112,16 @@ export default async function ComissaoTecnicaPage({
         </Link>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {config ? (
+      {config ? (
+        <div className="mt-4">
           <CadastroPublicoToggle
             id={config.id}
             ativo={config.cadastro_publico_ativo}
             linkPath="/cadastro-comissao-tecnica"
             action={alternarCadastroPublicoComissaoTecnica}
           />
-        ) : null}
-        {configBase ? (
-          <CadastroPublicoToggle
-            id={configBase.id}
-            ativo={configBase.cadastro_publico_ativo}
-            linkPath="/cadastro-comissao-tecnica-base"
-            action={alternarCadastroPublicoComissaoTecnicaBase}
-          />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div className="card mt-4 p-4">
         <SearchBar action="/comissao-tecnica" defaultValue={q} placeholder="Buscar por nome...">
@@ -120,7 +131,7 @@ export default async function ComissaoTecnicaPage({
             </label>
             <select id="categoria" name="categoria" defaultValue={categoria} className="field-input">
               <option value="">Todas</option>
-              {blocosVisiveis.map((cat) => (
+              {categoriasFiltro.map((cat) => (
                 <option key={cat.value} value={cat.value}>
                   {cat.label}
                 </option>

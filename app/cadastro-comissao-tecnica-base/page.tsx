@@ -1,33 +1,17 @@
 import { JuventusCrest } from "@/components/juventus-crest";
-import { createAdminClient } from "@/lib/supabase/admin";
-import type { ConfiguracaoCadastroComissaoTecnicaBaseRow } from "@/lib/supabase/types";
-import { CompletarOuCadastrarComissaoTecnicaBase } from "./completar-ou-cadastrar";
-
-export const dynamic = "force-dynamic";
 
 /**
- * Link público de autocadastro da Comissão Técnica/Diretoria — Futebol de Base — espelha
- * `app/cadastro-comissao-tecnica/page.tsx` (Profissional), mas controlado por
- * `configuracoes_cadastro_comissao_tecnica_base` e gravando em `comissao_tecnica_base`. Sem login
- * (ver PUBLIC_PATHS em lib/supabase/middleware.ts). Mesmo link serve tanto pra criar um cadastro
- * novo quanto pra completar um já existente — ver `completar-ou-cadastrar.tsx` e
- * docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md e
- * docs/superpowers/specs/2026-08-26-comissao-tecnica-completar-cadastro-design.md.
+ * Link ANTIGO (pré-unificação) de autocadastro da Comissão Técnica/Diretoria — Futebol de Base.
+ * Desde a unificação do link público (ver docs/superpowers/specs/2026-10-28-unificacao-comissao-
+ * tecnica-design.md), o cadastro público passou a ser um único link, `/cadastro-comissao-tecnica`
+ * — a pessoa escolhe sua(s) categoria(s) (incluindo "Profissional") no próprio formulário.
+ *
+ * Esta rota fica PERMANENTEMENTE desativada a partir de agora: sempre mostra "cadastro fechado",
+ * sem nenhuma leitura de configuração e sem redirecionamento automático pro link novo — pedido
+ * explícito do Mateus ("alias desativar sem redirecionar"). Mantida só pra quem ainda tenha esse
+ * link antigo salvo ou compartilhado não cair numa página quebrada.
  */
-export default async function CadastroComissaoTecnicaBasePublicoPage() {
-  const admin = createAdminClient();
-
-  const { data: configData, error: configError } = await admin
-    .from("configuracoes_cadastro_comissao_tecnica_base")
-    .select("*")
-    .limit(1)
-    .maybeSingle();
-
-  if (configError) console.error("[cadastro-comissao-tecnica-base] erro ao buscar configuracao:", configError);
-
-  const config = configData as ConfiguracaoCadastroComissaoTecnicaBaseRow | null;
-  const ativo = config?.cadastro_publico_ativo ?? false;
-
+export default function CadastroComissaoTecnicaBasePublicoPage() {
   return (
     <main className="min-h-screen bg-grena-escuro px-4 py-10">
       <div className="mx-auto w-full max-w-2xl">
@@ -38,16 +22,13 @@ export default async function CadastroComissaoTecnicaBasePublicoPage() {
         </div>
 
         <div className="card p-6 sm:p-8">
-          {ativo ? (
-            <CompletarOuCadastrarComissaoTecnicaBase />
-          ) : (
-            <div className="py-8 text-center">
-              <p className="text-lg font-semibold text-grena-escuro">Cadastro temporariamente fechado</p>
-              <p className="mt-2 text-sm text-neutral-500">
-                Fale com o responsável do Futebol de Base para saber como enviar seu cadastro.
-              </p>
-            </div>
-          )}
+          <div className="py-8 text-center">
+            <p className="text-lg font-semibold text-grena-escuro">Este link não está mais em uso</p>
+            <p className="mt-2 text-sm text-neutral-500">
+              Fale com o responsável do Futebol de Base ou do Futebol Profissional para saber como
+              enviar seu cadastro.
+            </p>
+          </div>
         </div>
       </div>
     </main>

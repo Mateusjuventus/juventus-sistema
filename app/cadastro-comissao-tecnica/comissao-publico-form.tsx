@@ -8,13 +8,17 @@ import { CurrencyField } from "@/components/currency-field";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS, SUGESTOES_FUNCAO_COMISSAO } from "@/lib/validation/schemas";
+import { CATEGORIAS_COMISSAO_TECNICA } from "@/lib/auth/categorias-base";
 import type { CadastroPublicoComissaoTecnicaFormState } from "./actions";
 
 const initialState: CadastroPublicoComissaoTecnicaFormState = {};
 
 /** Espelha `app/cadastro-staff-base/staff-publico-base-form.tsx`, mas TODOS os campos são
  * obrigatórios (pedido do Mateus: "para o preenchimento da comissão, todos os dados devem ser
- * obrigatórios" — ver docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md). */
+ * obrigatórios" — ver docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md).
+ * Formulário único pra Profissional e Base desde a unificação do link público (ver
+ * docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md) — por isso a Categoria(s)
+ * é obrigatória aqui também, com "Profissional" como mais uma opção junto das 7 de Base. */
 export function ComissaoPublicoForm({
   action,
   cpfInicial,
@@ -31,14 +35,14 @@ export function ComissaoPublicoForm({
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? {};
   const errors = state.fieldErrors ?? {};
+  const categoriasSelecionadas = state.categoriasSelecionadas ?? [];
 
   if (state.success) {
     return (
       <div className="py-8 text-center">
         <p className="text-lg font-semibold text-grena-escuro">Cadastro enviado com sucesso!</p>
         <p className="mt-2 text-sm text-neutral-500">
-          Obrigado por preencher seus dados. O responsável do Futebol Profissional já tem acesso ao
-          seu cadastro.
+          Obrigado por preencher seus dados. O responsável já tem acesso ao seu cadastro.
         </p>
       </div>
     );
@@ -102,6 +106,29 @@ export function ComissaoPublicoForm({
 
       <FormSection title="Função e contrato">
         <FieldGroup>
+          <div className="sm:col-span-2">
+            <p className="field-label">
+              Categoria(s)<span className="text-red-700"> *</span>
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {CATEGORIAS_COMISSAO_TECNICA.map((cat) => (
+                <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    name="categorias"
+                    value={cat.value}
+                    defaultChecked={categoriasSelecionadas.includes(cat.value)}
+                    className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                  />
+                  {cat.label}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-neutral-400">
+              Marque mais de uma se você atua em mais de uma categoria (ex.: Profissional e Sub-20).
+            </p>
+            {errors.categorias ? <p className="field-error">{errors.categorias}</p> : null}
+          </div>
           <SuggestionField
             label="Função/cargo"
             name="funcao"

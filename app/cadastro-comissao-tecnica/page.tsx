@@ -6,9 +6,13 @@ import { CompletarOuCadastrarComissaoTecnica } from "./completar-ou-cadastrar";
 export const dynamic = "force-dynamic";
 
 /**
- * Link público de autocadastro da Comissão Técnica/Diretoria — Futebol Profissional — espelha
- * `app/cadastro-staff-base/page.tsx`, mas controlado por `configuracoes_cadastro_comissao_tecnica`
- * e gravando em `comissao_tecnica`. Sem login (ver PUBLIC_PATHS em lib/supabase/middleware.ts).
+ * Link público ÚNICO de autocadastro da Comissão Técnica/Diretoria — Profissional e Base juntos
+ * desde a unificação (ver docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md).
+ * A pessoa escolhe sua(s) categoria(s) dentro do próprio formulário (`comissao-publico-form.tsx`).
+ * Controlado por `configuracoes_cadastro_comissao_tecnica` (único toggle, em `/comissao-tecnica`)
+ * e grava em `comissao_tecnica`. Sem login (ver PUBLIC_PATHS em lib/supabase/middleware.ts). O
+ * antigo link separado da Base (`/cadastro-comissao-tecnica-base`) foi desativado permanentemente,
+ * sem redirecionar pra aqui (pedido explícito do Mateus) — ver `app/cadastro-comissao-tecnica-base/page.tsx`.
  * Mesmo link serve tanto pra criar um cadastro novo (todos os campos obrigatórios) quanto pra quem
  * já está cadastrado completar tipo de contrato/data de início/salário que ficou faltando — ver
  * `completar-ou-cadastrar.tsx` e docs/superpowers/specs/2026-08-25-comissao-tecnica-cadastro-publico-design.md
@@ -44,7 +48,7 @@ export default async function CadastroComissaoTecnicaPublicoPage() {
             <div className="py-8 text-center">
               <p className="text-lg font-semibold text-grena-escuro">Cadastro temporariamente fechado</p>
               <p className="mt-2 text-sm text-neutral-500">
-                Fale com o responsável do Futebol Profissional para saber como enviar seu cadastro.
+                Fale com o responsável da Comissão Técnica para saber como enviar seu cadastro.
               </p>
             </div>
           )}
