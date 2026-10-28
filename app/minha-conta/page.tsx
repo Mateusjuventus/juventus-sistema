@@ -30,13 +30,13 @@ export default async function MinhaContaPage() {
   const { data: perfil } = user
     ? await supabase
         .from("perfis")
-        .select("nome, cargo, assinatura_path, comissao_tecnica_id, comissao_tecnica_base_id")
+        .select("nome, cargo, assinatura_path, comissao_tecnica_id")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
   const assinaturaUrl = await getSignedAssinaturaUrl(supabase, perfil?.assinatura_path ?? null);
 
-  const vinculado = Boolean(perfil?.comissao_tecnica_id || perfil?.comissao_tecnica_base_id);
+  const vinculado = Boolean(perfil?.comissao_tecnica_id);
   const { nome: nomeExibido, cargo: cargoExibido } = perfil
     ? await resolverNomeCargoParaAssinatura(supabase, perfil)
     : { nome: null, cargo: null };

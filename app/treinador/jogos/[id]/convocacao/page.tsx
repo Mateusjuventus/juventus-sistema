@@ -9,7 +9,7 @@ import { ConvocacaoFormBase } from "@/app/base/jogos/[id]/convocacao/convocacao-
 import { saveConvocacaoBase } from "@/lib/jogos-base/convocacao-actions";
 import type {
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
   ConvocacaoComissaoBaseRow,
@@ -41,7 +41,7 @@ export default async function TreinadorConvocacaoPage({ params }: { params: { id
   const [{ data: atletasData }, { data: comissaoData }, { data: convocacaoData }] = await Promise.all([
     supabase.from("atletas_base").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
     supabase
-      .from("comissao_tecnica_base")
+      .from("comissao_tecnica")
       .select("*")
       .contains("categorias", [categoria])
       .order("nome_completo", { ascending: true }),
@@ -49,7 +49,7 @@ export default async function TreinadorConvocacaoPage({ params }: { params: { id
   ]);
 
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
-  const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
+  const comissao = (comissaoData ?? []) as ComissaoTecnicaRow[];
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
 
   const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));

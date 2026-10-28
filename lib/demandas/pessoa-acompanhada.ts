@@ -9,11 +9,12 @@ export interface PessoaAcompanhadaInfo {
 }
 
 /**
- * Nome/função/foto de uma pessoa acompanhada no Painel de Demandas — mesma prioridade de sempre
- * (vínculo com a Comissão Técnica da Base > Profissional > `perfis.nome`/cargo, mesma regra de
- * `resolverNomeCargoParaAssinatura`), com foto incluída (que aquela função não resolve — é só pra
- * assinatura de documento, não pro avatar da tela). Compartilhado entre `/demandas` (visão geral)
- * e `/demandas/[id]` (detalhe de uma pessoa) pra não duplicar a mesma lógica nos dois.
+ * Nome/função/foto de uma pessoa acompanhada no Painel de Demandas — mesma fonte de
+ * `resolverNomeCargoParaAssinatura` (vínculo único `comissao_tecnica_id`, cobrindo Profissional e
+ * Base desde a unificação — ver docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-
+ * design.md), com foto incluída (que aquela função não resolve — é só pra assinatura de documento,
+ * não pro avatar da tela). Compartilhado entre `/demandas` (visão geral) e `/demandas/[id]`
+ * (detalhe de uma pessoa) pra não duplicar a mesma lógica nos dois.
  */
 export async function resolverPessoaAcompanhada(
   supabase: ReturnType<typeof createClient>,
@@ -23,18 +24,7 @@ export async function resolverPessoaAcompanhada(
   let funcao = perfil.cargo ?? "—";
   let fotoPath: string | null = null;
 
-  if (perfil.comissao_tecnica_base_id) {
-    const { data } = await supabase
-      .from("comissao_tecnica_base")
-      .select("nome_completo, funcao, foto_path")
-      .eq("id", perfil.comissao_tecnica_base_id)
-      .maybeSingle();
-    if (data) {
-      nome = data.nome_completo;
-      funcao = data.funcao;
-      fotoPath = data.foto_path;
-    }
-  } else if (perfil.comissao_tecnica_id) {
+  if (perfil.comissao_tecnica_id) {
     const { data } = await supabase
       .from("comissao_tecnica")
       .select("nome_completo, funcao, foto_path")

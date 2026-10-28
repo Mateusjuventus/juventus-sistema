@@ -82,7 +82,7 @@ export async function salvarParecerCaptacao(
   // docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md).
   const { data: perfilTreinador } = await supabase
     .from("perfis")
-    .select("assinatura_path, comissao_tecnica_base_id")
+    .select("assinatura_path, comissao_tecnica_id")
     .eq("id", user.id)
     .maybeSingle();
   if (!perfilTreinador?.assinatura_path) {
