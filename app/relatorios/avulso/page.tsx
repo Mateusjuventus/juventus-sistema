@@ -18,6 +18,7 @@ export default async function RelatorioAvulsoPage() {
       supabase
         .from("comissao_tecnica")
         .select("id, nome_completo, funcao")
+        .contains("categorias", ["profissional"])
         .order("nome_completo", { ascending: true }),
       supabase
         .from("staff_operacional")
