@@ -1,0 +1,173 @@
+[35mClaude outputs/2026-09-15-organograma-cartoes-por-comissao-design.md[m[36m:[m[32m125[m[36m:[mQuando a mesma pessoa vinculada (`[1;31mcomissao_tecnica_base[m_id`) aparece em cartões de comissões
+[35mClaude outputs/actions.ts[m[36m:[m[32m122[m[36m:[m    [1;31mcomissao_tecnica_base[m_id: comissaoTecnicaBaseId,
+[35mClaude outputs/organograma-editor.tsx[m[36m:[m[32m45[m[36m:[m  /** Já resolvidos pela página (join com `[1;31mcomissao_tecnica_base[m`) — evita repetir a lógica de "qual
+[35mapp/base/comissao-tecnica/[id]/page.tsx[m[36m:[m[32m10[m[36m:[m * antiga `[1;31mcomissao_tecnica_base[m_old`, mantida até a confirmação final da migração) pra não cair em
+[35mapp/base/comissao-tecnica/[id]/page.tsx[m[36m:[m[32m20[m[36m:[m    .from("[1;31mcomissao_tecnica_base[m_old")
+[35mapp/base/comissao-tecnica/actions.ts[m[36m:[m[32m12[m[36m:[m/** Espelha `app/comissao-tecnica/actions.ts`, mas grava em `[1;31mcomissao_tecnica_base[m` e inclui
+[35mapp/base/comissao-tecnica/actions.ts[m[36m:[m[32m86[m[36m:[m  const { error } = await supabase.from("[1;31mcomissao_tecnica_base[m").insert({
+[35mapp/base/comissao-tecnica/actions.ts[m[36m:[m[32m147[m[36m:[m  const { error } = await supabase.from("[1;31mcomissao_tecnica_base[m").update(updatePayload).eq("id", id);
+[35mapp/base/comissao-tecnica/actions.ts[m[36m:[m[32m159[m[36m:[m  await supabase.from("[1;31mcomissao_tecnica_base[m").delete().eq("id", id);
+[35mapp/base/comissao-tecnica/cadastro-publico-actions.ts[m[36m:[m[32m9[m[36m:[m * mas grava em `configuracoes_cadastro_[1;31mcomissao_tecnica_base[m`, totalmente independente da
+[35mapp/base/comissao-tecnica/cadastro-publico-actions.ts[m[36m:[m[32m20[m[36m:[m    .from("configuracoes_cadastro_[1;31mcomissao_tecnica_base[m")
+[35mapp/base/comissao-tecnica/organograma/actions.ts[m[36m:[m[32m131[m[36m:[m    [1;31mcomissao_tecnica_base[m_id: comissaoTecnicaBaseId,
+[35mapp/base/comissao-tecnica/organograma/page.tsx[m[36m:[m[32m58[m[36m:[m    const pessoa = n.[1;31mcomissao_tecnica_base[m_id ? pessoaPorId.get(n.[1;31mcomissao_tecnica_base[m_id) : undefined;
+[35mapp/base/comissao-tecnica/organograma/page.tsx[m[36m:[m[32m63[m[36m:[m      comissaoTecnicaBaseId: n.[1;31mcomissao_tecnica_base[m_id,
+[35mapp/base/comissao-tecnica/organograma/pdf/route.tsx[m[36m:[m[32m34[m[36m:[m    const pessoa = n.[1;31mcomissao_tecnica_base[m_id ? pessoaPorId.get(n.[1;31mcomissao_tecnica_base[m_id) : undefined;
+[35mapp/base/comissao-tecnica/organograma/pdf/route.tsx[m[36m:[m[32m37[m[36m:[m      comissaoTecnicaBaseId: n.[1;31mcomissao_tecnica_base[m_id,
+[35mapp/cadastro-comissao-tecnica-base/actions.ts[m[36m:[m[32m21[m[36m:[m    .from("configuracoes_cadastro_[1;31mcomissao_tecnica_base[m")
+[35mapp/cadastro-comissao-tecnica-base/actions.ts[m[36m:[m[32m29[m[36m:[m * `[1;31mcomissao_tecnica_base[m`, confere `configuracoes_cadastro_[1;31mcomissao_tecnica_base[m` e inclui
+[35mapp/cadastro-comissao-tecnica-base/actions.ts[m[36m:[m[32m145[m[36m:[m * (Profissional), olhando `[1;31mcomissao_tecnica_base[m`. */
+[35mapp/cadastro-comissao-tecnica-base/actions.ts[m[36m:[m[32m178[m[36m:[m * (Profissional) — os 7 campos que um cadastro antigo de `[1;31mcomissao_tecnica_base[m` pode ter ficado
+[35mapp/cadastro-comissao-tecnica-base/actions.ts[m[36m:[m[32m191[m[36m:[m * `[1;31mcomissao_tecnica_base[m`. */
+[35mapp/cadastro-comissao-tecnica-base/actions.ts[m[36m:[m[32m243[m[36m:[m * `[1;31mcomissao_tecnica_base[m`. */
+[35mapp/cadastro-comissao-tecnica-base/completar-ou-cadastrar.tsx[m[36m:[m[32m30[m[36m:[m * `[1;31mcomissao_tecnica_base[m`. Ver docs/superpowers/specs/2026-08-26-comissao-tecnica-completar-cadastro-design.md. */
+[35mapp/cadastro-comissao-tecnica-base/page.tsx[m[36m:[m[32m3[m[36m:[mimport type { ConfiguracaoCadastro[1;31mComissaoTecnicaBaseRow[m } from "@/lib/supabase/types";
+[35mapp/cadastro-comissao-tecnica-base/page.tsx[m[36m:[m[32m11[m[36m:[m * `configuracoes_cadastro_[1;31mcomissao_tecnica_base[m` e gravando em `[1;31mcomissao_tecnica_base[m`. Sem login
+[35mapp/cadastro-comissao-tecnica-base/page.tsx[m[36m:[m[32m21[m[36m:[m    .from("configuracoes_cadastro_[1;31mcomissao_tecnica_base[m")
+[35mapp/cadastro-comissao-tecnica-base/page.tsx[m[36m:[m[32m28[m[36m:[m  const config = configData as ConfiguracaoCadastro[1;31mComissaoTecnicaBaseRow[m | null;
+[35mapp/comissao-tecnica/page.tsx[m[36m:[m[32m15[m[36m:[m  ConfiguracaoCadastro[1;31mComissaoTecnicaBaseRow[m,
+[35mapp/comissao-tecnica/page.tsx[m[36m:[m[32m49[m[36m:[m      supabase.from("configuracoes_cadastro_[1;31mcomissao_tecnica_base[m").select("*").limit(1).maybeSingle(),
+[35mapp/comissao-tecnica/page.tsx[m[36m:[m[32m55[m[36m:[m  const configBase = configBaseData as ConfiguracaoCadastro[1;31mComissaoTecnicaBaseRow[m | null;
+[35mapp/minha-conta/page.tsx[m[36m:[m[32m33[m[36m:[m        .select("nome, cargo, assinatura_path, comissao_tecnica_id, [1;31mcomissao_tecnica_base[m_id")
+[35mapp/minha-conta/page.tsx[m[36m:[m[32m39[m[36m:[m  const vinculado = Boolean(perfil?.comissao_tecnica_id || perfil?.[1;31mcomissao_tecnica_base[m_id);
+[35mapp/treinador/actions.ts[m[36m:[m[32m85[m[36m:[m    .select("assinatura_path, [1;31mcomissao_tecnica_base[m_id")
+[35mapp/treinador/jogos/[id]/convocacao/page.tsx[m[36m:[m[32m12[m[36m:[m  [1;31mComissaoTecnicaBaseRow[m,
+[35mapp/treinador/jogos/[id]/convocacao/page.tsx[m[36m:[m[32m44[m[36m:[m      .from("[1;31mcomissao_tecnica_base[m")
+[35mapp/treinador/jogos/[id]/convocacao/page.tsx[m[36m:[m[32m52[m[36m:[m  const comissao = (comissaoData ?? []) as [1;31mComissaoTecnicaBaseRow[m[];
+[35mcomponents/organograma-editor.tsx[m[36m:[m[32m47[m[36m:[m  /** Já resolvidos pela página (join com `[1;31mcomissao_tecnica_base[m`) — evita repetir a lógica de "qual
+[35mdocs/superpowers/plans/2026-10-05-assistencia-social-e-demandas-plan.md[m[36m:[m[32m188[m[36m:[m  (`comissao_tecnica_id`/`[1;31mcomissao_tecnica_base[m_id`, igual a `resolverNomeCargoParaAssinatura` em
+[35mdocs/superpowers/specs/2026-07-20-futebol-de-base-design.md[m[36m:[m[32m102[m[36m:[mMesmo padrão do Atletas: tabela nova `[1;31mcomissao_tecnica_base[m` com os campos de hoje mais
+[35mdocs/superpowers/specs/2026-08-19-comissao-tecnica-multi-categoria-design.md[m[36m:[m[32m8[m[36m:[mO cadastro de Comissão Técnica da Base (`[1;31mcomissao_tecnica_base[m`) tem uma `categoria` só por pessoa,
+[35mdocs/superpowers/specs/2026-08-19-comissao-tecnica-multi-categoria-design.md[m[36m:[m[32m29[m[36m:[m`[1;31mcomissao_tecnica_base[m.categoria` (text, obrigatório) → `categorias` (text[], obrigatório, pelo
+[35mdocs/superpowers/specs/2026-08-23-organograma-base-design.md[m[36m:[m[32m18[m[36m:[m2. **Estrutura própria e editável**, independente da tabela `[1;31mcomissao_tecnica_base[m` — aquela tabela é
+[35mdocs/superpowers/specs/2026-08-23-organograma-base-design.md[m[36m:[m[32m24[m[36m:[m   caixa do organograma, dá pra escolher uma pessoa já cadastrada em `[1;31mcomissao_tecnica_base[m`: nome e
+[35mdocs/superpowers/specs/2026-08-23-organograma-base-design.md[m[36m:[m[32m43[m[36m:[m  [1;31mcomissao_tecnica_base[m_id uuid references public.[1;31mcomissao_tecnica_base[m(id) on delete set null,
+[35mdocs/superpowers/specs/2026-08-23-organograma-base-design.md[m[36m:[m[32m45[m[36m:[m  -- Com [1;31mcomissao_tecnica_base[m_id preenchido, nome/cargo exibidos vêm sempre do cadastro vinculado.
+[35mdocs/superpowers/specs/2026-08-23-organograma-base-design.md[m[36m:[m[32m58[m[36m:[mRLS/policy/grants no mesmo padrão de `[1;31mcomissao_tecnica_base[m` (`authenticated_full_access`).
+[35mdocs/superpowers/specs/2026-08-26-comissao-tecnica-completar-cadastro-design.md[m[36m:[m[32m43[m[36m:[m`configuracoes_cadastro_comissao_tecnica`; Base olha `[1;31mcomissao_tecnica_base[m` +
+[35mdocs/superpowers/specs/2026-08-26-comissao-tecnica-completar-cadastro-design.md[m[36m:[m[32m44[m[36m:[m`configuracoes_cadastro_[1;31mcomissao_tecnica_base[m` — cada um só enxerga a própria tabela).
+[35mdocs/superpowers/specs/2026-08-26-comissao-tecnica-completar-cadastro-design.md[m[36m:[m[32m97[m[36m:[m`service_role` nas tabelas `comissao_tecnica` e `[1;31mcomissao_tecnica_base[m` já existem desde a
+[35mdocs/superpowers/specs/2026-08-27-organograma-layout-proporcional-design.md[m[36m:[m[32m291[m[36m:[msempre (`pessoasDisponiveis` filtrava fora quem já tivesse uma `[1;31mcomissao_tecnica_base[m_id` usada em
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m16[m[36m:[mComissão Técnica (`comissao_tecnica`/`[1;31mcomissao_tecnica_base[m`) — e que esse vínculo fique "vivo": se
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m38[m[36m:[m- `comissao_tecnica` (Profissional) e `[1;31mcomissao_tecnica_base[m` (Base): cadastros de pessoas físicas
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m44[m[36m:[m- Categoria como dimensão de dado: só `atletas_base`, `[1;31mcomissao_tecnica_base[m` e `jogos_base` têm
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m56[m[36m:[m- `perfis.[1;31mcomissao_tecnica_base[m_id` → `references public.[1;31mcomissao_tecnica_base[m(id) on delete set
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m76[m[36m:[m4. Com `[1;31mcomissao_tecnica_base[m_id` vinculado → as categorias **daquele registro**, lidas na hora
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m80[m[36m:[m`buscarPerfilPermissoes()` passa a trazer também `[1;31mcomissao_tecnica_base[m_id` e, via embed do
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m81[m[36m:[mPostgREST, `[1;31mcomissao_tecnica_base[m(categorias, nome_completo, funcao)` e
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m89[m[36m:[m1. Com `[1;31mcomissao_tecnica_base[m_id` OU `comissao_tecnica_id` vinculado → `nome_completo`/`funcao`
+[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m134[m[36m:[mQuando a conta logada tem `comissao_tecnica_id`/`[1;31mcomissao_tecnica_base[m_id` vinculado, o bloco de
+[35mdocs/superpowers/specs/2026-09-15-organograma-cartoes-por-comissao-design.md[m[36m:[m[32m125[m[36m:[mQuando a mesma pessoa vinculada (`[1;31mcomissao_tecnica_base[m_id`) aparece em cartões de comissões
+[35mdocs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md[m[36m:[m[32m107[m[36m:[m  `[1;31mcomissao_tecnica_base[m_id` — ver `supabase/migrations/0107_perfis_vinculo_comissao_tecnica.sql`),
+[35mdocs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md[m[36m:[m[32m13[m[36m:[m(Gustavo e Italo — o mesmo recorte por categoria já usado em `[1;31mcomissao_tecnica_base[m`, ver spec
+[35mdocs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md[m[36m:[m[32m27[m[36m:[m- `[1;31mcomissao_tecnica_base[m`: `nome_completo`, `funcao` (texto livre — "Supervisor" é uma das funções
+[35mdocs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md[m[36m:[m[32m29[m[36m:[m- `perfis.[1;31mcomissao_tecnica_base[m_id` → vincula o login daquela pessoa ao registro dela na Comissão
+[35mdocs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md[m[36m:[m[32m58[m[36m:[m3. Sem `perfis.[1;31mcomissao_tecnica_base[m_id` vinculado → `false`.
+[35mdocs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md[m[36m:[m[32m59[m[36m:[m4. Com vínculo: busca `[1;31mcomissao_tecnica_base[m.funcao` e `.categorias` daquele registro (ao vivo, não
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m13[m[36m:[munificar `comissao_tecnica` (Profissional) e `[1;31mcomissao_tecnica_base[m` (Futebol de Base) numa tabela
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m40[m[36m:[m- `configuracoes_cadastro_comissao_tecnica` / `configuracoes_cadastro_[1;31mcomissao_tecnica_base[m`
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m49[m[36m:[m`[1;31mcomissao_tecnica_base[m`, com os **mesmos `id`** preservados (nenhum registro muda de identidade).
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m57[m[36m:[m- Migração copia cada linha de `[1;31mcomissao_tecnica_base[m` para `comissao_tecnica`, preservando `id` e
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m61[m[36m:[m- `[1;31mcomissao_tecnica_base[m` é renomeada para `[1;31mcomissao_tecnica_base[m_old` (não apagada) depois da
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m64[m[36m:[m- FKs repontadas para `comissao_tecnica(id)`: `organograma_base.[1;31mcomissao_tecnica_base[m_id`,
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m65[m[36m:[m  `convocacao_comissao_base.[1;31mcomissao_tecnica_base[m_id` (e qualquer outra encontrada na implementação
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m66[m[36m:[m  que hoje referencie `[1;31mcomissao_tecnica_base[m`).
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m67[m[36m:[m- `perfis.comissao_tecnica_id` e `perfis.[1;31mcomissao_tecnica_base[m_id` (hoje dois campos de vínculo de
+[35mdocs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md[m[36m:[m[32m74[m[36m:[m- `lib/auth/role.ts`: o embed de `[1;31mcomissao_tecnica_base[m` em `PerfilPermissoes` passa a vir do vínculo
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m13[m[36m:[m  [1;31mcomissao_tecnica_base[m?: Record<string, { nome_completo: string; funcao: string }>;
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m16[m[36m:[m    from(tabela: "comissao_tecnica" | "[1;31mcomissao_tecnica_base[m") {
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m42[m[36m:[m      [1;31mcomissao_tecnica_base[m_id: null,
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m55[m[36m:[m      [1;31mcomissao_tecnica_base[m_id: null,
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m60[m[36m:[m  it("vinculado só à Base, usa nome/função de [1;31mcomissao_tecnica_base[m", async () => {
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m62[m[36m:[m      [1;31mcomissao_tecnica_base[m: { "ctb-1": { nome_completo: "Ana Souza", funcao: "Supervisora Sub-11 a Sub-14" } },
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m68[m[36m:[m      [1;31mcomissao_tecnica_base[m_id: "ctb-1",
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m76[m[36m:[m      [1;31mcomissao_tecnica_base[m: { "ctb-1": { nome_completo: "Ana Souza", funcao: "Supervisora Sub-11 a Sub-14" } },
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m82[m[36m:[m      [1;31mcomissao_tecnica_base[m_id: "ctb-1",
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m87[m[36m:[m  it("[1;31mcomissao_tecnica_base[m_id preenchido mas o registro não existe mais — cai pra perfis.nome/cargo", async () => {
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m93[m[36m:[m      [1;31mcomissao_tecnica_base[m_id: "ctb-excluido",
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m101[m[36m:[m    expect(treinadorPossuiVinculoObrigatorio({ [1;31mcomissao_tecnica_base[m_id: null })).toBe(false);
+[35mlib/assinaturas/nome-cargo.test.ts[m[36m:[m[32m105[m[36m:[m    expect(treinadorPossuiVinculoObrigatorio({ [1;31mcomissao_tecnica_base[m_id: "ctb-1" })).toBe(true);
+[35mlib/auth/categorias-base.ts[m[36m:[m[32m8[m[36m:[m * `atletas_base`, `[1;31mcomissao_tecnica_base[m` e `jogos_base` (ver as migrations correspondentes) — se
+[35mlib/demandas/pessoa-acompanhada.ts[m[36m:[m[32m26[m[36m:[m  if (perfil.[1;31mcomissao_tecnica_base[m_id) {
+[35mlib/demandas/pessoa-acompanhada.ts[m[36m:[m[32m28[m[36m:[m      .from("[1;31mcomissao_tecnica_base[m")
+[35mlib/demandas/pessoa-acompanhada.ts[m[36m:[m[32m30[m[36m:[m      .eq("id", perfil.[1;31mcomissao_tecnica_base[m_id)
+[35mlib/jogos-base/permissoes.test.ts[m[36m:[m[32m16[m[36m:[m    [1;31mcomissao_tecnica_base[m_id: null,
+[35mlib/jogos-base/permissoes.test.ts[m[36m:[m[32m18[m[36m:[m    [1;31mcomissao_tecnica_base[m: null,
+[35mlib/programacao/permissoes.test.ts[m[36m:[m[32m16[m[36m:[m    [1;31mcomissao_tecnica_base[m_id: null,
+[35mlib/programacao/permissoes.test.ts[m[36m:[m[32m18[m[36m:[m    [1;31mcomissao_tecnica_base[m: null,
+[35mlib/supabase/types.ts[m[36m:[m[32m378[m[36m:[m * existia uma tabela própria `[1;31mcomissao_tecnica_base[m` (e um `[1;31mComissaoTecnicaBaseRow[m` aqui) só pra
+[35mlib/supabase/types.ts[m[36m:[m[32m381[m[36m:[m * `[1;31mcomissao_tecnica_base[m_old` (guardada, não apagada) pela migration 0149. */
+[35mlib/supabase/types.ts[m[36m:[m[32m410[m[36m:[m * docs/superpowers/specs/2026-08-23-organograma-base-design.md). Com `[1;31mcomissao_tecnica_base[m_id`
+[35mlib/supabase/types.ts[m[36m:[m[32m419[m[36m:[m  [1;31mcomissao_tecnica_base[m_id: string | null;
+[35mlib/supabase/types.ts[m[36m:[m[32m928[m[36m:[mexport interface ConfiguracaoCadastro[1;31mComissaoTecnicaBaseRow[m {
+[35mlib/supabase/types.ts[m[36m:[m[32m959[m[36m:[m// [1;31mcomissao_tecnica_base[m) — o restante do universo de Jogos (checklist, convocação, logística,
+[35mlib/supabase/types.ts[m[36m:[m[32m1569[m[36m:[m   * separados (`comissao_tecnica_id` pro Profissional, `[1;31mcomissao_tecnica_base[m_id` pra Base); a
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m4[m[36m:[m-- 1) `[1;31mcomissao_tecnica_base[m` — mesmos campos de `comissao_tecnica` (nome completo, apelido, rg,
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m8[m[36m:[mcreate table public.[1;31mcomissao_tecnica_base[m (
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m24[m[36m:[m  constraint [1;31mcomissao_tecnica_base[m_cpf_unique unique (cpf),
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m25[m[36m:[m  constraint [1;31mcomissao_tecnica_base[m_rg_unique unique (rg),
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m26[m[36m:[m  constraint [1;31mcomissao_tecnica_base[m_cpf_format check (cpf ~ '^\d{11}$')
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m29[m[36m:[mcreate trigger [1;31mcomissao_tecnica_base[m_set_updated_at
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m30[m[36m:[m  before update on public.[1;31mcomissao_tecnica_base[m
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m33[m[36m:[mcreate index [1;31mcomissao_tecnica_base[m_categoria_idx on public.[1;31mcomissao_tecnica_base[m (categoria);
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m91[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m enable row level security;
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m92[m[36m:[mcreate policy "authenticated_full_access" on public.[1;31mcomissao_tecnica_base[m for all
+[35msupabase/migrations/0032_futebol_base_comissao_staff.sql[m[36m:[m[32m94[m[36m:[mgrant select, insert, update, delete on public.[1;31mcomissao_tecnica_base[m to authenticated;
+[35msupabase/migrations/0033_futebol_base_jogos_financeiro.sql[m[36m:[m[32m85[m[36m:[m  comissao_id uuid not null references public.[1;31mcomissao_tecnica_base[m(id) on delete cascade,
+[35msupabase/migrations/0080_financeiro_base.sql[m[36m:[m[32m12[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m10[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m add column if not exists categorias text[];
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m18[m[36m:[m    where table_schema = 'public' and table_name = '[1;31mcomissao_tecnica_base[m' and column_name = 'categoria'
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m20[m[36m:[m    update public.[1;31mcomissao_tecnica_base[m set categorias = array[categoria] where categorias is null;
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m24[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m alter column categorias set not null;
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m26[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m drop constraint if exists [1;31mcomissao_tecnica_base[m_categorias_check;
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m27[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m28[m[36m:[m  add constraint [1;31mcomissao_tecnica_base[m_categorias_check
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m34[m[36m:[mdrop index if exists [1;31mcomissao_tecnica_base[m_categoria_idx;
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m35[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m drop column if exists categoria;
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m37[m[36m:[mcreate index if not exists [1;31mcomissao_tecnica_base[m_categorias_idx
+[35msupabase/migrations/0081_comissao_base_multi_categoria.sql[m[36m:[m[32m38[m[36m:[m  on public.[1;31mcomissao_tecnica_base[m using gin (categorias);
+[35msupabase/migrations/0082_organograma_base.sql[m[36m:[m[32m3[m[36m:[m-- Estrutura PRÓPRIA, separada de `[1;31mcomissao_tecnica_base[m`: aquela tabela é organizada por categoria
+[35msupabase/migrations/0082_organograma_base.sql[m[36m:[m[32m10[m[36m:[m  [1;31mcomissao_tecnica_base[m_id uuid references public.[1;31mcomissao_tecnica_base[m(id) on delete set null,
+[35msupabase/migrations/0082_organograma_base.sql[m[36m:[m[32m11[m[36m:[m  -- Usados só quando NÃO há pessoa vinculada ([1;31mcomissao_tecnica_base[m_id nulo) — com pessoa vinculada,
+[35msupabase/migrations/0082_organograma_base.sql[m[36m:[m[32m34[m[36m:[mcreate index organograma_base_comissao_idx on public.organograma_base ([1;31mcomissao_tecnica_base[m_id);
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m17[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m21[m[36m:[malter table public.[1;31mcomissao_tecnica_base[m
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m22[m[36m:[m  add constraint [1;31mcomissao_tecnica_base[m_tipo_contrato_check
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m37[m[36m:[mcreate table public.configuracoes_cadastro_[1;31mcomissao_tecnica_base[m (
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m42[m[36m:[mcreate trigger configuracoes_cadastro_[1;31mcomissao_tecnica_base[m_set_updated_at
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m43[m[36m:[m  before update on public.configuracoes_cadastro_[1;31mcomissao_tecnica_base[m
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m45[m[36m:[minsert into public.configuracoes_cadastro_[1;31mcomissao_tecnica_base[m (cadastro_publico_ativo) values (false);
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m52[m[36m:[malter table public.configuracoes_cadastro_[1;31mcomissao_tecnica_base[m enable row level security;
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m53[m[36m:[mcreate policy "authenticated_full_access" on public.configuracoes_cadastro_[1;31mcomissao_tecnica_base[m for all
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m55[m[36m:[mgrant select, insert, update, delete on public.configuracoes_cadastro_[1;31mcomissao_tecnica_base[m to authenticated;
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m62[m[36m:[mgrant select, insert, update, delete on public.[1;31mcomissao_tecnica_base[m to service_role;
+[35msupabase/migrations/0084_comissao_tecnica_contrato.sql[m[36m:[m[32m64[m[36m:[mgrant select, insert, update, delete on public.configuracoes_cadastro_[1;31mcomissao_tecnica_base[m to service_role;
+[35msupabase/migrations/0094_programacao_semanal.sql[m[36m:[m[32m12[m[36m:[m-- jeito que atletas_base/[1;31mcomissao_tecnica_base[m já são filtradas hoje via getCategoriasTreinador() —
+[35msupabase/migrations/0107_perfis_vinculo_comissao_tecnica.sql[m[36m:[m[32m7[m[36m:[m  add column if not exists [1;31mcomissao_tecnica_base[m_id uuid references public.[1;31mcomissao_tecnica_base[m(id) on delete set null;
+[35msupabase/migrations/0107_perfis_vinculo_comissao_tecnica.sql[m[36m:[m[32m9[m[36m:[m-- Fallback manual de categorias (usado só quando NÃO há [1;31mcomissao_tecnica_base[m_id vinculado) — mesma
+[35msupabase/migrations/0107_perfis_vinculo_comissao_tecnica.sql[m[36m:[m[32m19[m[36m:[mcreate index if not exists perfis_[1;31mcomissao_tecnica_base[m_id_idx on public.perfis ([1;31mcomissao_tecnica_base[m_id);
+[35msupabase/migrations/0107_perfis_vinculo_comissao_tecnica.sql[m[36m:[m[32m21[m[36m:[m-- Nenhum GRANT novo necessário: `comissao_tecnica`/`[1;31mcomissao_tecnica_base[m` já têm `grant select`
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m4[m[36m:[m-- `comissao_tecnica` (Profissional) e `[1;31mcomissao_tecnica_base[m` (Futebol de Base) viram uma tabela
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m11[m[36m:[m-- `[1;31mcomissao_tecnica_base[m` NÃO é apagada aqui — só renomeada para `[1;31mcomissao_tecnica_base[m_old`, pra
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m15[m[36m:[m-- Esta migration só roda a parte de dados se `[1;31mcomissao_tecnica_base[m` ainda existir (idempotente
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m41[m[36m:[m-- 2) Migração dos dados de `[1;31mcomissao_tecnica_base[m`, só se a tabela ainda existir (não roda de novo
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m52[m[36m:[m    where table_schema = 'public' and table_name = '[1;31mcomissao_tecnica_base[m'
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m54[m[36m:[m    raise notice '[1;31mcomissao_tecnica_base[m não existe (já migrada antes?) — pulando a parte de dados.';
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m59[m[36m:[m  select count(*) into total_base_antes from public.[1;31mcomissao_tecnica_base[m;
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m61[m[36m:[m    from public.[1;31mcomissao_tecnica_base[m ctb
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m76[m[36m:[m    from public.[1;31mcomissao_tecnica_base[m ctb
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m91[m[36m:[m  from public.[1;31mcomissao_tecnica_base[m ctb
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m115[m[36m:[m    where table_schema = 'public' and table_name = '[1;31mcomissao_tecnica_base[m'
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m119[m[36m:[m      from public.[1;31mcomissao_tecnica_base[m ctb
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m138[m[36m:[m    -- 3b) `organograma_base.[1;31mcomissao_tecnica_base[m_id` — mesma ordem; o nome da coluna fica como
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m141[m[36m:[m      drop constraint if exists organograma_base_[1;31mcomissao_tecnica_base[m_id_fkey;
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m144[m[36m:[m      set [1;31mcomissao_tecnica_base[m_id = m.novo_id
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m146[m[36m:[m      where ob.[1;31mcomissao_tecnica_base[m_id = m.old_base_id and m.novo_id <> m.old_base_id;
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m149[m[36m:[m      add constraint organograma_base_[1;31mcomissao_tecnica_base[m_id_fkey
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m150[m[36m:[m      foreign key ([1;31mcomissao_tecnica_base[m_id) references public.comissao_tecnica(id) on delete set null;
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m158[m[36m:[m      where p.[1;31mcomissao_tecnica_base[m_id = m.old_base_id;
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m160[m[36m:[m    drop index if exists public.perfis_[1;31mcomissao_tecnica_base[m_id_idx;
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m161[m[36m:[m    alter table public.perfis drop column if exists [1;31mcomissao_tecnica_base[m_id;
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m167[m[36m:[malter table if exists public.[1;31mcomissao_tecnica_base[m rename to [1;31mcomissao_tecnica_base[m_old;
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m177[m[36m:[m-- select count(*) from public.[1;31mcomissao_tecnica_base[m_old;         -- quantos existiam na Base antes
+[35msupabase/migrations/0149_unificacao_comissao_tecnica.sql[m[36m:[m[32m183[m[36m:[m--   drop table public.[1;31mcomissao_tecnica_base[m_old;
