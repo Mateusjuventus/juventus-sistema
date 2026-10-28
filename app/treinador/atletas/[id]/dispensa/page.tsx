@@ -36,11 +36,11 @@ export default async function DispensaAtletaTreinadorPage({ params }: { params: 
   const [assinaturas, { data: perfilTreinador }] = await Promise.all([
     resolverImagensAssinaturas(supabase, assinaturasSalvas),
     user
-      ? supabase.from("perfis").select("assinatura_path, comissao_tecnica_base_id").eq("id", user.id).maybeSingle()
+      ? supabase.from("perfis").select("assinatura_path, comissao_tecnica_id").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
   const minhaAssinaturaCadastrada = Boolean(perfilTreinador?.assinatura_path);
-  // Vínculo com a Comissão Técnica (Base) é obrigatório pro Treinador assinar — ver
+  // Vínculo com a Comissão Técnica é obrigatório pro Treinador assinar — ver
   // docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md. Um Treinador criado antes
   // dessa mudança pode ainda estar sem vínculo.
   const mensagemBloqueioExtra = perfilTreinador && !treinadorPossuiVinculoObrigatorio(perfilTreinador)

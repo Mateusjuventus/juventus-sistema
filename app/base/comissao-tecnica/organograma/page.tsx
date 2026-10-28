@@ -9,7 +9,8 @@ import {
   type PessoaComissao,
 } from "@/components/organograma-editor";
 import { createClient } from "@/lib/supabase/server";
-import type { ComissaoTecnicaBaseRow, OrganogramaBaseLinhaRow, OrganogramaBaseRow } from "@/lib/supabase/types";
+import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import type { ComissaoTecnicaRow, OrganogramaBaseLinhaRow, OrganogramaBaseRow } from "@/lib/supabase/types";
 import {
   salvarNoOrganograma,
   moverNoOrganograma,
@@ -30,12 +31,20 @@ export default async function OrganogramaBasePage() {
 
   const [{ data: nosData }, { data: pessoasData }, { data: linhasData }] = await Promise.all([
     supabase.from("organograma_base").select("*").order("ordem", { ascending: true }),
-    supabase.from("comissao_tecnica_base").select("id, nome_completo, funcao").order("nome_completo", { ascending: true }),
+    supabase
+      .from("comissao_tecnica")
+      .select("id, nome_completo, funcao, categorias")
+      .order("nome_completo", { ascending: true }),
     supabase.from("organograma_base_linha").select("linha, reporta_para, pos_x, pos_y, pos_manual"),
   ]);
 
   const nosBrutos = (nosData ?? []) as OrganogramaBaseRow[];
-  const pessoas = (pessoasData ?? []) as Pick<ComissaoTecnicaBaseRow, "id" | "nome_completo" | "funcao">[];
+  // Comissão Técnica já é unificada (Profissional + Base — ver docs/superpowers/specs/2026-10-28-
+  // unificacao-comissao-tecnica-design.md); o Organograma da Base só oferece gente com pelo menos
+  // uma categoria da Base pra vincular numa caixa (quem é só "profissional" não aparece aqui).
+  const pessoas = ((pessoasData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo" | "funcao" | "categorias">[]).filter(
+    (p) => p.categorias.some(ehCategoriaBaseValida),
+  );
   const pessoaPorId = new Map(pessoas.map((p) => [p.id, p]));
   const linhasReportaPara: LinhaSupervisor[] = ((linhasData ?? []) as OrganogramaBaseLinhaRow[]).map((l) => ({
     linha: l.linha,

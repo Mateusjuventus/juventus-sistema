@@ -142,7 +142,7 @@ async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: 
   // Gate grosseiro (evita a query de jogos quando é impossível essa pessoa ter qualquer papel 1
   // da Base) — a checagem fina de verdade é por jogo, dentro do loop.
   const podeTalvezAssinatura1Base =
-    master || (perfil?.comissao_tecnica_base?.funcao.toLowerCase().includes("supervisor") ?? false);
+    master || (perfil?.comissao_tecnica?.funcao.toLowerCase().includes("supervisor") ?? false);
 
   async function paraDepartamento(
     tabelaJogos: "jogos" | "jogos_base",

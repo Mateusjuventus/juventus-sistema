@@ -118,7 +118,7 @@ export async function cadastrarComissaoTecnicaBasePublico(
   const { error: uploadError, path: fotoPath } = await uploadFoto(admin, formData, id);
   if (uploadError) return { error: uploadError, values: raw, categoriasSelecionadas: categorias };
 
-  const { error } = await admin.from("comissao_tecnica_base").insert({
+  const { error } = await admin.from("comissao_tecnica").insert({
     id,
     categorias: data.categorias,
     nome_completo: data.nomeCompleto,
@@ -166,7 +166,7 @@ export async function verificarCpfComissaoTecnicaBasePublico(
   }
 
   const { data: existente } = await admin
-    .from("comissao_tecnica_base")
+    .from("comissao_tecnica")
     .select("id")
     .eq("cpf", result.data.cpf)
     .maybeSingle();
@@ -214,7 +214,7 @@ export async function confirmarIdentidadeComissaoTecnicaBasePublico(
   }
 
   const { data: pessoa } = await admin
-    .from("comissao_tecnica_base")
+    .from("comissao_tecnica")
     .select("apelido, telefone, email, foto_path, tipo_contrato, data_inicio, valor_salario, data_nascimento")
     .eq("cpf", result.data.cpf)
     .maybeSingle();
@@ -272,7 +272,7 @@ export async function completarCadastroComissaoTecnicaBasePublico(
   }
 
   const { data: pessoa } = await admin
-    .from("comissao_tecnica_base")
+    .from("comissao_tecnica")
     .select("id, apelido, telefone, email, foto_path, tipo_contrato, data_inicio, valor_salario, data_nascimento")
     .eq("cpf", result.data.cpf)
     .maybeSingle();
@@ -327,7 +327,7 @@ export async function completarCadastroComissaoTecnicaBasePublico(
   if (fotoPath) update.foto_path = fotoPath;
 
   if (Object.keys(update).length > 0) {
-    const { error } = await admin.from("comissao_tecnica_base").update(update).eq("id", pessoa.id);
+    const { error } = await admin.from("comissao_tecnica").update(update).eq("id", pessoa.id);
     if (error) return { error: "Não foi possível salvar. Tente novamente." };
     revalidatePath("/base/comissao-tecnica");
   }

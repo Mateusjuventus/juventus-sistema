@@ -38,19 +38,35 @@ function parseCategoriasTreinador(formData: FormData, role: PerfilRole): string[
   return formData.getAll("categoriasTreinador").map(String).filter(ehCategoriaBaseValida);
 }
 
-/** Id da pessoa da Comissão Técnica (Profissional) vinculada a este login — `""` no `<select>`
- * vira `null` ("não vincular"). Ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-
- * comissao-tecnica-design.md. */
+/** Id da pessoa da Comissão Técnica (já unificada — ver docs/superpowers/specs/2026-10-28-
+ * unificacao-comissao-tecnica-design.md) vinculada a este login, pro `<select>` único usado pelos
+ * papéis Regular/Master — `""` no `<select>` vira `null` ("não vincular"). Ver docs/superpowers/
+ * specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md. */
 function parseComissaoTecnicaId(formData: FormData): string | null {
   const id = String(formData.get("comissaoTecnicaId") ?? "").trim();
   return id || null;
 }
 
-/** Mesma coisa que `parseComissaoTecnicaId`, mas pra Comissão Técnica do Futebol de Base — esse
- * vínculo também decide as categorias que o login pode ver/acessar. */
+/** Mesma ideia de `parseComissaoTecnicaId`, mas pro `<select>` específico do Treinador (campo
+ * próprio no formulário — `comissaoTecnicaBaseId` — porque esse vínculo é obrigatório e só mostra
+ * gente com categoria da Base, diferente do select opcional acima). Os dois gravam no mesmo campo
+ * `comissao_tecnica_id` de `perfis` — só a origem no formulário é diferente. */
 function parseComissaoTecnicaBaseId(formData: FormData): string | null {
   const id = String(formData.get("comissaoTecnicaBaseId") ?? "").trim();
   return id || null;
+}
+
+/** Confere se a pessoa vinculada (id na tabela `comissao_tecnica`, já unificada) tem pelo menos uma
+ * categoria da Base — usado pra decidir se `categorias_base_permitidas` deve gravar "todas" (o
+ * vínculo passa a ter prioridade em `resolverCategoriasBasePermitidas`) ou cair no fallback manual
+ * marcado no formulário. */
+async function temCategoriaBaseVinculada(
+  admin: ReturnType<typeof createAdminClient>,
+  comissaoTecnicaId: string | null,
+): Promise<boolean> {
+  if (!comissaoTecnicaId) return false;
+  const { data } = await admin.from("comissao_tecnica").select("categorias").eq("id", comissaoTecnicaId).maybeSingle();
+  return ((data as { categorias: string[] } | null)?.categorias ?? []).some(ehCategoriaBaseValida);
 }
 
 /** Checkbox único "Pode inserir e editar registros de Fisioterapia" (sub-área do módulo
@@ -158,11 +174,12 @@ export async function criarUsuario(
   const tarefasCategorias = parseCategoriasTarefas(formData);
   const estoqueCategorias = parseEstoqueCategorias(formData, role);
   const categoriasTreinador = parseCategoriasTreinador(formData, role);
-  const comissaoTecnicaId = parseComissaoTecnicaId(formData);
+  // Dois selects diferentes no formulário (um obrigatório pro Treinador, só com gente da Base; um
+  // opcional pros outros papéis), mas desde a unificação da Comissão Técnica os dois gravam no
+  // mesmo vínculo (`comissao_tecnica_id`) — ver docs/superpowers/specs/2026-10-28-unificacao-
+  // comissao-tecnica-design.md.
   const comissaoTecnicaBaseId = parseComissaoTecnicaBaseId(formData);
-  const categoriasBasePermitidas = comissaoTecnicaBaseId
-    ? TODAS_CATEGORIAS_BASE
-    : parseCategoriasBasePermitidas(formData);
+  const comissaoTecnicaId = role === "treinador" ? comissaoTecnicaBaseId : parseComissaoTecnicaId(formData);
   const fisioterapiaPodeEditar = parseFisioterapiaPodeEditar(formData);
   const fisioterapiaPodeEditarBase = parseFisioterapiaPodeEditarBase(formData);
   const camposSensiveisBloqueados = parseCamposSensiveisBloqueados(formData);
@@ -180,6 +197,9 @@ export async function criarUsuario(
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values: raw };
 
   const admin = createAdminClient();
+  const categoriasBasePermitidas = (await temCategoriaBaseVinculada(admin, comissaoTecnicaId))
+    ? TODAS_CATEGORIAS_BASE
+    : parseCategoriasBasePermitidas(formData);
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password: senha,
@@ -204,7 +224,6 @@ export async function criarUsuario(
     estoque_categorias_permitidas: estoqueCategorias,
     categorias_treinador: categoriasTreinador,
     comissao_tecnica_id: comissaoTecnicaId,
-    comissao_tecnica_base_id: comissaoTecnicaBaseId,
     categorias_base_permitidas: categoriasBasePermitidas,
     fisioterapia_pode_editar: fisioterapiaPodeEditar,
     fisioterapia_pode_editar_base: fisioterapiaPodeEditarBase,
@@ -473,12 +492,13 @@ export async function atualizarCamposSensiveisBloqueados(
 }
 
 /**
- * Salva o vínculo com a Comissão Técnica (Profissional e/ou Base) de um usuário já existente —
- * espelha `atualizarDepartamentos`. Ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-
- * comissao-tecnica-design.md. Quando vincula à Base, grava `categorias_base_permitidas` com todas
- * as categorias (o form nem mostra os checkboxes nesse caso) — mantém a coluna íntegra caso o
- * vínculo seja desfeito depois; a leitura de acesso sempre prioriza o vínculo enquanto ele existir.
- * Só master pode chamar.
+ * Salva o vínculo com a Comissão Técnica (já unificada — Profissional e/ou Base num só registro)
+ * de um usuário já existente — espelha `atualizarDepartamentos`. Ver docs/superpowers/specs/
+ * 2026-09-13-acesso-por-categoria-comissao-tecnica-design.md e docs/superpowers/specs/2026-10-28-
+ * unificacao-comissao-tecnica-design.md. Quando a pessoa vinculada tem categoria da Base, grava
+ * `categorias_base_permitidas` com todas as categorias (o form nem mostra os checkboxes nesse
+ * caso) — mantém a coluna íntegra caso o vínculo seja desfeito depois; a leitura de acesso sempre
+ * prioriza o vínculo enquanto ele existir E tiver categoria da Base. Só master pode chamar.
  */
 export async function atualizarVinculoComissaoTecnica(
   _prevState: PermissaoActionState,
@@ -491,17 +511,15 @@ export async function atualizarVinculoComissaoTecnica(
   if (!id) return { error: "Usuário inválido." };
 
   const comissaoTecnicaId = parseComissaoTecnicaId(formData);
-  const comissaoTecnicaBaseId = parseComissaoTecnicaBaseId(formData);
-  const categoriasBasePermitidas = comissaoTecnicaBaseId
+  const admin = createAdminClient();
+  const categoriasBasePermitidas = (await temCategoriaBaseVinculada(admin, comissaoTecnicaId))
     ? TODAS_CATEGORIAS_BASE
     : parseCategoriasBasePermitidas(formData);
 
-  const admin = createAdminClient();
   const { error } = await admin
     .from("perfis")
     .update({
       comissao_tecnica_id: comissaoTecnicaId,
-      comissao_tecnica_base_id: comissaoTecnicaBaseId,
       categorias_base_permitidas: categoriasBasePermitidas,
     })
     .eq("id", id);
@@ -512,10 +530,11 @@ export async function atualizarVinculoComissaoTecnica(
 }
 
 /**
- * Salva o vínculo com a Comissão Técnica (Base) de um usuário "treinador" já existente —
- * diferente de `atualizarVinculoComissaoTecnica` (pros papéis Regular/Master, onde o vínculo é
- * opcional e cobre também o Profissional), aqui é SÓ a Base e é obrigatório: recusa salvar vazio.
- * Ver docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md. Só master pode chamar.
+ * Salva o vínculo com a Comissão Técnica de um usuário "treinador" já existente — diferente de
+ * `atualizarVinculoComissaoTecnica` (pros papéis Regular/Master, onde o vínculo é opcional), aqui é
+ * obrigatório: recusa salvar vazio. A lista mostrada na tela pro Treinador já é filtrada só pra
+ * quem tem categoria da Base; os dois gravam no mesmo campo `comissao_tecnica_id`. Ver
+ * docs/superpowers/specs/2026-10-02-assinatura-treinador-design.md. Só master pode chamar.
  */
 export async function atualizarVinculoTreinador(
   _prevState: PermissaoActionState,
@@ -535,7 +554,7 @@ export async function atualizarVinculoTreinador(
   const admin = createAdminClient();
   const { error } = await admin
     .from("perfis")
-    .update({ comissao_tecnica_base_id: comissaoTecnicaBaseId })
+    .update({ comissao_tecnica_id: comissaoTecnicaBaseId })
     .eq("id", id);
   if (error) return { error: `Não foi possível salvar o vínculo. Tente novamente. (${error.message})` };
 

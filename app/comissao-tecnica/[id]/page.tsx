@@ -4,17 +4,25 @@ import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
-import { podeVerCampoSensivel } from "@/lib/auth/role";
+import { podeVerCampoSensivel, getDepartamentosPermitidos } from "@/lib/auth/role";
 import type { ComissaoTecnicaRow } from "@/lib/supabase/types";
 import { ComissaoForm } from "../comissao-form";
 import { updateComissao } from "../actions";
 
 export default async function EditarComissaoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const [{ data }, podeVerSalario] = await Promise.all([
+  const [{ data }, podeVerSalario, departamentosPermitidos] = await Promise.all([
     supabase.from("comissao_tecnica").select("*").eq("id", params.id).single(),
     podeVerCampoSensivel(supabase, "salario"),
+    getDepartamentosPermitidos(supabase),
   ]);
+  // Tela única, aberta a partir da sidebar dos dois departamentos (ver docs/superpowers/specs/
+  // 2026-10-28-unificacao-comissao-tecnica-design.md) — mostra a sidebar de quem só tem a Base
+  // liberada; nos outros casos (só Profissional, ou os dois) usa o padrão (Profissional).
+  const departamento =
+    !departamentosPermitidos.includes("futebol_profissional") && departamentosPermitidos.includes("futebol_base")
+      ? "futebol_base"
+      : "futebol_profissional";
 
   if (!data) notFound();
 
@@ -39,7 +47,7 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
   };
 
   return (
-    <AppShell breadcrumb="Editar — Comissão Técnica/Diretoria">
+    <AppShell departamento={departamento} breadcrumb="Editar — Comissão Técnica/Diretoria">
       <Link href="/comissao-tecnica" className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
@@ -49,6 +57,7 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
           action={updateComissao}
           entityId={pessoa.id}
           defaultValues={defaultValues}
+          categoriasIniciais={pessoa.categorias}
           fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"
           podeVerSalario={podeVerSalario}

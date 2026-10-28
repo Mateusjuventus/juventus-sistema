@@ -147,6 +147,9 @@ function ElencoAtletaModal({
               className="w-full"
             />
           </div>
+          <Link href={`/treinador/atletas/${atleta.id}`} className="btn-primary btn-sm block text-center">
+            Ver ficha do atleta
+          </Link>
           <Link
             href={`/treinador/atletas/${atleta.id}/dispensa`}
             className="btn-secondary btn-sm block text-center"

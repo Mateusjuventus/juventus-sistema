@@ -1,37 +1,12 @@
-import Link from "next/link";
-import { AppShell } from "@/components/app-shell";
-import { createClient } from "@/lib/supabase/server";
-import { podeVerCampoSensivel } from "@/lib/auth/role";
-import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
-import { ComissaoBaseForm } from "../comissao-base-form";
-import { createComissaoBase } from "../actions";
+import { redirect } from "next/navigation";
 
-/** `?categoria=` só pré-marca o checkbox correspondente (ex.: veio do filtro da lista) — não é
- * mais uma exigência de rota, a pessoa pode marcar quantas quiser no formulário. */
-export default async function NovaComissaoBasePage({
+/** Cadastro unificado agora vive em `/comissao-tecnica/novo` — ver docs/superpowers/specs/
+ * 2026-10-28-unificacao-comissao-tecnica-design.md. Repassa a categoria pré-marcada, quando veio
+ * do link "+ Nova pessoa" filtrado por categoria na lista antiga. */
+export default function NovaComissaoBasePage({
   searchParams,
 }: {
   searchParams: { categoria?: string };
 }) {
-  const categoriaInicial = ehCategoriaBaseValida(searchParams.categoria ?? "")
-    ? [searchParams.categoria!]
-    : [];
-  const podeVerSalario = await podeVerCampoSensivel(createClient(), "salario");
-
-  return (
-    <AppShell departamento="futebol_base" breadcrumb="Nova pessoa — Comissão Técnica/Diretoria">
-      <Link href="/base/comissao-tecnica" className="text-sm font-medium text-grena hover:underline">
-        ← Voltar
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Nova pessoa — Comissão Técnica/Diretoria</h1>
-      <div className="mt-4">
-        <ComissaoBaseForm
-          action={createComissaoBase}
-          categoriasIniciais={categoriaInicial}
-          submitLabel="Cadastrar"
-          podeVerSalario={podeVerSalario}
-        />
-      </div>
-    </AppShell>
-  );
+  redirect(`/comissao-tecnica/novo${searchParams.categoria ? `?categoria=${searchParams.categoria}` : ""}`);
 }

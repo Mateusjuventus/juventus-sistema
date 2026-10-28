@@ -52,7 +52,7 @@ export async function assinarDocumento(
 
   const { data: perfil } = await supabase
     .from("perfis")
-    .select("nome, cargo, assinatura_path, comissao_tecnica_id, comissao_tecnica_base_id")
+    .select("nome, cargo, assinatura_path, comissao_tecnica_id")
     .eq("id", user.id)
     .maybeSingle();
   if (!perfil) {
@@ -151,7 +151,7 @@ export async function autoAssinarComoCreator(
   const supabase = createClient();
   const { data: perfil } = await supabase
     .from("perfis")
-    .select("nome, cargo, email, assinatura_path, comissao_tecnica_id, comissao_tecnica_base_id")
+    .select("nome, cargo, email, assinatura_path, comissao_tecnica_id")
     .eq("id", usuarioId)
     .maybeSingle();
   if (!perfil?.assinatura_path) return;

@@ -5,7 +5,7 @@ import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
 import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
 import { categoriaDaPosicao, corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
-import type { AtletaBaseRow, ComissaoTecnicaBaseRow } from "@/lib/supabase/types";
+import type { AtletaBaseRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
 import { nomeExibido, ordenarPorNomeExibido } from "@/lib/futebol/nome-atleta";
 import type { ConvocacaoFormState } from "@/lib/jogos-base/convocacao-actions";
 
@@ -174,7 +174,7 @@ export function ConvocacaoFormBase({
   action: (prevState: ConvocacaoFormState, formData: FormData) => Promise<ConvocacaoFormState>;
   jogoId: string;
   atletas: AtletaComFoto[];
-  comissao: ComissaoTecnicaBaseRow[];
+  comissao: ComissaoTecnicaRow[];
   atletaStatusMap: Record<string, "titular" | "reserva">;
   atletaNumeroCamisaMap: Record<string, number | null>;
   comissaoSelecionados: Set<string>;

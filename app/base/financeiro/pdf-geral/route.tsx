@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { getAssinaturasFinanceiroBase } from "@/lib/pdf/assinaturas";
-import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { podeVerCampoSensivel } from "@/lib/auth/role";
 import {
   calcularGeralBase,
@@ -25,7 +25,7 @@ import {
 import type {
   AtletaBaseContratoRow,
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   DespesaAvulsaBaseComCategoriaRow,
 } from "@/lib/supabase/types";
 
@@ -43,7 +43,7 @@ export async function GET() {
     { assinatura1, assinatura2 },
     podeVerSalario,
   ] = await Promise.all([
-    supabase.from("comissao_tecnica_base").select("*").order("nome_completo", { ascending: true }),
+    supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
     supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
     supabase
       .from("despesas_avulsas_base")
@@ -55,7 +55,11 @@ export async function GET() {
     podeVerCampoSensivel(supabase, "salario"),
   ]);
 
-  const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
+  // Comissão Técnica já é unificada (Profissional + Base) — só entra quem tem pelo menos uma
+  // categoria da Base (ver mesmo filtro em `geral-base-view.tsx`).
+  const comissao = ((comissaoData ?? []) as ComissaoTecnicaRow[]).filter((c) =>
+    c.categorias.some(ehCategoriaBaseValida),
+  );
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
   const contratosVigentes = (contratosData ?? []) as AtletaBaseContratoRow[];
@@ -80,7 +84,7 @@ export async function GET() {
   const comissaoPdf: RelatorioGeralBaseComissao[] = comissao.map((c) => ({
     nome: c.nome_completo,
     funcao: c.funcao,
-    categorias: c.categorias.map(categoriaBaseLabel).join(" · "),
+    categorias: c.categorias.filter(ehCategoriaBaseValida).map(categoriaBaseLabel).join(" · "),
     valorSalario: c.valor_salario,
   }));
 

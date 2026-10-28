@@ -10,26 +10,27 @@ function formatDataBr(iso: string): string {
 
 /**
  * Quem avisar pela Assinatura 1 (Supervisor) de um jogo da Base — todo usuário vinculado
- * (`perfis.comissao_tecnica_base_id`) a um registro da Comissão Técnica da Base com função
- * "Supervisor" e essa categoria entre as dela (mesma regra de
- * `resolverEhSupervisorDaCategoriaBase` em `lib/auth/role.ts`, só que achando todos os elegíveis em
- * vez de checar um só) — ver docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-
- * supervisor-design.md. Sem ninguém configurado pra essa categoria ainda, devolve `[null]` — mesmo
- * fallback de "avisar todo master" que um papel configurável sem vínculo já usa.
+ * (`perfis.comissao_tecnica_id`, já unificado — ver docs/superpowers/specs/2026-10-28-unificacao-
+ * comissao-tecnica-design.md) a um registro da Comissão Técnica com função "Supervisor" e essa
+ * categoria entre as dela (mesma regra de `resolverEhSupervisorDaCategoriaBase` em
+ * `lib/auth/role.ts`, só que achando todos os elegíveis em vez de checar um só) — ver
+ * docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md. Sem
+ * ninguém configurado pra essa categoria ainda, devolve `[null]` — mesmo fallback de "avisar todo
+ * master" que um papel configurável sem vínculo já usa.
  */
 async function buscarSupervisoresDaCategoriaBase(
   supabase: ReturnType<typeof createClient>,
   categoria: CategoriaBase,
 ): Promise<(string | null)[]> {
   const { data: comissao } = await supabase
-    .from("comissao_tecnica_base")
+    .from("comissao_tecnica")
     .select("id")
     .ilike("funcao", "%supervisor%")
     .contains("categorias", [categoria]);
   const idsComissao = (comissao ?? []).map((c) => c.id as string);
   if (idsComissao.length === 0) return [null];
 
-  const { data: perfisVinculados } = await supabase.from("perfis").select("id").in("comissao_tecnica_base_id", idsComissao);
+  const { data: perfisVinculados } = await supabase.from("perfis").select("id").in("comissao_tecnica_id", idsComissao);
   const ids = (perfisVinculados ?? []).map((p) => p.id as string);
   return ids.length > 0 ? ids : [null];
 }

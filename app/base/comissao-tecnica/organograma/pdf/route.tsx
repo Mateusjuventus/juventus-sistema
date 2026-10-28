@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { OrganogramaBaseDocument, type OrganogramaBaseNoDocumento } from "@/lib/pdf/organograma-base-document";
-import type { ComissaoTecnicaBaseRow, OrganogramaBaseLinhaRow, OrganogramaBaseRow } from "@/lib/supabase/types";
+import type { ComissaoTecnicaRow, OrganogramaBaseLinhaRow, OrganogramaBaseRow } from "@/lib/supabase/types";
 
 /** PDF do Organograma da Base — mesma resolução de nome/cargo (pessoa vinculada > texto livre >
  * "???") da tela (`app/base/comissao-tecnica/organograma/page.tsx`), mesma logo usada nos outros
@@ -16,7 +16,7 @@ export async function GET() {
 
   const [{ data: nosData }, { data: pessoasData }, { data: linhasData }] = await Promise.all([
     supabase.from("organograma_base").select("*").order("ordem", { ascending: true }),
-    supabase.from("comissao_tecnica_base").select("id, nome_completo, funcao"),
+    supabase.from("comissao_tecnica").select("id, nome_completo, funcao"),
     supabase.from("organograma_base_linha").select("linha, reporta_para, pos_x, pos_y, pos_manual"),
   ]);
 
@@ -27,7 +27,7 @@ export async function GET() {
     });
   }
 
-  const pessoas = (pessoasData ?? []) as Pick<ComissaoTecnicaBaseRow, "id" | "nome_completo" | "funcao">[];
+  const pessoas = (pessoasData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo" | "funcao">[];
   const pessoaPorId = new Map(pessoas.map((p) => [p.id, p]));
 
   const nos: OrganogramaBaseNoDocumento[] = nosBrutos.map((n) => {

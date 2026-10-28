@@ -233,6 +233,12 @@ export interface AtletaBaseContratoRow {
 /** Categorias de idade do Futebol de Base (Sub20 a Sub11) — ver `lib/auth/categorias-base.ts`. */
 export type CategoriaBase = "sub20" | "sub17" | "sub15" | "sub14" | "sub13" | "sub12" | "sub11";
 
+/** Categorias da Comissão Técnica unificada (Profissional + Base) — ver
+ * `lib/auth/categorias-base.ts` e docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-
+ * design.md. Só vale pra `comissao_tecnica.categorias`; não é um valor válido de `CategoriaBase`
+ * (atletas_base/jogos_base continuam sem "profissional"). */
+export type CategoriaComissaoTecnica = "profissional" | CategoriaBase;
+
 /** Tipo de contrato do atleta no Futebol de Base — mesmas opções de `AtletaTipoContrato` (incluindo
  * "formacao"), mais "Iniciação" (categorias mais jovens, sem vínculo formal ainda). */
 export type AtletaBaseTipoContrato = "definitivo" | "emprestimo" | "amador" | "formacao" | "iniciacao";
@@ -367,38 +373,17 @@ export interface AtletaDocumentoBaseRow {
  * `COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS` em `lib/validation/schemas.ts`. */
 export type ComissaoTecnicaTipoContrato = "clt" | "pj" | "sem_contrato";
 
+/** Tabela única de Comissão Técnica (Profissional + Base) desde a unificação — ver
+ * docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md. Antes desta frente,
+ * existia uma tabela própria `comissao_tecnica_base` (e um `ComissaoTecnicaBaseRow` aqui) só pra
+ * Base; agora `categorias` cobre os dois lados, com "profissional" como mais um valor possível ao
+ * lado das 7 categorias de `CategoriaBase`. A tabela antiga foi renomeada pra
+ * `comissao_tecnica_base_old` (guardada, não apagada) pela migration 0149. */
 export interface ComissaoTecnicaRow {
   id: string;
-  nome_completo: string;
-  rg: string;
-  cpf: string;
-  data_nascimento: string;
-  funcao: string;
-  telefone: string | null;
-  email: string | null;
-  foto_path: string | null;
-  /** Não é mais exibido/editado em lugar nenhum do sistema (cadastro ou Relatórios Avulsos) desde
-   * 25/08 — coluna mantida só pelo histórico de quem já preenchia (ver a spec de 25/08). */
-  tipo_quarto_preferido: TipoQuarto | null;
-  apelido: string | null;
-  tipo_contrato: ComissaoTecnicaTipoContrato | null;
-  data_inicio: string | null;
-  /** Salário mensal — mesmo campo que já existia em `ComissaoTecnicaBaseRow` (ver
-   * docs/superpowers/specs/2026-08-19-financeiro-base-design.md), agora também no Profissional. */
-  valor_salario: number | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Espelha `ComissaoTecnicaRow`, mas para o Futebol de Base — tabela `comissao_tecnica_base`, mais
- * `categoria` (ver `lib/auth/categorias-base.ts`). */
-export interface ComissaoTecnicaBaseRow {
-  id: string;
-  /** Uma pessoa pode atuar em mais de uma categoria (ex.: mesmo treinador no Sub-11 e no Sub-12) —
-   * ver docs/superpowers/specs/2026-08-19-comissao-tecnica-multi-categoria-design.md. Sempre pelo
-   * menos 1 item. */
-  categorias: CategoriaBase[];
+  /** Sempre pelo menos 1 item — uma pessoa pode estar em mais de uma categoria ao mesmo tempo (ex.:
+   * coordenador que acompanha o Profissional e o Sub-20, ou um treinador do Sub-11 e do Sub-12). */
+  categorias: CategoriaComissaoTecnica[];
   nome_completo: string;
   rg: string;
   cpf: string;
@@ -414,7 +399,7 @@ export interface ComissaoTecnicaBaseRow {
   tipo_contrato: ComissaoTecnicaTipoContrato | null;
   data_inicio: string | null;
   /** Salário mensal — snapshot do valor atual, não um lançamento recorrente (ver
-   * docs/superpowers/specs/2026-08-19-financeiro-base-design.md). `null` até o Mateus preencher. */
+   * docs/superpowers/specs/2026-08-19-financeiro-base-design.md). */
   valor_salario: number | null;
   created_by: string | null;
   created_at: string;
@@ -424,7 +409,11 @@ export interface ComissaoTecnicaBaseRow {
 /** Uma caixa do Organograma do Futebol de Base (ver
  * docs/superpowers/specs/2026-08-23-organograma-base-design.md). Com `comissao_tecnica_base_id`
  * preenchido, nome/função exibidos vêm sempre do cadastro vinculado — `nome`/`cargo` aqui só valem
- * pra caixa sem pessoa vinculada (Presidente, Diretor, vaga em aberto). */
+ * pra caixa sem pessoa vinculada (Presidente, Diretor, vaga em aberto). O nome da coluna ficou
+ * como estava depois da unificação da Comissão Técnica (ver docs/superpowers/specs/2026-10-28-
+ * unificacao-comissao-tecnica-design.md) — o Organograma continua só da Base — mas o id que ela
+ * guarda agora referencia `comissao_tecnica(id)` (tabela unificada), não mais uma tabela própria
+ * da Base. */
 export interface OrganogramaBaseRow {
   id: string;
   comissao_tecnica_base_id: string | null;
@@ -1575,17 +1564,19 @@ export interface PerfilRow {
    * acesso-por-categoria-comissao-tecnica-design.md) — quando preenchido, nome/função pra
    * assinatura digital passam a vir do registro vinculado em vez de `nome`/`cargo` acima (ver
    * `resolverNomeCargoParaAssinatura`), e `nome`/`cargo` desta linha viram somente-leitura em
-   * `/minha-conta`. `comissao_tecnica_id` é do Futebol Profissional; `comissao_tecnica_base_id` é
-   * do Futebol de Base e também passa a decidir `categorias_base_permitidas` (ver
-   * `getCategoriasBasePermitidas`) — se os dois estiverem preenchidos (não deveria acontecer em uso
-   * normal), o vínculo da Base tem prioridade. `null` até alguém vincular pela tela de Usuários. */
+   * `/minha-conta`. Desde a unificação da Comissão Técnica (ver docs/superpowers/specs/2026-10-28-
+   * unificacao-comissao-tecnica-design.md), é um vínculo só — antes existiam dois campos
+   * separados (`comissao_tecnica_id` pro Profissional, `comissao_tecnica_base_id` pra Base); a
+   * migration 0149 colapsou os dois, dando prioridade ao vínculo da Base quando os dois estavam
+   * preenchidos (mesma regra que já valia antes). Também passa a decidir `categorias_base_permitidas`
+   * quando o registro vinculado tem alguma categoria da Base entre as dele (ver
+   * `getCategoriasBasePermitidas`). `null` até alguém vincular pela tela de Usuários. */
   comissao_tecnica_id: string | null;
-  comissao_tecnica_base_id: string | null;
   /** Categorias do Futebol de Base que esta pessoa pode ver/acessar (Atletas, Jogos e tudo dentro
-   * de um jogo) — só usada quando `comissao_tecnica_base_id` está vazio (sem vínculo, o vínculo
-   * sempre tem prioridade e usa as categorias do próprio registro da Comissão Técnica). Segue a
-   * mesma convenção de todo o resto de `perfis`: "not null default <lista completa>", nunca "vazio
-   * = tudo liberado". */
+   * de um jogo) — só usada quando `comissao_tecnica_id` está vazio, ou vinculado a um registro sem
+   * nenhuma categoria da Base (sem vínculo útil pra Base, o vínculo sempre tem prioridade e usa as
+   * categorias do próprio registro da Comissão Técnica). Segue a mesma convenção de todo o resto de
+   * `perfis`: "not null default <lista completa>", nunca "vazio = tudo liberado". */
   categorias_base_permitidas: string[];
   /** Sub-área Fisioterapia do módulo Departamento Médico (Futebol Profissional) — ver docs/
    * superpowers/specs/2026-09-30-fisioterapia-design.md. "Master" sempre pode editar independente

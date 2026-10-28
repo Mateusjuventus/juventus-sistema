@@ -696,6 +696,19 @@ export const comissaoTecnicaBaseSchema = comissaoTecnicaSchema.extend({
 });
 export type ComissaoTecnicaBaseInput = z.infer<typeof comissaoTecnicaBaseSchema>;
 
+/** Mesmo formulário de `comissaoTecnicaSchema`, mas com `categorias` cobrindo também
+ * "profissional" — desde a unificação da Comissão Técnica (ver docs/superpowers/specs/2026-10-28-
+ * unificacao-comissao-tecnica-design.md), a tabela e o formulário são um só pros dois
+ * departamentos, com "Profissional" tratado como mais uma categoria ao lado das 7 da Base (mesmo
+ * padrão já usado em `copiarDiaProgramacaoSchema`, mais abaixo). Substitui `comissaoTecnicaSchema`/
+ * `comissaoTecnicaBaseSchema` no cadastro interno — os dois ficam só pelo histórico/referência. */
+export const comissaoTecnicaUnificadaSchema = comissaoTecnicaSchema.extend({
+  categorias: z
+    .array(z.enum(["profissional", "sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"]))
+    .min(1, { message: "Selecione ao menos uma categoria" }),
+});
+export type ComissaoTecnicaUnificadaInput = z.infer<typeof comissaoTecnicaUnificadaSchema>;
+
 /** Campo obrigatório do formulário público de Comissão Técnica — TODOS os campos são obrigatórios
  * aqui (pedido do Mateus: "para o preenchimento da comissão, todos os dados devem ser
  * obrigatórios"), diferente do cadastro interno (`comissaoTecnicaSchema`), onde a maioria continua

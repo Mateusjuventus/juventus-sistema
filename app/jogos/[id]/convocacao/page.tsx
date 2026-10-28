@@ -21,7 +21,11 @@ export default async function ConvocacaoPage({ params }: { params: { id: string 
     await Promise.all([
       supabase.from("jogos").select("*").eq("id", params.id).single(),
       supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
-      supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
+      supabase
+        .from("comissao_tecnica")
+        .select("*")
+        .contains("categorias", ["profissional"])
+        .order("nome_completo", { ascending: true }),
       supabase.from("convocacoes").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);
 

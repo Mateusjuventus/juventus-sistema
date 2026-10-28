@@ -4,7 +4,12 @@ import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { formatTelefone } from "@/lib/validation/telefone";
 import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import { podeVerCampoSensivel } from "@/lib/auth/role";
+import { getCategoriasBasePermitidas, getDepartamentosPermitidos, podeVerCampoSensivel } from "@/lib/auth/role";
+import {
+  categoriaComissaoTecnicaLabel,
+  ehCategoriaComissaoTecnicaValida,
+  type CategoriaComissaoTecnica,
+} from "@/lib/auth/categorias-base";
 import type { ComissaoTecnicaRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -25,17 +30,34 @@ function tipoContratoLabel(valor: string | null): string {
   return COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS.find((o) => o.value === valor)?.label ?? valor;
 }
 
-/** Exporta a lista de Comissão Técnica / Diretoria para Excel, respeitando o filtro de busca da tela. */
+/** Exporta a lista única de Comissão Técnica/Diretoria pra Excel (Profissional + Base já
+ * unificados — ver docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md),
+ * respeitando os filtros de busca/categoria da tela. */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
+  const categoria = searchParams.get("categoria")?.trim() ?? "";
   const supabase = createClient();
 
   let query = supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
+  if (categoria && ehCategoriaComissaoTecnicaValida(categoria)) query = query.contains("categorias", [categoria]);
 
-  const { data } = await query;
-  const pessoas = (data ?? []) as ComissaoTecnicaRow[];
+  const [{ data }, departamentosPermitidos, categoriasBasePermitidas] = await Promise.all([
+    query,
+    getDepartamentosPermitidos(supabase),
+    getCategoriasBasePermitidas(supabase),
+  ]);
+  // Mesmo filtro de blocos da tela (`app/comissao-tecnica/page.tsx`) — os dois interruptores de
+  // módulo continuam valendo mesmo exportando pra Excel, senão o Excel vira uma forma de contornar
+  // o que a tela já esconde.
+  const categoriasPermitidas: CategoriaComissaoTecnica[] = [
+    ...(departamentosPermitidos.includes("futebol_profissional") ? (["profissional"] as const) : []),
+    ...categoriasBasePermitidas,
+  ];
+  const pessoas = ((data ?? []) as ComissaoTecnicaRow[]).filter((p) =>
+    p.categorias.some((c) => categoriasPermitidas.includes(c)),
+  );
   // Mesmo bloqueio do formulário de edição — ver docs/superpowers/specs/2026-10-02-campos-
   // sensiveis-e-atletas-por-categoria-design.md. Quem tem "Salário" escondido não pode simplesmente
   // baixar o Excel pra contornar a tela.
@@ -43,6 +65,7 @@ export async function GET(request: NextRequest) {
 
   const linhas = pessoas.map((p) => ({
     "Nome completo": p.nome_completo,
+    "Categoria(s)": p.categorias.map(categoriaComissaoTecnicaLabel).join(", "),
     RG: p.rg,
     CPF: formatCPF(p.cpf),
     "Data de nascimento": formatData(p.data_nascimento),

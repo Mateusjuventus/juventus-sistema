@@ -48,3 +48,38 @@ export const CATEGORIA_BASE_COR: Record<CategoriaBase, string> = {
   sub12: "#BA97A9",
   sub11: "#D1BAC6",
 };
+
+/**
+ * Categorias da Comissão Técnica unificada (Profissional + Base) — ver
+ * docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md. "profissional" é
+ * específico desta tabela unificada (`comissao_tecnica.categorias`); NÃO é um valor válido em
+ * `atletas_base`/`jogos_base`, que continuam só com as 7 categorias de `CategoriaBase` acima — por
+ * isso é um tipo (e uma lista) à parte, em vez de estender `CategoriaBase` globalmente.
+ */
+export type CategoriaComissaoTecnica = "profissional" | CategoriaBase;
+
+export interface CategoriaComissaoTecnicaInfo {
+  value: CategoriaComissaoTecnica;
+  label: string;
+}
+
+export const CATEGORIAS_COMISSAO_TECNICA: CategoriaComissaoTecnicaInfo[] = [
+  { value: "profissional", label: "Profissional" },
+  ...CATEGORIAS_BASE,
+];
+
+export function ehCategoriaComissaoTecnicaValida(valor: string): valor is CategoriaComissaoTecnica {
+  return valor === "profissional" || ehCategoriaBaseValida(valor);
+}
+
+export function categoriaComissaoTecnicaLabel(valor: string): string {
+  return CATEGORIAS_COMISSAO_TECNICA.find((c) => c.value === valor)?.label ?? valor;
+}
+
+/** Mesma ideia de `CATEGORIA_BASE_COR`, mais "profissional" — usa `dourado` (ver `lib/theme.ts`),
+ * o acento de destaque já usado no sistema, pra marcar visualmente o bloco "Profissional" como
+ * algo diferente do degradê de idade da Base, sem introduzir uma cor nova fora da paleta. */
+export const CATEGORIA_COMISSAO_TECNICA_COR: Record<CategoriaComissaoTecnica, string> = {
+  profissional: "#B98F1E",
+  ...CATEGORIA_BASE_COR,
+};

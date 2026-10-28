@@ -5,17 +5,23 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
-import { comissaoTecnicaSchema } from "@/lib/validation/schemas";
+import { comissaoTecnicaUnificadaSchema } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 import { normalizeTelefone } from "@/lib/validation/telefone";
 
+/** Comissão Técnica já unificada (Profissional + Base, "profissional" tratado como mais uma
+ * categoria — ver docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md). Estas
+ * actions substituem as separadas que existiam antes (`app/base/comissao-tecnica/actions.ts`
+ * virou redirect). */
 export interface ComissaoFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
+  categoriasSelecionadas?: string[];
 }
 
 function parseForm(formData: FormData) {
+  const categorias = formData.getAll("categorias").map(String);
   const raw = {
     nomeCompleto: String(formData.get("nomeCompleto") ?? ""),
     apelido: String(formData.get("apelido") ?? ""),
@@ -30,8 +36,8 @@ function parseForm(formData: FormData) {
     dataInicio: String(formData.get("dataInicio") ?? ""),
   };
 
-  const result = comissaoTecnicaSchema.safeParse(raw);
-  return { raw, result };
+  const result = comissaoTecnicaUnificadaSchema.safeParse({ ...raw, categorias });
+  return { raw, categorias, result };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -61,12 +67,12 @@ export async function createComissao(
   _prevState: ComissaoFormState,
   formData: FormData,
 ): Promise<ComissaoFormState> {
-  const { raw, result } = parseForm(formData);
+  const { raw, categorias, result } = parseForm(formData);
 
   if (!result.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
-    return { fieldErrors, values: raw };
+    return { fieldErrors, values: raw, categoriasSelecionadas: categorias };
   }
 
   const supabase = createClient();
@@ -74,10 +80,11 @@ export async function createComissao(
   const data = result.data;
 
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
-  if (uploadError) return { error: uploadError, values: raw };
+  if (uploadError) return { error: uploadError, values: raw, categoriasSelecionadas: categorias };
 
   const { error } = await supabase.from("comissao_tecnica").insert({
     id,
+    categorias: data.categorias,
     nome_completo: data.nomeCompleto,
     apelido: data.apelido || null,
     rg: data.rg,
@@ -92,7 +99,7 @@ export async function createComissao(
     data_inicio: data.dataInicio || null,
   });
 
-  if (error) return { error: friendlyDbError(error), values: raw };
+  if (error) return { error: friendlyDbError(error), values: raw, categoriasSelecionadas: categorias };
 
   revalidatePath("/comissao-tecnica");
   redirect("/comissao-tecnica");
@@ -103,21 +110,22 @@ export async function updateComissao(
   formData: FormData,
 ): Promise<ComissaoFormState> {
   const id = String(formData.get("id") ?? "");
-  const { raw, result } = parseForm(formData);
+  const { raw, categorias, result } = parseForm(formData);
 
   if (!result.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
-    return { fieldErrors, values: raw };
+    return { fieldErrors, values: raw, categoriasSelecionadas: categorias };
   }
 
   const supabase = createClient();
   const data = result.data;
 
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
-  if (uploadError) return { error: uploadError, values: raw };
+  if (uploadError) return { error: uploadError, values: raw, categoriasSelecionadas: categorias };
 
   const updatePayload: Record<string, unknown> = {
+    categorias: data.categorias,
     nome_completo: data.nomeCompleto,
     apelido: data.apelido || null,
     rg: data.rg,
@@ -138,7 +146,7 @@ export async function updateComissao(
 
   const { error } = await supabase.from("comissao_tecnica").update(updatePayload).eq("id", id);
 
-  if (error) return { error: friendlyDbError(error), values: raw };
+  if (error) return { error: friendlyDbError(error), values: raw, categoriasSelecionadas: categorias };
 
   revalidatePath("/comissao-tecnica");
   redirect("/comissao-tecnica");

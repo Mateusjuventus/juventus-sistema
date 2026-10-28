@@ -166,8 +166,15 @@ export async function updateSession(request: NextRequest) {
   // Quem ainda não tem essas colunas preenchidas (não deveria acontecer, já que a migration
   // preenche todo mundo) cai no padrão "tudo liberado", pra nunca bloquear por engano.
   const pathname = request.nextUrl.pathname;
+  // Antes de 28/10, uma rota só podia ser módulo de UM departamento por vez (prefixos nunca se
+  // repetiam entre `MODULOS`/`MODULOS_BASE`), por isso `moduloBase` só era procurado quando
+  // `modulo` não batia. Desde a unificação da Comissão Técnica (ver docs/superpowers/specs/
+  // 2026-10-28-unificacao-comissao-tecnica-design.md), `/comissao-tecnica` é o prefixo do módulo
+  // NOS DOIS catálogos ao mesmo tempo — então os dois precisam ser checados sempre, sem
+  // short-circuit, pro bloco abaixo saber que é uma rota compartilhada (libera por QUALQUER UM dos
+  // dois departamentos, não os dois ao mesmo tempo).
   const modulo = user ? moduloDaRota(pathname) : undefined;
-  const moduloBase = user && !modulo ? moduloBaseDaRota(pathname) : undefined;
+  const moduloBase = user ? moduloBaseDaRota(pathname) : undefined;
   const isHubProfissional = pathname === "/profissional";
   const isHubBase = pathname === "/base";
   // Estoque tem três ramificações (Esportivo/Medicamentos/Materiais) com permissão própria — ver
@@ -190,7 +197,17 @@ export async function updateSession(request: NextRequest) {
     if (role !== "master") {
       let redirecionarPara: string | null = null;
 
-      if (modulo) {
+      if (modulo && moduloBase) {
+        // Rota compartilhada entre os dois departamentos (hoje só a Comissão Técnica unificada —
+        // ver docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md): libera
+        // quando a pessoa tem o módulo liberado em QUALQUER UM dos dois departamentos, nunca exige
+        // os dois — diferente das rotas abaixo, que só existem num departamento por vez.
+        const liberadoProfissional =
+          departamentosPermitidos.includes("futebol_profissional") && modulosPermitidos.includes(modulo.chave);
+        const liberadoBase =
+          departamentosPermitidos.includes("futebol_base") && modulosBasePermitidos.includes(moduloBase.chave);
+        if (!liberadoProfissional && !liberadoBase) redirecionarPara = "/";
+      } else if (modulo) {
         const semDepartamento = !departamentosPermitidos.includes("futebol_profissional");
         const semModulo = !modulosPermitidos.includes(modulo.chave);
         const semCategoriaEstoque =

@@ -17,9 +17,8 @@ function perfil(overrides: Partial<PerfilPermissoes>): PerfilPermissoes {
     estoque_categorias_permitidas: null,
     categorias_treinador: null,
     comissao_tecnica_id: null,
-    comissao_tecnica_base_id: null,
     categorias_base_permitidas: null,
-    comissao_tecnica_base: null,
+    comissao_tecnica: null,
     fisioterapia_pode_editar: null,
     fisioterapia_pode_editar_base: null,
     campos_sensiveis_bloqueados: null,
@@ -43,16 +42,37 @@ describe("resolverCategoriasBasePermitidas", () => {
     expect(resolverCategoriasBasePermitidas(p)).toEqual([]);
   });
 
-  it("vinculado à Comissão Técnica da Base usa as categorias do registro vinculado, ao vivo", () => {
+  it("vinculado à Comissão Técnica usa as categorias do registro vinculado, ao vivo", () => {
     const p = perfil({
       role: "regular",
       departamentos_permitidos: ["futebol_base"],
-      comissao_tecnica_base_id: "ct-1",
-      comissao_tecnica_base: { categorias: ["sub11", "sub12", "sub13", "sub14"], funcao: "Supervisor" },
+      comissao_tecnica_id: "ct-1",
+      comissao_tecnica: { categorias: ["sub11", "sub12", "sub13", "sub14"], funcao: "Supervisor" },
       // Fallback manual preenchido com outra coisa — o vínculo tem prioridade e ignora isso.
       categorias_base_permitidas: ["sub20"],
     });
     expect(resolverCategoriasBasePermitidas(p)).toEqual(["sub11", "sub12", "sub13", "sub14"]);
+  });
+
+  it("vinculado a um registro com categorias da Base E 'profissional' juntas, ignora 'profissional'", () => {
+    const p = perfil({
+      role: "regular",
+      departamentos_permitidos: ["futebol_base"],
+      comissao_tecnica_id: "ct-coordenador",
+      comissao_tecnica: { categorias: ["profissional", "sub20"], funcao: "Coordenador" },
+    });
+    expect(resolverCategoriasBasePermitidas(p)).toEqual(["sub20"]);
+  });
+
+  it("vinculado a um registro só 'profissional' (sem nenhuma categoria da Base) cai no fallback manual", () => {
+    const p = perfil({
+      role: "regular",
+      departamentos_permitidos: ["futebol_base"],
+      comissao_tecnica_id: "ct-so-profissional",
+      comissao_tecnica: { categorias: ["profissional"], funcao: "Técnico" },
+      categorias_base_permitidas: ["sub11"],
+    });
+    expect(resolverCategoriasBasePermitidas(p)).toEqual(["sub11"]);
   });
 
   it("sem vínculo, usa o fallback manual (categorias_base_permitidas)", () => {
@@ -73,12 +93,12 @@ describe("resolverCategoriasBasePermitidas", () => {
     expect(resolverCategoriasBasePermitidas(p)).toEqual(TODAS_CATEGORIAS_BASE);
   });
 
-  it("comissao_tecnica_base_id preenchido mas embed ausente (registro pode ter sido excluído) cai no fallback manual", () => {
+  it("comissao_tecnica_id preenchido mas embed ausente (registro pode ter sido excluído) cai no fallback manual", () => {
     const p = perfil({
       role: "regular",
       departamentos_permitidos: ["futebol_base"],
-      comissao_tecnica_base_id: "ct-orfao",
-      comissao_tecnica_base: null,
+      comissao_tecnica_id: "ct-orfao",
+      comissao_tecnica: null,
       categorias_base_permitidas: ["sub11"],
     });
     expect(resolverCategoriasBasePermitidas(p)).toEqual(["sub11"]);
@@ -116,21 +136,21 @@ describe("resolverEhSupervisorDaCategoriaBase", () => {
     expect(resolverEhSupervisorDaCategoriaBase(null, "sub11")).toBe(false);
   });
 
-  it("master sempre pode assinar, mesmo sem vínculo com a Comissão Técnica da Base", () => {
-    const p = perfil({ role: "master", comissao_tecnica_base_id: null, comissao_tecnica_base: null });
+  it("master sempre pode assinar, mesmo sem vínculo com a Comissão Técnica", () => {
+    const p = perfil({ role: "master", comissao_tecnica_id: null, comissao_tecnica: null });
     expect(resolverEhSupervisorDaCategoriaBase(p, "sub11")).toBe(true);
   });
 
-  it("regular sem vínculo com a Comissão Técnica da Base nunca pode assinar", () => {
-    const p = perfil({ role: "regular", comissao_tecnica_base_id: null, comissao_tecnica_base: null });
+  it("regular sem vínculo com a Comissão Técnica nunca pode assinar", () => {
+    const p = perfil({ role: "regular", comissao_tecnica_id: null, comissao_tecnica: null });
     expect(resolverEhSupervisorDaCategoriaBase(p, "sub11")).toBe(false);
   });
 
   it("vinculado, mas função não é Supervisor (ex.: Treinador) não pode assinar", () => {
     const p = perfil({
       role: "regular",
-      comissao_tecnica_base_id: "ct-1",
-      comissao_tecnica_base: { categorias: ["sub11", "sub12"], funcao: "Treinador" },
+      comissao_tecnica_id: "ct-1",
+      comissao_tecnica: { categorias: ["sub11", "sub12"], funcao: "Treinador" },
     });
     expect(resolverEhSupervisorDaCategoriaBase(p, "sub11")).toBe(false);
   });
@@ -138,8 +158,8 @@ describe("resolverEhSupervisorDaCategoriaBase", () => {
   it("Supervisor vinculado, mas a categoria do jogo não está entre as dele não pode assinar", () => {
     const p = perfil({
       role: "regular",
-      comissao_tecnica_base_id: "ct-2",
-      comissao_tecnica_base: { categorias: ["sub15", "sub17", "sub20"], funcao: "Supervisor" },
+      comissao_tecnica_id: "ct-2",
+      comissao_tecnica: { categorias: ["sub15", "sub17", "sub20"], funcao: "Supervisor" },
     });
     expect(resolverEhSupervisorDaCategoriaBase(p, "sub11")).toBe(false);
   });
@@ -147,8 +167,8 @@ describe("resolverEhSupervisorDaCategoriaBase", () => {
   it("Supervisor vinculado e a categoria do jogo está entre as dele pode assinar", () => {
     const p = perfil({
       role: "regular",
-      comissao_tecnica_base_id: "ct-3",
-      comissao_tecnica_base: { categorias: ["sub11", "sub12", "sub13", "sub14"], funcao: "Supervisor" },
+      comissao_tecnica_id: "ct-3",
+      comissao_tecnica: { categorias: ["sub11", "sub12", "sub13", "sub14"], funcao: "Supervisor" },
     });
     expect(resolverEhSupervisorDaCategoriaBase(p, "sub12")).toBe(true);
   });
@@ -156,8 +176,17 @@ describe("resolverEhSupervisorDaCategoriaBase", () => {
   it("comparação de função ignora maiúsculas/minúsculas e aceita rótulos mais longos", () => {
     const p = perfil({
       role: "regular",
-      comissao_tecnica_base_id: "ct-4",
-      comissao_tecnica_base: { categorias: ["sub20"], funcao: "SUPERVISOR de Futebol de Base" },
+      comissao_tecnica_id: "ct-4",
+      comissao_tecnica: { categorias: ["sub20"], funcao: "SUPERVISOR de Futebol de Base" },
+    });
+    expect(resolverEhSupervisorDaCategoriaBase(p, "sub20")).toBe(true);
+  });
+
+  it("Supervisor vinculado a um registro que também tem 'profissional' continua assinando a categoria da Base dele", () => {
+    const p = perfil({
+      role: "regular",
+      comissao_tecnica_id: "ct-coordenador",
+      comissao_tecnica: { categorias: ["profissional", "sub20"], funcao: "Supervisor" },
     });
     expect(resolverEhSupervisorDaCategoriaBase(p, "sub20")).toBe(true);
   });

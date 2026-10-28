@@ -1,10 +1,19 @@
-import { CATEGORIAS_BASE, type CategoriaBase } from "../auth/categorias-base";
+import { CATEGORIAS_BASE, ehCategoriaBaseValida, type CategoriaBase } from "../auth/categorias-base";
 import type {
   AtletaBaseContratoRow,
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   DespesaAvulsaBaseComCategoriaRow,
 } from "../supabase/types";
+
+/** Categorias da Base (ignora "profissional") de alguém da Comissão Técnica já unificada — ver
+ * docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md. Usada tanto pra decidir
+ * quem entra no Gasto Geral da Base quanto pra dividir o salário só entre as categorias da Base
+ * dessa pessoa (quem também é "profissional" tem esse lado do salário coberto no Financeiro do
+ * Profissional, não aqui). */
+function categoriasBaseDe(c: Pick<ComissaoTecnicaRow, "categorias">): CategoriaBase[] {
+  return c.categorias.filter(ehCategoriaBaseValida);
+}
 
 /** Valor "efetivo" de uma despesa avulsa da Base — o que já foi de fato pago, ou o previsto
  * enquanto isso não acontece. Mesmo raciocínio usado em `gastos_jogo`/`despesas_avulsas`. */
@@ -106,11 +115,14 @@ export interface GeralBaseResumo {
  * continua aparecendo o valor cheio, ela recebe isso por inteiro.
  */
 export function calcularGeralBase(
-  comissao: ComissaoTecnicaBaseRow[],
+  comissaoTodas: ComissaoTecnicaRow[],
   atletas: AtletaBaseRow[],
   despesas: DespesaAvulsaBaseComCategoriaRow[],
   contratosVigentes: AtletaBaseContratoRow[],
 ): GeralBaseResumo {
+  // Desde a unificação da Comissão Técnica, `comissaoTodas` pode trazer gente só do Profissional
+  // (sem nenhuma categoria da Base) — essa pessoa não entra no Gasto Geral da Base.
+  const comissao = comissaoTodas.filter((c) => categoriasBaseDe(c).length > 0);
   const contratoPorAtleta = mapaContratoVigentePorAtleta(contratosVigentes);
 
   const custoComissao = comissao.reduce((soma, c) => soma + (c.valor_salario ?? 0), 0);
@@ -123,8 +135,8 @@ export function calcularGeralBase(
   const linhasCategoria: LinhaCategoriaGeralBase[] = [
     ...CATEGORIAS_BASE.map((cat) => {
       const salarios = comissao
-        .filter((c) => c.categorias.includes(cat.value))
-        .reduce((soma, c) => soma + (c.valor_salario ?? 0) / c.categorias.length, 0);
+        .filter((c) => categoriasBaseDe(c).includes(cat.value))
+        .reduce((soma, c) => soma + (c.valor_salario ?? 0) / categoriasBaseDe(c).length, 0);
       const ajudas = atletas
         .filter((a) => a.categoria === cat.value)
         .reduce((soma, a) => soma + custoAtletaBase(a, contratoPorAtleta), 0);

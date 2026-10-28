@@ -47,7 +47,12 @@ export interface ModuloBaseInfo {
 
 export const MODULOS_BASE: ModuloBaseInfo[] = [
   { chave: "atletas", label: "Atletas", prefixo: "/base/atletas" },
-  { chave: "comissao_tecnica", label: "Comissão Técnica", prefixo: "/base/comissao-tecnica" },
+  // Rota compartilhada com o Profissional desde a unificação da Comissão Técnica — ver
+  // docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md. Prefixo igual ao de
+  // `MODULOS` (não mais "/base/comissao-tecnica", que agora só redireciona pra cá) — o middleware
+  // (`lib/supabase/middleware.ts`) já sabe lidar com um prefixo batendo nos dois catálogos ao
+  // mesmo tempo.
+  { chave: "comissao_tecnica", label: "Comissão Técnica", prefixo: "/comissao-tecnica" },
   { chave: "staff_operacional", label: "Staff Operacional", prefixo: "/base/staff-operacional" },
   { chave: "jogos", label: "Jogos", prefixo: "/base/jogos" },
   { chave: "competicoes", label: "Competições", prefixo: "/base/competicoes" },
@@ -78,7 +83,17 @@ export function ehModuloBaseValido(valor: string): valor is ModuloBaseChave {
   return (TODOS_MODULOS_BASE as string[]).includes(valor);
 }
 
-/** Acha o módulo de Base dono de uma rota, se houver — usado pelo middleware. */
+/** Acha o módulo de Base dono de uma rota, se houver — usado pelo middleware.
+ *
+ * Caso especial: `/base/comissao-tecnica/organograma` é uma sub-tela só da Base, que NÃO migrou na
+ * unificação da Comissão Técnica (ver docs/superpowers/specs/2026-10-28-unificacao-comissao-
+ * tecnica-design.md) — mas o prefixo do módulo em si mudou pra "/comissao-tecnica" (rota
+ * compartilhada com o Profissional, já que a lista virou uma só). Sem este caso especial, a
+ * Organograma ficaria sem nenhuma checagem de permissão de módulo (continuaria exigindo login,
+ * mas não mais o módulo "Comissão Técnica" liberado). */
 export function moduloBaseDaRota(pathname: string): ModuloBaseInfo | undefined {
+  if (pathname === "/base/comissao-tecnica/organograma" || pathname.startsWith("/base/comissao-tecnica/organograma/")) {
+    return MODULOS_BASE.find((m) => m.chave === "comissao_tecnica");
+  }
   return MODULOS_BASE.find((m) => pathname === m.prefixo || pathname.startsWith(`${m.prefixo}/`));
 }

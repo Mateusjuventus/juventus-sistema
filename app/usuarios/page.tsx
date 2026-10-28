@@ -5,10 +5,10 @@ import { isMaster } from "@/lib/auth/role";
 import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
-import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { CATEGORIAS_BASE, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { CAMPOS_SENSIVEIS } from "@/lib/auth/campos-sensiveis";
 import { ESTOQUE_CATEGORIAS, TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
-import { buscarComissaoTecnicaParaSelecao, buscarComissaoTecnicaBaseParaSelecao } from "@/lib/auth/perfis";
+import { buscarComissaoTecnicaParaSelecao } from "@/lib/auth/perfis";
 import type { PerfilRow } from "@/lib/supabase/types";
 import {
   alterarEmail,
@@ -51,12 +51,15 @@ export default async function UsuariosPage() {
     data: { user: usuarioAtual },
   } = await supabase.auth.getUser();
 
-  const [{ data }, comissaoTecnica, comissaoTecnicaBase] = await Promise.all([
+  const [{ data }, comissaoTecnica] = await Promise.all([
     supabase.from("perfis").select("*").order("created_at", { ascending: true }),
     buscarComissaoTecnicaParaSelecao(supabase),
-    buscarComissaoTecnicaBaseParaSelecao(supabase),
   ]);
   const perfis = (data ?? []) as PerfilRow[];
+  // Treinador só pode ser vinculado a alguém com categoria da Base (ver docs/superpowers/specs/
+  // 2026-10-02-assinatura-treinador-design.md) — filtra a lista unificada pra esse select
+  // (mesmo filtro usado em `usuario-form.tsx` pro cadastro de usuário novo).
+  const comissaoTecnicaBase = comissaoTecnica.filter((p) => p.categorias.some(ehCategoriaBaseValida));
 
   return (
     <AppShell breadcrumb="Usuários">
@@ -65,7 +68,7 @@ export default async function UsuariosPage() {
       </p>
 
       <div className="mt-6">
-        <UsuarioForm comissaoTecnica={comissaoTecnica} comissaoTecnicaBase={comissaoTecnicaBase} />
+        <UsuarioForm comissaoTecnica={comissaoTecnica} />
       </div>
 
       <div className="mt-6 space-y-4">
@@ -205,7 +208,7 @@ export default async function UsuariosPage() {
                       <VinculoTreinadorForm
                         id={perfil.id}
                         comissaoTecnicaBase={comissaoTecnicaBase}
-                        comissaoTecnicaBaseIdAtual={perfil.comissao_tecnica_base_id}
+                        comissaoTecnicaBaseIdAtual={perfil.comissao_tecnica_id}
                         action={atualizarVinculoTreinador}
                       />
                     </>
@@ -306,9 +309,7 @@ export default async function UsuariosPage() {
                         id={perfil.id}
                         departamentosPermitidos={departamentosPermitidos}
                         comissaoTecnica={comissaoTecnica}
-                        comissaoTecnicaBase={comissaoTecnicaBase}
                         comissaoTecnicaIdAtual={perfil.comissao_tecnica_id}
-                        comissaoTecnicaBaseIdAtual={perfil.comissao_tecnica_base_id}
                         categoriasBasePermitidasAtuais={categoriasBasePermitidas}
                         action={atualizarVinculoComissaoTecnica}
                       />

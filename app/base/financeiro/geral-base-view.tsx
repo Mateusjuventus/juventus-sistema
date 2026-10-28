@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
-import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { podeVerCampoSensivel } from "@/lib/auth/role";
 import {
   calcularGeralBase,
@@ -15,7 +15,7 @@ import { BarrasCategoria } from "@/components/charts/barras-categoria";
 import type {
   AtletaBaseContratoRow,
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   DespesaAvulsaBaseComCategoriaRow,
 } from "@/lib/supabase/types";
 import { deleteDespesaBase } from "./despesas/actions";
@@ -53,7 +53,7 @@ export async function GeralBaseView() {
 
   const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }, { data: contratosData }, podeVerSalario] =
     await Promise.all([
-      supabase.from("comissao_tecnica_base").select("*").order("nome_completo", { ascending: true }),
+      supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
       supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
       supabase
         .from("despesas_avulsas_base")
@@ -64,7 +64,12 @@ export async function GeralBaseView() {
       podeVerCampoSensivel(supabase, "salario"),
     ]);
 
-  const comissao = (comissaoData ?? []) as ComissaoTecnicaBaseRow[];
+  // Comissão Técnica já é unificada (Profissional + Base — ver docs/superpowers/specs/2026-10-28-
+  // unificacao-comissao-tecnica-design.md); aqui só entra quem tem pelo menos uma categoria da
+  // Base (quem é só "profissional" não aparece no Financeiro da Base).
+  const comissao = ((comissaoData ?? []) as ComissaoTecnicaRow[]).filter((c) =>
+    c.categorias.some(ehCategoriaBaseValida),
+  );
   const atletas = (atletasData ?? []) as AtletaBaseRow[];
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
   const contratosVigentes = (contratosData ?? []) as AtletaBaseContratoRow[];
@@ -157,7 +162,9 @@ export async function GeralBaseView() {
                   <tr key={c.id}>
                     <td className="px-4 py-3 font-medium text-neutral-800">{c.nome_completo}</td>
                     <td className="px-4 py-3">{c.funcao}</td>
-                    <td className="px-4 py-3">{c.categorias.map(categoriaBaseLabel).join(" · ")}</td>
+                    <td className="px-4 py-3">
+                      {c.categorias.filter(ehCategoriaBaseValida).map(categoriaBaseLabel).join(" · ")}
+                    </td>
                     <td className="px-4 py-3">{c.valor_salario ? formatMoeda(c.valor_salario) : "—"}</td>
                   </tr>
                 ))}

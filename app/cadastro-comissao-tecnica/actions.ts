@@ -119,6 +119,10 @@ export async function cadastrarComissaoTecnicaPublico(
 
   const { error } = await admin.from("comissao_tecnica").insert({
     id,
+    // Desde a unificação (ver docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-
+    // design.md), `categorias` é obrigatória (NOT NULL, sem default) — quem se cadastra por aqui é
+    // sempre "profissional" (o link público da Base é outro, `/cadastro-comissao-tecnica-base`).
+    categorias: ["profissional"],
     nome_completo: data.nomeCompleto,
     apelido: data.apelido,
     rg: data.rg,

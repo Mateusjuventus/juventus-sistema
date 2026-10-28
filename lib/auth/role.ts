@@ -15,7 +15,12 @@ import { TODOS_MODULOS_BASE, type ModuloBaseChave } from "@/lib/auth/modulos-bas
 import { TODOS_DEPARTAMENTOS, type DepartamentoChave } from "@/lib/auth/departamentos";
 import { TODAS_TAREFA_CATEGORIAS } from "@/lib/auth/tarefas-categorias";
 import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
-import { TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
+import {
+  TODAS_CATEGORIAS_BASE,
+  ehCategoriaBaseValida,
+  type CategoriaBase,
+  type CategoriaComissaoTecnica,
+} from "@/lib/auth/categorias-base";
 import type { CampoSensivel } from "@/lib/auth/campos-sensiveis";
 
 export interface PerfilPermissoes {
@@ -27,15 +32,18 @@ export interface PerfilPermissoes {
   estoque_categorias_permitidas: string[] | null;
   categorias_treinador: string[] | null;
   comissao_tecnica_id: string | null;
-  comissao_tecnica_base_id: string | null;
   categorias_base_permitidas: string[] | null;
-  /** Embed do PostgREST — só vem preenchido quando `comissao_tecnica_base_id` aponta pra um
-   * registro existente (ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-
-   * tecnica-design.md). Resolvido no mesmo round-trip da query de `buscarPerfilPermissoes`, sem
-   * query adicional nem quebra da memoização por request. `funcao` foi acrescentado ao embed em
+  /** Embed do PostgREST — só vem preenchido quando `comissao_tecnica_id` aponta pra um registro
+   * existente (ver docs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-
+   * design.md). Resolvido no mesmo round-trip da query de `buscarPerfilPermissoes`, sem query
+   * adicional nem quebra da memoização por request. `funcao` foi acrescentado ao embed em
    * docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md, pra
-   * decidir quem é Supervisor sem precisar de outra query. */
-  comissao_tecnica_base: { categorias: string[]; funcao: string } | null;
+   * decidir quem é Supervisor sem precisar de outra query. Desde a unificação da Comissão Técnica
+   * (ver docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md), `categorias`
+   * pode incluir "profissional" junto das categorias da Base — as funções abaixo que são
+   * específicas da Base (`resolverCategoriasBasePermitidas`, `resolverEhSupervisorDaCategoriaBase`)
+   * filtram/ignoram esse valor, sem mudar de comportamento. */
+  comissao_tecnica: { categorias: CategoriaComissaoTecnica[]; funcao: string } | null;
   /** Sub-área Fisioterapia do módulo Departamento Médico — ver
    * docs/superpowers/specs/2026-09-30-fisioterapia-design.md e `getFisioterapiaPodeEditar` abaixo. */
   fisioterapia_pode_editar: boolean | null;
@@ -88,9 +96,9 @@ const buscarPerfilPermissoes = cache(async (): Promise<PerfilPermissoes | null> 
     .select(
       "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, " +
         "tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador, " +
-        "comissao_tecnica_id, comissao_tecnica_base_id, categorias_base_permitidas, " +
+        "comissao_tecnica_id, categorias_base_permitidas, " +
         "fisioterapia_pode_editar, fisioterapia_pode_editar_base, campos_sensiveis_bloqueados, " +
-        "demandas_acompanhado, comissao_tecnica_base:comissao_tecnica_base_id(categorias, funcao)",
+        "demandas_acompanhado, comissao_tecnica:comissao_tecnica_id(categorias, funcao)",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -219,10 +227,12 @@ export async function getEstoqueCategoriasPermitidas(
  * tecnica-design.md.
  *
  * "Master" sempre tem as 7; quem não tem o departamento "futebol_base" liberado não tem nenhuma.
- * Quando a conta está vinculada a alguém da Comissão Técnica da Base (`comissao_tecnica_base_id`),
- * as categorias vêm AO VIVO do registro vinculado (editar a pessoa lá muda o acesso na hora, sem
- * precisar mexer no login) — só cai no fallback manual (`categorias_base_permitidas`) quando não
- * há vínculo.
+ * Quando a conta está vinculada a alguém da Comissão Técnica (`comissao_tecnica_id`) e esse
+ * registro tem pelo menos uma categoria da Base entre as dele, as categorias vêm AO VIVO de lá
+ * (editar a pessoa muda o acesso na hora, sem precisar mexer no login) — só cai no fallback manual
+ * (`categorias_base_permitidas`) sem vínculo, ou com um vínculo que não tem nenhuma categoria da
+ * Base (ex.: vinculado só a um registro "profissional"; não deveria acontecer em uso normal pra
+ * quem usa esta função, mas evita zerar o acesso por engano).
  */
 export function resolverCategoriasBasePermitidas(perfil: PerfilPermissoes | null): CategoriaBase[] {
   if (!perfil) return [];
@@ -231,8 +241,9 @@ export function resolverCategoriasBasePermitidas(perfil: PerfilPermissoes | null
   const departamentos = perfil.departamentos_permitidos ?? TODOS_DEPARTAMENTOS;
   if (!departamentos.includes("futebol_base")) return [];
 
-  if (perfil.comissao_tecnica_base_id && perfil.comissao_tecnica_base) {
-    return (perfil.comissao_tecnica_base.categorias ?? []) as CategoriaBase[];
+  if (perfil.comissao_tecnica_id && perfil.comissao_tecnica) {
+    const categoriasBase = perfil.comissao_tecnica.categorias.filter(ehCategoriaBaseValida);
+    if (categoriasBase.length > 0) return categoriasBase;
   }
   return (perfil.categorias_base_permitidas ?? TODAS_CATEGORIAS_BASE) as CategoriaBase[];
 }
@@ -264,11 +275,11 @@ export function resolverEhSupervisorDaCategoriaBase(
 ): boolean {
   if (!perfil) return false;
   if (perfil.role === "master") return true;
-  if (!perfil.comissao_tecnica_base_id || !perfil.comissao_tecnica_base) return false;
+  if (!perfil.comissao_tecnica_id || !perfil.comissao_tecnica) return false;
 
-  const { funcao, categorias } = perfil.comissao_tecnica_base;
+  const { funcao, categorias } = perfil.comissao_tecnica;
   if (!funcao.toLowerCase().includes("supervisor")) return false;
-  return (categorias as CategoriaBase[]).includes(categoria);
+  return categorias.includes(categoria);
 }
 
 /** Versão de `resolverEhSupervisorDaCategoriaBase` que já busca o perfil do usuário logado — usada

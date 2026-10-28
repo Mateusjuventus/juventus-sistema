@@ -8,14 +8,21 @@ import { TelefoneField } from "@/components/telefone-field";
 import { CurrencyField } from "@/components/currency-field";
 import { SubmitButton } from "@/components/submit-button";
 import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS, SUGESTOES_FUNCAO_COMISSAO } from "@/lib/validation/schemas";
+import { CATEGORIAS_COMISSAO_TECNICA } from "@/lib/auth/categorias-base";
 import type { ComissaoFormState } from "./actions";
 
 const initialState: ComissaoFormState = {};
 
+/** Cadastro único da Comissão Técnica/Diretoria — desde a unificação (ver docs/superpowers/specs/
+ * 2026-10-28-unificacao-comissao-tecnica-design.md), "Profissional" é só mais uma categoria ao
+ * lado das 7 da Base (checkboxes, não um único `<select>` — a mesma pessoa pode acumular mais de
+ * uma, ex.: coordenador que acompanha o Profissional e o Sub-20). Substitui os dois formulários
+ * que existiam antes (este e `app/base/comissao-tecnica/comissao-base-form.tsx`, agora removido). */
 export function ComissaoForm({
   action,
   entityId,
   defaultValues,
+  categoriasIniciais,
   fotoUrl,
   submitLabel,
   podeVerSalario = true,
@@ -23,6 +30,7 @@ export function ComissaoForm({
   action: (prevState: ComissaoFormState, formData: FormData) => Promise<ComissaoFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
+  categoriasIniciais?: string[];
   fotoUrl?: string | null;
   submitLabel: string;
   /** `false` quando este usuário tem "Salário" marcado como campo escondido (ver docs/superpowers/
@@ -34,6 +42,7 @@ export function ComissaoForm({
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
+  const categoriasSelecionadas = state.categoriasSelecionadas ?? categoriasIniciais ?? [];
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -80,6 +89,32 @@ export function ComissaoForm({
 
       <FormSection title="Função">
         <FieldGroup>
+          <div className="sm:col-span-2">
+            <p className="field-label">
+              Categoria(s)<span className="text-red-700"> *</span>
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {CATEGORIAS_COMISSAO_TECNICA.map((cat) => (
+                <label key={cat.value} className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    name="categorias"
+                    value={cat.value}
+                    defaultChecked={categoriasSelecionadas.includes(cat.value)}
+                    className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                  />
+                  {cat.label}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-neutral-400">
+              Marque mais de uma se a pessoa atua em mais de uma categoria (ex.: coordenador que
+              acompanha o Profissional e o Sub-20) — o salário mensal abaixo é dividido igualmente
+              entre as categorias da Base marcadas no Financeiro da Base (ver
+              docs/superpowers/specs/2026-08-19-financeiro-base-design.md).
+            </p>
+            {errors.categorias ? <p className="field-error">{errors.categorias}</p> : null}
+          </div>
           <SuggestionField
             label="Função/cargo"
             name="funcao"

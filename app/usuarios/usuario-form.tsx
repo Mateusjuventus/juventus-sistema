@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { MODULOS } from "@/lib/auth/modulos";
 import { MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { DEPARTAMENTOS } from "@/lib/auth/departamentos";
-import { CATEGORIAS_BASE, categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { CATEGORIAS_BASE, categoriaComissaoTecnicaLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { CAMPOS_SENSIVEIS } from "@/lib/auth/campos-sensiveis";
 import { TAREFA_CATEGORIAS, ESTOQUE_CATEGORIAS } from "@/lib/validation/schemas";
 import type { ComissaoTecnicaParaSelecao } from "@/lib/auth/perfis";
@@ -19,10 +19,8 @@ const CHECKBOX_CLASS = "h-4 w-4 rounded border-neutral-300 text-grena focus:ring
 
 export function UsuarioForm({
   comissaoTecnica,
-  comissaoTecnicaBase,
 }: {
   comissaoTecnica: ComissaoTecnicaParaSelecao[];
-  comissaoTecnicaBase: ComissaoTecnicaParaSelecao[];
 }) {
   const [state, formAction] = useFormState(criarUsuario, initialState);
   const [role, setRole] = useState(initialState.values?.role ?? "regular");
@@ -31,8 +29,23 @@ export function UsuarioForm({
   const [departamentosMarcados, setDepartamentosMarcados] = useState<string[]>(
     DEPARTAMENTOS.map((d) => d.chave),
   );
-  const [comissaoTecnicaBaseId, setComissaoTecnicaBaseId] = useState("");
-  const pessoaBaseSelecionada = comissaoTecnicaBase.find((p) => p.id === comissaoTecnicaBaseId);
+  // Treinador só pode ser vinculado a alguém com categoria da Base (ver docs/superpowers/specs/
+  // 2026-10-02-assinatura-treinador-design.md) — filtra a lista unificada pra essa parte do form.
+  const comissaoTecnicaBase = comissaoTecnica.filter((p) => p.categorias.some(ehCategoriaBaseValida));
+  // Vínculo (opcional) pra quem não é Treinador — desde a unificação é um select só, mas mostra só
+  // quem faz sentido pros departamentos marcados agora (alguém só "profissional" não aparece pra
+  // quem desmarcou Futebol Profissional, e vice-versa).
+  const [comissaoTecnicaId, setComissaoTecnicaId] = useState("");
+  const comissaoTecnicaOpcoes = comissaoTecnica.filter((p) => {
+    const temCategoriaBase = p.categorias.some(ehCategoriaBaseValida);
+    const temCategoriaProfissional = p.categorias.includes("profissional");
+    return (
+      (departamentosMarcados.includes("futebol_profissional") && temCategoriaProfissional) ||
+      (departamentosMarcados.includes("futebol_base") && temCategoriaBase)
+    );
+  });
+  const pessoaSelecionada = comissaoTecnicaOpcoes.find((p) => p.id === comissaoTecnicaId);
+  const categoriasBaseDaPessoaSelecionada = pessoaSelecionada?.categorias.filter(ehCategoriaBaseValida) ?? [];
   const values = state.values ?? {};
   const errors = state.fieldErrors ?? {};
 
@@ -195,13 +208,18 @@ export function UsuarioForm({
                   </div>
                 </div>
 
-                {departamentosMarcados.includes("futebol_profissional") ? (
+                {departamentosMarcados.includes("futebol_profissional") || departamentosMarcados.includes("futebol_base") ? (
                   <div>
-                    <SelectField label="Vincular a alguém da Comissão Técnica (Profissional)" name="comissaoTecnicaId" defaultValue="">
+                    <SelectField
+                      label="Vincular a alguém da Comissão Técnica"
+                      name="comissaoTecnicaId"
+                      defaultValue=""
+                      onChange={(value) => setComissaoTecnicaId(value)}
+                    >
                       <option value="">— Não vincular (preencher manualmente) —</option>
-                      {comissaoTecnica.map((p) => (
+                      {comissaoTecnicaOpcoes.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.rotulo}
+                          {p.rotulo} ({p.categorias.map(categoriaComissaoTecnicaLabel).join(", ")})
                         </option>
                       ))}
                     </SelectField>
@@ -297,35 +315,19 @@ export function UsuarioForm({
 
                 {departamentosMarcados.includes("futebol_base") ? (
                   <div className="border-t border-neutral-100 pt-3">
-                    <SelectField
-                      label="Vincular a alguém da Comissão Técnica (Base)"
-                      name="comissaoTecnicaBaseId"
-                      defaultValue=""
-                      onChange={(value) => setComissaoTecnicaBaseId(value)}
-                    >
-                      <option value="">— Não vincular (preencher manualmente) —</option>
-                      {comissaoTecnicaBase.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.rotulo}
-                        </option>
-                      ))}
-                    </SelectField>
-                    <p className="-mt-0.5 text-xs text-neutral-400">
-                      Vinculado, o nome/função da assinatura E as categorias que essa pessoa vê em
-                      Atletas e Jogos passam a vir do cadastro da Comissão Técnica — se atualizam
-                      sozinhos se ele mudar lá.
-                    </p>
-
-                    {pessoaBaseSelecionada ? (
-                      <p className="mt-2 rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-600">
-                        Categorias vinculadas:{" "}
-                        {(pessoaBaseSelecionada.categorias ?? []).map(categoriaBaseLabel).join(", ")}
+                    {pessoaSelecionada && categoriasBaseDaPessoaSelecionada.length > 0 ? (
+                      <p className="rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-600">
+                        Categorias vinculadas (Base):{" "}
+                        {categoriasBaseDaPessoaSelecionada.map(categoriaComissaoTecnicaLabel).join(", ")}
                       </p>
                     ) : (
-                      <div className="mt-2">
+                      <div>
                         <p className="field-label">Categorias do Futebol de Base liberadas</p>
                         <p className="-mt-0.5 text-xs text-neutral-400">
-                          Essa pessoa só vê/mexe, em Atletas e Jogos, nas categorias marcadas aqui.
+                          Essa pessoa só vê/mexe, em Atletas e Jogos, nas categorias marcadas aqui —
+                          a não ser que o vínculo com a Comissão Técnica acima já tenha categoria(s)
+                          da Base (nesse caso elas têm prioridade e aparecem em vez destes
+                          checkboxes).
                         </p>
                         <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
                           {CATEGORIAS_BASE.map((cat) => (
