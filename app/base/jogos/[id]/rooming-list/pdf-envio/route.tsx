@@ -15,7 +15,7 @@ import {
 import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   RoomingListBaseRow,
   RoomingListOcupanteBaseRow,
   RoomingListQuartoBaseRow,
@@ -67,7 +67,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       ? supabase.from("atletas_base").select("id, nome_completo, apelido").in("id", atletaIds)
       : Promise.resolve({ data: [] }),
     comissaoIds.length > 0
-      ? supabase.from("comissao_tecnica_base").select("id, nome_completo").in("id", comissaoIds)
+      ? supabase.from("comissao_tecnica").select("id, nome_completo").in("id", comissaoIds)
       : Promise.resolve({ data: [] }),
     staffIds.length > 0
       ? supabase.from("staff_operacional_base").select("id, nome_completo").in("id", staffIds)
@@ -79,7 +79,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     ((atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[]).map((a) => [a.id, a]),
   );
   const comissaoMap = new Map(
-    ((comissaoData ?? []) as Pick<ComissaoTecnicaBaseRow, "id" | "nome_completo">[]).map((c) => [c.id, c]),
+    ((comissaoData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo">[]).map((c) => [c.id, c]),
   );
   const staffMap = new Map(
     ((staffData ?? []) as Pick<StaffOperacionalBaseRow, "id" | "nome_completo">[]).map((s) => [s.id, s]),

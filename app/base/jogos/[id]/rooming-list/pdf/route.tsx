@@ -11,7 +11,7 @@ import { RoomingListDocument, type RoomingListPdfOcupante, type RoomingListPdfQu
 import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   RoomingListBaseRow,
   RoomingListOcupanteBaseRow,
   RoomingListQuartoBaseRow,
@@ -61,7 +61,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, adversarioLogoUrl] = await Promise.all([
     atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
     comissaoIds.length > 0
-      ? supabase.from("comissao_tecnica_base").select("*").in("id", comissaoIds)
+      ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
       : Promise.resolve({ data: [] }),
     staffIds.length > 0
       ? supabase.from("staff_operacional_base").select("*").in("id", staffIds)
@@ -70,7 +70,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   ]);
 
   const atletaMap = new Map(((atletasData ?? []) as AtletaBaseRow[]).map((a) => [a.id, a]));
-  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaBaseRow[]).map((c) => [c.id, c]));
+  const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c]));
   const staffMap = new Map(((staffData ?? []) as StaffOperacionalBaseRow[]).map((s) => [s.id, s]));
 
   const pessoaDe = (o: RoomingListOcupanteBaseRow): RoomingListPdfOcupante => {

@@ -11,7 +11,7 @@ import { compararPorNumeroCamisaGoleiroPrimeiro } from "@/lib/futebol/ordem-posi
 import { PresskitDocument, type AtletaPresskitItem } from "@/lib/pdf/presskit-document";
 import type {
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
   ConvocacaoComissaoBaseRow,
@@ -44,7 +44,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     supabase.from("convocacao_atletas_base").select("*, atleta:atletas_base(*)").eq("convocacao_id", convocacao.id),
     supabase
       .from("convocacao_comissao_base")
-      .select("*, pessoa:comissao_tecnica_base(nome_completo)")
+      .select("*, pessoa:comissao_tecnica(nome_completo)")
       .eq("convocacao_id", convocacao.id),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
@@ -80,7 +80,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const [titulares, reservas] = await Promise.all([comFoto(atletasTitulares), comFoto(atletasReservas)]);
 
   const comissaoNomes = ((ccData ?? []) as (ConvocacaoComissaoBaseRow & {
-    pessoa: Pick<ComissaoTecnicaBaseRow, "nome_completo"> | null;
+    pessoa: Pick<ComissaoTecnicaRow, "nome_completo"> | null;
   })[])
     .map((c) => c.pessoa?.nome_completo)
     .filter((nome): nome is string => Boolean(nome));

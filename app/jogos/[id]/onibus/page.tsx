@@ -30,7 +30,11 @@ export default async function OnibusPage({ params }: { params: { id: string } })
 
   const [{ data: todosAtletasData }, { data: todaComissaoData }, { data: onibusData }] = await Promise.all([
     supabase.from("atletas").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
-    supabase.from("comissao_tecnica").select("id, nome_completo, funcao").order("nome_completo", { ascending: true }),
+    supabase
+      .from("comissao_tecnica")
+      .select("id, nome_completo, funcao")
+      .contains("categorias", ["profissional"])
+      .order("nome_completo", { ascending: true }),
     supabase.from("onibus_lista").select("*").eq("jogo_id", jogo.id).eq("onibus_numero", 1).maybeSingle(),
   ]);
 

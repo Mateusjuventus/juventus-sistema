@@ -3,9 +3,10 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
+import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type {
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   OnibusListaBaseRow,
   OnibusPassageiroBaseRow,
 } from "@/lib/supabase/types";
@@ -40,14 +41,19 @@ export default async function OnibusBasePage({ params }: { params: { id: string 
       .select("id, nome_completo, posicao")
       .order("nome_completo", { ascending: true }),
     supabase
-      .from("comissao_tecnica_base")
-      .select("id, nome_completo, funcao")
+      .from("comissao_tecnica")
+      .select("id, nome_completo, funcao, categorias")
       .order("nome_completo", { ascending: true }),
     supabase.from("onibus_lista_base").select("*").eq("jogo_id", jogo.id).eq("onibus_numero", 1).maybeSingle(),
   ]);
 
   const todosAtletas = (todosAtletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "posicao">[];
-  const todaComissao = (todaComissaoData ?? []) as Pick<ComissaoTecnicaBaseRow, "id" | "nome_completo" | "funcao">[];
+  // Igual ao Organograma da Base — exclui quem só tem categoria Profissional, já que a tabela de
+  // Comissão Técnica/Diretoria agora é única (ver docs/superpowers/specs/2026-10-28-unificacao-
+  // comissao-tecnica-design.md).
+  const todaComissao = (
+    (todaComissaoData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo" | "funcao" | "categorias">[]
+  ).filter((p) => p.categorias.some(ehCategoriaBaseValida));
   const onibus = onibusData as OnibusListaBaseRow | null;
 
   let passageiros: OnibusPassageiroBaseRow[] = [];

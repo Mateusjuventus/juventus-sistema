@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import type {
   AtletaBaseRow,
-  ComissaoTecnicaBaseRow,
+  ComissaoTecnicaRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
   ConvocacaoComissaoBaseRow,
@@ -19,7 +19,7 @@ export interface ConvocadosJogoBase {
   jogo: JogoBaseRow;
   convocacao: ConvocacaoBaseRow | null;
   atletas: AtletaBaseRow[];
-  comissao: ComissaoTecnicaBaseRow[];
+  comissao: ComissaoTecnicaRow[];
 }
 
 export async function getJogoBaseEConvocados(jogoId: string): Promise<ConvocadosJogoBase | null> {
@@ -44,14 +44,14 @@ export async function getJogoBaseEConvocados(jogoId: string): Promise<Convocados
     supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
     supabase
       .from("convocacao_comissao_base")
-      .select("*, pessoa:comissao_tecnica_base(*)")
+      .select("*, pessoa:comissao_tecnica(*)")
       .eq("convocacao_id", convocacao.id),
   ]);
 
   const convocacaoAtletaIds = ((caData ?? []) as ConvocacaoAtletaBaseRow[]).map((c) => c.atleta_id);
-  const comissao = ((ccData ?? []) as (ConvocacaoComissaoBaseRow & { pessoa: ComissaoTecnicaBaseRow | null })[])
+  const comissao = ((ccData ?? []) as (ConvocacaoComissaoBaseRow & { pessoa: ComissaoTecnicaRow | null })[])
     .map((c) => c.pessoa)
-    .filter((p): p is ComissaoTecnicaBaseRow => Boolean(p));
+    .filter((p): p is ComissaoTecnicaRow => Boolean(p));
 
   let atletas: AtletaBaseRow[] = [];
   if (convocacaoAtletaIds.length > 0) {
