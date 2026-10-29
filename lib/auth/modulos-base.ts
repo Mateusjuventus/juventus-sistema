@@ -46,7 +46,13 @@ export interface ModuloBaseInfo {
 }
 
 export const MODULOS_BASE: ModuloBaseInfo[] = [
-  { chave: "atletas", label: "Atletas", prefixo: "/base/atletas" },
+  // Rota compartilhada com o Profissional desde a unificação de Atletas (28/10/2026, ver
+  // docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md) — mesmo tratamento que
+  // `comissao_tecnica` já recebeu (comentário abaixo). Prefixo igual ao de `MODULOS`; o que ainda
+  // mora em "/base/atletas/..." (Campograma, Relação de Atletas, Relatório de Dispensa, Dados de
+  // Jogo, Exportação, Configurações, e os redirects antigos pra `/atletas/...`) continua coberto
+  // pelo caso especial em `moduloBaseDaRota` logo abaixo.
+  { chave: "atletas", label: "Atletas", prefixo: "/atletas" },
   // Rota compartilhada com o Profissional desde a unificação da Comissão Técnica — ver
   // docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md. Prefixo igual ao de
   // `MODULOS` (não mais "/base/comissao-tecnica", que agora só redireciona pra cá) — o middleware
@@ -94,6 +100,13 @@ export function ehModuloBaseValido(valor: string): valor is ModuloBaseChave {
 export function moduloBaseDaRota(pathname: string): ModuloBaseInfo | undefined {
   if (pathname === "/base/comissao-tecnica/organograma" || pathname.startsWith("/base/comissao-tecnica/organograma/")) {
     return MODULOS_BASE.find((m) => m.chave === "comissao_tecnica");
+  }
+  // Mesma ideia do caso especial acima, agora pra Atletas: o prefixo do módulo mudou pra
+  // "/atletas" (ver comentário em `MODULOS_BASE`), mas uma parte das telas nunca saiu de
+  // "/base/atletas/..." — sem este caso especial, essas rotas ficariam sem checagem de módulo
+  // nenhuma (nem Profissional nem Base bateria), liberadas pra qualquer um logado.
+  if (pathname === "/base/atletas" || pathname.startsWith("/base/atletas/")) {
+    return MODULOS_BASE.find((m) => m.chave === "atletas");
   }
   return MODULOS_BASE.find((m) => pathname === m.prefixo || pathname.startsWith(`${m.prefixo}/`));
 }
