@@ -7,6 +7,7 @@ import { ContratoSecao } from "@/components/contrato-secao";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
+import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
 import { AtletaForm } from "../atleta-form";
@@ -45,13 +46,18 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
   const contratos = (contratosData ?? []) as AtletaContratoRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const isBase = atleta.categoria !== "profissional";
+  // Atleta criado pela inclusão rápida do Campograma chega aqui com RG/CPF "placeholder" (ver
+  // `cadastroIncompletoRapido` em lib/futebol/campograma.ts) — o formulário começa com esses dois
+  // campos vazios, nunca com o id/dígitos sintéticos internos, pra forçar o preenchimento de verdade
+  // em vez de deixar passar sem querer.
+  const rgCpfPendente = cadastroIncompletoRapido(atleta.rg);
 
   const defaultValues: Record<string, string> = {
     categoria: atleta.categoria,
     nomeCompleto: atleta.nome_completo,
     apelido: atleta.apelido ?? "",
-    rg: atleta.rg,
-    cpf: formatCPF(atleta.cpf),
+    rg: rgCpfPendente ? "" : atleta.rg,
+    cpf: rgCpfPendente ? "" : formatCPF(atleta.cpf),
     dataNascimento: atleta.data_nascimento,
     posicao: atleta.posicao,
     numeroCamisa: atleta.numero_camisa?.toString() ?? "",

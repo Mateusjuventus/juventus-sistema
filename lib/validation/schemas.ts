@@ -263,10 +263,16 @@ export type AtletaContratoInput = z.infer<typeof atletaContratoSchema>;
 
 /**
  * Inclusão rápida de atleta pelo Campograma (ver docs/superpowers/specs/
- * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) — só Nome + Posição; categoria vem do
- * estado da própria página (a categoria vista no momento), não é um campo digitado. RG/CPF/data de
- * nascimento ficam de fora de propósito (`null` na criação) — diferente de `atletaBaseSchema`, este
- * schema é enxuto e autocontido, não uma extensão do grande.
+ * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) — Nome + Posição + Data de nascimento;
+ * categoria vem do estado da própria página (a categoria vista no momento), não é um campo digitado.
+ * RG/CPF ficam de fora de propósito (placeholder único na criação, ver `criarAtletaRapidoCampograma`
+ * em app/base/atletas/campograma/actions.ts) — diferente de `atletaBaseSchema`, este schema é enxuto
+ * e autocontido, não uma extensão do grande.
+ *
+ * Data de nascimento virou obrigatória aqui em 29/10/2026 (sweep da unificação de Atletas):
+ * `atletas.data_nascimento` é `not null` desde sempre (já valia pro Profissional) e, diferente de
+ * RG/CPF, não dá pra inventar um placeholder sem distorcer idade/relatórios — Mateus decidiu pedir o
+ * campo no formulário em vez de relaxar a constraint pra tabela toda.
  */
 export const atletaRapidoCampogramaSchema = z.object({
   nomeCompleto: z
@@ -277,6 +283,7 @@ export const atletaRapidoCampogramaSchema = z.object({
   categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
     errorMap: () => ({ message: "Categoria inválida" }),
   }),
+  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
 });
 export type AtletaRapidoCampogramaInput = z.infer<typeof atletaRapidoCampogramaSchema>;
 

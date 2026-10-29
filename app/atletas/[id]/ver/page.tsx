@@ -17,6 +17,7 @@ import { formatTelefone } from "@/lib/validation/telefone";
 import { formatCEP } from "@/lib/validation/cep";
 import { categoriaAtletaLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
+import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
 import { ContratoSecao } from "@/components/contrato-secao";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { alternarAtletaAtivo } from "../../actions";
@@ -116,11 +117,13 @@ function BlocoDetalhe({ titulo, children }: { titulo: string; children: ReactNod
 }
 
 /** Atleta criado pela inclusão rápida do Campograma (ver docs/superpowers/specs/
- * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) fica marcado assim até RG, CPF e data de
- * nascimento serem preenchidos pelo formulário normal de edição — só acontece na Base (o
- * Campograma não existe pro Profissional). */
-function cadastroIncompleto(atleta: Pick<AtletaRow, "rg" | "cpf" | "data_nascimento">): boolean {
-  return !atleta.rg || !atleta.cpf || !atleta.data_nascimento;
+ * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) fica marcado assim até RG e CPF serem
+ * preenchidos de verdade pelo formulário normal de edição — só acontece na Base (o Campograma não
+ * existe pro Profissional). Desde 29/10/2026 `atletas.rg`/`cpf` nunca são `null` (a tabela unificada
+ * não aceita), então a detecção passou a ser o placeholder gravado pela inclusão rápida — ver
+ * `cadastroIncompletoRapido` em lib/futebol/campograma.ts. */
+function cadastroIncompleto(atleta: Pick<AtletaRow, "rg">): boolean {
+  return cadastroIncompletoRapido(atleta.rg);
 }
 
 /**
@@ -229,8 +232,13 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
           <FieldGroup>
             <DetailField label="Nome completo" value={atleta.nome_completo} />
             <DetailField label="Apelido" value={atleta.apelido} />
-            <DetailField label="RG" value={atleta.rg} />
-            <DetailField label="CPF" value={atleta.cpf ? formatCPF(atleta.cpf) : null} />
+            {/* Placeholder da inclusão rápida (ver `cadastroIncompleto` acima) não é um RG/CPF de
+                verdade — mostra "Pendente" em vez do valor interno (id/dígitos sintéticos). */}
+            <DetailField label="RG" value={cadastroIncompletoRapido(atleta.rg) ? "Pendente" : atleta.rg} />
+            <DetailField
+              label="CPF"
+              value={cadastroIncompletoRapido(atleta.rg) ? "Pendente" : atleta.cpf ? formatCPF(atleta.cpf) : null}
+            />
             <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
             <DetailField label="Naturalidade" value={atleta.cidade_natal} />
             <DetailField label="UF natal" value={atleta.uf_natal} />

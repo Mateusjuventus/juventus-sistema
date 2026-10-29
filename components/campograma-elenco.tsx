@@ -492,6 +492,7 @@ function PainelNovoAtleta({
   const [, startTransition] = useTransition();
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [posicaoEscolhida, setPosicaoEscolhida] = useState<string>(posicao);
+  const [dataNascimento, setDataNascimento] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -499,7 +500,7 @@ function PainelNovoAtleta({
     setErro(null);
     setSalvando(true);
     startTransition(async () => {
-      const resultado = await criarAtletaRapidoCampograma(nomeCompleto, posicaoEscolhida, categoria);
+      const resultado = await criarAtletaRapidoCampograma(nomeCompleto, posicaoEscolhida, categoria, dataNascimento);
       setSalvando(false);
       if (resultado.error) {
         setErro(resultado.error);
@@ -513,7 +514,7 @@ function PainelNovoAtleta({
   return (
     <ModalShell
       titulo="Novo atleta rápido"
-      subtitulo="Nome e posição — o resto do cadastro pode ser completado depois."
+      subtitulo="Nome, posição e data de nascimento — RG, CPF e o resto do cadastro podem ser completados depois."
       onClose={onClose}
       footer={
         <>
@@ -523,7 +524,7 @@ function PainelNovoAtleta({
           <button
             type="button"
             onClick={salvar}
-            disabled={salvando || !nomeCompleto.trim()}
+            disabled={salvando || !nomeCompleto.trim() || !dataNascimento}
             className="btn-primary"
           >
             {salvando ? "Salvando..." : "Salvar"}
@@ -557,6 +558,15 @@ function PainelNovoAtleta({
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="field-label">Data de nascimento</label>
+          <input
+            type="date"
+            value={dataNascimento}
+            onChange={(e) => setDataNascimento(e.target.value)}
+            className="field-input"
+          />
         </div>
       </div>
     </ModalShell>

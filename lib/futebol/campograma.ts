@@ -49,6 +49,19 @@ export const ORDEM_POSICOES_CAMPOGRAMA: AtletaPosicao[] = [
 
 const POSICOES_VALIDAS = new Set<string>(ORDEM_POSICOES_CAMPOGRAMA);
 
+/** Prefixo do RG "placeholder" gravado pela inclusão rápida do Campograma (ver
+ * `criarAtletaRapidoCampograma` em app/base/atletas/campograma/actions.ts) — `atletas.rg` é
+ * `not null` desde sempre (0001_init.sql), e diferente da antiga `atletas_base` não dá pra deixar
+ * em branco até o formulário completo ser preenchido. CPF ganha um placeholder numérico junto (o
+ * `check (cpf ~ '^\d{11}$')` do banco não aceita texto), mas não precisa de detecção própria: os
+ * dois são sempre gravados juntos pelo mesmo fluxo, então checar só o RG basta. */
+export const RG_PENDENTE_PREFIXO = "PENDENTE-";
+
+/** "Cadastro incompleto" (RG/CPF ainda não preenchidos de verdade) — ver `RG_PENDENTE_PREFIXO`. */
+export function cadastroIncompletoRapido(rg: string): boolean {
+  return rg.startsWith(RG_PENDENTE_PREFIXO);
+}
+
 export type GrupoCampograma = Record<AtletaPosicao | "sem_posicao", AtletaCampograma[]>;
 
 /** Nome curto pra mostrar no token — apelido quando existir, senão o primeiro nome. */

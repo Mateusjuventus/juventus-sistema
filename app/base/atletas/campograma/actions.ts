@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ATLETA_POSICAO_OPTIONS, atletaRapidoCampogramaSchema } from "@/lib/validation/schemas";
+import { RG_PENDENTE_PREFIXO } from "@/lib/futebol/campograma";
 
 export interface MoverAtletaCampogramaState {
   error?: string;
@@ -94,39 +95,49 @@ export interface CriarAtletaRapidoCampogramaState {
 
 /**
  * Inclusão rápida de atleta pelo Campograma (ver spec acima, seção 4) — cria de verdade uma linha em
- * `atletas_base` (não passa pela Captação/Avaliação: é um atleta já ocupando uma posição no elenco
- * ativo, não um candidato em teste). RG/CPF/data de nascimento ficam `null`; o atleta fica sinalizado
- * como "Cadastro incompleto" nas listagens/página do atleta até serem preenchidos pelo formulário
- * normal de edição.
+ * `atletas` (não passa pela Captação/Avaliação: é um atleta já ocupando uma posição no elenco ativo,
+ * não um candidato em teste). RG e CPF recebem um placeholder único (ver abaixo); data de nascimento
+ * agora é pedida no próprio formulário rápido. O atleta fica sinalizado como "Cadastro incompleto"
+ * nas listagens/página do atleta até RG/CPF serem preenchidos de verdade pelo formulário normal de
+ * edição (ver `cadastroIncompletoRapido` em lib/futebol/campograma.ts).
+ *
+ * Decisão do Mateus em 29/10/2026 (sweep da unificação de Atletas): `atletas.rg`/`cpf` são
+ * `not null` + `unique` desde a criação da tabela (0001_init.sql) — diferente da antiga
+ * `atletas_base`, que aceitava os 2 como `null`. Em vez de relaxar a constraint pra tabela toda
+ * (afetaria o Profissional e ~130 lugares do sistema que tratam esses campos como string sempre
+ * preenchida), optou por manter a constraint e gravar um placeholder reconhecível.
  */
 export async function criarAtletaRapidoCampograma(
   nomeCompleto: string,
   posicao: string,
   categoria: string,
+  dataNascimento: string,
 ): Promise<CriarAtletaRapidoCampogramaState> {
-  const parsed = atletaRapidoCampogramaSchema.safeParse({ nomeCompleto, posicao, categoria });
+  const parsed = atletaRapidoCampogramaSchema.safeParse({ nomeCompleto, posicao, categoria, dataNascimento });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
   const supabase = createClient();
   const id = randomUUID();
-  // ATENÇÃO (sweep da unificação de Atletas, 29/10/2026): `atletas.rg`/`cpf`/`data_nascimento` são
-  // `not null` (e `rg`/`cpf` são `unique`) desde a criação da tabela — diferente de `atletas_base`,
-  // que aceitava os 3 como `null` (daí o "RG/CPF/data de nascimento ficam null" no comentário
-  // acima). Com a tabela renomeada pra `atletas`, este insert passa a falhar (violação de not-null)
-  // até alguém decidir o que fazer: relaxar a constraint pra toda a tabela (afeta o Profissional
-  // também) ou gerar um placeholder único por atleta. Avisar o Mateus antes de "resolver" isso
-  // sozinho — não é um ajuste mecânico de nome de tabela.
+  // RG não tem formato fixo no banco (só `not null` + `unique`): usa o próprio id como placeholder,
+  // fácil de reconhecer na tela (`cadastroIncompletoRapido`, prefixo `RG_PENDENTE_PREFIXO`). CPF tem
+  // `check (cpf ~ '^\d{11}$')` — não dá pra usar texto, então deriva 11 dígitos do próprio id (já
+  // único por ser gen_random_uuid) em vez de sortear: colisão exigiria dois atletas cujo id batesse
+  // nos mesmos 11 dígitos finais, praticamente impossível, e o `unique` do banco ainda pega qualquer
+  // coincidência (o insert falharia com o erro genérico abaixo, bastando tentar criar de novo).
+  const rgPlaceholder = `${RG_PENDENTE_PREFIXO}${id}`;
+  const cpfPlaceholder = BigInt(`0x${id.replace(/-/g, "")}`).toString().slice(-11).padStart(11, "0");
+
   const { error } = await supabase.from("atletas").insert({
     id,
     categoria: parsed.data.categoria,
     nome_completo: parsed.data.nomeCompleto,
     posicao: parsed.data.posicao,
+    data_nascimento: parsed.data.dataNascimento,
     status: "liberado",
-    rg: null,
-    cpf: null,
-    data_nascimento: null,
+    rg: rgPlaceholder,
+    cpf: cpfPlaceholder,
   });
 
   if (error) return { error: "Não foi possível incluir o atleta. Tente novamente." };
