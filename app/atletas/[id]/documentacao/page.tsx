@@ -5,6 +5,7 @@ import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedDocumentoUrl, getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { categoriaAtletaLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { AtletaDocumentoRow, AtletaRow } from "@/lib/supabase/types";
 import { DocumentoForm } from "./documento-form";
 import { adicionarDocumento, removerDocumento } from "./actions";
@@ -15,7 +16,9 @@ function formatDataHora(iso: string): string {
 }
 
 /** Aba "Documentação" do perfil do atleta — lista de arquivos anexados (nome + arquivo, sem
- * categoria/validade). Ver docs/superpowers/specs/2026-08-04-estatisticas-atleta-design.md. */
+ * categoria/validade), única pro Futebol Profissional e pro Futebol de Base desde a unificação de
+ * 28/10/2026 (ver docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md). Ver
+ * docs/superpowers/specs/2026-08-04-estatisticas-atleta-design.md. */
 export default async function DocumentacaoAtletaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
@@ -31,16 +34,19 @@ export default async function DocumentacaoAtletaPage({ params }: { params: { id:
   if (!atletaData) notFound();
 
   const atleta = atletaData as AtletaRow;
+  const isBase = ehCategoriaBaseValida(atleta.categoria);
   const documentos = (documentosData ?? []) as AtletaDocumentoRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
-  const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
+  const subtitulo = isBase
+    ? `${categoriaAtletaLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`
+    : `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
   const documentosComUrl = await Promise.all(
     documentos.map(async (d) => ({ ...d, url: await getSignedDocumentoUrl(supabase, d.arquivo_path) })),
   );
 
   return (
-    <AppShell breadcrumb="Documentação">
+    <AppShell departamento={isBase ? "futebol_base" : undefined} breadcrumb="Documentação">
       <AtletaTabs atletaId={atleta.id} active="documentacao" />
 
       <AtletaPerfilHeader

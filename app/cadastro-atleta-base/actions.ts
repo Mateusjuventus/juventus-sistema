@@ -10,8 +10,8 @@ import { normalizeCPF } from "@/lib/validation/cpf";
 /**
  * Ficha de Cadastro pública de Atleta (link sem login, ver app/cadastro-atleta-base/page.tsx e
  * docs/superpowers/specs/2026-08-19-captacao-atletas-separacao-design.md). Cria DIRETO em
- * `atletas_base`, com `status: "liberado"` fixado no servidor — sem relação nenhuma com a Captação
- * (esse link não passa por lá). Desde 25/08 (docs/superpowers/specs/
+ * `atletas` (categoria = uma das 7 de Base), com `status: "liberado"` fixado no servidor — sem
+ * relação nenhuma com a Captação (esse link não passa por lá). Desde 25/08 (docs/superpowers/specs/
  * 2026-08-25-atleta-contrato-posicao-cpf-design.md) TODOS os campos são obrigatórios, inclusive
  * RG/CPF; campos administrativos do clube (número de camisa/CBF/FPF, tipo de contrato, "Data de
  * início do contrato") continuam de fora do formulário — o Mateus completa depois pela tela
@@ -21,9 +21,16 @@ import { normalizeCPF } from "@/lib/validation/cpf";
  * livre). Terceira rodada de 25/08: pé dominante e "Data de início no clube" (distinta de "Data de
  * início do contrato" — essa segunda continua fora daqui) também passaram a ser obrigatórios.
  *
+ * Desde a unificação de Atletas (28/10/2026, ver
+ * docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md): grava em `atletas` (a tabela
+ * `atletas_base` original foi renomeada pra `atletas_base_old` como backup na 0150 — nada mais lê
+ * ou grava nela). Prefixo de foto também passou a ser `"atletas"`, igual ao resto do sistema (é só
+ * um prefixo de caminho dentro do único bucket `entity-photos`, não muda onde fotos antigas são
+ * lidas).
+ *
  * Roda inteiro com o cliente admin (service_role) — mesma razão de `cadastrarStaffPublicoBase`:
- * quem preenche não tem sessão. Precisa do GRANT em `atletas_base` pro service_role, que nasceu
- * junto na migração 0077.
+ * quem preenche não tem sessão. Precisa do GRANT em `atletas` pro service_role (migração 0152 —
+ * o grant antigo da 0077 ficou preso em `atletas_base_old` depois do rename da unificação).
  *
  * O CPF já é único no banco (`atletas_base_cpf_unique`, ver 0031_futebol_base_infra_atletas.sql) —
  * `friendlyDbError` só troca o erro cru do banco por uma mensagem que explica o que aconteceu, pedido
@@ -98,7 +105,7 @@ async function uploadFoto(
   const file = formData.get("foto");
   if (!(file instanceof File) || file.size === 0) return {};
 
-  const { path, error } = await uploadFotoRedimensionada(admin, file, "atletas-base", id);
+  const { path, error } = await uploadFotoRedimensionada(admin, file, "atletas", id);
 
   if (error) return { error: "Não foi possível enviar a foto. O restante do cadastro não foi salvo." };
   return { path };
@@ -149,7 +156,7 @@ export async function cadastrarAtletaPublicoBase(
   const { error: uploadError, path: fotoPath } = await uploadFoto(admin, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
-  const { error } = await admin.from("atletas_base").insert({
+  const { error } = await admin.from("atletas").insert({
     id,
     categoria: data.categoria,
     nome_completo: data.nomeCompleto,
@@ -187,6 +194,6 @@ export async function cadastrarAtletaPublicoBase(
 
   if (error) return { error: friendlyDbError(error), values: raw };
 
-  revalidatePath("/base/atletas");
+  revalidatePath("/atletas");
   return { success: true };
 }

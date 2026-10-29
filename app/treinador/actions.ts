@@ -132,7 +132,7 @@ export async function salvarParecerCaptacao(
   revalidatePath("/treinador");
   revalidatePath("/base/captacao");
   revalidatePath(`/base/captacao/${candidatoId}`);
-  revalidatePath("/base/atletas");
+  revalidatePath("/atletas");
   redirect("/treinador");
 }
 

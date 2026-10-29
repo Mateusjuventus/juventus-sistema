@@ -7,7 +7,7 @@ import { anelClassificacaoAtleta } from "@/lib/futebol/classificacao-atleta";
 import { corContratoAtleta, inicialContratoAtleta, labelContratoAtleta } from "@/lib/futebol/contrato-atleta";
 import { contratoEstaVencendo, diasParaVencerContrato, formatDataBR } from "@/lib/futebol/atleta-card";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
-import type { AtletaBaseTipoContrato, AtletaClassificacao } from "@/lib/supabase/types";
+import type { AtletaTipoContrato, AtletaClassificacao } from "@/lib/supabase/types";
 
 export interface AtletaCardDados {
   id: string;
@@ -23,7 +23,7 @@ export interface AtletaCardDados {
   fotoUrl: string | null;
   dataNascimento: string | null;
   dataFimContrato: string | null;
-  tipoContrato: AtletaBaseTipoContrato | null;
+  tipoContrato: AtletaTipoContrato | null;
   posicao: string;
   numeroCamisa: number | null;
   /** Só existe na Base ("Dispensado" não é status possível no Profissional) — decide o texto

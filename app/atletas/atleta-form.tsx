@@ -8,23 +8,25 @@ import { TelefoneField } from "@/components/telefone-field";
 import { EnderecoFields, type EnderecoValues } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
+import { CATEGORIAS_ATLETA, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { ATLETA_POSICAO_OPTIONS, TAMANHO_UNIFORME_OPTIONS } from "@/lib/validation/schemas";
+import { ATLETA_CLASSIFICACAO_OPTIONS } from "@/lib/futebol/classificacao-atleta";
 import type { AtletaFormState } from "./actions";
 
 const initialState: AtletaFormState = {};
 
-/** Endereço passou a ser estruturado (CEP/logradouro/número/complemento/bairro/cidade/UF, com
- * autopreenchimento por CEP — ver `EnderecoFields`) em 2026-09-10, mesmo padrão que já existia em
- * `app/base/atletas/atleta-base-form.tsx` (pedido do Mateus: "no profissional, deva ter todos os
- * dados do endereço"). O campo de texto livre antigo (`enderecoAtual`) continua existindo só pra
- * não sumir com dados de cadastros antigos — ver "Ver atleta".
- *
- * Em 2026-10-16: Tipo de contrato/datas de contrato/Número FPF saíram deste formulário (viraram a
- * aba "Contrato" própria e deixaram de ser editáveis aqui — ver docs/superpowers/specs/
- * 2026-10-16-atleta-dados-esportivos-contrato-design.md); ganhou Email, segundo endereço
- * ("Endereço de origem", com checkbox "Mesmo endereço de origem" que copia pro endereço atual),
- * telefone/e-mail do empresário e tamanho de uniforme (ver
- * docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md pro endereço/e-mail). */
+/**
+ * Cadastro de Atleta — formulário único pro Futebol Profissional e pro Futebol de Base desde a
+ * unificação de 28/10/2026 (ver docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md).
+ * Até então existiam `AtletaForm` (Profissional) e `AtletaBaseForm` (Base, quase idêntico, com
+ * Categoria/Classificação/Responsáveis/Alojamento a mais) — colapsados aqui num só, com um
+ * seletor de Categoria no topo que decide (reativamente, sem precisar salvar) quais seções
+ * "Base-only" aparecem: "Responsáveis" (dentro de Dados pessoais), "Agência" (Dados esportivos) e
+ * "Alojamento e ajuda de custo" (seção própria) só aparecem quando a categoria escolhida é uma das
+ * 7 categorias da Base. Classificação (G1/G2/G3) e RG/CPF/data de nascimento valem pras duas
+ * categorias sem distinção — RG/CPF/nascimento já eram obrigatórios nos dois formulários antigos,
+ * sem mudança aqui.
+ */
 export function AtletaForm({
   action,
   entityId,
@@ -42,8 +44,10 @@ export function AtletaForm({
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
   const [possuiAlergia, setPossuiAlergia] = useState(values.possuiAlergiaMedicamento === "on");
-  // Valores digitados no bloco "Endereço de origem", acompanhados via `onChange` do EnderecoFields
-  // só pra alimentar a cópia do checkbox "Mesmo endereço de origem" abaixo.
+  const [categoria, setCategoria] = useState(values.categoria ?? "");
+  const isBase = ehCategoriaBaseValida(categoria);
+  // Ver comentário equivalente nos formulários antigos — mesmo mecanismo do checkbox "Mesmo
+  // endereço de origem".
   const [origemEndereco, setOrigemEndereco] = useState<EnderecoValues>({
     cep: values.origemCep,
     logradouro: values.origemLogradouro,
@@ -53,9 +57,6 @@ export function AtletaForm({
     cidade: values.origemCidade,
     uf: values.origemUf,
   });
-  // Valores padrão do bloco "Endereço atual" — só muda (e força o bloco a remontar, via `key`
-  // abaixo) quando o checkbox "Mesmo endereço de origem" é marcado, copiando o que já estiver em
-  // Origem. Fora isso, continua vindo de `values` como sempre (edição normal).
   const [enderecoAtualValues, setEnderecoAtualValues] = useState<EnderecoValues>({
     cep: values.cep,
     logradouro: values.logradouro,
@@ -76,6 +77,27 @@ export function AtletaForm({
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
       {entityId ? <input type="hidden" name="id" value={entityId} /> : null}
+
+      <FormSection title="Categoria">
+        <FieldGroup>
+          <SelectField
+            label="Categoria"
+            name="categoria"
+            required
+            defaultValue={categoria}
+            onChange={setCategoria}
+            error={errors.categoria}
+          >
+            <option value="">Selecione</option>
+            {CATEGORIAS_ATLETA.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </SelectField>
+        </FieldGroup>
+      </FormSection>
+
       <FormSection title="Dados pessoais">
         <FieldGroup>
           <div className="sm:col-span-2">
@@ -204,6 +226,45 @@ export function AtletaForm({
             }}
           />
         </div>
+
+        {/* Só faz sentido pra atleta menor de idade, então só aparece pras categorias da Base — os
+            campos continuam existindo no banco pra qualquer categoria (ver `atletaSchema`), então
+            nada se perde ao trocar a Categoria de ida e volta antes de salvar. */}
+        {isBase ? (
+          <div className="mt-4">
+            <p className="field-label">Responsáveis</p>
+            <FieldGroup>
+              <TextField label="Nome da mãe" name="maeNome" defaultValue={values.maeNome} error={errors.maeNome} />
+              <TelefoneField
+                label="Telefone da mãe"
+                name="maeTelefone"
+                defaultValue={values.maeTelefone}
+                error={errors.maeTelefone}
+              />
+              <TextField
+                label="Email da mãe"
+                name="emailMae"
+                type="email"
+                defaultValue={values.emailMae}
+                error={errors.emailMae}
+              />
+              <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
+              <TelefoneField
+                label="Telefone do pai"
+                name="paiTelefone"
+                defaultValue={values.paiTelefone}
+                error={errors.paiTelefone}
+              />
+              <TextField
+                label="Email do pai"
+                name="emailPai"
+                type="email"
+                defaultValue={values.emailPai}
+                error={errors.emailPai}
+              />
+            </FieldGroup>
+          </div>
+        ) : null}
       </FormSection>
 
       <FormSection title="Dados esportivos">
@@ -258,6 +319,24 @@ export function AtletaForm({
             <option value="liberado">Liberado</option>
             <option value="departamento_medico">Depto. Médico</option>
             <option value="transicao">Transição</option>
+            {/* Normalmente só a tela de Relatório de Dispensa (Base) ou uma edição manual grava
+                este valor — fica aqui também pra o <select> exibir certo um atleta já dispensado. */}
+            <option value="dispensado">Dispensado</option>
+          </SelectField>
+          {/* Até 28/10/2026 era só da Base; a unificação estendeu pro Profissional também (decisão
+              do Mateus). */}
+          <SelectField
+            label="Classificação"
+            name="classificacao"
+            defaultValue={values.classificacao}
+            error={errors.classificacao}
+          >
+            <option value="">Não classificado</option>
+            {ATLETA_CLASSIFICACAO_OPTIONS.map((opcao) => (
+              <option key={opcao.value} value={opcao.value}>
+                {opcao.label}
+              </option>
+            ))}
           </SelectField>
           <TextField
             label="Data de início no clube"
@@ -285,6 +364,9 @@ export function AtletaForm({
             defaultValue={values.empresarioEmail}
             error={errors.empresarioEmail}
           />
+          {isBase ? (
+            <TextField label="Agência" name="agencia" defaultValue={values.agencia} error={errors.agencia} />
+          ) : null}
           <SelectField
             label="Tamanho do uniforme"
             name="tamanhoUniforme"
@@ -300,6 +382,35 @@ export function AtletaForm({
           </SelectField>
         </FieldGroup>
       </FormSection>
+
+      {isBase ? (
+        <FormSection title="Alojamento e ajuda de custo">
+          <FieldGroup>
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <input
+                id="alojado"
+                name="alojado"
+                type="checkbox"
+                defaultChecked={values.alojado === "on"}
+                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              <label htmlFor="alojado" className="text-sm font-medium text-neutral-700">
+                Mora no alojamento do clube
+              </label>
+            </div>
+            <TextField
+              label="Valor de ajuda de custo (R$)"
+              name="valorAjudaCusto"
+              type="number"
+              min={0}
+              step="0.01"
+              defaultValue={values.valorAjudaCusto}
+              error={errors.valorAjudaCusto}
+            />
+            <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
+          </FieldGroup>
+        </FormSection>
+      ) : null}
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>

@@ -120,10 +120,6 @@ const refinoAlergia = {
   options: { message: "Informe qual é a alergia", path: ["alergiaMedicamentoQual"] },
 };
 
-/** Campos compartilhados por `atletaSchema` (Profissional) e `atletaBaseSchema` (Base) — separado
- * do schema final porque os dois precisam de `.refine()` (checagem de alergia, ver
- * `refinarAlergia`), e um `ZodObject` refinado não pode mais ser `.extend()`ido — por isso o Base
- * estende este objeto "cru" antes de aplicar o refine, em vez de estender `atletaSchema` direto. */
 /** Segundo endereço estruturado do atleta ("Endereço de origem", pedido de 2026-10-16) — mesmo
  * formato de `enderecoFields`, com prefixo "origem" pras chaves não colidirem com o endereço atual
  * no mesmo formulário. Ver docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md. */
@@ -137,84 +133,79 @@ const origemEnderecoFields = {
   origemUf: z.string().optional().or(z.literal("")),
 };
 
-const atletaCamposBase = z.object({
-  nomeCompleto: z
-    .string()
-    .min(1, { message: "Nome completo é obrigatório" })
-    .transform(normalizarNomeProprio),
-  apelido: z.string().optional().or(z.literal("")),
-  rg: rgField,
-  cpf: cpfField,
-  dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
-  posicao: posicaoField,
-  numeroCamisa: z.coerce.number().int().positive().optional().nullable(),
-  numeroCbf: z.coerce.number().int().positive().optional().nullable(),
-  peDominante: z.enum(["destro", "canhoto", "ambidestro"]).optional().nullable(),
-  telefone: telefoneFieldValidado,
-  // Pedido de 2026-10-16 (ver docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md).
-  email: emailField,
-  cidadeNatal: z.string().optional().or(z.literal("")),
-  ufNatal: z.string().length(2).optional().or(z.literal("")),
-  enderecoAtual: z.string().optional().or(z.literal("")),
-  // Endereço estruturado (CEP/logradouro/número/complemento/bairro/cidade/UF), compartilhado com o
-  // Futebol de Base desde sempre — estendido pro Profissional em 2026-09-10 (pedido do Mateus: "no
-  // profissional, deva ter todos os dados do endereço"). Fica em `atletaCamposBase` (em vez de só
-  // em `atletaBaseSchema`) porque agora os dois formulários usam.
-  ...enderecoFields,
-  // Segundo endereço estruturado ("Endereço de origem") — pedido de 2026-10-16.
-  ...origemEnderecoFields,
-  dataInicioClube: z.string().optional().or(z.literal("")),
-  empresarioNome: z.string().optional().or(z.literal("")),
-  // Telefone/e-mail do empresário — pedido de 2026-10-16. `empresarioTelefone` já existia só na
-  // Base (`atletaBaseSchema`, mais abaixo); sobe pra cá porque agora os dois departamentos têm.
-  empresarioTelefone: telefoneField,
-  empresarioEmail: emailField,
-  // Lista fixa PP/P/M/G/GG/XG — pedido de 2026-10-16.
-  tamanhoUniforme: z.enum(TAMANHO_UNIFORME_OPTIONS).optional().or(z.literal("")),
-  // "suspenso" saiu do vocabulário em 01/10/2026 e "transicao" é novo (ver docs/superpowers/specs/
-  // 2026-10-01-departamento-medico-historico-status-design.md) — só o Profissional; a Base
-  // continua com seu próprio enum (`atletaBaseSchema`, mais abaixo), sem mudança.
-  status: z.enum(["liberado", "departamento_medico", "transicao"]).default("liberado"),
-  // Pedido de 25/08: "Possui alergia a algum medicamento? Se sim, qual". Opcional no cadastro
-  // interno (a maioria dos campos do admin também é); a checagem de "se sim, qual é obrigatório"
-  // vem do `refinarAlergia` aplicado abaixo.
-  possuiAlergiaMedicamento: z.boolean().default(false),
-  alergiaMedicamentoQual: z.string().optional().or(z.literal("")),
-});
-
-export const atletaSchema = atletaCamposBase.refine(refinoAlergia.check, refinoAlergia.options);
-export type AtletaInput = z.infer<typeof atletaSchema>;
-
-/** Mesmo formulário de `atletaSchema`, mais a categoria de idade do Futebol de Base (Sub20 a
- * Sub11 — ver `lib/auth/categorias-base.ts`), obrigatória, e um tipo de contrato com uma opção a
- * mais (Iniciação — ver `ATLETA_BASE_TIPO_CONTRATO_OPTIONS`). */
-export const atletaBaseSchema = atletaCamposBase
-  .extend({
-    categoria: z.enum(["sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"], {
-      errorMap: () => ({ message: "Categoria é obrigatória" }),
-    }),
-    // E-mail do pai/mãe — pedido de 2026-10-16, só na Base (atletas menores de idade). `email` do
-    // próprio atleta já é compartilhado com o Profissional (ver `atletaCamposBase`).
+/** Cadastro de Atleta — único formulário/schema pro Futebol Profissional e pro Futebol de Base
+ * desde a unificação de 28/10/2026 (ver docs/superpowers/specs/2026-10-28-unificacao-atletas-
+ * design.md). Até então existiam `atletaSchema` (Profissional) e `atletaBaseSchema` (Base,
+ * estendendo um `atletaCamposBase` cru por causa da limitação de `.extend()` num `ZodObject` já
+ * `.refine()`ado) — ambos foram colapsados aqui porque todo atleta agora mora na mesma tabela
+ * `atletas`, com `categoria` decidindo quais campos a tela mostra: os "Base-only" abaixo
+ * (email do pai/mãe, alojamento/ajuda de custo/agência/escola, responsáveis) continuam existindo
+ * no banco pra qualquer categoria (ver `AtletaRow` em lib/supabase/types.ts), mas o formulário
+ * (`AtletaForm`) só os exibe quando a categoria escolhida é uma categoria da Base — o `.safeParse`
+ * aqui não distingue por categoria, então um envio do Profissional sempre chega com esses campos
+ * vazios/`undefined`, o que já é válido (todos opcionais). RG/CPF/data de nascimento são
+ * obrigatórios pras duas categorias, sem exceção. */
+export const atletaSchema = z
+  .object({
+    // Profissional ou uma das 7 categorias da Base — ver `CATEGORIAS_ATLETA` em
+    // lib/auth/categorias-base.ts (mesma lista de `CATEGORIAS_COMISSAO_TECNICA`).
+    categoria: z.enum(
+      ["profissional", "sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"],
+      { errorMap: () => ({ message: "Categoria é obrigatória" }) },
+    ),
+    nomeCompleto: z
+      .string()
+      .min(1, { message: "Nome completo é obrigatório" })
+      .transform(normalizarNomeProprio),
+    apelido: z.string().optional().or(z.literal("")),
+    rg: rgField,
+    cpf: cpfField,
+    dataNascimento: z.string().min(1, { message: "Data de nascimento é obrigatória" }),
+    posicao: posicaoField,
+    numeroCamisa: z.coerce.number().int().positive().optional().nullable(),
+    numeroCbf: z.coerce.number().int().positive().optional().nullable(),
+    peDominante: z.enum(["destro", "canhoto", "ambidestro"]).optional().nullable(),
+    telefone: telefoneFieldValidado,
+    // Pedido de 2026-10-16 (ver docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md).
+    email: emailField,
+    // E-mail do pai/mãe — eram só da Base (atleta menor de idade); o formulário só mostra esses
+    // campos pra categoria de Base, mas o schema aceita pras duas (ver comentário acima).
     emailPai: emailField,
     emailMae: emailField,
+    cidadeNatal: z.string().optional().or(z.literal("")),
+    ufNatal: z.string().length(2).optional().or(z.literal("")),
+    enderecoAtual: z.string().optional().or(z.literal("")),
+    // Endereço estruturado (CEP/logradouro/número/complemento/bairro/cidade/UF) — compartilhado
+    // pelas duas categorias desde 2026-09-10.
+    ...enderecoFields,
+    // Segundo endereço estruturado ("Endereço de origem") — pedido de 2026-10-16.
+    ...origemEnderecoFields,
+    dataInicioClube: z.string().optional().or(z.literal("")),
+    empresarioNome: z.string().optional().or(z.literal("")),
+    empresarioTelefone: telefoneField,
+    empresarioEmail: emailField,
+    // Lista fixa PP/P/M/G/GG/XG — pedido de 2026-10-16.
+    tamanhoUniforme: z.enum(TAMANHO_UNIFORME_OPTIONS).optional().or(z.literal("")),
+    // Vocabulário único desde a unificação (ver `AtletaStatus` em lib/supabase/types.ts):
+    // "suspenso" saiu em 01/10/2026 (Profissional) e na própria unificação (Base, convertido pra
+    // "transicao"); "dispensado" passou a valer pras duas categorias — normalmente é o Relatório
+    // de Dispensa formal (continua restrito à Base) que grava esse valor, mas o <select> de Status
+    // do cadastro interno precisa aceitá-lo também, senão rejeitaria o próprio valor atual de um
+    // atleta já dispensado ao salvar qualquer outra alteração no formulário.
+    status: z.enum(["liberado", "departamento_medico", "transicao", "dispensado"]).default("liberado"),
+    // Pedido de 25/08: "Possui alergia a algum medicamento? Se sim, qual". A checagem de "se sim,
+    // qual é obrigatório" vem do `refinoAlergia` aplicado abaixo.
+    possuiAlergiaMedicamento: z.boolean().default(false),
+    alergiaMedicamentoQual: z.string().optional().or(z.literal("")),
     // Classificação G1/G2/G3 (ver docs/superpowers/specs/
-    // 2026-08-25-classificacao-dispensa-atleta-base-design.md) — opcional, nem todo atleta precisa
-    // estar classificado. "dispensa" ("Dispensa (pendente)") é um 4º valor, adicionado em
-    // docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md — sinalizador de saída em
+    // 2026-08-25-classificacao-dispensa-atleta-base-design.md) — era só da Base; a unificação
+    // estendeu pro Profissional também (opcional pras duas, nem todo atleta precisa estar
+    // classificado). "dispensa" ("Dispensa (pendente)") é um 4º valor — sinalizador de saída em
     // avaliação, não muda `status`.
     classificacao: z.enum(["g1", "g2", "g3", "dispensa"]).optional().nullable(),
-    // "dispensado" só existe no status do Base (ver `AtletaBaseStatus` em lib/supabase/types.ts) —
-    // normalmente é a tela de Relatório de Dispensa que grava esse valor, mas o cadastro interno
-    // também precisa aceitá-lo aqui, senão o <select> de Status (que já lista "Dispensado" pra
-    // exibir corretamente um atleta já dispensado) rejeitaria o próprio valor atual ao salvar
-    // qualquer outra alteração no formulário.
-    status: z
-      .enum(["liberado", "suspenso", "departamento_medico", "dispensado"])
-      .default("liberado"),
-    // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql): alojamento, responsáveis e
-    // empresário (endereço estruturado, autopreenchido por CEP — ver EnderecoFields — mora em
-    // `atletaCamposBase` acima, compartilhado com o Profissional desde 2026-09-10). Todos
-    // opcionais: a maioria chega aos poucos, não de uma vez.
+    // Campos pedidos em 18/08 (ver 0076_captacao_alojamento_base.sql) — alojamento, responsáveis e
+    // empresário. Continuam no banco pra qualquer categoria, mas o formulário só os mostra quando
+    // a categoria é de Base (decisão do Mateus na unificação, 28/10/2026).
     alojado: z.boolean().default(false),
     valorAjudaCusto: z.coerce.number().nonnegative().optional().nullable(),
     agencia: z.string().optional().or(z.literal("")),
@@ -225,7 +216,7 @@ export const atletaBaseSchema = atletaCamposBase
     escola: z.string().optional().or(z.literal("")),
   })
   .refine(refinoAlergia.check, refinoAlergia.options);
-export type AtletaBaseInput = z.infer<typeof atletaBaseSchema>;
+export type AtletaInput = z.infer<typeof atletaSchema>;
 
 /** Um contato de emergência do atleta (Dados pessoais, lista "+ Adicionar contato") — mesmo schema
  * pro Profissional e pra Base. Ver docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md. */
@@ -243,49 +234,32 @@ export const atletaAnotacaoSchema = z.object({
 });
 export type AtletaAnotacaoInput = z.infer<typeof atletaAnotacaoSchema>;
 
-/** Campos compartilhados do "Novo contrato" (aba Contrato) — mesmo raciocínio de
- * `atletaCamposBase`: o tipo de contrato tem uma opção a mais na Base ("Iniciação"), então o objeto
- * cru fica separado do `.refine()` final (exige Clube de origem quando Empréstimo), igual já é
- * feito pra alergia em `atletaSchema`/`atletaBaseSchema`. Ver docs/superpowers/specs/
+/** "Novo contrato" (aba Contrato) — único schema pras duas categorias desde a unificação de
+ * 28/10/2026: `AtletaTipoContrato` (lib/supabase/types.ts) já inclui "iniciacao" pra qualquer
+ * categoria (antes só a Base aceitava). A lista de OPÇÕES exibida no `<select>` continua separada
+ * por categoria (`ATLETA_TIPO_CONTRATO_OPTIONS` sem Iniciação pro Profissional,
+ * `ATLETA_BASE_TIPO_CONTRATO_OPTIONS` com ela pra Base — ver `app/atletas/[id]/contrato/novo/
+ * page.tsx`), só o `.safeParse` deste schema que ficou único. Ver docs/superpowers/specs/
  * 2026-10-16-atleta-dados-esportivos-contrato-design.md. */
-const atletaContratoCamposBase = {
-  clubeOrigem: z.string().optional().or(z.literal("")),
-  vigenciaInicio: z.string().optional().or(z.literal("")),
-  vigenciaFim: z.string().optional().or(z.literal("")),
-  salarioCtps: z.coerce.number().nonnegative().default(0),
-  direitoImagem: z.coerce.number().nonnegative().default(0),
-  bonificacao: z.coerce.number().nonnegative().default(0),
-  auxilioMoradia: z.coerce.number().nonnegative().default(0),
-  outros: z.coerce.number().nonnegative().default(0),
-};
-
-const refinoClubeOrigem = {
-  check: (data: { tipoContrato: string; clubeOrigem?: string }) =>
-    data.tipoContrato !== "emprestimo" || Boolean(data.clubeOrigem?.trim()),
-  options: { message: "Informe o clube de origem", path: ["clubeOrigem"] },
-};
-
 export const atletaContratoSchema = z
-  .object({
-    tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "formacao"], {
-      errorMap: () => ({ message: "Tipo de contrato é obrigatório" }),
-    }),
-    ...atletaContratoCamposBase,
-  })
-  .refine(refinoClubeOrigem.check, refinoClubeOrigem.options);
-export type AtletaContratoInput = z.infer<typeof atletaContratoSchema>;
-
-/** Mesmo formulário de `atletaContratoSchema`, com Iniciação a mais no tipo de contrato — mesma
- * opção extra que `atletaBaseSchema` já tem sobre `atletaSchema`. */
-export const atletaBaseContratoSchema = z
   .object({
     tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "formacao", "iniciacao"], {
       errorMap: () => ({ message: "Tipo de contrato é obrigatório" }),
     }),
-    ...atletaContratoCamposBase,
+    clubeOrigem: z.string().optional().or(z.literal("")),
+    vigenciaInicio: z.string().optional().or(z.literal("")),
+    vigenciaFim: z.string().optional().or(z.literal("")),
+    salarioCtps: z.coerce.number().nonnegative().default(0),
+    direitoImagem: z.coerce.number().nonnegative().default(0),
+    bonificacao: z.coerce.number().nonnegative().default(0),
+    auxilioMoradia: z.coerce.number().nonnegative().default(0),
+    outros: z.coerce.number().nonnegative().default(0),
   })
-  .refine(refinoClubeOrigem.check, refinoClubeOrigem.options);
-export type AtletaBaseContratoInput = z.infer<typeof atletaBaseContratoSchema>;
+  .refine(
+    (data) => data.tipoContrato !== "emprestimo" || Boolean(data.clubeOrigem?.trim()),
+    { message: "Informe o clube de origem", path: ["clubeOrigem"] },
+  );
+export type AtletaContratoInput = z.infer<typeof atletaContratoSchema>;
 
 /**
  * Inclusão rápida de atleta pelo Campograma (ver docs/superpowers/specs/

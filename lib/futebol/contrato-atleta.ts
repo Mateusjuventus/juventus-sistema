@@ -1,11 +1,11 @@
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaBaseTipoContrato } from "@/lib/supabase/types";
+import type { AtletaTipoContrato } from "@/lib/supabase/types";
 
 /** Rótulo por extenso, direto da mesma fonte de verdade usada pelos formulários (`schemas.ts`) —
  * evita ter o rótulo "Empréstimo"/"Iniciação" etc. escrito duas vezes em lugares diferentes. */
-export const CONTRATO_ATLETA_LABEL: Record<AtletaBaseTipoContrato, string> = Object.fromEntries(
+export const CONTRATO_ATLETA_LABEL: Record<AtletaTipoContrato, string> = Object.fromEntries(
   ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
-) as Record<AtletaBaseTipoContrato, string>;
+) as Record<AtletaTipoContrato, string>;
 
 /**
  * Cor e inicial por tipo de contrato — fonte única usada pelo selo redondo no `AtletaCard` e pelo
@@ -13,14 +13,14 @@ export const CONTRATO_ATLETA_LABEL: Record<AtletaBaseTipoContrato, string> = Obj
  * 2026-09-09-atletas-resumo-filtros-design.md, seção 2), pra selo e fatia nunca ficarem com cores
  * diferentes pro mesmo tipo.
  *
- * `AtletaBaseTipoContrato` cobre os 5 tipos reais (a Base tem os 4 do Profissional + Iniciação —
+ * `AtletaTipoContrato` cobre os 5 tipos reais (a Base tem os 4 do Profissional + Iniciação —
  * ver `ATLETA_TIPO_CONTRATO_OPTIONS`/`ATLETA_BASE_TIPO_CONTRATO_OPTIONS` em
  * `lib/validation/schemas.ts`); o Profissional não usa "iniciacao". "Formação" é valor próprio
  * desde a migração 0097 (antes era só um sub-flag de "Amador") — cor dourada, puxando pro acento
  * `dourado` do sistema (`lib/theme.ts`), pra não colidir com o verde de Amador nem o rosa de
  * Iniciação.
  */
-export const CONTRATO_ATLETA_COR: Record<AtletaBaseTipoContrato, string> = {
+export const CONTRATO_ATLETA_COR: Record<AtletaTipoContrato, string> = {
   definitivo: "#2a78d6",
   emprestimo: "#eb6834",
   amador: "#1baf7a",
@@ -30,7 +30,7 @@ export const CONTRATO_ATLETA_COR: Record<AtletaBaseTipoContrato, string> = {
 
 /** Mesmas cores acima, numa variante mais escura/legível como texto (contagem na legenda do
  * gráfico) — a cor "cheia" funciona bem como preenchimento, mas fica clara demais como texto. */
-export const CONTRATO_ATLETA_COR_TEXTO: Record<AtletaBaseTipoContrato, string> = {
+export const CONTRATO_ATLETA_COR_TEXTO: Record<AtletaTipoContrato, string> = {
   definitivo: "#1c5cab",
   emprestimo: "#b5501f",
   amador: "#0f7d54",
@@ -39,7 +39,7 @@ export const CONTRATO_ATLETA_COR_TEXTO: Record<AtletaBaseTipoContrato, string> =
 };
 
 /** Inicial exibida no selo redondo sobre a foto do atleta (`AtletaCard`). */
-export const CONTRATO_ATLETA_INICIAL: Record<AtletaBaseTipoContrato, string> = {
+export const CONTRATO_ATLETA_INICIAL: Record<AtletaTipoContrato, string> = {
   definitivo: "D",
   emprestimo: "E",
   amador: "A",
@@ -47,18 +47,18 @@ export const CONTRATO_ATLETA_INICIAL: Record<AtletaBaseTipoContrato, string> = {
   iniciacao: "I",
 };
 
-export function corContratoAtleta(tipoContrato: AtletaBaseTipoContrato): string {
+export function corContratoAtleta(tipoContrato: AtletaTipoContrato): string {
   return CONTRATO_ATLETA_COR[tipoContrato];
 }
 
-export function corTextoContratoAtleta(tipoContrato: AtletaBaseTipoContrato): string {
+export function corTextoContratoAtleta(tipoContrato: AtletaTipoContrato): string {
   return CONTRATO_ATLETA_COR_TEXTO[tipoContrato];
 }
 
-export function inicialContratoAtleta(tipoContrato: AtletaBaseTipoContrato): string {
+export function inicialContratoAtleta(tipoContrato: AtletaTipoContrato): string {
   return CONTRATO_ATLETA_INICIAL[tipoContrato];
 }
 
-export function labelContratoAtleta(tipoContrato: AtletaBaseTipoContrato): string {
+export function labelContratoAtleta(tipoContrato: AtletaTipoContrato): string {
   return CONTRATO_ATLETA_LABEL[tipoContrato];
 }

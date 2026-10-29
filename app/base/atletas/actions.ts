@@ -5,7 +5,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
-import { atletaAnotacaoSchema, atletaBaseSchema, atletaContatoEmergenciaSchema } from "@/lib/validation/schemas";
+import { atletaAnotacaoSchema, atletaSchema, atletaContatoEmergenciaSchema } from "@/lib/validation/schemas";
+// ÓRFÃO desde a unificação de Atletas (28/10/2026, ver docs/superpowers/specs/
+// 2026-10-28-unificacao-atletas-design.md) — nenhuma tela mais importa deste arquivo (todas as
+// rotas antigas que usavam `app/base/atletas/atleta-base-form.tsx` agora redirecionam pra
+// `/atletas`, que usa `app/atletas/actions.ts`). `atletaBaseSchema` foi removido do colapso dos
+// schemas; troquei pelo `atletaSchema` único só pra este arquivo morto continuar compilando até
+// ser apagado (ver relatório de arquivos órfãos).
 import { normalizeCPF } from "@/lib/validation/cpf";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
 import { isMaster } from "@/lib/auth/role";
@@ -77,7 +83,7 @@ function parseForm(formData: FormData) {
     origemUf: String(formData.get("origem_uf") ?? ""),
   };
 
-  const result = atletaBaseSchema.safeParse(raw);
+  const result = atletaSchema.safeParse(raw);
   return {
     raw: {
       ...raw,
@@ -132,7 +138,7 @@ export async function createAtletaBase(
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
-  const { error } = await supabase.from("atletas_base").insert({
+  const { error } = await supabase.from("atletas").insert({
     id,
     categoria: data.categoria,
     nome_completo: data.nomeCompleto,
@@ -266,7 +272,7 @@ export async function updateAtletaBase(
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 
-  const { error } = await supabase.from("atletas_base").update(updatePayload).eq("id", id);
+  const { error } = await supabase.from("atletas").update(updatePayload).eq("id", id);
 
   if (error) {
     return { error: friendlyDbError(error), values: raw };
@@ -289,10 +295,10 @@ export async function deleteAtletaBase(
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
 
-  const { data } = await supabase.from("atletas_base").select("categoria").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("atletas").select("categoria").eq("id", id).maybeSingle();
   const categoria = (data as { categoria?: string } | null)?.categoria;
 
-  const { error } = await supabase.from("atletas_base").delete().eq("id", id);
+  const { error } = await supabase.from("atletas").delete().eq("id", id);
 
   if (error) {
     if (error.code === "23503") {
@@ -343,7 +349,7 @@ export async function alternarAtletaBaseAtivo(formData: FormData): Promise<void>
   if (!id) return;
 
   const supabase = createClient();
-  await supabase.from("atletas_base").update({ ativo: novoValor }).eq("id", id);
+  await supabase.from("atletas").update({ ativo: novoValor }).eq("id", id);
 
   revalidatePath("/base/atletas");
   if (categoria) {
@@ -378,7 +384,7 @@ export async function adicionarContatoEmergenciaBase(
   }
 
   const supabase = createClient();
-  const { error } = await supabase.from("atleta_base_contatos_emergencia").insert({
+  const { error } = await supabase.from("atleta_contatos_emergencia").insert({
     atleta_id: atletaId,
     nome: result.data.nome,
     parentesco: result.data.parentesco || null,
@@ -397,19 +403,19 @@ export async function removerContatoEmergenciaBase(formData: FormData): Promise<
 
   const supabase = createClient();
   const { data: contato } = await supabase
-    .from("atleta_base_contatos_emergencia")
+    .from("atleta_contatos_emergencia")
     .select("atleta_id")
     .eq("id", id)
     .single();
 
-  await supabase.from("atleta_base_contatos_emergencia").delete().eq("id", id);
+  await supabase.from("atleta_contatos_emergencia").delete().eq("id", id);
 
   // O DeleteButton só manda o id — busca a categoria do atleta (via o atleta_id acima) só pra
   // revalidar o caminho certo, mesmo princípio de `deleteAtletaBase`.
   if (contato) {
     const atletaId = (contato as { atleta_id: string }).atleta_id;
     const { data: atleta } = await supabase
-      .from("atletas_base")
+      .from("atletas")
       .select("categoria")
       .eq("id", atletaId)
       .maybeSingle();
@@ -443,7 +449,7 @@ export async function adicionarAnotacaoBase(
   } = await supabase.auth.getUser();
   const nomeAtual = await nomeDaContaAtual(supabase);
 
-  const { error } = await supabase.from("atleta_base_anotacoes").insert({
+  const { error } = await supabase.from("atleta_anotacoes").insert({
     atleta_id: atletaId,
     texto: result.data.texto,
     criado_por_perfil_id: user?.id ?? null,
@@ -466,17 +472,17 @@ export async function removerAnotacaoBase(formData: FormData): Promise<void> {
   if (!(await isMaster(supabase))) return;
 
   const { data: anotacao } = await supabase
-    .from("atleta_base_anotacoes")
+    .from("atleta_anotacoes")
     .select("atleta_id")
     .eq("id", id)
     .single();
 
-  await supabase.from("atleta_base_anotacoes").delete().eq("id", id);
+  await supabase.from("atleta_anotacoes").delete().eq("id", id);
 
   if (anotacao) {
     const atletaId = (anotacao as { atleta_id: string }).atleta_id;
     const { data: atleta } = await supabase
-      .from("atletas_base")
+      .from("atletas")
       .select("categoria")
       .eq("id", atletaId)
       .maybeSingle();

@@ -15,7 +15,7 @@ import {
   type CampoCardOpcional,
 } from "@/lib/futebol/atletas-filtro";
 import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaBaseTipoContrato } from "@/lib/supabase/types";
+import type { AtletaTipoContrato } from "@/lib/supabase/types";
 
 /** "Apto" aqui é uma leitura simples do status pra dar uma noção rápida de saúde do elenco por
  * posição (bloco de Posições) — não é o filtro de Status em si (esse continua com os rótulos reais:
@@ -73,7 +73,7 @@ export function AtletasResumoFiltros({
   statusOptions: StatusFiltroOpcao[];
   /** 3 tipos no Profissional, 4 na Base (com Iniciação) — nunca os 5 do protótipo inicial, "Formação"
    * não existe no sistema real. */
-  contratoOptions: AtletaBaseTipoContrato[];
+  contratoOptions: AtletaTipoContrato[];
   /** "Média de idade" só existe hoje em `/atletas` (Profissional) — mostrado como um número solto ao
    * lado do título de Status, sem virar filtro (não é uma categoria pra clicar). */
   estatisticaExtra?: { label: string; valor: string };
@@ -94,7 +94,7 @@ export function AtletasResumoFiltros({
   const [busca, setBusca] = useState("");
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
   const [posicaoSel, setPosicaoSel] = useState<Set<string>>(new Set());
-  const [contratoSel, setContratoSel] = useState<Set<AtletaBaseTipoContrato>>(new Set());
+  const [contratoSel, setContratoSel] = useState<Set<AtletaTipoContrato>>(new Set());
   // Lista com checkbox em vez de chips (pedido do Mateus em 2026-09-10: chips ocupariam muito
   // espaço e "poluiriam a tela" com um ano por atleta do elenco) — ver `AnoNascimentoFiltro`.
   const [anoSel, setAnoSel] = useState<Set<number>>(new Set());
@@ -158,7 +158,7 @@ export function AtletasResumoFiltros({
   }, [atletasVisiveis, statusOcultoPorPadrao]);
 
   const contagensContrato = useMemo(() => {
-    const mapa = new Map<AtletaBaseTipoContrato, number>();
+    const mapa = new Map<AtletaTipoContrato, number>();
     for (const a of atletasVisiveis) {
       if (a.tipoContrato) mapa.set(a.tipoContrato, (mapa.get(a.tipoContrato) ?? 0) + 1);
     }
@@ -553,11 +553,11 @@ function PizzaContrato({
   selecionados,
   aoClicar,
 }: {
-  contratoOptions: AtletaBaseTipoContrato[];
-  contagens: Map<AtletaBaseTipoContrato, number>;
+  contratoOptions: AtletaTipoContrato[];
+  contagens: Map<AtletaTipoContrato, number>;
   total: number;
-  selecionados: Set<AtletaBaseTipoContrato>;
-  aoClicar: (tipo: AtletaBaseTipoContrato) => void;
+  selecionados: Set<AtletaTipoContrato>;
+  aoClicar: (tipo: AtletaTipoContrato) => void;
 }) {
   if (total === 0) {
     return (

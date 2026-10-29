@@ -6,7 +6,8 @@ import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { isMaster } from "@/lib/auth/role";
-import { montarHistoricoAtleta } from "@/lib/futebol/anotacoes-atleta";
+import { categoriaAtletaLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import { montarHistoricoAtleta, montarHistoricoAtletaBase } from "@/lib/futebol/anotacoes-atleta";
 import type { AtletaAnotacaoRow, AtletaRow } from "@/lib/supabase/types";
 import { AnotacaoForm } from "./anotacao-form";
 import { adicionarAnotacao, removerAnotacao } from "../../actions";
@@ -16,9 +17,13 @@ function formatDataHora(iso: string): string {
   return data.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 }
 
-/** Aba "Anotações" do perfil do atleta (Profissional) — histórico de texto livre com autor e data,
- * escrito pelo cadastro interno (o Profissional não tem Treinador com login próprio). Ver
- * docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md. */
+/** Aba "Anotações" do perfil do atleta — única pro Futebol Profissional e pro Futebol de Base
+ * desde a unificação de 28/10/2026 (ver docs/superpowers/specs/2026-10-28-unificacao-atletas-
+ * design.md). Pra categorias da Base, mistura o histórico de anotações do cadastro interno/
+ * Treinador com a entrada "virtual" de Relatório de Dispensa, quando houver (continua restrito à
+ * Base — ver `montarHistoricoAtletaBase`); pro Profissional, é só o histórico de texto livre
+ * (`montarHistoricoAtleta`). Ver docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-anotacoes-
+ * design.md. */
 export default async function AnotacoesAtletaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
@@ -35,13 +40,38 @@ export default async function AnotacoesAtletaPage({ params }: { params: { id: st
   if (!atletaData) notFound();
 
   const atleta = atletaData as AtletaRow;
+  const isBase = ehCategoriaBaseValida(atleta.categoria);
   const anotacoes = (anotacoesData ?? []) as AtletaAnotacaoRow[];
-  const historico = montarHistoricoAtleta(anotacoes);
+
+  let historico;
+  if (isBase) {
+    let dispensadoPorNome: string | null = null;
+    if (atleta.dispensado_por) {
+      const { data: perfilDispensa } = await supabase
+        .from("perfis")
+        .select("nome, email")
+        .eq("id", atleta.dispensado_por)
+        .maybeSingle();
+      const perfil = perfilDispensa as { nome: string | null; email: string } | null;
+      dispensadoPorNome = perfil?.nome?.trim() ? perfil.nome : (perfil?.email ?? null);
+    }
+    historico = montarHistoricoAtletaBase(
+      anotacoes,
+      atleta,
+      dispensadoPorNome,
+      `/base/atletas/${atleta.categoria}/${atleta.id}/dispensa/pdf`,
+    );
+  } else {
+    historico = montarHistoricoAtleta(anotacoes);
+  }
+
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
-  const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
+  const subtitulo = isBase
+    ? `${categoriaAtletaLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`
+    : `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
   return (
-    <AppShell breadcrumb="Anotações">
+    <AppShell departamento={isBase ? "futebol_base" : undefined} breadcrumb="Anotações">
       <AtletaTabs atletaId={atleta.id} active="anotacoes" />
 
       <AtletaPerfilHeader
@@ -57,13 +87,31 @@ export default async function AnotacoesAtletaPage({ params }: { params: { id: st
 
         <div className="mt-3 space-y-2">
           {historico.map((item) => (
-            <div key={item.id} className="flex flex-wrap items-start gap-3 rounded-md bg-neutral-50 px-3 py-2 text-sm">
-              <p className="min-w-[200px] flex-1 whitespace-pre-wrap text-neutral-800">{item.texto}</p>
+            <div
+              key={item.id}
+              className={`flex flex-wrap items-start gap-3 rounded-md px-3 py-2 text-sm ${
+                item.tipo === "dispensa" ? "border-l-4 border-l-grena bg-neutral-50" : "bg-neutral-50"
+              }`}
+            >
+              <div className="min-w-[200px] flex-1">
+                {item.tipo === "dispensa" ? (
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-grena">
+                    Relatório de Dispensa
+                  </p>
+                ) : null}
+                <p className="whitespace-pre-wrap text-neutral-800">{item.texto}</p>
+              </div>
               <div className="flex flex-col items-end gap-1 text-right">
                 <span className="text-xs text-neutral-500">
                   {item.autor ?? "—"} · {formatDataHora(item.data)}
                 </span>
-                {souMaster ? <DeleteButton action={removerAnotacao} id={item.id} entityLabel="anotação" /> : null}
+                {item.tipo === "dispensa" ? (
+                  <a href={item.linkPdf} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+                    Ver PDF
+                  </a>
+                ) : souMaster ? (
+                  <DeleteButton action={removerAnotacao} id={item.id} entityLabel="anotação" />
+                ) : null}
               </div>
             </div>
           ))}

@@ -7,15 +7,21 @@ import { ContratoSecao } from "@/components/contrato-secao";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
-import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
 import { AtletaForm } from "../atleta-form";
 import { updateAtleta, deleteAtleta, adicionarContatoEmergencia, removerContatoEmergencia } from "../actions";
 
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
-  ATLETA_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
 );
 
+/** Editar atleta — único pro Futebol Profissional e pro Futebol de Base desde a unificação de
+ * 28/10/2026 (ver docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md). Antes existiam
+ * `app/atletas/[id]/page.tsx` e `app/base/atletas/[categoria]/[id]/page.tsx` — quase idênticos,
+ * diferindo só nos campos extras da Base, já resolvidos dentro de `AtletaForm` (campos
+ * condicionais por categoria). O rótulo de tipo de contrato usa a lista mais ampla (com
+ * "Iniciação") pra cobrir contratos de qualquer categoria no histórico. */
 export default async function EditarAtletaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const [{ data }, { data: contatosData }, { data: contratosData }] = await Promise.all([
@@ -38,8 +44,10 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
   const contratos = (contratosData ?? []) as AtletaContratoRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
+  const isBase = atleta.categoria !== "profissional";
 
   const defaultValues: Record<string, string> = {
+    categoria: atleta.categoria,
     nomeCompleto: atleta.nome_completo,
     apelido: atleta.apelido ?? "",
     rg: atleta.rg,
@@ -51,6 +59,8 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
     peDominante: atleta.pe_dominante ?? "",
     telefone: atleta.telefone ?? "",
     email: atleta.email ?? "",
+    emailPai: atleta.email_pai ?? "",
+    emailMae: atleta.email_mae ?? "",
     cidadeNatal: atleta.cidade_natal ?? "",
     ufNatal: atleta.uf_natal ?? "",
     enderecoAtual: atleta.endereco_atual ?? "",
@@ -74,13 +84,22 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
     empresarioEmail: atleta.empresario_email ?? "",
     tamanhoUniforme: atleta.tamanho_uniforme ?? "",
     status: atleta.status,
+    classificacao: atleta.classificacao ?? "",
     possuiAlergiaMedicamento: atleta.possui_alergia_medicamento ? "on" : "",
     alergiaMedicamentoQual: atleta.alergia_medicamento_qual ?? "",
+    alojado: atleta.alojado ? "on" : "",
+    valorAjudaCusto: atleta.valor_ajuda_custo != null ? String(atleta.valor_ajuda_custo) : "",
+    agencia: atleta.agencia ?? "",
+    maeNome: atleta.mae_nome ?? "",
+    maeTelefone: atleta.mae_telefone ?? "",
+    paiNome: atleta.pai_nome ?? "",
+    paiTelefone: atleta.pai_telefone ?? "",
+    escola: atleta.escola ?? "",
   };
 
   return (
-    <AppShell breadcrumb="Editar atleta">
-      <Link href="/atletas" className="text-sm font-medium text-grena hover:underline">
+    <AppShell departamento={isBase ? "futebol_base" : undefined} breadcrumb="Editar atleta">
+      <Link href={`/atletas?categoria=${atleta.categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
       <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Editar atleta</h1>

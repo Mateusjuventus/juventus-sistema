@@ -13,6 +13,17 @@ import { nomeDaContaAtual } from "@/lib/auth/perfis";
 import { isMaster } from "@/lib/auth/role";
 import type { AtletaStatus } from "@/lib/supabase/types";
 
+/**
+ * Cadastro de Atleta — ações únicas pro Futebol Profissional e pro Futebol de Base desde a
+ * unificação de 28/10/2026 (ver docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md).
+ * Até então existiam `app/atletas/actions.ts` (Profissional) e `app/base/atletas/actions.ts`
+ * (Base) quase idênticos, gravando na mesma tabela `atletas` desde a migração 0150 — a separação
+ * de verdade estava só no roteamento (categoria no path) e nos campos extras da Base. Como a
+ * listagem/cadastro agora vivem todos sob `/atletas` (a categoria vira query string, não path —
+ * ver `app/atletas/page.tsx`), redirecionar/revalidar não precisa mais de nenhuma lógica
+ * condicional por categoria: toda ação volta pra `/atletas?categoria=<categoria do atleta>` ou
+ * `/atletas/<id>/...`, direto.
+ */
 export interface AtletaFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
@@ -21,6 +32,7 @@ export interface AtletaFormState {
 
 function parseForm(formData: FormData) {
   const raw = {
+    categoria: String(formData.get("categoria") ?? ""),
     nomeCompleto: String(formData.get("nomeCompleto") ?? ""),
     apelido: String(formData.get("apelido") ?? ""),
     rg: String(formData.get("rg") ?? ""),
@@ -55,8 +67,21 @@ function parseForm(formData: FormData) {
     empresarioEmail: String(formData.get("empresarioEmail") ?? ""),
     tamanhoUniforme: String(formData.get("tamanhoUniforme") ?? "") || undefined,
     status: String(formData.get("status") ?? "liberado"),
+    classificacao: String(formData.get("classificacao") ?? "") || undefined,
     possuiAlergiaMedicamento: formData.get("possuiAlergiaMedicamento") === "on",
     alergiaMedicamentoQual: String(formData.get("alergiaMedicamentoQual") ?? ""),
+    // Campos exibidos no formulário só pra categoria de Base (ver `AtletaForm`), mas existem no
+    // schema/banco pra qualquer categoria — ver comentário em `atletaSchema`.
+    emailPai: String(formData.get("emailPai") ?? ""),
+    emailMae: String(formData.get("emailMae") ?? ""),
+    alojado: formData.get("alojado") === "on",
+    valorAjudaCusto: String(formData.get("valorAjudaCusto") ?? "") || undefined,
+    agencia: String(formData.get("agencia") ?? ""),
+    maeNome: String(formData.get("maeNome") ?? ""),
+    maeTelefone: String(formData.get("maeTelefone") ?? ""),
+    paiNome: String(formData.get("paiNome") ?? ""),
+    paiTelefone: String(formData.get("paiTelefone") ?? ""),
+    escola: String(formData.get("escola") ?? ""),
   };
 
   const result = atletaSchema.safeParse(raw);
@@ -64,6 +89,7 @@ function parseForm(formData: FormData) {
     raw: {
       ...raw,
       possuiAlergiaMedicamento: raw.possuiAlergiaMedicamento ? "on" : "",
+      alojado: raw.alojado ? "on" : "",
     },
     result,
   };
@@ -115,6 +141,7 @@ export async function createAtleta(
 
   const { error } = await supabase.from("atletas").insert({
     id,
+    categoria: data.categoria,
     nome_completo: data.nomeCompleto,
     apelido: data.apelido || null,
     rg: data.rg,
@@ -126,6 +153,8 @@ export async function createAtleta(
     pe_dominante: data.peDominante ?? null,
     telefone: data.telefone || null,
     email: data.email || null,
+    email_pai: data.emailPai || null,
+    email_mae: data.emailMae || null,
     cidade_natal: data.cidadeNatal || null,
     uf_natal: data.ufNatal ? data.ufNatal.toUpperCase() : null,
     endereco_atual: data.enderecoAtual || null,
@@ -150,8 +179,17 @@ export async function createAtleta(
     tamanho_uniforme: data.tamanhoUniforme || null,
     foto_path: fotoPath ?? null,
     status: data.status,
+    classificacao: data.classificacao ?? null,
     possui_alergia_medicamento: data.possuiAlergiaMedicamento,
     alergia_medicamento_qual: data.possuiAlergiaMedicamento ? data.alergiaMedicamentoQual || null : null,
+    alojado: data.alojado,
+    valor_ajuda_custo: data.valorAjudaCusto ?? null,
+    agencia: data.agencia || null,
+    mae_nome: data.maeNome || null,
+    mae_telefone: data.maeTelefone || null,
+    pai_nome: data.paiNome || null,
+    pai_telefone: data.paiTelefone || null,
+    escola: data.escola || null,
   });
 
   if (error) {
@@ -160,12 +198,12 @@ export async function createAtleta(
 
   // Semeia a primeira linha da linha do tempo de status (ver docs/superpowers/specs/
   // 2026-10-01-departamento-medico-historico-status-design.md, seção 3) — sem isso, um atleta
-  // cadastrado direto com status "Depto. Médico"/"Transição" apareceria sem nenhum lançamento no
-  // histórico até a próxima mudança.
+  // cadastrado direto com status "Depto. Médico"/"Transição"/"Dispensado" apareceria sem nenhum
+  // lançamento no histórico até a próxima mudança.
   await registrarStatusAtleta(supabase, id, data.status, hojeBrasilia());
 
   revalidatePath("/atletas");
-  redirect("/atletas");
+  redirect(`/atletas?categoria=${data.categoria}`);
 }
 
 export async function updateAtleta(
@@ -197,6 +235,7 @@ export async function updateAtleta(
   if (uploadError) return { error: uploadError, values: raw };
 
   const updatePayload: Record<string, unknown> = {
+    categoria: data.categoria,
     nome_completo: data.nomeCompleto,
     apelido: data.apelido || null,
     rg: data.rg,
@@ -208,6 +247,8 @@ export async function updateAtleta(
     pe_dominante: data.peDominante ?? null,
     telefone: data.telefone || null,
     email: data.email || null,
+    email_pai: data.emailPai || null,
+    email_mae: data.emailMae || null,
     cidade_natal: data.cidadeNatal || null,
     uf_natal: data.ufNatal ? data.ufNatal.toUpperCase() : null,
     endereco_atual: data.enderecoAtual || null,
@@ -231,8 +272,17 @@ export async function updateAtleta(
     empresario_email: data.empresarioEmail || null,
     tamanho_uniforme: data.tamanhoUniforme || null,
     status: data.status,
+    classificacao: data.classificacao ?? null,
     possui_alergia_medicamento: data.possuiAlergiaMedicamento,
     alergia_medicamento_qual: data.possuiAlergiaMedicamento ? data.alergiaMedicamentoQual || null : null,
+    alojado: data.alojado,
+    valor_ajuda_custo: data.valorAjudaCusto ?? null,
+    agencia: data.agencia || null,
+    mae_nome: data.maeNome || null,
+    mae_telefone: data.maeTelefone || null,
+    pai_nome: data.paiNome || null,
+    pai_telefone: data.paiTelefone || null,
+    escola: data.escola || null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 
@@ -249,7 +299,8 @@ export async function updateAtleta(
   }
 
   revalidatePath("/atletas");
-  redirect("/atletas");
+  revalidatePath(`/atletas/${id}`);
+  redirect(`/atletas?categoria=${data.categoria}`);
 }
 
 export interface DeleteAtletaState {
@@ -262,6 +313,10 @@ export async function deleteAtleta(
 ): Promise<DeleteAtletaState> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
+
+  const { data } = await supabase.from("atletas").select("categoria").eq("id", id).maybeSingle();
+  const categoria = (data as { categoria?: string } | null)?.categoria;
+
   const { error } = await supabase.from("atletas").delete().eq("id", id);
 
   if (error) {
@@ -275,14 +330,13 @@ export async function deleteAtleta(
 
   revalidatePath("/atletas");
   // Chamado agora de dentro do próprio cadastro (`/atletas/[id]`, ver `DeleteButton` no fim do
-  // formulário de edição — a listagem virou uma grade de cards só de foto, sem botão de excluir,
-  // mesmo ajuste já feito em `app/base/atletas/actions.ts`/`deleteAtletaBase`) — sem o redirect, a
-  // pessoa ficava numa tela de um atleta que acabou de apagar.
-  redirect("/atletas");
+  // formulário de edição — a listagem virou uma grade de cards só de foto, sem botão de excluir) —
+  // sem o redirect, a pessoa ficava numa tela de um atleta que acabou de apagar.
+  redirect(categoria ? `/atletas?categoria=${categoria}` : "/atletas");
 }
 
 /** Ativa/desativa um atleta (ver 0098_atleta_ativo.sql) — independente do status esportivo
- * (Liberado/Suspenso/Departamento Médico). Mesmo padrão de `alternarStaffAtivo`
+ * (Liberado/Depto. Médico/Transição/Dispensado). Mesmo padrão de `alternarStaffAtivo`
  * (app/staff-operacional/actions.ts): em vez de excluir, o cadastro fica marcado como inativo e
  * some da listagem por padrão (checkbox "Mostrar inativos"). Botão fica na página "Ver atleta"
  * (`AtletaPerfilHeader`/`AtletaAtivoButton`). */
@@ -296,6 +350,25 @@ export async function alternarAtletaAtivo(formData: FormData): Promise<void> {
 
   revalidatePath("/atletas");
   revalidatePath(`/atletas/${id}/ver`);
+}
+
+/** Liga/desliga a Ficha de Cadastro pública (`/cadastro-atleta-base`) — recurso só da Base (desde
+ * o ajuste de 19/08, essa tela cria/edita atletas do clube direto pelo link público, sem relação
+ * com a Captação — ver docs/superpowers/specs/2026-08-19-captacao-atletas-separacao-design.md).
+ * Sem uso esperado fora da Base, mas a função em si não depende de categoria nenhuma. */
+export async function alternarFichaCadastroAtletaBase(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const novoValor = String(formData.get("novoValor") ?? "") === "true";
+  if (!id) return;
+
+  const supabase = createClient();
+  await supabase
+    .from("configuracoes_cadastro_atleta_base")
+    .update({ cadastro_publico_ativo: novoValor })
+    .eq("id", id);
+
+  revalidatePath("/atletas");
+  revalidatePath("/cadastro-atleta-base");
 }
 
 export interface ContatoEmergenciaFormState {
@@ -358,8 +431,10 @@ export interface AnotacaoFormState {
 }
 
 /** Adiciona uma anotação ao histórico do atleta (aba "Anotações") — texto livre, nunca editado
- * depois de criado. Autor nunca vem do formulário: sempre o perfil logado. Ver docs/superpowers/
- * specs/2026-10-27-ficha-atleta-dossie-anotacoes-design.md. */
+ * depois de criado. Autor nunca vem do formulário: sempre o perfil logado. Também escrita pelo
+ * Treinador (ação própria, `adicionarAnotacaoTreinador` em `app/treinador/atletas/actions.ts`,
+ * checagem de categoria diferente). Ver docs/superpowers/specs/2026-10-27-ficha-atleta-dossie-
+ * anotacoes-design.md. */
 export async function adicionarAnotacao(
   _prevState: AnotacaoFormState,
   formData: FormData,

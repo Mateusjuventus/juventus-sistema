@@ -25,11 +25,13 @@ function parseForm(formData: FormData) {
 }
 
 /**
- * "Novo contrato" (aba Contrato) — chama a função de banco `criar_contrato_atleta`
- * (ver supabase/migrations/0137_atleta_contrato.sql), que encerra o contrato vigente atual (se
- * existir) e insere este como o novo vigente numa operação atômica só, e sincroniza
- * `tipo_contrato`/`data_fim_contrato` de volta em `atletas` (continuam lidos direto por
- * `AtletasResumoFiltros`, ver `app/atletas/page.tsx`). Ver docs/superpowers/specs/
+ * "Novo contrato" (aba Contrato) — única ação pro Futebol Profissional e pro Futebol de Base
+ * desde a unificação de 28/10/2026 (ver docs/superpowers/specs/2026-10-28-unificacao-atletas-
+ * design.md): a mesma função `criar_contrato_atleta` (ver supabase/migrations/0137_atleta_
+ * contrato.sql) já grava na tabela unificada `atleta_contratos` pra qualquer categoria. Encerra o
+ * contrato vigente atual (se existir) e insere este como o novo vigente numa operação atômica só,
+ * e sincroniza `tipo_contrato`/`data_fim_contrato` de volta em `atletas` (continuam lidos direto
+ * por `AtletasResumoFiltros`, ver `app/atletas/page.tsx`). Ver docs/superpowers/specs/
  * 2026-10-16-atleta-dados-esportivos-contrato-design.md.
  */
 export async function criarContrato(
