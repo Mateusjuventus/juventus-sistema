@@ -9,7 +9,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { RelatorioDispensaDocument, montarAssinaturasDispensa } from "@/lib/pdf/relatorio-dispensa-document";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 
 /**
  * Rota do PDF do Relatório de Dispensa — mesmo molde de
@@ -19,10 +19,10 @@ import type { AtletaBaseRow } from "@/lib/supabase/types";
  */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
-  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+  const { data } = await supabase.from("atletas").select("*").eq("id", params.id).single();
   if (!data) return new NextResponse("Atleta não encontrado.", { status: 404 });
 
-  const atleta = data as AtletaBaseRow;
+  const atleta = data as AtletaRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
