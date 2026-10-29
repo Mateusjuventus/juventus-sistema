@@ -152,7 +152,7 @@ async function AtletasIndice() {
       <p className="mt-1 text-sm text-neutral-500">Escolha uma categoria pra ver a listagem completa.</p>
 
       {temBaseVisivel || podeVerProfissional ? (
-        <div className="card mt-6 divide-y divide-linha overflow-hidden sm:flex sm:divide-x sm:divide-y-0">
+        <div className="card mt-4 divide-y divide-linha overflow-hidden sm:flex sm:divide-x sm:divide-y-0">
           {temBaseVisivel ? (
             <ResumoGrupo
               titulo="Base"
@@ -176,7 +176,7 @@ async function AtletasIndice() {
         </div>
       ) : null}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {categoriasVisiveis.map((cat) => {
           const cor = CATEGORIA_ATLETA_COR[cat.value];
           const quantidade = contagens.get(cat.value) ?? 0;
@@ -231,30 +231,30 @@ function ResumoGrupo({
   corBarra: string;
 }) {
   return (
-    <div className="flex-1 p-5 sm:p-6">
-      <div className="flex items-center gap-3">
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${corFundo} ${corTexto}`}>
-          <IconAtletas className="h-5 w-5" />
+    <div className="flex-1 p-3.5 sm:p-4">
+      <div className="flex items-center gap-2">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${corFundo} ${corTexto}`}>
+          <IconAtletas className="h-3.5 w-3.5" />
         </span>
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">{titulo}</p>
-          <p className="text-2xl font-bold leading-tight text-grena-escuro">
-            {total} <span className="text-sm font-medium text-neutral-400">{total === 1 ? "atleta" : "atletas"}</span>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{titulo}</p>
+          <p className="text-lg font-bold leading-tight text-grena-escuro">
+            {total} <span className="text-xs font-medium text-neutral-400">{total === 1 ? "atleta" : "atletas"}</span>
           </p>
         </div>
       </div>
 
       {linhas.length > 0 ? (
-        <ul className="mt-5 flex flex-col gap-3">
+        <ul className="mt-2.5 flex flex-col gap-1.5">
           {linhas.map((linha) => {
             const pct = total > 0 ? Math.round((linha.valor / total) * 100) : 0;
             return (
               <li key={linha.label}>
-                <div className="flex items-baseline justify-between gap-2 text-sm">
+                <div className="flex items-baseline justify-between gap-2 text-xs">
                   <span className="font-medium text-neutral-700">{linha.label}</span>
                   <span className="shrink-0 font-semibold tabular-nums text-neutral-800">{linha.valor}</span>
                 </div>
-                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-neutral-100">
                   <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${pct}%` }} />
                 </div>
               </li>
@@ -262,7 +262,7 @@ function ResumoGrupo({
           })}
         </ul>
       ) : (
-        <p className="mt-5 text-sm text-neutral-400">Nenhum atleta ativo por aqui ainda.</p>
+        <p className="mt-2.5 text-xs text-neutral-400">Nenhum atleta ativo por aqui ainda.</p>
       )}
     </div>
   );
