@@ -7,8 +7,8 @@ import { statusFisioterapiaAtletaBase } from "@/lib/futebol/fisioterapia-base";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { recomputarStatusAtualBase, registrarStatusAtletaBase } from "@/lib/futebol/status-historico-base";
 import type {
-  AtletaBaseStatus,
-  AtletaBaseStatusHistoricoRow,
+  AtletaStatus,
+  AtletaStatusHistoricoRow,
   FisioterapiaStatusDia,
   FisioterapiaTipo,
 } from "@/lib/supabase/types";
@@ -64,10 +64,10 @@ async function sincronizarStatusAtletaBase(
     .is("data_fim", null)
     .not("data_inicio", "is", null);
 
-  const novoStatus: AtletaBaseStatus = statusFisioterapiaAtletaBase((count ?? 0) > 0);
+  const novoStatus: AtletaStatus = statusFisioterapiaAtletaBase((count ?? 0) > 0);
 
-  const { data: atletaAtual } = await supabase.from("atletas_base").select("status").eq("id", atletaId).maybeSingle();
-  if ((atletaAtual as { status: AtletaBaseStatus } | null)?.status === novoStatus) return;
+  const { data: atletaAtual } = await supabase.from("atletas").select("status").eq("id", atletaId).maybeSingle();
+  if ((atletaAtual as { status: AtletaStatus } | null)?.status === novoStatus) return;
 
   const dataEvento = novoStatus === "departamento_medico" ? dataInicio : (dataFim ?? hojeBrasilia());
   await registrarStatusAtletaBase(supabase, atletaId, novoStatus, dataEvento);
@@ -234,7 +234,7 @@ export async function excluirLesaoBase(
   const { error } = await supabase.from("fisioterapia_lesoes_base").delete().eq("id", id);
   if (error) return { error: `Não foi possível excluir a lesão. Tente novamente. (${error.message})` };
 
-  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+  const { data: atletaAtual } = await supabase.from("atletas").select("categoria").eq("id", atletaId).maybeSingle();
   await sincronizarStatusAtletaBase(supabase, atletaId, hojeBrasilia(), null);
   revalidarFichaBase(atletaId, (atletaAtual as { categoria: string } | null)?.categoria ?? "");
   return {};
@@ -263,7 +263,7 @@ export async function excluirQueixaBase(
   const { error } = await supabase.from("fisioterapia_queixas_base").delete().eq("id", id);
   if (error) return { error: `Não foi possível excluir a queixa. Tente novamente. (${error.message})` };
 
-  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+  const { data: atletaAtual } = await supabase.from("atletas").select("categoria").eq("id", atletaId).maybeSingle();
   revalidarFichaBase(atletaId, (atletaAtual as { categoria: string } | null)?.categoria ?? "");
   return {};
 }
@@ -363,7 +363,7 @@ export async function excluirAtendimentoBase(
   const { error } = await supabase.from("fisioterapia_atendimentos_base").delete().eq("id", id);
   if (error) return { error: `Não foi possível excluir o atendimento. Tente novamente. (${error.message})` };
 
-  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+  const { data: atletaAtual } = await supabase.from("atletas").select("categoria").eq("id", atletaId).maybeSingle();
   revalidarFichaBase(atletaId, (atletaAtual as { categoria: string } | null)?.categoria ?? "");
   return {};
 }
@@ -440,11 +440,11 @@ export async function atualizarQueixaBase(
   return { success: "Queixa atualizada." };
 }
 
-const STATUS_VALIDOS: AtletaBaseStatus[] = ["liberado", "suspenso", "departamento_medico", "dispensado"];
+const STATUS_VALIDOS: AtletaStatus[] = ["liberado", "transicao", "departamento_medico", "dispensado"];
 
-function parseStatusAtletaBase(raw: FormDataEntryValue | null): AtletaBaseStatus | null {
+function parseStatusAtletaBase(raw: FormDataEntryValue | null): AtletaStatus | null {
   const valor = String(raw ?? "");
-  return (STATUS_VALIDOS as string[]).includes(valor) ? (valor as AtletaBaseStatus) : null;
+  return (STATUS_VALIDOS as string[]).includes(valor) ? (valor as AtletaStatus) : null;
 }
 
 export interface HistoricoStatusFormStateBase {
@@ -474,10 +474,10 @@ export async function lancarStatusManualBase(
   if (!data) fieldErrors.data = "Data é obrigatória.";
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
-  const { error } = await registrarStatusAtletaBase(supabase, atletaId, status as AtletaBaseStatus, data);
+  const { error } = await registrarStatusAtletaBase(supabase, atletaId, status as AtletaStatus, data);
   if (error) return { error };
 
-  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+  const { data: atletaAtual } = await supabase.from("atletas").select("categoria").eq("id", atletaId).maybeSingle();
   revalidarFichaBase(atletaId, (atletaAtual as { categoria: string } | null)?.categoria ?? "");
   return { success: "Status lançado." };
 }
@@ -504,23 +504,23 @@ export async function editarLancamentoStatusBase(
   if (!data) fieldErrors.data = "Data é obrigatória.";
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
-  const { error } = await supabase.from("atletas_base_status_historico").update({ status, data }).eq("id", historicoId);
+  const { error } = await supabase.from("atletas_status_historico").update({ status, data }).eq("id", historicoId);
   if (error) return { error: `Não foi possível salvar. Tente novamente. (${error.message})` };
 
   await recomputarStatusAtualBase(supabase, atletaId);
-  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+  const { data: atletaAtual } = await supabase.from("atletas").select("categoria").eq("id", atletaId).maybeSingle();
   revalidarFichaBase(atletaId, (atletaAtual as { categoria: string } | null)?.categoria ?? "");
   return { success: "Lançamento atualizado." };
 }
 
 /** Linha do tempo de status completa de um atleta da Base — espelha `buscarHistoricoStatus`
  * (Profissional). */
-export async function buscarHistoricoStatusBase(atletaId: string): Promise<AtletaBaseStatusHistoricoRow[]> {
+export async function buscarHistoricoStatusBase(atletaId: string): Promise<AtletaStatusHistoricoRow[]> {
   const supabase = createClient();
   const { data } = await supabase
-    .from("atletas_base_status_historico")
+    .from("atletas_status_historico")
     .select("*")
     .eq("atleta_id", atletaId)
     .order("data", { ascending: false });
-  return (data ?? []) as AtletaBaseStatusHistoricoRow[];
+  return (data ?? []) as AtletaStatusHistoricoRow[];
 }

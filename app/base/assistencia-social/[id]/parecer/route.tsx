@@ -9,7 +9,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import { ParecerSocialDocument, type ParecerSocialAssinatura } from "@/lib/pdf/parecer-social-document";
-import type { AssistenciaSocialAtendimentoRow, AtletaBaseRow } from "@/lib/supabase/types";
+import type { AssistenciaSocialAtendimentoRow, AtletaRow } from "@/lib/supabase/types";
 
 /**
  * Rota do PDF do Parecer Social — acesso já garantido pelo middleware (módulo
@@ -26,9 +26,9 @@ import type { AssistenciaSocialAtendimentoRow, AtletaBaseRow } from "@/lib/supab
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+  const { data } = await supabase.from("atletas").select("*").eq("id", params.id).single();
   if (!data) return new NextResponse("Atleta não encontrado.", { status: 404 });
-  const atleta = data as AtletaBaseRow;
+  const atleta = data as AtletaRow;
 
   const [{ data: atendimentosData }, fotoUrl] = await Promise.all([
     supabase

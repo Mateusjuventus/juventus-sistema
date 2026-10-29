@@ -297,7 +297,7 @@ export function AtletaBaseForm({
             error={errors.status}
           >
             <option value="liberado">Liberado</option>
-            <option value="suspenso">Suspenso</option>
+            <option value="transicao">Suspenso</option>
             <option value="departamento_medico">Departamento Médico</option>
             {/* Normalmente só a tela de Relatório de Dispensa grava este valor — fica aqui também
                 pra o <select> exibir certo um atleta já dispensado (e permitir corrigir manualmente,

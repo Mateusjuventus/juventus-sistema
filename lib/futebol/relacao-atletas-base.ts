@@ -1,5 +1,5 @@
 import { CATEGORIAS_BASE, categoriaBaseLabel, TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
-import type { AtletaBaseStatus } from "@/lib/supabase/types";
+import type { AtletaStatus } from "@/lib/supabase/types";
 
 /**
  * Lógica pura (sem Supabase) da Relação de Atletas da Base (ver docs/superpowers/specs/
@@ -8,23 +8,23 @@ import type { AtletaBaseStatus } from "@/lib/supabase/types";
  * renderizar o PDF nem bater no banco.
  */
 
-export const RELACAO_STATUS_LABEL: Record<AtletaBaseStatus, string> = {
+export const RELACAO_STATUS_LABEL: Record<AtletaStatus, string> = {
   liberado: "Liberado",
-  suspenso: "Suspenso",
+  transicao: "Suspenso",
   departamento_medico: "Departamento Médico",
   dispensado: "Dispensado",
 };
 
-export const TODOS_STATUS_ATLETA_BASE: AtletaBaseStatus[] = [
+export const TODOS_STATUS_ATLETA_BASE: AtletaStatus[] = [
   "liberado",
-  "suspenso",
+  "transicao",
   "departamento_medico",
   "dispensado",
 ];
 
 /** Nenhum status marcado no formulário → entende-se como "todos os status", pra não gerar um PDF
  * vazio por engano (ver a spec, decisão 3). */
-export function statusParaFiltro(statusMarcados: AtletaBaseStatus[]): AtletaBaseStatus[] {
+export function statusParaFiltro(statusMarcados: AtletaStatus[]): AtletaStatus[] {
   return statusMarcados.length > 0 ? statusMarcados : TODOS_STATUS_ATLETA_BASE;
 }
 

@@ -9,7 +9,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { diasAfastados, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { FisioterapiaAtletaDocument } from "@/lib/pdf/fisioterapia-atleta-document";
-import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
 
 /** Rota do PDF individual de Fisioterapia (Futebol de Base) — espelha `app/departamento-medico/
  * fisioterapia/[atletaId]/pdf/route.tsx` (Profissional), reaproveitando o mesmo
@@ -17,9 +17,9 @@ import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBa
  * tem histórico importado). Ver docs/superpowers/specs/2026-10-06-fisioterapia-base-design.md. */
 export async function GET(_request: Request, { params }: { params: { atletaId: string } }) {
   const supabase = createClient();
-  const { data: atletaData } = await supabase.from("atletas_base").select("*").eq("id", params.atletaId).maybeSingle();
+  const { data: atletaData } = await supabase.from("atletas").select("*").eq("id", params.atletaId).maybeSingle();
   if (!atletaData) return new NextResponse("Atleta não encontrado.", { status: 404 });
-  const atleta = atletaData as AtletaBaseRow;
+  const atleta = atletaData as AtletaRow;
 
   const [{ data: lesoesData }, { data: queixasData }, { data: atendimentosData }] = await Promise.all([
     supabase

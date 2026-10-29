@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import type { AtletaCardDados } from "@/components/atletas/atleta-card";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 import { AssistenciaSocialListagem } from "./assistencia-social-listagem";
 
 export type AssistenciaSocialAtletaItem = AtletaCardDados & { href: string; categoria: string };
@@ -18,12 +18,13 @@ export default async function AssistenciaSocialListagemPage() {
   const supabase = createClient();
 
   const { data: atletasData } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("*")
     .eq("ativo", true)
+    .neq("categoria", "profissional")
     .order("nome_completo", { ascending: true });
 
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  const atletas = (atletasData ?? []) as AtletaRow[];
   const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));
 
   const itens: AssistenciaSocialAtletaItem[] = atletas.map((atleta, i) => ({

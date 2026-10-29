@@ -10,7 +10,7 @@ import { hojeBrasilia } from "@/lib/data-brasil";
 import { montarResumoGeralFisioterapia } from "@/lib/futebol/fisioterapia";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
 import { FisioterapiaRelatorioGeralDocument } from "@/lib/pdf/fisioterapia-relatorio-geral-document";
-import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
 
 /** Rota do PDF do Relatório Geral (consolidado) de Fisioterapia (Futebol de Base) — espelha
  * `app/departamento-medico/fisioterapia/relatorio/pdf/route.tsx` (Profissional), reaproveitando o
@@ -21,10 +21,10 @@ export async function GET() {
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
 
   const { data: atletasData } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("id, nome_completo, apelido")
     .in("categoria", categoriasPermitidas);
-  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[];
+  const atletas = (atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "apelido">[];
   const atletaIds = atletas.map((a) => a.id);
 
   const [{ data: lesoesData }, { data: queixasData }, { data: atendimentosData }] = await Promise.all([

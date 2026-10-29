@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { calcularVagasAlojamento } from "@/lib/futebol/alojamento";
-import type { AlojamentoBaseConfigRow, AtletaBaseRow } from "@/lib/supabase/types";
+import type { AlojamentoBaseConfigRow, AtletaRow } from "@/lib/supabase/types";
 import { atualizarConfigAlojamento } from "./actions";
 import { AlojamentoConfigForm } from "./config-form";
 
@@ -18,14 +18,15 @@ export default async function AlojamentoPage() {
   const [{ data: configData }, { data: alojadosData }] = await Promise.all([
     supabase.from("alojamento_base_config").select("*").limit(1).maybeSingle(),
     supabase
-      .from("atletas_base")
+      .from("atletas")
       .select("*")
       .eq("alojado", true)
+      .neq("categoria", "profissional")
       .order("nome_completo", { ascending: true }),
   ]);
 
   const config = configData as AlojamentoBaseConfigRow | null;
-  const alojados = (alojadosData ?? []) as AtletaBaseRow[];
+  const alojados = (alojadosData ?? []) as AtletaRow[];
   const vagas = calcularVagasAlojamento(config?.capacidade_total ?? 0, alojados.length);
 
   return (

@@ -462,7 +462,7 @@ function PainelEdicaoAtleta({
           <label className="field-label">Status</label>
           <select value={status ?? "liberado"} onChange={(e) => setStatus(e.target.value)} className="field-input">
             <option value="liberado">Liberado</option>
-            <option value="suspenso">Suspenso</option>
+            <option value="transicao">Suspenso</option>
             <option value="departamento_medico">Departamento Médico</option>
           </select>
         </div>

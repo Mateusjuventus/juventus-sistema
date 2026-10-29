@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { calcularLinhaDoTempoBase, type LinhaHistoricoComDiasBase } from "@/lib/futebol/status-historico-base";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import { hojeBrasilia } from "@/lib/data-brasil";
-import type { AtletaBaseStatus } from "@/lib/supabase/types";
+import type { AtletaStatus } from "@/lib/supabase/types";
 import {
   buscarHistoricoStatusBase,
   editarLancamentoStatusBase,
@@ -17,19 +17,21 @@ import {
   type HistoricoStatusFormStateBase,
 } from "./[atletaId]/actions";
 
-/** Mesmos 4 rótulos já usados em outras telas que exibem `AtletaBaseStatus` (ex.: `app/base/
+/** Mesmos 4 rótulos já usados em outras telas que exibem `AtletaStatus` (ex.: `app/base/
  * atletas/[categoria]/page.tsx`) — o sistema não tem uma constante única compartilhada pra isso;
- * cada tela que precisa define o próprio mapa local, e este segue o mesmo padrão. */
-const STATUS_LABEL_BASE: Record<AtletaBaseStatus, string> = {
+ * cada tela que precisa define o próprio mapa local, e este segue o mesmo padrão. Desde a
+ * unificação de Atletas (28/10/2026) o status "suspenso" da Base virou "transicao" (mesmo valor do
+ * Profissional) — o rótulo "Não apto" (pedido de 2026-09-10) continua, só a chave mudou. */
+const STATUS_LABEL_BASE: Record<AtletaStatus, string> = {
   liberado: "Apto",
-  suspenso: "Não apto",
+  transicao: "Não apto",
   departamento_medico: "Depto. Médico",
   dispensado: "Dispensado",
 };
 
-const STATUS_OPTIONS: { value: AtletaBaseStatus; label: string }[] = [
+const STATUS_OPTIONS: { value: AtletaStatus; label: string }[] = [
   { value: "liberado", label: STATUS_LABEL_BASE.liberado },
-  { value: "suspenso", label: STATUS_LABEL_BASE.suspenso },
+  { value: "transicao", label: STATUS_LABEL_BASE.transicao },
   { value: "departamento_medico", label: STATUS_LABEL_BASE.departamento_medico },
   { value: "dispensado", label: STATUS_LABEL_BASE.dispensado },
 ];
@@ -170,8 +172,9 @@ function LinhaHistorico({
 }
 
 /**
- * Modal "Histórico de Status" (Futebol de Base) — espelha `HistoricoStatusModal` (Profissional),
- * com os 4 valores de `AtletaBaseStatus` em vez de 3. Aberto ao clicar num atleta na listagem da
+ * Modal "Histórico de Status" (Futebol de Base) — espelha `HistoricoStatusModal` (Profissional).
+ * Desde a unificação (28/10/2026) os dois lados usam o mesmo `AtletaStatus` (4 valores). Aberto ao
+ * clicar num atleta na listagem da
  * Fisioterapia da Base. Ver docs/superpowers/specs/2026-10-06-fisioterapia-base-design.md.
  */
 export function HistoricoStatusModalBase({

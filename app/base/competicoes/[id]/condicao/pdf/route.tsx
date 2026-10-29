@@ -53,7 +53,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const nomesExtras = new Map<string, { nome_completo: string; posicao: string | null }>();
   const faltando = convocadosNaoInscritos.filter((id) => !atletasById.has(id));
   if (faltando.length) {
-    const { data } = await supabase.from("atletas_base").select("id, nome_completo, posicao").in("id", faltando);
+    const { data } = await supabase.from("atletas").select("id, nome_completo, posicao").in("id", faltando);
     for (const a of (data ?? []) as { id: string; nome_completo: string; posicao: string | null }[]) {
       nomesExtras.set(a.id, { nome_completo: a.nome_completo, posicao: a.posicao });
     }

@@ -6,7 +6,7 @@ import { getFisioterapiaPodeEditarBase, getCategoriasBasePermitidas } from "@/li
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type { AtletaCardDados } from "@/components/atletas/atleta-card";
-import type { AtletaBaseRow, CategoriaBase, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, CategoriaBase, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow } from "@/lib/supabase/types";
 import { LancamentoDiaClienteBase } from "./lancamento-dia-cliente-base";
 
 export type LancamentoDiaAtletaItemBase = AtletaCardDados & {
@@ -29,7 +29,7 @@ export default async function LancamentoDiaPageBase({ searchParams }: { searchPa
   const [{ data: atletasData }, { data: lesoesAtivasData }, { data: atendimentosHojeData }, podeEditar] =
     await Promise.all([
       supabase
-        .from("atletas_base")
+        .from("atletas")
         .select("*")
         .eq("ativo", true)
         .in("categoria", categoriasPermitidas)
@@ -43,7 +43,7 @@ export default async function LancamentoDiaPageBase({ searchParams }: { searchPa
       getFisioterapiaPodeEditarBase(supabase),
     ]);
 
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  const atletas = (atletasData ?? []) as AtletaRow[];
   const lesoesAtivas = (lesoesAtivasData ?? []) as Pick<FisioterapiaLesaoBaseRow, "id" | "atleta_id" | "descricao">[];
   const atendimentosHojeTodos = (atendimentosHojeData ?? []) as FisioterapiaAtendimentoBaseRow[];
   // Restrito às categorias permitidas (um atendimento de um atleta fora do escopo não deveria
@@ -82,7 +82,8 @@ export default async function LancamentoDiaPageBase({ searchParams }: { searchPa
     numeroCamisa: atleta.numero_camisa,
     dispensado: false,
     ativo: true,
-    categoria: atleta.categoria,
+    // A query acima já restringe `categoria` a `categoriasPermitidas` (sempre categorias de Base).
+    categoria: atleta.categoria as CategoriaBase,
     lesoesOpcoes: lesoesPorAtleta.get(atleta.id) ?? [],
   }));
 

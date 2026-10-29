@@ -18,9 +18,9 @@ import {
   statusParaFiltro,
 } from "@/lib/futebol/relacao-atletas-base";
 import { classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
-import { ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -40,9 +40,9 @@ function numeroRegistro(cbf: number | null, fpf: number | null): string | null {
   return partes.length > 0 ? partes.join(" · ") : null;
 }
 
-const TODOS_STATUS_KEYS: { key: string; status: AtletaBaseStatus }[] = [
+const TODOS_STATUS_KEYS: { key: string; status: AtletaStatus }[] = [
   { key: "status_liberado", status: "liberado" },
-  { key: "status_suspenso", status: "suspenso" },
+  { key: "status_suspenso", status: "transicao" },
   { key: "status_departamento_medico", status: "departamento_medico" },
   { key: "status_dispensado", status: "dispensado" },
 ];
@@ -89,14 +89,16 @@ export async function POST(request: Request) {
   const supabase = createClient();
 
   const { data } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("*")
     .in("status", statusFiltro)
     .in("categoria", categoriasFiltro)
     .order("nome_completo", { ascending: true });
 
-  const atletas: RelacaoAtletaLinha[] = ((data ?? []) as AtletaBaseRow[]).map((a) => ({
-    categoria: a.categoria,
+  const atletas: RelacaoAtletaLinha[] = ((data ?? []) as AtletaRow[]).map((a) => ({
+    // A query acima já restringe `categoria` a `categoriasFiltro` (sempre categorias de Base) —
+    // o cast só reflete pro TS o que o filtro já garante em runtime.
+    categoria: a.categoria as CategoriaBase,
     nome: a.nome_completo,
     apelido: a.apelido,
     dataNascimento: a.data_nascimento,

@@ -5,7 +5,7 @@ import { AtletaCard } from "@/components/atletas/atleta-card";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
 import { fatiasPizza } from "@/lib/futebol/grafico-pizza";
 import { CATEGORIAS_BASE, CATEGORIA_BASE_COR } from "@/lib/auth/categorias-base";
-import type { AtletaBaseStatus, CategoriaBase } from "@/lib/supabase/types";
+import type { AtletaStatus, CategoriaBase } from "@/lib/supabase/types";
 import { HistoricoStatusModalBase } from "./historico-status-modal-base";
 import type { FisioterapiaAtletaItemBase } from "./page";
 
@@ -16,17 +16,17 @@ const BORDA_EM_TRATAMENTO = "border-red-500";
 // rótulos de `STATUS_LABEL_BASE` em `historico-status-modal-base.tsx`, pra não introduzir um
 // segundo nome pro mesmo status na mesma tela. Cores: mesmo verde/vermelho já usados pro par
 // apto/não apto em `AtletasResumoFiltros`, mais âmbar pro meio-termo ("Suspenso").
-const STATUS_LABEL_PIZZA: Record<Exclude<AtletaBaseStatus, "dispensado">, string> = {
+const STATUS_LABEL_PIZZA: Record<Exclude<AtletaStatus, "dispensado">, string> = {
   liberado: "Apto",
-  suspenso: "Não apto",
+  transicao: "Não apto",
   departamento_medico: "Depto. Médico",
 };
-const STATUS_COR_PIZZA: Record<Exclude<AtletaBaseStatus, "dispensado">, string> = {
+const STATUS_COR_PIZZA: Record<Exclude<AtletaStatus, "dispensado">, string> = {
   liberado: "#10B981",
-  suspenso: "#F59E0B",
+  transicao: "#F59E0B",
   departamento_medico: "#EF4444",
 };
-const STATUS_OPCOES_PIZZA = Object.keys(STATUS_LABEL_PIZZA) as Exclude<AtletaBaseStatus, "dispensado">[];
+const STATUS_OPCOES_PIZZA = Object.keys(STATUS_LABEL_PIZZA) as Exclude<AtletaStatus, "dispensado">[];
 
 function alternarNoConjunto<T>(atual: Set<T>, valor: T): Set<T> {
   const novo = new Set(atual);
@@ -57,7 +57,7 @@ export function FisioterapiaListagemBase({
 }) {
   const [busca, setBusca] = useState("");
   const [categoriaSel, setCategoriaSel] = useState<Set<CategoriaBase>>(new Set());
-  const [statusSel, setStatusSel] = useState<Set<Exclude<AtletaBaseStatus, "dispensado">>>(new Set());
+  const [statusSel, setStatusSel] = useState<Set<Exclude<AtletaStatus, "dispensado">>>(new Set());
   const buscaNormalizada = busca.trim().toLowerCase();
   const [selecionado, setSelecionado] = useState<FisioterapiaAtletaItemBase | null>(null);
 
@@ -68,7 +68,7 @@ export function FisioterapiaListagemBase({
   }, [atletas]);
 
   const contagensStatus = useMemo(() => {
-    const mapa = new Map<Exclude<AtletaBaseStatus, "dispensado">, number>();
+    const mapa = new Map<Exclude<AtletaStatus, "dispensado">, number>();
     for (const a of atletas) {
       if (a.status === "dispensado") continue;
       mapa.set(a.status, (mapa.get(a.status) ?? 0) + 1);
@@ -229,10 +229,10 @@ function PizzaStatus({
   selecionados,
   aoClicar,
 }: {
-  contagens: Map<Exclude<AtletaBaseStatus, "dispensado">, number>;
+  contagens: Map<Exclude<AtletaStatus, "dispensado">, number>;
   total: number;
-  selecionados: Set<Exclude<AtletaBaseStatus, "dispensado">>;
-  aoClicar: (status: Exclude<AtletaBaseStatus, "dispensado">) => void;
+  selecionados: Set<Exclude<AtletaStatus, "dispensado">>;
+  aoClicar: (status: Exclude<AtletaStatus, "dispensado">) => void;
 }) {
   if (total === 0) {
     return (

@@ -5,7 +5,7 @@ import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { montarResumoGeralFisioterapia } from "@/lib/futebol/fisioterapia";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
-import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
 
 function formatDataBr(iso: string | null): string {
   if (!iso) return "—";
@@ -24,10 +24,10 @@ export default async function FisioterapiaRelatorioBasePage() {
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
 
   const { data: atletasData } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("id, nome_completo, apelido")
     .in("categoria", categoriasPermitidas);
-  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[];
+  const atletas = (atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "apelido">[];
   const atletaIds = atletas.map((a) => a.id);
 
   const [{ data: lesoesData }, { data: queixasData }, { data: atendimentosData }] = await Promise.all([

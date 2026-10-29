@@ -10,7 +10,7 @@ import { hojeBrasilia } from "@/lib/data-brasil";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
 import { CATEGORIAS_BASE, categoriaBaseLabel, type CategoriaBase } from "@/lib/auth/categorias-base";
 import { FisioterapiaRelatorioDiaDocument, type FisioterapiaRelatorioDiaItem } from "@/lib/pdf/fisioterapia-relatorio-dia-document";
-import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, FisioterapiaAtendimentoBaseRow } from "@/lib/supabase/types";
 
 /** Rota do PDF do Relatório Diário (Base) — espelha a rota do Profissional, com agrupamento por
  * categoria (ordem de `CATEGORIAS_BASE`) e restrito às categorias que o usuário logado pode ver
@@ -29,12 +29,12 @@ export async function GET(request: Request) {
   const { data: atletasData } =
     atletaIds.length > 0
       ? await supabase
-          .from("atletas_base")
+          .from("atletas")
           .select("id, nome_completo, apelido, categoria")
           .in("id", atletaIds)
           .in("categoria", categoriasPermitidas)
       : { data: [] };
-  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido" | "categoria">[];
+  const atletas = (atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "apelido" | "categoria">[];
   const atletaPorId = new Map(atletas.map((a) => [a.id, a]));
 
   const ordemCategoria = new Map<CategoriaBase, number>(CATEGORIAS_BASE.map((c, i) => [c.value, i]));
@@ -45,10 +45,12 @@ export async function GET(request: Request) {
       // Atleta não encontrado (excluído) ou fora das categorias permitidas pra quem gerou o PDF —
       // mesmo critério de "não revela o que está fora do escopo" já usado nos guards de categoria.
       if (!atleta) return null;
+      // A query acima já restringe `categoria` a `categoriasPermitidas` (sempre categorias de Base).
+      const categoria = atleta.categoria as CategoriaBase;
       return {
         nome: nomeExibido({ apelido: atleta.apelido, nome_completo: atleta.nome_completo }),
-        categoria: categoriaBaseLabel(atleta.categoria),
-        categoriaOrdem: ordemCategoria.get(atleta.categoria) ?? CATEGORIAS_BASE.length,
+        categoria: categoriaBaseLabel(categoria),
+        categoriaOrdem: ordemCategoria.get(categoria) ?? CATEGORIAS_BASE.length,
         statusDia: a.status_dia,
         descricao: a.descricao,
       };

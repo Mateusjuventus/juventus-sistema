@@ -9,7 +9,7 @@ import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import { papeisEsperados } from "@/lib/assinaturas/config";
-import type { AssistenciaSocialAtendimentoRow, AtletaBaseRow } from "@/lib/supabase/types";
+import type { AssistenciaSocialAtendimentoRow, AtletaRow } from "@/lib/supabase/types";
 import { AtendimentoItem, NovoAtendimentoForm } from "./atendimento-forms";
 
 /**
@@ -21,7 +21,7 @@ export default async function AssistenciaSocialAtletaPage({ params }: { params: 
   const supabase = createClient();
 
   const [{ data: atletaData }, { data: atendimentosData }] = await Promise.all([
-    supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle(),
+    supabase.from("atletas").select("*").eq("id", params.id).maybeSingle(),
     supabase
       .from("assistencia_social_atendimentos")
       .select("*")
@@ -30,7 +30,7 @@ export default async function AssistenciaSocialAtletaPage({ params }: { params: 
   ]);
 
   if (!atletaData) notFound();
-  const atleta = atletaData as AtletaBaseRow;
+  const atleta = atletaData as AtletaRow;
   const atendimentos = (atendimentosData ?? []) as AssistenciaSocialAtendimentoRow[];
 
   const {

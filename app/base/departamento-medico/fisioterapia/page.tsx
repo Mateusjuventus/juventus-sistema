@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getFisioterapiaPodeEditarBase, getCategoriasBasePermitidas } from "@/lib/auth/role";
 import type { AtletaCardDados } from "@/components/atletas/atleta-card";
-import type { AtletaBaseRow, AtletaBaseStatus, CategoriaBase, FisioterapiaLesaoBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, AtletaStatus, CategoriaBase, FisioterapiaLesaoBaseRow } from "@/lib/supabase/types";
 import { FisioterapiaListagemBase } from "./fisioterapia-listagem-base";
 
 export type FisioterapiaAtletaItemBase = AtletaCardDados & {
@@ -14,7 +14,7 @@ export type FisioterapiaAtletaItemBase = AtletaCardDados & {
   /** Status cadastral do atleta (liberado/suspenso/departamento_medico — nunca "dispensado" aqui,
    * a query já restringe a `ativo = true`), pro painel de pizza "Status" na listagem — ver
    * docs/superpowers/specs/2026-10-06-fisioterapia-base-filtros-categoria-status-design.md. */
-  status: AtletaBaseStatus;
+  status: AtletaStatus;
 };
 
 /**
@@ -33,7 +33,7 @@ export default async function FisioterapiaListagemBasePage() {
 
   const [{ data: atletasData }, { data: lesoesAtivasData }, podeEditar] = await Promise.all([
     supabase
-      .from("atletas_base")
+      .from("atletas")
       .select("*")
       .eq("ativo", true)
       .in("categoria", categoriasPermitidas)
@@ -49,7 +49,7 @@ export default async function FisioterapiaListagemBasePage() {
     getFisioterapiaPodeEditarBase(supabase),
   ]);
 
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  const atletas = (atletasData ?? []) as AtletaRow[];
   const idsEmTratamento = new Set(
     ((lesoesAtivasData ?? []) as Pick<FisioterapiaLesaoBaseRow, "atleta_id">[]).map((l) => l.atleta_id),
   );
@@ -70,7 +70,8 @@ export default async function FisioterapiaListagemBasePage() {
     dispensado: false,
     ativo: true,
     emTratamento: idsEmTratamento.has(atleta.id),
-    categoria: atleta.categoria,
+    // A query acima já restringe `categoria` a `categoriasPermitidas` (sempre categorias de Base).
+    categoria: atleta.categoria as CategoriaBase,
     status: atleta.status,
     href: `/base/departamento-medico/fisioterapia/${atleta.id}`,
   }));

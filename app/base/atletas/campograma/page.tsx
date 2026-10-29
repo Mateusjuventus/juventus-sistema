@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { CATEGORIAS_BASE, categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import { agruparPorPosicaoEspecifica, type AtletaCampograma } from "@/lib/futebol/campograma";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 
 /**
  * Campograma: o elenco de uma categoria, separado por posição (ver docs/superpowers/specs/
@@ -22,7 +22,7 @@ export default async function CampogramaPage({
 
   const supabase = createClient();
   const { data } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("id, nome_completo, apelido, posicao, foto_path, classificacao, tipo_contrato, data_nascimento, status")
     .eq("categoria", categoria)
     // Atleta dispensado não faz sentido continuar aparecendo posicionado no elenco (ver
@@ -31,7 +31,7 @@ export default async function CampogramaPage({
     .order("nome_completo", { ascending: true });
 
   const atletas = (data ?? []) as Pick<
-    AtletaBaseRow,
+    AtletaRow,
     | "id"
     | "nome_completo"
     | "apelido"

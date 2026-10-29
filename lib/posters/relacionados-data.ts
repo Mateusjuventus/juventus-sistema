@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import type {
-  AtletaBaseRow,
   AtletaRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoAtletaRow,
@@ -126,12 +125,12 @@ export async function buildRelacionadosDataBase(jogoId: string): Promise<Relacio
   const [{ data: caData }, adversarioLogoUrl] = await Promise.all([
     supabase
       .from("convocacao_atletas_base")
-      .select("*, atleta:atletas_base(*)")
+      .select("*, atleta:atletas(*)")
       .eq("convocacao_id", convocacao.id),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const convocados = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
+  const convocados = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaRow })[];
   // Ordem ALFABÉTICA pelo nome que aparece no pôster (apelido, quando existe) — pedido do usuário.
   // Antes saía pela numeração da camisa, que não ajuda quem procura um nome na lista impressa.
   const nomes = ordenarPorNomeExibido(convocados.map((c) => c.atleta)).map((atleta) =>

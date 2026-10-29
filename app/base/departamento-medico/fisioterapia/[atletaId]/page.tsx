@@ -9,7 +9,7 @@ import { diasAfastados, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   FisioterapiaAtendimentoBaseRow,
   FisioterapiaLesaoBaseRow,
   FisioterapiaQueixaBaseRow,
@@ -40,7 +40,7 @@ export default async function FisioterapiaAtletaBasePage({ params }: { params: {
     { data: atendimentosData },
     podeEditar,
   ] = await Promise.all([
-    supabase.from("atletas_base").select("*").eq("id", params.atletaId).maybeSingle(),
+    supabase.from("atletas").select("*").eq("id", params.atletaId).maybeSingle(),
     supabase
       .from("fisioterapia_lesoes_base")
       .select("*")
@@ -61,7 +61,7 @@ export default async function FisioterapiaAtletaBasePage({ params }: { params: {
 
   if (!atletaData) notFound();
 
-  const atleta = atletaData as AtletaBaseRow;
+  const atleta = atletaData as AtletaRow;
   const lesoes = (lesoesData ?? []) as FisioterapiaLesaoBaseRow[];
   const queixas = (queixasData ?? []) as FisioterapiaQueixaBaseRow[];
   const atendimentos = (atendimentosData ?? []) as FisioterapiaAtendimentoBaseRow[];

@@ -11,7 +11,7 @@ import { TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 describe("statusParaFiltro", () => {
   it("retorna os status marcados quando há pelo menos um", () => {
     expect(statusParaFiltro(["liberado"])).toEqual(["liberado"]);
-    expect(statusParaFiltro(["liberado", "suspenso"])).toEqual(["liberado", "suspenso"]);
+    expect(statusParaFiltro(["liberado", "transicao"])).toEqual(["liberado", "transicao"]);
   });
 
   it("cai pra todos os status quando nenhum foi marcado", () => {

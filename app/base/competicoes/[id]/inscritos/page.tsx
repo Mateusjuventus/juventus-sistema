@@ -31,7 +31,7 @@ export default async function CompeticaoBaseInscritosPage({ params }: { params: 
   const proximoJogo = jogosOrdenados.find((j) => j.data >= hojeStr) ?? null;
 
   const { data: atletasData } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("id, nome_completo, posicao")
     .eq("categoria", competicao.categoria)
     .order("nome_completo", { ascending: true });

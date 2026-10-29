@@ -26,7 +26,7 @@ export async function moverAtletaCampograma(
   }
 
   const supabase = createClient();
-  const { error } = await supabase.from("atletas_base").update({ posicao: novaPosicao }).eq("id", atletaId);
+  const { error } = await supabase.from("atletas").update({ posicao: novaPosicao }).eq("id", atletaId);
 
   if (error) return { error: "Não foi possível mover o atleta. Tente novamente." };
 
@@ -37,7 +37,7 @@ export async function moverAtletaCampograma(
 const CLASSIFICACOES_VALIDAS = ["g1", "g2", "g3", "dispensa"] as const;
 // Sem "dispensado" de propósito — esse status continua exclusivo do fluxo formal do Relatório de
 // Dispensa (ver docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md, seção 2).
-const STATUS_VALIDOS_CAMPOGRAMA = ["liberado", "suspenso", "departamento_medico"] as const;
+const STATUS_VALIDOS_CAMPOGRAMA = ["liberado", "transicao", "departamento_medico"] as const;
 
 export interface SalvarClassificacaoStatusCampogramaState {
   error?: string;
@@ -65,13 +65,13 @@ export async function salvarClassificacaoStatusCampograma(
 
   const supabase = createClient();
   const { data: atleta } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("categoria")
     .eq("id", atletaId)
     .maybeSingle();
 
   const { error } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .update({ classificacao, status })
     .eq("id", atletaId);
 
@@ -111,7 +111,14 @@ export async function criarAtletaRapidoCampograma(
 
   const supabase = createClient();
   const id = randomUUID();
-  const { error } = await supabase.from("atletas_base").insert({
+  // ATENÇÃO (sweep da unificação de Atletas, 29/10/2026): `atletas.rg`/`cpf`/`data_nascimento` são
+  // `not null` (e `rg`/`cpf` são `unique`) desde a criação da tabela — diferente de `atletas_base`,
+  // que aceitava os 3 como `null` (daí o "RG/CPF/data de nascimento ficam null" no comentário
+  // acima). Com a tabela renomeada pra `atletas`, este insert passa a falhar (violação de not-null)
+  // até alguém decidir o que fazer: relaxar a constraint pra toda a tabela (afeta o Profissional
+  // também) ou gerar um placeholder único por atleta. Avisar o Mateus antes de "resolver" isso
+  // sozinho — não é um ajuste mecânico de nome de tabela.
+  const { error } = await supabase.from("atletas").insert({
     id,
     categoria: parsed.data.categoria,
     nome_completo: parsed.data.nomeCompleto,

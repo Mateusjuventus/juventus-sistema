@@ -1,20 +1,22 @@
 import type { createClient } from "@/lib/supabase/server";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
-import type { AtletaBaseStatus, AtletaBaseStatusHistoricoRow } from "@/lib/supabase/types";
+import type { AtletaStatus, AtletaStatusHistoricoRow } from "@/lib/supabase/types";
 
 /**
  * Linha do tempo de status do atleta (Futebol de Base) — espelha `lib/futebol/status-historico.ts`
- * (Profissional), mas gravando em `atletas_base_status_historico`/`atletas_base` e tipada em
- * `AtletaBaseStatus`. Ver docs/superpowers/specs/2026-10-06-fisioterapia-base-design.md.
+ * (Profissional). Desde a unificação de Atletas (28/10/2026) a Base grava na MESMA tabela
+ * `atletas_status_historico` e no MESMO `atletas` do Profissional — a tabela
+ * `atletas_base_status_historico` nunca existiu de verdade no banco (ver o comentário da migração
+ * 0150_unificacao_atletas.sql, passo 7), então este arquivo foi corrigido pra apontar pras tabelas
+ * reais em vez de repetir esse erro. O `atletaId` recebido aqui é o mesmo id usado em `atletas`
+ * (preservado na migração pros atletas da Base, ver passo 5).
  *
- * As funções do arquivo do Profissional são tipadas direto em `AtletaStatusHistoricoRow`/
- * `AtletaStatus` (3 valores), e `AtletaBaseStatus` tem 4 (inclui "suspenso"/"dispensado") — não dá
- * pra reaproveitar sem generalizar o arquivo já em produção, o que esta spec evita de propósito.
- * Por isso todo o arquivo é uma cópia pequena e independente, igual já faz `fisioterapia-base.ts`
- * com `statusFisioterapiaAtletaBase`.
+ * Mantido como uma cópia própria (em vez de reaproveitar `status-historico.ts` direto) só pelo
+ * nome das funções (`...Base`), que os consumidores da Base já usam — mesmo espírito de
+ * `fisioterapia-base.ts` com `statusFisioterapiaAtletaBase`.
  */
 
-type LinhaOrdenavelBase = Pick<AtletaBaseStatusHistoricoRow, "status" | "data" | "created_at">;
+type LinhaOrdenavelBase = Pick<AtletaStatusHistoricoRow, "status" | "data" | "created_at">;
 
 /** Mesma lógica de `linhaMaisRecente` (Profissional): maior `data`; empate resolvido pelo
  * `created_at` mais recente. `null` numa lista vazia. */
@@ -27,7 +29,7 @@ export function linhaMaisRecenteBase<T extends LinhaOrdenavelBase>(linhas: T[]):
   });
 }
 
-export interface LinhaHistoricoComDiasBase extends AtletaBaseStatusHistoricoRow {
+export interface LinhaHistoricoComDiasBase extends AtletaStatusHistoricoRow {
   /** Dias nesse status — mesmo cálculo de `LinhaHistoricoComDias` (Profissional). */
   dias: number;
 }
@@ -35,7 +37,7 @@ export interface LinhaHistoricoComDiasBase extends AtletaBaseStatusHistoricoRow 
 /** Mesma lógica de `calcularLinhaDoTempo` (Profissional): ordena mais recente primeiro e calcula
  * `dias` de cada linha a partir da ordem cronológica. */
 export function calcularLinhaDoTempoBase(
-  linhas: AtletaBaseStatusHistoricoRow[],
+  linhas: AtletaStatusHistoricoRow[],
   hojeStr: string,
 ): LinhaHistoricoComDiasBase[] {
   const cronologica = [...linhas].sort((a, b) => {
@@ -56,13 +58,13 @@ export function calcularLinhaDoTempoBase(
 }
 
 /** Grava uma linha nova no histórico da Base (resolvendo quem lançou a partir de quem está
- * logado) e, só se ela for a mais recente depois de gravada, atualiza `atletas_base.status` pra
+ * logado) e, só se ela for a mais recente depois de gravada, atualiza `atletas.status` pra
  * combinar. Usada tanto pelo lançamento automático (ao abrir/fechar uma lesão) quanto pelos
  * manuais (tela "Histórico de Status"). */
 export async function registrarStatusAtletaBase(
   supabase: ReturnType<typeof createClient>,
   atletaId: string,
-  status: AtletaBaseStatus,
+  status: AtletaStatus,
   data: string,
 ): Promise<{ error?: string }> {
   const {
@@ -70,7 +72,7 @@ export async function registrarStatusAtletaBase(
   } = await supabase.auth.getUser();
   const nome = await nomeDaContaAtual(supabase);
 
-  const { error } = await supabase.from("atletas_base_status_historico").insert({
+  const { error } = await supabase.from("atletas_status_historico").insert({
     atleta_id: atletaId,
     status,
     data,
@@ -83,19 +85,20 @@ export async function registrarStatusAtletaBase(
   return {};
 }
 
-/** Relê todo o histórico do atleta da Base e atualiza `atletas_base.status` pra combinar com a
- * linha mais recente — chamada depois de gravar OU editar uma linha. */
+/** Relê todo o histórico do atleta da Base (hoje na mesma tabela `atletas_status_historico` do
+ * Profissional) e atualiza `atletas.status` pra combinar com a linha mais recente — chamada
+ * depois de gravar OU editar uma linha. */
 export async function recomputarStatusAtualBase(
   supabase: ReturnType<typeof createClient>,
   atletaId: string,
 ): Promise<void> {
   const { data } = await supabase
-    .from("atletas_base_status_historico")
+    .from("atletas_status_historico")
     .select("status, data, created_at")
     .eq("atleta_id", atletaId);
 
   const atual = linhaMaisRecenteBase((data ?? []) as LinhaOrdenavelBase[]);
   if (!atual) return;
 
-  await supabase.from("atletas_base").update({ status: atual.status }).eq("id", atletaId);
+  await supabase.from("atletas").update({ status: atual.status }).eq("id", atletaId);
 }

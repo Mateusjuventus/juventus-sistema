@@ -9,7 +9,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { agruparPorPosicaoEspecifica, type AtletaCampograma } from "@/lib/futebol/campograma";
 import { CampogramaDocument } from "@/lib/pdf/campograma-document";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 
 /**
  * PDF do Campograma — mesma consulta da tela (`app/base/atletas/campograma/page.tsx`), servindo o
@@ -23,14 +23,14 @@ export async function GET(request: Request) {
 
   const supabase = createClient();
   const { data } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("id, nome_completo, apelido, posicao, foto_path, classificacao, tipo_contrato, data_nascimento, status")
     .eq("categoria", categoria)
     .neq("status", "dispensado")
     .order("nome_completo", { ascending: true });
 
   const atletas = (data ?? []) as Pick<
-    AtletaBaseRow,
+    AtletaRow,
     | "id"
     | "nome_completo"
     | "apelido"
