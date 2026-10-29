@@ -26,11 +26,11 @@ import { montarHistoricoAtletaBase } from "@/lib/futebol/anotacoes-atleta";
 import { FichaAtletaDocument, type FichaAtletaAnotacaoItem, type FichaAtletaDadosDeJogo } from "@/lib/pdf/ficha-atleta-document";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type {
-  AtletaBaseAnotacaoRow,
-  AtletaBaseContatoEmergenciaRow,
-  AtletaBaseContratoRow,
-  AtletaBaseRow,
-  AtletaBaseStatus,
+  AtletaAnotacaoRow,
+  AtletaContatoEmergenciaRow,
+  AtletaContratoRow,
+  AtletaRow,
+  AtletaStatus,
 } from "@/lib/supabase/types";
 
 const TABELAS_JOGO = {
@@ -55,9 +55,10 @@ const PE_DOMINANTE_LABEL: Record<string, string> = {
   ambidestro: "Ambidestro",
 };
 
-const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
+// "Suspenso" saiu do vocabulário na unificação de Atletas (28/10/2026).
+const STATUS_LABEL: Record<AtletaStatus, string> = {
   liberado: "Liberado",
-  suspenso: "Suspenso",
+  transicao: "Transição",
   departamento_medico: "Departamento Médico",
   dispensado: "Dispensado",
 };
@@ -96,29 +97,29 @@ export async function GET(request: Request, { params }: { params: { categoria: s
   const supabase = createClient();
   const [{ data: atletaData }, { data: contatosData }, { data: contratosData }, { data: anotacoesData }] =
     await Promise.all([
-      supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+      supabase.from("atletas").select("*").eq("id", params.id).single(),
       supabase
-        .from("atleta_base_contatos_emergencia")
+        .from("atleta_contatos_emergencia")
         .select("*")
         .eq("atleta_id", params.id)
         .order("created_at", { ascending: true }),
       supabase
-        .from("atleta_base_contratos")
+        .from("atleta_contratos")
         .select("*")
         .eq("atleta_id", params.id)
         .order("created_at", { ascending: false }),
       supabase
-        .from("atleta_base_anotacoes")
+        .from("atleta_anotacoes")
         .select("*")
         .eq("atleta_id", params.id)
         .order("created_at", { ascending: false }),
     ]);
   if (!atletaData) return new NextResponse("Atleta não encontrado.", { status: 404 });
 
-  const atleta = atletaData as AtletaBaseRow;
-  const contatos = (contatosData ?? []) as AtletaBaseContatoEmergenciaRow[];
-  const contratos = (contratosData ?? []) as AtletaBaseContratoRow[];
-  const anotacoes = (anotacoesData ?? []) as AtletaBaseAnotacaoRow[];
+  const atleta = atletaData as AtletaRow;
+  const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
+  const contratos = (contratosData ?? []) as AtletaContratoRow[];
+  const anotacoes = (anotacoesData ?? []) as AtletaAnotacaoRow[];
   const vigente = contratos.find((c) => c.vigente) ?? null;
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);

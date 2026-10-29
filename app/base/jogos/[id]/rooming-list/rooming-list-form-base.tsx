@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
 import { TextField } from "@/components/fields";
-import type { AtletaBaseRow, ComissaoTecnicaRow, PessoaTipoRooming, TipoQuarto } from "@/lib/supabase/types";
+import type { AtletaRow, ComissaoTecnicaRow, PessoaTipoRooming, TipoQuarto } from "@/lib/supabase/types";
 import type { RoomingListFormState } from "../operacao-actions";
 
 const initialState: RoomingListFormState = {};
@@ -63,7 +63,7 @@ export function RoomingListFormBase({
   action: (prevState: RoomingListFormState, formData: FormData) => Promise<RoomingListFormState>;
   jogoId: string;
   mandante: boolean;
-  atletas: AtletaBaseRow[];
+  atletas: AtletaRow[];
   comissao: ComissaoTecnicaRow[];
   hotelNomeInicial: string;
   hotelEnderecoInicial: string;

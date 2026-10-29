@@ -10,7 +10,7 @@ import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { compararPorNumeroCamisaGoleiroPrimeiro } from "@/lib/futebol/ordem-posicao";
 import { PresskitDocument, type AtletaPresskitItem } from "@/lib/pdf/presskit-document";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
@@ -41,7 +41,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const convocacao = convocacaoData as ConvocacaoBaseRow;
 
   const [{ data: caData }, { data: ccData }, adversarioLogoUrl] = await Promise.all([
-    supabase.from("convocacao_atletas_base").select("*, atleta:atletas_base(*)").eq("convocacao_id", convocacao.id),
+    supabase.from("convocacao_atletas_base").select("*, atleta:atletas(*)").eq("convocacao_id", convocacao.id),
     supabase
       .from("convocacao_comissao_base")
       .select("*, pessoa:comissao_tecnica(nome_completo)")
@@ -49,7 +49,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
+  const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaRow })[];
   // Na Base o número da camisa é da CONVOCAÇÃO (esse jogo), não do cadastro do atleta — sobrepõe
   // `numero_camisa` do atleta pelo valor informado na convocação antes de ordenar/exibir, sem
   // precisar mexer no resto do PresskitDocument (que já lê `atleta.numero_camisa`). Titulares e
@@ -57,7 +57,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   // não faz sentido agrupar por posição como no Profissional — ver
   // 0059_convocacao_atleta_base_numero_camisa.sql), COM O GOLEIRO SEMPRE NA FRENTE: é regra do
   // Presskit e vale nas duas listas, senão o goleiro reserva de camisa 12 cai depois dos de linha.
-  const comNumeroDaConvocacao = (c: ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow }): AtletaBaseRow => ({
+  const comNumeroDaConvocacao = (c: ConvocacaoAtletaBaseRow & { atleta: AtletaRow }): AtletaRow => ({
     ...c.atleta,
     numero_camisa: c.numero_camisa,
   });
@@ -70,7 +70,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     .map(comNumeroDaConvocacao)
     .sort(compararPorNumeroCamisaGoleiroPrimeiro);
 
-  const comFoto = async (atletas: AtletaBaseRow[]): Promise<AtletaPresskitItem[]> =>
+  const comFoto = async (atletas: AtletaRow[]): Promise<AtletaPresskitItem[]> =>
     Promise.all(
       atletas.map(async (atleta) => ({
         atleta,

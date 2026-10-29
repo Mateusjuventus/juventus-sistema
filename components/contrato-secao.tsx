@@ -1,7 +1,11 @@
 import Link from "next/link";
-import type { AtletaBaseContratoRow, AtletaContratoRow } from "@/lib/supabase/types";
+import type { AtletaContratoRow } from "@/lib/supabase/types";
 
-type ContratoRow = AtletaContratoRow | AtletaBaseContratoRow;
+// Até 28/10/2026 este tipo era `AtletaContratoRow | AtletaBaseContratoRow` (Profissional e Base
+// tinham tabelas/tipos próprios) — a unificação de Atletas mesclou os dois em `atleta_contratos`/
+// `AtletaContratoRow` só, então o alias de união não é mais necessário. Mantido como alias (não
+// inline) só pra não precisar tocar no resto do arquivo, que já usa `ContratoRow`.
+type ContratoRow = AtletaContratoRow;
 
 function formatData(data: string | null): string {
   if (!data) return "—";

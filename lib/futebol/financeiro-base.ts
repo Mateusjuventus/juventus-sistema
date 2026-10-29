@@ -1,7 +1,7 @@
 import { CATEGORIAS_BASE, ehCategoriaBaseValida, type CategoriaBase } from "../auth/categorias-base";
 import type {
-  AtletaBaseContratoRow,
-  AtletaBaseRow,
+  AtletaContratoRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   DespesaAvulsaBaseComCategoriaRow,
 } from "../supabase/types";
@@ -27,7 +27,7 @@ export function valorDespesaBase(
  * Auxílio Moradia, Outros). Mesma conta usada no Profissional (`lib/futebol/financeiro.ts`). */
 function totalContrato(
   c: Pick<
-    AtletaBaseContratoRow,
+    AtletaContratoRow,
     "salario_ctps" | "direito_imagem" | "bonificacao" | "auxilio_moradia" | "outros"
   >,
 ): number {
@@ -37,7 +37,7 @@ function totalContrato(
 /** Monta um mapa atleta_id -> total do contrato vigente, a partir da lista de contratos vigentes
  * (já filtrados por `vigente = true` na query, no máximo um por atleta). */
 export function mapaContratoVigentePorAtleta(
-  contratosVigentes: AtletaBaseContratoRow[],
+  contratosVigentes: AtletaContratoRow[],
 ): Map<string, number> {
   return new Map(contratosVigentes.map((c) => [c.atleta_id, totalContrato(c)]));
 }
@@ -50,7 +50,7 @@ export function mapaContratoVigentePorAtleta(
  * `tipoPagamentoAtletaBase` sobre o rótulo (que não muda com esta conta).
  */
 export function custoAtletaBase(
-  atleta: Pick<AtletaBaseRow, "id" | "valor_ajuda_custo">,
+  atleta: Pick<AtletaRow, "id" | "valor_ajuda_custo">,
   contratoPorAtleta: Map<string, number>,
 ): number {
   return contratoPorAtleta.get(atleta.id) ?? atleta.valor_ajuda_custo ?? 0;
@@ -66,7 +66,7 @@ export function custoAtletaBase(
  * tem vínculo formal) aparece como "Sem contrato" — sinaliza no relatório que falta formalizar,
  * em vez de esconder.
  */
-export function tipoPagamentoAtletaBase(tipoContrato: AtletaBaseRow["tipo_contrato"]): string {
+export function tipoPagamentoAtletaBase(tipoContrato: AtletaRow["tipo_contrato"]): string {
   switch (tipoContrato) {
     case "definitivo":
       return "Salário";
@@ -116,9 +116,9 @@ export interface GeralBaseResumo {
  */
 export function calcularGeralBase(
   comissaoTodas: ComissaoTecnicaRow[],
-  atletas: AtletaBaseRow[],
+  atletas: AtletaRow[],
   despesas: DespesaAvulsaBaseComCategoriaRow[],
-  contratosVigentes: AtletaBaseContratoRow[],
+  contratosVigentes: AtletaContratoRow[],
 ): GeralBaseResumo {
   // Desde a unificação da Comissão Técnica, `comissaoTodas` pode trazer gente só do Profissional
   // (sem nenhuma categoria da Base) — essa pessoa não entra no Gasto Geral da Base.

@@ -53,7 +53,7 @@ export async function salvarRelatorioDispensaAdmin(
 
   const data = result.data;
   const { data: atletaAtualizado, error } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .update({
       status: "dispensado",
       dispensa_data: data.dispensaData,

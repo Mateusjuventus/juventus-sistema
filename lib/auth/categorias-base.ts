@@ -83,3 +83,26 @@ export const CATEGORIA_COMISSAO_TECNICA_COR: Record<CategoriaComissaoTecnica, st
   profissional: "#B98F1E",
   ...CATEGORIA_BASE_COR,
 };
+
+/**
+ * Categoria do atleta, unificada em 28/10/2026 (ver docs/superpowers/specs/
+ * 2026-10-28-unificacao-atletas-design.md) — mesmo formato de `CategoriaComissaoTecnica` (texto
+ * igual, "profissional" + as 7 de `CategoriaBase`), mas usada como valor ESCALAR em
+ * `atletas.categoria` (um atleta nunca está em duas categorias ao mesmo tempo), nunca como lista —
+ * diferente de `comissao_tecnica.categorias`, que é array. Por isso os filtros no código usam `=`
+ * em vez de `.includes()`.
+ */
+export type CategoriaAtleta = CategoriaComissaoTecnica;
+
+export type CategoriaAtletaInfo = CategoriaComissaoTecnicaInfo;
+
+export const CATEGORIAS_ATLETA: CategoriaAtletaInfo[] = CATEGORIAS_COMISSAO_TECNICA;
+
+export const ehCategoriaAtletaValida = ehCategoriaComissaoTecnicaValida;
+
+export const categoriaAtletaLabel = categoriaComissaoTecnicaLabel;
+
+/** Mesma ideia de `CATEGORIA_COMISSAO_TECNICA_COR` — cor de fundo pra tag de categoria na
+ * listagem/filtro de Atletas (não é a cor da borda de Classificação G1/G2/G3, que é outra coisa:
+ * ver `AtletaClassificacao`/`lib/futebol/classificacao-atleta.ts`). */
+export const CATEGORIA_ATLETA_COR: Record<CategoriaAtleta, string> = CATEGORIA_COMISSAO_TECNICA_COR;

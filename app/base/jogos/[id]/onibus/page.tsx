@@ -5,7 +5,7 @@ import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   OnibusListaBaseRow,
   OnibusPassageiroBaseRow,
@@ -37,8 +37,9 @@ export default async function OnibusBasePage({ params }: { params: { id: string 
 
   const [{ data: todosAtletasData }, { data: todaComissaoData }, { data: onibusData }] = await Promise.all([
     supabase
-      .from("atletas_base")
+      .from("atletas")
       .select("id, nome_completo, posicao")
+      .neq("categoria", "profissional")
       .order("nome_completo", { ascending: true }),
     supabase
       .from("comissao_tecnica")
@@ -47,7 +48,7 @@ export default async function OnibusBasePage({ params }: { params: { id: string 
     supabase.from("onibus_lista_base").select("*").eq("jogo_id", jogo.id).eq("onibus_numero", 1).maybeSingle(),
   ]);
 
-  const todosAtletas = (todosAtletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "posicao">[];
+  const todosAtletas = (todosAtletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "posicao">[];
   // Igual ao Organograma da Base — exclui quem só tem categoria Profissional, já que a tabela de
   // Comissão Técnica/Diretoria agora é única (ver docs/superpowers/specs/2026-10-28-unificacao-
   // comissao-tecnica-design.md).

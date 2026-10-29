@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
@@ -18,7 +18,7 @@ import type {
 export interface ConvocadosJogoBase {
   jogo: JogoBaseRow;
   convocacao: ConvocacaoBaseRow | null;
-  atletas: AtletaBaseRow[];
+  atletas: AtletaRow[];
   comissao: ComissaoTecnicaRow[];
 }
 
@@ -53,10 +53,10 @@ export async function getJogoBaseEConvocados(jogoId: string): Promise<Convocados
     .map((c) => c.pessoa)
     .filter((p): p is ComissaoTecnicaRow => Boolean(p));
 
-  let atletas: AtletaBaseRow[] = [];
+  let atletas: AtletaRow[] = [];
   if (convocacaoAtletaIds.length > 0) {
-    const { data: atletasData } = await supabase.from("atletas_base").select("*").in("id", convocacaoAtletaIds);
-    atletas = (atletasData ?? []) as AtletaBaseRow[];
+    const { data: atletasData } = await supabase.from("atletas").select("*").in("id", convocacaoAtletaIds);
+    atletas = (atletasData ?? []) as AtletaRow[];
   }
 
   return { jogo, convocacao, atletas, comissao };

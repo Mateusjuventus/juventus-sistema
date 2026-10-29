@@ -11,7 +11,7 @@ import { textoFiltroCompeticaoAtleta } from "@/lib/futebol/ficha-atleta";
 import { AtletaRelatorioDocument } from "@/lib/pdf/atleta-relatorio-document";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 
 const TABELAS = {
   jogos: "jogos_base",
@@ -38,10 +38,10 @@ export async function GET(request: Request, { params }: { params: { categoria: s
   const incluirDadosPessoais = url.searchParams.get("incluirDadosPessoais") === "sim";
 
   const supabase = createClient();
-  const { data: atletaData } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+  const { data: atletaData } = await supabase.from("atletas").select("*").eq("id", params.id).single();
   if (!atletaData) return new NextResponse("Atleta não encontrado.", { status: 404 });
 
-  const atleta = atletaData as AtletaBaseRow;
+  const atleta = atletaData as AtletaRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 

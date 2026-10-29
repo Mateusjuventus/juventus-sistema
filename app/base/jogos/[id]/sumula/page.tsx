@@ -13,7 +13,7 @@ import {
 } from "@/lib/futebol/estatisticas-atleta";
 import { avisosFormatoPartidaBase } from "@/lib/futebol/formato-partida-base";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   CompeticaoBaseRow,
   CompeticaoJogoBaseRow,
   ConvocacaoAtletaBaseRow,
@@ -29,7 +29,7 @@ import { adicionarEventoBase, removerEventoBase, salvarDadosJogoBase } from "./a
 /** Espelha `app/jogos/[id]/sumula/page.tsx` para o Futebol de Base — atletas filtrados pela mesma
  * categoria do jogo, igual à Convocação (Base). */
 
-function paraOpcao(atleta: AtletaBaseRow): ConvocadoOption {
+function paraOpcao(atleta: AtletaRow): ConvocadoOption {
   return {
     id: atleta.id,
     nome: atleta.nome_completo,
@@ -38,7 +38,7 @@ function paraOpcao(atleta: AtletaBaseRow): ConvocadoOption {
   };
 }
 
-function nomeAtletaEvento(atleta: AtletaBaseRow | undefined): string {
+function nomeAtletaEvento(atleta: AtletaRow | undefined): string {
   if (!atleta) return "Atleta não encontrado";
   return atleta.numero_camisa ? `${atleta.nome_completo} (#${atleta.numero_camisa})` : atleta.nome_completo;
 }
@@ -52,7 +52,7 @@ function LinhaEvento({
   acrescimoSegundoTempo,
 }: {
   evento: SumulaEventoBaseRow;
-  atletasMap: Map<string, AtletaBaseRow>;
+  atletasMap: Map<string, AtletaRow>;
   duracaoPrimeiroTempo: number;
   /** Só precisa ser informado quando o jogo tem 3º tempo — usado pra deslocar o "relógio corrido"
    * de eventos do 3º tempo (ver `calcularMinutoAbsoluto`). */
@@ -125,7 +125,7 @@ function TempoSection({
   label: string;
   tempo: "primeiro" | "segundo" | "terceiro";
   eventos: SumulaEventoBaseRow[];
-  atletasMap: Map<string, AtletaBaseRow>;
+  atletasMap: Map<string, AtletaRow>;
   jogoId: string;
   convocados: ConvocadoOption[];
   reservas: ConvocadoOption[];
@@ -185,7 +185,7 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   const [{ data: atletasData }, { data: convocacaoData }, { data: sumulaData }, { data: vinculoData }] =
     await Promise.all([
       supabase
-        .from("atletas_base")
+        .from("atletas")
         .select("*")
         .eq("categoria", categoria)
         .order("nome_completo", { ascending: true }),
@@ -198,7 +198,7 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
       supabase.from("competicao_jogos_base").select("competicao_id").eq("jogo_id", params.id).maybeSingle(),
     ]);
 
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  const atletas = (atletasData ?? []) as AtletaRow[];
   const atletasMap = new Map(atletas.map((a) => [a.id, a]));
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
   const sumula = sumulaData as SumulaBaseRow | null;
@@ -230,8 +230,8 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   const acrescimoSegundoTempoAtual = sumula?.acrescimo_segundo_tempo ?? 0;
   const acrescimoTerceiroTempoAtual = sumula?.acrescimo_terceiro_tempo ?? 0;
 
-  let titulares: AtletaBaseRow[] = [];
-  let reservasAtletas: AtletaBaseRow[] = [];
+  let titulares: AtletaRow[] = [];
+  let reservasAtletas: AtletaRow[] = [];
   if (convocacao) {
     const { data: caData } = await supabase
       .from("convocacao_atletas_base")
@@ -241,11 +241,11 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
     titulares = rows
       .filter((r) => r.status === "titular")
       .map((r) => atletasMap.get(r.atleta_id))
-      .filter((a): a is AtletaBaseRow => Boolean(a));
+      .filter((a): a is AtletaRow => Boolean(a));
     reservasAtletas = rows
       .filter((r) => r.status === "reserva")
       .map((r) => atletasMap.get(r.atleta_id))
-      .filter((a): a is AtletaBaseRow => Boolean(a));
+      .filter((a): a is AtletaRow => Boolean(a));
   }
   const convocadosOptions = [...titulares, ...reservasAtletas].map(paraOpcao);
   const reservasOptions = reservasAtletas.map(paraOpcao);

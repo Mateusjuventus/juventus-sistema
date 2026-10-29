@@ -8,7 +8,7 @@ import { BlocoAssinaturaDigital } from "@/components/bloco-assinatura-digital";
 import { papeisEsperados } from "@/lib/assinaturas/config";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import { treinadorPossuiVinculoObrigatorio } from "@/lib/assinaturas/nome-cargo";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 import { salvarRelatorioDispensaTreinador } from "./actions";
 
 /**
@@ -22,9 +22,9 @@ export default async function DispensaAtletaTreinadorPage({ params }: { params: 
   const categorias = await getCategoriasTreinador(supabase);
   if (categorias.length === 0) redirect("/treinador");
 
-  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle();
+  const { data } = await supabase.from("atletas").select("*").eq("id", params.id).maybeSingle();
   if (!data) notFound();
-  const atleta = data as AtletaBaseRow;
+  const atleta = data as AtletaRow;
   if (!atleta.categoria || !categorias.includes(atleta.categoria)) redirect("/treinador");
 
   const jaGerado = Boolean(atleta.dispensa_data);

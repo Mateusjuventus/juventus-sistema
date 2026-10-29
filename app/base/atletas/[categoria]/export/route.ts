@@ -13,13 +13,14 @@ import {
   mostrarInativosDaQueryString,
 } from "@/lib/futebol/atletas-filtro";
 import { filtrarLinhaPorGrupos, gruposCampoExportDaQueryString } from "@/lib/futebol/export-colunas";
-import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
+// "Suspenso" saiu do vocabulário na unificação de Atletas (28/10/2026).
+const STATUS_LABEL: Record<AtletaStatus, string> = {
   liberado: "Liberado",
-  suspenso: "Suspenso",
+  transicao: "Transição",
   departamento_medico: "Departamento Médico",
   dispensado: "Dispensado",
 };
@@ -80,11 +81,11 @@ export async function GET(request: NextRequest, { params }: { params: { categori
   const supabase = createClient();
 
   const { data } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("*")
     .eq("categoria", categoria)
     .order("nome_completo", { ascending: true });
-  const atletas = ((data ?? []) as AtletaBaseRow[]).filter(
+  const atletas = ((data ?? []) as AtletaRow[]).filter(
     (a) =>
       atletaVisivelPorAtivo(a.ativo, mostrarInativos) &&
       atletaPassaFiltro(

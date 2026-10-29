@@ -10,7 +10,7 @@ import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { RoomingListDocument, type RoomingListPdfOcupante, type RoomingListPdfQuarto } from "@/lib/pdf/rooming-list-document";
 import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   RoomingListBaseRow,
   RoomingListOcupanteBaseRow,
@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const staffIds = ocupantes.filter((o) => o.pessoa_tipo === "staff").map((o) => o.pessoa_id);
 
   const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, adversarioLogoUrl] = await Promise.all([
-    atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+    atletaIds.length > 0 ? supabase.from("atletas").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
     comissaoIds.length > 0
       ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
       : Promise.resolve({ data: [] }),
@@ -69,7 +69,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const atletaMap = new Map(((atletasData ?? []) as AtletaBaseRow[]).map((a) => [a.id, a]));
+  const atletaMap = new Map(((atletasData ?? []) as AtletaRow[]).map((a) => [a.id, a]));
   const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c]));
   const staffMap = new Map(((staffData ?? []) as StaffOperacionalBaseRow[]).map((s) => [s.id, s]));
 
@@ -82,7 +82,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
           : staffMap.get(o.pessoa_id);
     // Atleta: prioriza o apelido (como ele é conhecido no dia a dia) sobre o nome completo — pedido
     // do usuário, só pra atletas (Comissão Técnica e Staff continuam com nome completo).
-    const nome = o.pessoa_tipo === "atleta" ? (registro as AtletaBaseRow | undefined)?.apelido || registro?.nome_completo || "—" : registro?.nome_completo ?? "—";
+    const nome = o.pessoa_tipo === "atleta" ? (registro as AtletaRow | undefined)?.apelido || registro?.nome_completo || "—" : registro?.nome_completo ?? "—";
     return {
       nome,
       tipo: o.pessoa_tipo,

@@ -11,7 +11,7 @@
  * a spec, "Fora de escopo"), então lá o histórico é só as anotações mesmo.
  */
 
-import type { AtletaAnotacaoRow, AtletaBaseAnotacaoRow } from "@/lib/supabase/types";
+import type { AtletaAnotacaoRow } from "@/lib/supabase/types";
 
 export interface ItemHistoricoAtleta {
   tipo: "anotacao" | "dispensa";
@@ -53,7 +53,7 @@ interface DadosDispensaBase {
  * resolvido por quem chama (consulta simples em `perfis` pelo id salvo em `dispensado_por`) — esta
  * função continua pura, sem acessar o banco. */
 export function montarHistoricoAtletaBase(
-  anotacoes: AtletaBaseAnotacaoRow[],
+  anotacoes: AtletaAnotacaoRow[],
   atleta: DadosDispensaBase,
   dispensadoPorNome: string | null,
   linkPdfDispensa: string,

@@ -11,18 +11,19 @@ import { captacaoStatusLabel, corCaptacaoStatus } from "@/lib/futebol/captacao";
 import { alternarNoConjunto, atletaPassaFiltro, type AtletaFiltravel, type FiltrosAtletas } from "@/lib/futebol/atletas-filtro";
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
 import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaBaseRow, AtletaBaseStatus, CaptacaoBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, AtletaStatus, CaptacaoBaseRow } from "@/lib/supabase/types";
 
-// Rótulos "Apto"/"Não apto"/"Depto. Médico" — mesmos usados em `/base/atletas/[categoria]`
-// (ver STATUS_LABEL lá). "Dispensado" fica de fora dos chips aqui de propósito: o elenco do
-// Treinador já exclui esse status na própria query (`.neq("status", "dispensado")`, ver
-// `app/treinador/atletas/page.tsx`), então um chip "Dispensado" nunca teria ninguém pra mostrar.
-const STATUS_LABEL_ELENCO: Record<Exclude<AtletaBaseStatus, "dispensado">, string> = {
+// Rótulos "Apto"/"Transição"/"Depto. Médico" — mesmos usados em `/base/atletas/[categoria]`
+// (ver STATUS_LABEL lá; "Suspenso" saiu do vocabulário na unificação de Atletas de 28/10/2026).
+// "Dispensado" fica de fora dos chips aqui de propósito: o elenco do Treinador já exclui esse
+// status na própria query (`.neq("status", "dispensado")`, ver `app/treinador/atletas/page.tsx`),
+// então um chip "Dispensado" nunca teria ninguém pra mostrar.
+const STATUS_LABEL_ELENCO: Record<Exclude<AtletaStatus, "dispensado">, string> = {
   liberado: "Apto",
-  suspenso: "Não apto",
+  transicao: "Transição",
   departamento_medico: "Depto. Médico",
 };
-const STATUS_OPTIONS_ELENCO = (Object.keys(STATUS_LABEL_ELENCO) as Exclude<AtletaBaseStatus, "dispensado">[]).map(
+const STATUS_OPTIONS_ELENCO = (Object.keys(STATUS_LABEL_ELENCO) as Exclude<AtletaStatus, "dispensado">[]).map(
   (value) => ({ value, label: STATUS_LABEL_ELENCO[value] }),
 );
 
@@ -43,7 +44,7 @@ function atletaParaFiltravel(atleta: AtletaComFoto): AtletaFiltravel {
 }
 
 export type CandidatoComFoto = CaptacaoBaseRow & { fotoUrl: string | null };
-export type AtletaComFoto = AtletaBaseRow & { fotoUrl: string | null };
+export type AtletaComFoto = AtletaRow & { fotoUrl: string | null };
 
 type Aba = "avaliacao" | "avaliados" | "elenco";
 

@@ -10,7 +10,7 @@ import { getCategoriasTreinador } from "@/lib/auth/role";
 import { RelatorioDispensaDocument, montarAssinaturasDispensa } from "@/lib/pdf/relatorio-dispensa-document";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 
 /**
  * Rota do PDF do Relatório de Dispensa, do lado do Treinador — não pode reaproveitar
@@ -24,10 +24,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const categorias = await getCategoriasTreinador(supabase);
   if (categorias.length === 0) return new NextResponse("Não autorizado.", { status: 403 });
 
-  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+  const { data } = await supabase.from("atletas").select("*").eq("id", params.id).single();
   if (!data) return new NextResponse("Atleta não encontrado.", { status: 404 });
 
-  const atleta = data as AtletaBaseRow;
+  const atleta = data as AtletaRow;
   if (!atleta.categoria || !categorias.includes(atleta.categoria)) {
     return new NextResponse("Não autorizado.", { status: 403 });
   }

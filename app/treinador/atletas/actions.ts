@@ -30,13 +30,13 @@ export async function salvarClassificacaoTreinador(formData: FormData): Promise<
   const classificacao = ["g1", "g2", "g3", "dispensa"].includes(classificacaoRaw) ? classificacaoRaw : null;
 
   const { data: atleta } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("categoria")
     .eq("id", atletaId)
     .maybeSingle();
   if (!atleta?.categoria || !categorias.includes(atleta.categoria)) return;
 
-  await supabase.from("atletas_base").update({ classificacao }).eq("id", atletaId);
+  await supabase.from("atletas").update({ classificacao }).eq("id", atletaId);
 
   revalidatePath("/treinador");
   revalidatePath("/base/atletas");
@@ -65,7 +65,7 @@ export async function adicionarAnotacaoTreinador(
   if (!result.success) return { error: result.error.issues[0]?.message ?? "Dados inválidos." };
 
   const { data: atleta } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("categoria")
     .eq("id", atletaId)
     .maybeSingle();
@@ -78,7 +78,7 @@ export async function adicionarAnotacaoTreinador(
   } = await supabase.auth.getUser();
   const nomeAtual = await nomeDaContaAtual(supabase);
 
-  const { error } = await supabase.from("atleta_base_anotacoes").insert({
+  const { error } = await supabase.from("atleta_anotacoes").insert({
     atleta_id: atletaId,
     texto: result.data.texto,
     criado_por_perfil_id: user?.id ?? null,

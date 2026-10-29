@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
@@ -36,7 +36,7 @@ export default async function ConvocacaoBasePage({
 
   const [{ data: atletasData }, { data: comissaoData }, { data: convocacaoData }] =
     await Promise.all([
-      supabase.from("atletas_base").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
+      supabase.from("atletas").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
       supabase
         .from("comissao_tecnica")
         .select("*")
@@ -45,7 +45,7 @@ export default async function ConvocacaoBasePage({
       supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);
 
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  const atletas = (atletasData ?? []) as AtletaRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaRow[];
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
 

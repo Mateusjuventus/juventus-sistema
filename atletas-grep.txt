@@ -277,6 +277,256 @@ app/treinador/jogos/[id]/convocacao/page.tsx:42:    supabase.from("atletas_base"
 app/treinador/jogos/[id]/convocacao/page.tsx:51:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
 app/treinador/jogos/[id]/convocacao/page.tsx:64:      supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
 app/treinador/jogos/[id]/convocacao/page.tsx:68:    ((caData ?? []) as ConvocacaoAtletaBaseRow[]).forEach((row) => {
+atletas-grep.txt:1:Claude outputs/2026-09-11-captacao-documentos-termo-auto-cadastro-design.md:175:3. Monta o payload de `atletas_base` copiando os campos que a Captação já tem: nome, RG, CPF
+atletas-grep.txt:2:Claude outputs/2026-09-11-captacao-documentos-termo-auto-cadastro-design.md:183:5. Insere em `atletas_base`. Em caso de conflito de RG/CPF duplicado (já existe um atleta com esse
+atletas-grep.txt:3:End:53:[35mdocs/superpowers/specs/2026-09-13-acesso-por-categoria-comissao-tecnica-design.md[m[36m:[m[32m44[m[36m:[m- Categoria como dimensão de dado: só `atletas_base`, `[1;31mcomissao_tecnica_base[m` e `jogos_base` têm
+atletas-grep.txt:4:End:90:[35mlib/auth/categorias-base.ts[m[36m:[m[32m8[m[36m:[m * `atletas_base`, `[1;31mcomissao_tecnica_base[m` e `jogos_base` (ver as migrations correspondentes) — se
+atletas-grep.txt:5:End:145:[35msupabase/migrations/0094_programacao_semanal.sql[m[36m:[m[32m12[m[36m:[m-- jeito que atletas_base/[1;31mcomissao_tecnica_base[m já são filtradas hoje via getCategoriasTreinador() —
+atletas-grep.txt:6:app/base/alojamento/actions.ts:12: * alojado continua vindo direto de `atletas_base.alojado`, editado no cadastro de cada atleta. */
+atletas-grep.txt:7:app/base/alojamento/page.tsx:6:import type { AlojamentoBaseConfigRow, AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:8:app/base/alojamento/page.tsx:12: * lido direto de `atletas_base.alojado = true` (ver docs/superpowers/specs/
+atletas-grep.txt:9:app/base/alojamento/page.tsx:21:      .from("atletas_base")
+atletas-grep.txt:10:app/base/alojamento/page.tsx:28:  const alojados = (alojadosData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:11:app/base/assistencia-social/[id]/page.tsx:12:import type { AssistenciaSocialAtendimentoRow, AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:12:app/base/assistencia-social/[id]/page.tsx:24:    supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle(),
+atletas-grep.txt:13:app/base/assistencia-social/[id]/page.tsx:33:  const atleta = atletaData as AtletaBaseRow;
+atletas-grep.txt:14:app/base/assistencia-social/[id]/parecer/route.tsx:12:import type { AssistenciaSocialAtendimentoRow, AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:15:app/base/assistencia-social/[id]/parecer/route.tsx:29:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+atletas-grep.txt:16:app/base/assistencia-social/[id]/parecer/route.tsx:31:  const atleta = data as AtletaBaseRow;
+atletas-grep.txt:17:app/base/assistencia-social/page.tsx:5:import type { AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:18:app/base/assistencia-social/page.tsx:21:    .from("atletas_base")
+atletas-grep.txt:19:app/base/assistencia-social/page.tsx:26:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:20:app/base/atletas/[categoria]/[id]/anotacoes/page.tsx:11:import type { AtletaBaseAnotacaoRow, AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:21:app/base/atletas/[categoria]/[id]/anotacoes/page.tsx:34:    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+atletas-grep.txt:22:app/base/atletas/[categoria]/[id]/anotacoes/page.tsx:36:      .from("atleta_base_anotacoes")
+atletas-grep.txt:23:app/base/atletas/[categoria]/[id]/anotacoes/page.tsx:45:  const atleta = atletaData as AtletaBaseRow;
+atletas-grep.txt:24:app/base/atletas/[categoria]/[id]/contrato/novo/page.tsx:6:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+atletas-grep.txt:25:app/base/atletas/[categoria]/[id]/contrato/novo/page.tsx:37:          tipoContratoOptions={ATLETA_BASE_TIPO_CONTRATO_OPTIONS}
+atletas-grep.txt:26:app/base/atletas/[categoria]/[id]/dados-de-jogo/page.tsx:18:import type { AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:27:app/base/atletas/[categoria]/[id]/dados-de-jogo/page.tsx:23:  convocacaoAtletas: "convocacao_atletas_base",
+atletas-grep.txt:28:app/base/atletas/[categoria]/[id]/dados-de-jogo/page.tsx:63:    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+atletas-grep.txt:29:app/base/atletas/[categoria]/[id]/dados-de-jogo/page.tsx:68:  const atleta = atletaData as AtletaBaseRow;
+atletas-grep.txt:30:app/base/atletas/[categoria]/[id]/dispensa/actions.ts:17: * "Dispensado" — só em `atletas_base`.
+atletas-grep.txt:31:app/base/atletas/[categoria]/[id]/dispensa/actions.ts:56:    .from("atletas_base")
+atletas-grep.txt:32:app/base/atletas/[categoria]/[id]/dispensa/page.tsx:11:import type { AtletaBaseRow, ConfiguracaoDispensaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:33:app/base/atletas/[categoria]/[id]/dispensa/page.tsx:28:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle();
+atletas-grep.txt:34:app/base/atletas/[categoria]/[id]/dispensa/page.tsx:30:  const atleta = data as AtletaBaseRow;
+atletas-grep.txt:35:app/base/atletas/[categoria]/[id]/dispensa/pdf/route.tsx:12:import type { AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:36:app/base/atletas/[categoria]/[id]/dispensa/pdf/route.tsx:22:  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+atletas-grep.txt:37:app/base/atletas/[categoria]/[id]/dispensa/pdf/route.tsx:25:  const atleta = data as AtletaBaseRow;
+atletas-grep.txt:38:app/base/atletas/[categoria]/[id]/documentacao/actions.ts:73:    .from("atletas_base")
+atletas-grep.txt:39:app/base/atletas/[categoria]/[id]/documentacao/page.tsx:9:import type { AtletaBaseRow, AtletaDocumentoBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:40:app/base/atletas/[categoria]/[id]/documentacao/page.tsx:29:    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+atletas-grep.txt:41:app/base/atletas/[categoria]/[id]/documentacao/page.tsx:39:  const atleta = atletaData as AtletaBaseRow;
+atletas-grep.txt:42:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:15:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+atletas-grep.txt:43:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:32:  AtletaBaseRow,
+atletas-grep.txt:44:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:39:  convocacaoAtletas: "convocacao_atletas_base",
+atletas-grep.txt:45:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:66:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((o) => [o.value, o.label]),
+atletas-grep.txt:46:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:99:      supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+atletas-grep.txt:47:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:101:        .from("atleta_base_contatos_emergencia")
+atletas-grep.txt:48:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:106:        .from("atleta_base_contratos")
+atletas-grep.txt:49:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:111:        .from("atleta_base_anotacoes")
+atletas-grep.txt:50:app/base/atletas/[categoria]/[id]/ficha/pdf/route.tsx:118:  const atleta = atletaData as AtletaBaseRow;
+atletas-grep.txt:51:app/base/atletas/[categoria]/[id]/page.tsx:11:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+atletas-grep.txt:52:app/base/atletas/[categoria]/[id]/page.tsx:15:  AtletaBaseRow,
+atletas-grep.txt:53:app/base/atletas/[categoria]/[id]/page.tsx:26:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+atletas-grep.txt:54:app/base/atletas/[categoria]/[id]/page.tsx:38:    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+atletas-grep.txt:55:app/base/atletas/[categoria]/[id]/page.tsx:40:      .from("atleta_base_contatos_emergencia")
+atletas-grep.txt:56:app/base/atletas/[categoria]/[id]/page.tsx:45:      .from("atleta_base_contratos")
+atletas-grep.txt:57:app/base/atletas/[categoria]/[id]/page.tsx:53:  const atleta = data as AtletaBaseRow;
+atletas-grep.txt:58:app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:12:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+atletas-grep.txt:59:app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:14:import type { AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:60:app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:19:  convocacaoAtletas: "convocacao_atletas_base",
+atletas-grep.txt:61:app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:41:  const { data: atletaData } = await supabase.from("atletas_base").select("*").eq("id", params.id).single();
+atletas-grep.txt:62:app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:44:  const atleta = atletaData as AtletaBaseRow;
+atletas-grep.txt:63:app/base/atletas/[categoria]/[id]/relatorio/pdf/route.tsx:68:          ? ATLETA_BASE_TIPO_CONTRATO_OPTIONS.find((o) => o.value === atleta.tipo_contrato)?.label ??
+atletas-grep.txt:64:app/base/atletas/[categoria]/[id]/ver/page.tsx:21:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+atletas-grep.txt:65:app/base/atletas/[categoria]/[id]/ver/page.tsx:26:  AtletaBaseRow,
+atletas-grep.txt:66:app/base/atletas/[categoria]/[id]/ver/page.tsx:31:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+atletas-grep.txt:67:app/base/atletas/[categoria]/[id]/ver/page.tsx:53:  convocacaoAtletas: "convocacao_atletas_base",
+atletas-grep.txt:68:app/base/atletas/[categoria]/[id]/ver/page.tsx:114:function cadastroIncompleto(atleta: Pick<AtletaBaseRow, "rg" | "cpf" | "data_nascimento">): boolean {
+atletas-grep.txt:69:app/base/atletas/[categoria]/[id]/ver/page.tsx:129:      supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+atletas-grep.txt:70:app/base/atletas/[categoria]/[id]/ver/page.tsx:131:        .from("atleta_base_contatos_emergencia")
+atletas-grep.txt:71:app/base/atletas/[categoria]/[id]/ver/page.tsx:136:        .from("atleta_base_contratos")
+atletas-grep.txt:72:app/base/atletas/[categoria]/[id]/ver/page.tsx:145:  const atleta = data as AtletaBaseRow;
+atletas-grep.txt:73:app/base/atletas/[categoria]/[id]/ver/page.tsx:240:                  `AtletaBaseRow.endereco_atual` em lib/supabase/types.ts). Escondido quando vazio,
+atletas-grep.txt:74:app/base/atletas/[categoria]/export/pdf/route.tsx:20:import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+atletas-grep.txt:75:app/base/atletas/[categoria]/export/pdf/route.tsx:57:    .from("atletas_base")
+atletas-grep.txt:76:app/base/atletas/[categoria]/export/pdf/route.tsx:61:  const atletas = ((data ?? []) as AtletaBaseRow[]).filter(
+atletas-grep.txt:77:app/base/atletas/[categoria]/export/route.ts:8:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+atletas-grep.txt:78:app/base/atletas/[categoria]/export/route.ts:16:import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+atletas-grep.txt:79:app/base/atletas/[categoria]/export/route.ts:28:  ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+atletas-grep.txt:80:app/base/atletas/[categoria]/export/route.ts:83:    .from("atletas_base")
+atletas-grep.txt:81:app/base/atletas/[categoria]/export/route.ts:87:  const atletas = ((data ?? []) as AtletaBaseRow[]).filter(
+atletas-grep.txt:82:app/base/atletas/[categoria]/page.tsx:9:import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+atletas-grep.txt:83:app/base/atletas/[categoria]/page.tsx:34:// ATLETA_BASE_TIPO_CONTRATO_OPTIONS.
+atletas-grep.txt:84:app/base/atletas/[categoria]/page.tsx:54:    .from("atletas_base")
+atletas-grep.txt:85:app/base/atletas/[categoria]/page.tsx:58:  const atletas = (data ?? []) as AtletaBaseRow[];
+atletas-grep.txt:86:app/base/atletas/actions.ts:14: * Espelha `app/atletas/actions.ts`, mas grava em `atletas_base` (tabela totalmente independente —
+atletas-grep.txt:87:app/base/atletas/actions.ts:135:  const { error } = await supabase.from("atletas_base").insert({
+atletas-grep.txt:88:app/base/atletas/actions.ts:269:  const { error } = await supabase.from("atletas_base").update(updatePayload).eq("id", id);
+atletas-grep.txt:89:app/base/atletas/actions.ts:292:  const { data } = await supabase.from("atletas_base").select("categoria").eq("id", id).maybeSingle();
+atletas-grep.txt:90:app/base/atletas/actions.ts:295:  const { error } = await supabase.from("atletas_base").delete().eq("id", id);
+atletas-grep.txt:91:app/base/atletas/actions.ts:346:  await supabase.from("atletas_base").update({ ativo: novoValor }).eq("id", id);
+atletas-grep.txt:92:app/base/atletas/actions.ts:361: * `atleta_base_contatos_emergencia`. Revalida `/base/atletas/[categoria]/[id]` — por isso recebe a
+atletas-grep.txt:93:app/base/atletas/actions.ts:381:  const { error } = await supabase.from("atleta_base_contatos_emergencia").insert({
+atletas-grep.txt:94:app/base/atletas/actions.ts:400:    .from("atleta_base_contatos_emergencia")
+atletas-grep.txt:95:app/base/atletas/actions.ts:405:  await supabase.from("atleta_base_contatos_emergencia").delete().eq("id", id);
+atletas-grep.txt:96:app/base/atletas/actions.ts:412:      .from("atletas_base")
+atletas-grep.txt:97:app/base/atletas/actions.ts:426:/** Espelha `adicionarAnotacao` (app/atletas/actions.ts), gravando em `atleta_base_anotacoes`. Usada
+atletas-grep.txt:98:app/base/atletas/actions.ts:446:  const { error } = await supabase.from("atleta_base_anotacoes").insert({
+atletas-grep.txt:99:app/base/atletas/actions.ts:469:    .from("atleta_base_anotacoes")
+atletas-grep.txt:100:app/base/atletas/actions.ts:474:  await supabase.from("atleta_base_anotacoes").delete().eq("id", id);
+atletas-grep.txt:101:app/base/atletas/actions.ts:479:      .from("atletas_base")
+atletas-grep.txt:102:app/base/atletas/campograma/actions.ts:15: * `atletas_base.posicao`, o mesmo campo do cadastro completo. Não reaproveita o `atletaBaseSchema`
+atletas-grep.txt:103:app/base/atletas/campograma/actions.ts:29:  const { error } = await supabase.from("atletas_base").update({ posicao: novaPosicao }).eq("id", atletaId);
+atletas-grep.txt:104:app/base/atletas/campograma/actions.ts:49: * `atletas_base`, sem passar pelo `atletaBaseSchema` inteiro. "Dispensa (pendente)" é só um valor de
+atletas-grep.txt:105:app/base/atletas/campograma/actions.ts:68:    .from("atletas_base")
+atletas-grep.txt:106:app/base/atletas/campograma/actions.ts:74:    .from("atletas_base")
+atletas-grep.txt:107:app/base/atletas/campograma/actions.ts:97: * `atletas_base` (não passa pela Captação/Avaliação: é um atleta já ocupando uma posição no elenco
+atletas-grep.txt:108:app/base/atletas/campograma/actions.ts:114:  const { error } = await supabase.from("atletas_base").insert({
+atletas-grep.txt:109:app/base/atletas/campograma/page.tsx:8:import type { AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:110:app/base/atletas/campograma/page.tsx:25:    .from("atletas_base")
+atletas-grep.txt:111:app/base/atletas/campograma/page.tsx:34:    AtletaBaseRow,
+atletas-grep.txt:112:app/base/atletas/campograma/pdf/route.tsx:12:import type { AtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:113:app/base/atletas/campograma/pdf/route.tsx:26:    .from("atletas_base")
+atletas-grep.txt:114:app/base/atletas/campograma/pdf/route.tsx:33:    AtletaBaseRow,
+atletas-grep.txt:115:app/base/atletas/page.tsx:7:import type { AtletaBaseRow, CategoriaBase, ConfiguracaoCadastroAtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:116:app/base/atletas/page.tsx:22:    supabase.from("atletas_base").select("categoria"),
+atletas-grep.txt:117:app/base/atletas/page.tsx:26:  const todos = (data ?? []) as Pick<AtletaBaseRow, "categoria">[];
+atletas-grep.txt:118:app/base/atletas/page.tsx:27:  const config = configData as ConfiguracaoCadastroAtletaBaseRow | null;
+atletas-grep.txt:119:app/base/atletas/relacao/pdf/route.tsx:22:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+atletas-grep.txt:120:app/base/atletas/relacao/pdf/route.tsx:23:import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+atletas-grep.txt:121:app/base/atletas/relacao/pdf/route.tsx:92:    .from("atletas_base")
+atletas-grep.txt:122:app/base/atletas/relacao/pdf/route.tsx:98:  const atletas: RelacaoAtletaLinha[] = ((data ?? []) as AtletaBaseRow[]).map((a) => ({
+atletas-grep.txt:123:app/base/atletas/relacao/pdf/route.tsx:114:      ? ATLETA_BASE_TIPO_CONTRATO_OPTIONS.find((o) => o.value === a.tipo_contrato)?.label ?? a.tipo_contrato
+atletas-grep.txt:124:app/base/captacao/actions.ts:15: * Server Actions da Captação/Avaliação — banco TOTALMENTE separado de `atletas_base` desde o
+atletas-grep.txt:125:app/base/captacao/captacao-form.tsx:18: * telefone e o resto entrar conforme a avaliação anda. Banco totalmente separado de `atletas_base`.
+atletas-grep.txt:126:app/base/captacao/dashboard/page.tsx:20: * 2026-08-19-captacao-atletas-separacao-design.md) — não mostra mais nada de `atletas_base` aqui.
+atletas-grep.txt:127:app/base/competicoes/[id]/condicao/page.tsx:18: * `convocacoes_base`/`convocacao_atletas_base`/`atletas_base` no lugar das tabelas do Profissional.
+atletas-grep.txt:128:app/base/competicoes/[id]/condicao/page.tsx:50:        .from("convocacao_atletas_base")
+atletas-grep.txt:129:app/base/competicoes/[id]/condicao/page.tsx:64:    const { data } = await supabase.from("atletas_base").select("id, nome_completo, posicao").in("id", faltando);
+atletas-grep.txt:130:app/base/competicoes/[id]/condicao/pdf/route.tsx:44:      .from("convocacao_atletas_base")
+atletas-grep.txt:131:app/base/competicoes/[id]/condicao/pdf/route.tsx:56:    const { data } = await supabase.from("atletas_base").select("id, nome_completo, posicao").in("id", faltando);
+atletas-grep.txt:132:app/base/competicoes/[id]/inscritos/page.tsx:34:    .from("atletas_base")
+atletas-grep.txt:133:app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:51:/** Recalcula `atletas_base.status` a partir das lesões que sobraram sem `data_fim` pra esse atleta
+atletas-grep.txt:134:app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:69:  const { data: atletaAtual } = await supabase.from("atletas_base").select("status").eq("id", atletaId).maybeSingle();
+atletas-grep.txt:135:app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:237:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+atletas-grep.txt:136:app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:266:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+atletas-grep.txt:137:app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:366:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+atletas-grep.txt:138:app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:480:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+atletas-grep.txt:139:app/base/departamento-medico/fisioterapia/[atletaId]/actions.ts:511:  const { data: atletaAtual } = await supabase.from("atletas_base").select("categoria").eq("id", atletaId).maybeSingle();
+atletas-grep.txt:140:app/base/departamento-medico/fisioterapia/[atletaId]/page.tsx:12:  AtletaBaseRow,
+atletas-grep.txt:141:app/base/departamento-medico/fisioterapia/[atletaId]/page.tsx:43:    supabase.from("atletas_base").select("*").eq("id", params.atletaId).maybeSingle(),
+atletas-grep.txt:142:app/base/departamento-medico/fisioterapia/[atletaId]/page.tsx:64:  const atleta = atletaData as AtletaBaseRow;
+atletas-grep.txt:143:app/base/departamento-medico/fisioterapia/[atletaId]/pdf/route.tsx:12:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:144:app/base/departamento-medico/fisioterapia/[atletaId]/pdf/route.tsx:20:  const { data: atletaData } = await supabase.from("atletas_base").select("*").eq("id", params.atletaId).maybeSingle();
+atletas-grep.txt:145:app/base/departamento-medico/fisioterapia/[atletaId]/pdf/route.tsx:22:  const atleta = atletaData as AtletaBaseRow;
+atletas-grep.txt:146:app/base/departamento-medico/fisioterapia/lancamento-dia/page.tsx:9:import type { AtletaBaseRow, CategoriaBase, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:147:app/base/departamento-medico/fisioterapia/lancamento-dia/page.tsx:32:        .from("atletas_base")
+atletas-grep.txt:148:app/base/departamento-medico/fisioterapia/lancamento-dia/page.tsx:46:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:149:app/base/departamento-medico/fisioterapia/lancamento-dia/pdf/route.tsx:13:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:150:app/base/departamento-medico/fisioterapia/lancamento-dia/pdf/route.tsx:32:          .from("atletas_base")
+atletas-grep.txt:151:app/base/departamento-medico/fisioterapia/lancamento-dia/pdf/route.tsx:37:  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido" | "categoria">[];
+atletas-grep.txt:152:app/base/departamento-medico/fisioterapia/page.tsx:7:import type { AtletaBaseRow, AtletaBaseStatus, CategoriaBase, FisioterapiaLesaoBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:153:app/base/departamento-medico/fisioterapia/page.tsx:36:      .from("atletas_base")
+atletas-grep.txt:154:app/base/departamento-medico/fisioterapia/page.tsx:52:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:155:app/base/departamento-medico/fisioterapia/relatorio-completo/pdf/route.tsx:13:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:156:app/base/departamento-medico/fisioterapia/relatorio-completo/pdf/route.tsx:34:    .from("atletas_base")
+atletas-grep.txt:157:app/base/departamento-medico/fisioterapia/relatorio-completo/pdf/route.tsx:39:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:158:app/base/departamento-medico/fisioterapia/relatorio/page.tsx:8:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:159:app/base/departamento-medico/fisioterapia/relatorio/page.tsx:27:    .from("atletas_base")
+atletas-grep.txt:160:app/base/departamento-medico/fisioterapia/relatorio/page.tsx:30:  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[];
+atletas-grep.txt:161:app/base/departamento-medico/fisioterapia/relatorio/pdf/route.tsx:13:import type { AtletaBaseRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:162:app/base/departamento-medico/fisioterapia/relatorio/pdf/route.tsx:24:    .from("atletas_base")
+atletas-grep.txt:163:app/base/departamento-medico/fisioterapia/relatorio/pdf/route.tsx:27:  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[];
+atletas-grep.txt:164:app/base/financeiro/geral-base-view.tsx:17:  AtletaBaseRow,
+atletas-grep.txt:165:app/base/financeiro/geral-base-view.tsx:57:      supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
+atletas-grep.txt:166:app/base/financeiro/geral-base-view.tsx:63:      supabase.from("atleta_base_contratos").select("*").eq("vigente", true),
+atletas-grep.txt:167:app/base/financeiro/geral-base-view.tsx:73:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:168:app/base/financeiro/pdf-geral/route.tsx:27:  AtletaBaseRow,
+atletas-grep.txt:169:app/base/financeiro/pdf-geral/route.tsx:47:    supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
+atletas-grep.txt:170:app/base/financeiro/pdf-geral/route.tsx:53:    supabase.from("atleta_base_contratos").select("*").eq("vigente", true),
+atletas-grep.txt:171:app/base/financeiro/pdf-geral/route.tsx:63:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:172:app/base/jogos/[id]/convocacao/convocacao-form-base.tsx:8:import type { AtletaBaseRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
+atletas-grep.txt:173:app/base/jogos/[id]/convocacao/convocacao-form-base.tsx:18:type AtletaComFoto = AtletaBaseRow & { fotoUrl: string | null };
+atletas-grep.txt:174:app/base/jogos/[id]/convocacao/page.tsx:8:  AtletaBaseRow,
+atletas-grep.txt:175:app/base/jogos/[id]/convocacao/page.tsx:10:  ConvocacaoAtletaBaseRow,
+atletas-grep.txt:176:app/base/jogos/[id]/convocacao/page.tsx:39:      supabase.from("atletas_base").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
+atletas-grep.txt:177:app/base/jogos/[id]/convocacao/page.tsx:48:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:178:app/base/jogos/[id]/convocacao/page.tsx:57:  // jogo, ver comentário em ConvocacaoAtletaBaseRow). Vem em branco (sem entrada no map) até
+atletas-grep.txt:179:app/base/jogos/[id]/convocacao/page.tsx:64:      supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
+atletas-grep.txt:180:app/base/jogos/[id]/convocacao/page.tsx:68:    ((caData ?? []) as ConvocacaoAtletaBaseRow[]).forEach((row) => {
+atletas-grep.txt:181:app/base/jogos/[id]/onibus/page.tsx:8:  AtletaBaseRow,
+atletas-grep.txt:182:app/base/jogos/[id]/onibus/page.tsx:40:      .from("atletas_base")
+atletas-grep.txt:183:app/base/jogos/[id]/onibus/page.tsx:50:  const todosAtletas = (todosAtletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "posicao">[];
+atletas-grep.txt:184:app/base/jogos/[id]/onibus/pdf/route.tsx:12:  AtletaBaseRow,
+atletas-grep.txt:185:app/base/jogos/[id]/onibus/pdf/route.tsx:47:      atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+atletas-grep.txt:186:app/base/jogos/[id]/onibus/pdf/route.tsx:57:  const atletaMap = new Map(((atletasData ?? []) as AtletaBaseRow[]).map((a) => [a.id, a]));
+atletas-grep.txt:187:app/base/jogos/[id]/operacao-data.ts:4:  AtletaBaseRow,
+atletas-grep.txt:188:app/base/jogos/[id]/operacao-data.ts:6:  ConvocacaoAtletaBaseRow,
+atletas-grep.txt:189:app/base/jogos/[id]/operacao-data.ts:21:  atletas: AtletaBaseRow[];
+atletas-grep.txt:190:app/base/jogos/[id]/operacao-data.ts:44:    supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
+atletas-grep.txt:191:app/base/jogos/[id]/operacao-data.ts:51:  const convocacaoAtletaIds = ((caData ?? []) as ConvocacaoAtletaBaseRow[]).map((c) => c.atleta_id);
+atletas-grep.txt:192:app/base/jogos/[id]/operacao-data.ts:56:  let atletas: AtletaBaseRow[] = [];
+atletas-grep.txt:193:app/base/jogos/[id]/operacao-data.ts:58:    const { data: atletasData } = await supabase.from("atletas_base").select("*").in("id", convocacaoAtletaIds);
+atletas-grep.txt:194:app/base/jogos/[id]/operacao-data.ts:59:    atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:195:app/base/jogos/[id]/presskit/route.tsx:13:  AtletaBaseRow,
+atletas-grep.txt:196:app/base/jogos/[id]/presskit/route.tsx:15:  ConvocacaoAtletaBaseRow,
+atletas-grep.txt:197:app/base/jogos/[id]/presskit/route.tsx:44:    supabase.from("convocacao_atletas_base").select("*, atleta:atletas_base(*)").eq("convocacao_id", convocacao.id),
+atletas-grep.txt:198:app/base/jogos/[id]/presskit/route.tsx:52:  const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow })[];
+atletas-grep.txt:199:app/base/jogos/[id]/presskit/route.tsx:58:  // 0059_convocacao_atleta_base_numero_camisa.sql), COM O GOLEIRO SEMPRE NA FRENTE: é regra do
+atletas-grep.txt:200:app/base/jogos/[id]/presskit/route.tsx:60:  const comNumeroDaConvocacao = (c: ConvocacaoAtletaBaseRow & { atleta: AtletaBaseRow }): AtletaBaseRow => ({
+atletas-grep.txt:201:app/base/jogos/[id]/presskit/route.tsx:73:  const comFoto = async (atletas: AtletaBaseRow[]): Promise<AtletaPresskitItem[]> =>
+atletas-grep.txt:202:app/base/jogos/[id]/rooming-list/pdf-envio/route.tsx:17:  AtletaBaseRow,
+atletas-grep.txt:203:app/base/jogos/[id]/rooming-list/pdf-envio/route.tsx:67:      ? supabase.from("atletas_base").select("id, nome_completo, apelido").in("id", atletaIds)
+atletas-grep.txt:204:app/base/jogos/[id]/rooming-list/pdf-envio/route.tsx:79:    ((atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[]).map((a) => [a.id, a]),
+atletas-grep.txt:205:app/base/jogos/[id]/rooming-list/pdf/route.tsx:13:  AtletaBaseRow,
+atletas-grep.txt:206:app/base/jogos/[id]/rooming-list/pdf/route.tsx:62:    atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+atletas-grep.txt:207:app/base/jogos/[id]/rooming-list/pdf/route.tsx:72:  const atletaMap = new Map(((atletasData ?? []) as AtletaBaseRow[]).map((a) => [a.id, a]));
+atletas-grep.txt:208:app/base/jogos/[id]/rooming-list/pdf/route.tsx:85:    const nome = o.pessoa_tipo === "atleta" ? (registro as AtletaBaseRow | undefined)?.apelido || registro?.nome_completo || "—" : registro?.nome_completo ?? "—";
+atletas-grep.txt:209:app/base/jogos/[id]/rooming-list/rooming-list-form-base.tsx:7:import type { AtletaBaseRow, ComissaoTecnicaRow, PessoaTipoRooming, TipoQuarto } from "@/lib/supabase/types";
+atletas-grep.txt:210:app/base/jogos/[id]/rooming-list/rooming-list-form-base.tsx:66:  atletas: AtletaBaseRow[];
+atletas-grep.txt:211:app/base/jogos/[id]/sumula/importar-actions.ts:14:import type { AtletaBaseRow, CompeticaoBaseRow, CompeticaoJogoBaseRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
+atletas-grep.txt:212:app/base/jogos/[id]/sumula/importar-actions.ts:104:function paraAtletaParaMatch(a: AtletaBaseRow): AtletaParaMatch {
+atletas-grep.txt:213:app/base/jogos/[id]/sumula/importar-actions.ts:127:  // Precisa da categoria do jogo pra filtrar o elenco completo (atletas_base tem todas as
+atletas-grep.txt:214:app/base/jogos/[id]/sumula/importar-actions.ts:136:    ? await supabase.from("atletas_base").select("id, nome_completo, numero_fpf").eq("categoria", categoria)
+atletas-grep.txt:215:app/base/jogos/[id]/sumula/importar-actions.ts:137:    : { data: [] as AtletaBaseRow[] };
+atletas-grep.txt:216:app/base/jogos/[id]/sumula/importar-actions.ts:138:  const atletasCompletos = ((atletasCompletosData ?? []) as AtletaBaseRow[]).map(paraAtletaParaMatch);
+atletas-grep.txt:217:app/base/jogos/[id]/sumula/importar-actions.ts:141:  // sem `convocacao_atletas_base`) não carrega nenhuma informação real pra proteger — trata
+atletas-grep.txt:218:app/base/jogos/[id]/sumula/importar-actions.ts:148:      .from("convocacao_atletas_base")
+atletas-grep.txt:219:app/base/jogos/[id]/sumula/importar-actions.ts:377: * pra pré-preencher `convocacao_atletas_base.numero_camisa` com o número que a súmula trouxer pra
+atletas-grep.txt:220:app/base/jogos/[id]/sumula/importar-actions.ts:434:    // nenhum `convocacao_atletas_base` (ex.: sobrou de uma limpeza manual pra testar de novo)
+atletas-grep.txt:221:app/base/jogos/[id]/sumula/importar-actions.ts:440:        .from("convocacao_atletas_base")
+atletas-grep.txt:222:app/base/jogos/[id]/sumula/importar-actions.ts:454:          await supabase.from("convocacao_atletas_base").insert(
+atletas-grep.txt:223:app/base/jogos/[id]/sumula/page.tsx:16:  AtletaBaseRow,
+atletas-grep.txt:224:app/base/jogos/[id]/sumula/page.tsx:19:  ConvocacaoAtletaBaseRow,
+atletas-grep.txt:225:app/base/jogos/[id]/sumula/page.tsx:32:function paraOpcao(atleta: AtletaBaseRow): ConvocadoOption {
+atletas-grep.txt:226:app/base/jogos/[id]/sumula/page.tsx:41:function nomeAtletaEvento(atleta: AtletaBaseRow | undefined): string {
+atletas-grep.txt:227:app/base/jogos/[id]/sumula/page.tsx:55:  atletasMap: Map<string, AtletaBaseRow>;
+atletas-grep.txt:228:app/base/jogos/[id]/sumula/page.tsx:128:  atletasMap: Map<string, AtletaBaseRow>;
+atletas-grep.txt:229:app/base/jogos/[id]/sumula/page.tsx:188:        .from("atletas_base")
+atletas-grep.txt:230:app/base/jogos/[id]/sumula/page.tsx:201:  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+atletas-grep.txt:231:app/base/jogos/[id]/sumula/page.tsx:233:  let titulares: AtletaBaseRow[] = [];
+atletas-grep.txt:232:app/base/jogos/[id]/sumula/page.tsx:234:  let reservasAtletas: AtletaBaseRow[] = [];
+atletas-grep.txt:233:app/base/jogos/[id]/sumula/page.tsx:237:      .from("convocacao_atletas_base")
+atletas-grep.txt:234:app/base/jogos/[id]/sumula/page.tsx:240:    const rows = (caData ?? []) as ConvocacaoAtletaBaseRow[];
+atletas-grep.txt:235:app/base/jogos/[id]/sumula/page.tsx:244:      .filter((a): a is AtletaBaseRow => Boolean(a));
+atletas-grep.txt:236:app/base/jogos/[id]/sumula/page.tsx:248:      .filter((a): a is AtletaBaseRow => Boolean(a));
+atletas-grep.txt:237:app/base/relatorios/avulso/page.tsx:5:  AtletaBaseRow,
+atletas-grep.txt:238:app/base/relatorios/avulso/page.tsx:18:      supabase.from("atletas_base").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
+atletas-grep.txt:239:app/base/relatorios/avulso/page.tsx:34:  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "posicao">[];
+atletas-grep.txt:240:app/base/relatorios/avulso/pdf/route.tsx:14:import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+atletas-grep.txt:241:app/base/relatorios/avulso/pdf/route.tsx:16:import type { AtletaBaseRow, ComissaoTecnicaRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
+atletas-grep.txt:242:app/base/relatorios/avulso/pdf/route.tsx:113:    atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+atletas-grep.txt:243:app/base/relatorios/avulso/pdf/route.tsx:125:  const atletas: RelatorioAvulsoPessoa[] = ((atletasData ?? []) as AtletaBaseRow[])
+atletas-grep.txt:244:app/base/relatorios/avulso/pdf/route.tsx:144:        ? ATLETA_BASE_TIPO_CONTRATO_OPTIONS.find((o) => o.value === a.tipo_contrato)?.label ?? a.tipo_contrato
+atletas-grep.txt:245:app/cadastro-atleta-base/actions.ts:13: * `atletas_base`, com `status: "liberado"` fixado no servidor — sem relação nenhuma com a Captação
+atletas-grep.txt:246:app/cadastro-atleta-base/actions.ts:25: * quem preenche não tem sessão. Precisa do GRANT em `atletas_base` pro service_role, que nasceu
+atletas-grep.txt:247:app/cadastro-atleta-base/actions.ts:152:  const { error } = await admin.from("atletas_base").insert({
+atletas-grep.txt:248:app/cadastro-atleta-base/page.tsx:3:import type { ConfiguracaoCadastroAtletaBaseRow } from "@/lib/supabase/types";
+atletas-grep.txt:249:app/cadastro-atleta-base/page.tsx:11: * em `atletas_base` (sem relação nenhuma com a Captação, ver docs/superpowers/specs/
+atletas-grep.txt:250:app/cadastro-atleta-base/page.tsx:26:  const config = configData as ConfiguracaoCadastroAtletaBaseRow | null;
 docs/superpowers/plans/2026-10-05-assistencia-social-e-demandas-plan.md:19:  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
 docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:9:from atletas_base
 docs/superpowers/plans/2026-10-28-unificacao-atletas-plano.md:20:2. Adicionar em `atletas` as colunas que só existem em `atletas_base` hoje: `email_pai`, `email_mae`, `alojado`, `classificacao`, `dispensa_motivo`, `dispensa_nota_tecnica`, `dispensa_nota_fisica`, `dispensa_nota_tatica`, `dispensa_nota_comportamental`, `dispensa_data`, `dispensado_por`, `dispensado_em`, `valor_ajuda_custo`, `agencia`, `mae_nome`, `mae_telefone`, `pai_nome`, `pai_telefone`, `escola` — todas nullable.

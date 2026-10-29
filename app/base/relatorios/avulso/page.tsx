@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   JogoBaseRow,
   StaffOperacionalBaseComFuncaoRow,
@@ -15,7 +15,11 @@ export default async function RelatorioAvulsoBasePage() {
 
   const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, { data: jogosData }] =
     await Promise.all([
-      supabase.from("atletas_base").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
+      supabase
+        .from("atletas")
+        .select("id, nome_completo, posicao")
+        .neq("categoria", "profissional")
+        .order("nome_completo", { ascending: true }),
       supabase
         .from("comissao_tecnica")
         .select("id, nome_completo, funcao, categorias")
@@ -31,7 +35,7 @@ export default async function RelatorioAvulsoBasePage() {
         .order("data_jogo", { ascending: false }),
     ]);
 
-  const atletas = (atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "posicao">[];
+  const atletas = (atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "posicao">[];
   // Igual ao Organograma da Base e à Lista de Passageiros do Ônibus — exclui quem só tem categoria
   // Profissional, já que a tabela de Comissão Técnica/Diretoria agora é única (ver docs/superpowers/
   // specs/2026-10-28-unificacao-comissao-tecnica-design.md).

@@ -15,7 +15,7 @@ import {
 import { JogoDetalheLinha } from "@/components/atletas/jogo-detalhe-linha";
 import { juventusTheme } from "@/lib/theme";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
-import type { AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow } from "@/lib/supabase/types";
 
 const TABELAS = {
   jogos: "jogos_base",
@@ -60,12 +60,12 @@ export default async function DadosDeJogoAtletaBasePage({
 
   const supabase = createClient();
   const [{ data: atletaData }, competicoesDisponiveisAtleta] = await Promise.all([
-    supabase.from("atletas_base").select("*").eq("id", params.id).single(),
+    supabase.from("atletas").select("*").eq("id", params.id).single(),
     buscarCompeticoesDisponiveisAtleta(supabase, TABELAS),
   ]);
   if (!atletaData) notFound();
 
-  const atleta = atletaData as AtletaBaseRow;
+  const atleta = atletaData as AtletaRow;
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${categoriaBaseLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 

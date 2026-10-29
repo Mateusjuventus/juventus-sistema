@@ -63,15 +63,17 @@ export const FISIOTERAPIA_STATUS_DIA_COR: Record<FisioterapiaStatusDia, string> 
   reavaliacao: "#F59E0B",
 };
 
-/** Rótulo único dos 3 status do atleta do Profissional (ver docs/superpowers/specs/
- * 2026-10-01-departamento-medico-historico-status-design.md) — substitui os `STATUS_LABEL`
- * duplicados em cada tela/export do Profissional. Duas telas (`app/atletas/page.tsx` e
+/** Rótulo único dos 4 status do atleta (ver docs/superpowers/specs/
+ * 2026-10-01-departamento-medico-historico-status-design.md e, pra "dispensado",
+ * 2026-10-28-unificacao-atletas-design.md) — substitui os `STATUS_LABEL` duplicados em cada tela/
+ * export do Profissional. Duas telas (`app/atletas/page.tsx` e
  * `app/atletas/export/pdf/route.tsx`) mantêm seu próprio mapa à parte de propósito: usam "Apto"/
  * "Não apto" em vez de "Liberado" por um pedido específico de 2026-09-10, que não se aplica aqui. */
 export const ATLETA_STATUS_LABEL: Record<AtletaStatus, string> = {
   liberado: "Liberado",
   departamento_medico: "Depto. Médico",
   transicao: "Transição",
+  dispensado: "Dispensado",
 };
 
 /**

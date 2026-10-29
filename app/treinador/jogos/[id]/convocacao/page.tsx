@@ -8,7 +8,7 @@ import { buscarNotificacoes } from "@/lib/notificacoes/actions";
 import { ConvocacaoFormBase } from "@/app/base/jogos/[id]/convocacao/convocacao-form-base";
 import { saveConvocacaoBase } from "@/lib/jogos-base/convocacao-actions";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   ConvocacaoAtletaBaseRow,
   ConvocacaoBaseRow,
@@ -39,7 +39,7 @@ export default async function TreinadorConvocacaoPage({ params }: { params: { id
   const categoria = jogo.categoria;
 
   const [{ data: atletasData }, { data: comissaoData }, { data: convocacaoData }] = await Promise.all([
-    supabase.from("atletas_base").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
+    supabase.from("atletas").select("*").eq("categoria", categoria).order("nome_completo", { ascending: true }),
     supabase
       .from("comissao_tecnica")
       .select("*")
@@ -48,7 +48,7 @@ export default async function TreinadorConvocacaoPage({ params }: { params: { id
     supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
   ]);
 
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  const atletas = (atletasData ?? []) as AtletaRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaRow[];
   const convocacao = convocacaoData as ConvocacaoBaseRow | null;
 

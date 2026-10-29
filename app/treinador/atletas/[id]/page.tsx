@@ -9,7 +9,7 @@ import { StatCard } from "@/components/stat-card";
 import { juventusTheme } from "@/lib/theme";
 import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { montarHistoricoAtletaBase } from "@/lib/futebol/anotacoes-atleta";
-import type { AtletaBaseAnotacaoRow, AtletaBaseRow } from "@/lib/supabase/types";
+import type { AtletaAnotacaoRow, AtletaRow } from "@/lib/supabase/types";
 import { AnotacaoFormTreinador } from "./anotacao-form-treinador";
 
 const TABELAS = {
@@ -46,21 +46,21 @@ export default async function AtletaTreinadorPage({ params }: { params: { id: st
   const categorias = await getCategoriasTreinador(supabase);
   if (categorias.length === 0) redirect("/treinador");
 
-  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle();
+  const { data } = await supabase.from("atletas").select("*").eq("id", params.id).maybeSingle();
   if (!data) notFound();
-  const atleta = data as AtletaBaseRow;
+  const atleta = data as AtletaRow;
   if (!atleta.categoria || !categorias.includes(atleta.categoria)) redirect("/treinador");
 
   const [{ data: anotacoesData }, fotoUrl, { stats, duracaoReferencia }] = await Promise.all([
     supabase
-      .from("atleta_base_anotacoes")
+      .from("atleta_anotacoes")
       .select("*")
       .eq("atleta_id", atleta.id)
       .order("created_at", { ascending: false }),
     getSignedPhotoUrl(supabase, atleta.foto_path),
     buscarEstatisticasAtleta(supabase, atleta.id, TABELAS, {}),
   ]);
-  const anotacoes = (anotacoesData ?? []) as AtletaBaseAnotacaoRow[];
+  const anotacoes = (anotacoesData ?? []) as AtletaAnotacaoRow[];
 
   let dispensadoPorNome: string | null = null;
   if (atleta.dispensado_por) {

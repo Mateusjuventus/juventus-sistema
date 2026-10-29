@@ -8,7 +8,7 @@ import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinatur
 import { createClient } from "@/lib/supabase/server";
 import { isMaster } from "@/lib/auth/role";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
-import type { AtletaBaseRow, ConfiguracaoDispensaBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, ConfiguracaoDispensaBaseRow } from "@/lib/supabase/types";
 import { salvarRelatorioDispensaAdmin } from "./actions";
 
 /**
@@ -25,9 +25,9 @@ export default async function DispensaAtletaBasePage({
   if (!ehCategoriaBaseValida(params.categoria)) notFound();
 
   const supabase = createClient();
-  const { data } = await supabase.from("atletas_base").select("*").eq("id", params.id).maybeSingle();
+  const { data } = await supabase.from("atletas").select("*").eq("id", params.id).maybeSingle();
   if (!data) notFound();
-  const atleta = data as AtletaBaseRow;
+  const atleta = data as AtletaRow;
 
   const jaGerado = Boolean(atleta.dispensa_data);
   const action = salvarRelatorioDispensaAdmin.bind(null, atleta.id, params.categoria);

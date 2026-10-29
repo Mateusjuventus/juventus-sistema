@@ -230,7 +230,7 @@ export async function carregarCompeticaoBase(
   let atletasById = new Map<string, AtletaResumoBase>();
   if (atletaIds.size) {
     const { data: atletasData } = await supabase
-      .from("atletas_base")
+      .from("atletas")
       .select("id, nome_completo, posicao")
       .in("id", Array.from(atletaIds));
     atletasById = new Map(((atletasData ?? []) as AtletaResumoBase[]).map((a) => [a.id, a]));

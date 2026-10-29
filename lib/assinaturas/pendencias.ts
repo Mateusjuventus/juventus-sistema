@@ -3,7 +3,7 @@ import { podeAssinarPapel } from "./config";
 import { getPerfilPermissoes, resolverEhSupervisorDaCategoriaBase } from "@/lib/auth/role";
 import type { CategoriaBase } from "@/lib/auth/categorias-base";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   CaptacaoBaseRow,
   ConfiguracaoDispensaBaseRow,
   ConfiguracaoFinanceiroBaseRow,
@@ -63,11 +63,15 @@ async function pendenciasDispensa(supabase: Supabase, userId: string, master: bo
   const config = configData as ConfiguracaoDispensaBaseRow | null;
   if (!podeAssinarPapel(config?.departamento_usuario_id, userId, master)) return [];
 
+  // `dispensa_data` só é preenchido pelo fluxo de Relatório de Dispensa da Base (Futebol
+  // Profissional não tem essa tela) — o filtro de categoria aqui é redundante por natureza dos
+  // dados, mas deixa explícito que isso nunca deveria pegar um atleta do Profissional.
   const { data } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("id, categoria, nome_completo")
+    .neq("categoria", "profissional")
     .not("dispensa_data", "is", null);
-  const atletas = (data ?? []) as Pick<AtletaBaseRow, "id" | "categoria" | "nome_completo">[];
+  const atletas = (data ?? []) as Pick<AtletaRow, "id" | "categoria" | "nome_completo">[];
   if (atletas.length === 0) return [];
 
   const assinado = await assinaturasPorDocumento(

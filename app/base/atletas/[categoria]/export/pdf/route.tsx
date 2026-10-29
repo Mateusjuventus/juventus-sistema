@@ -17,21 +17,21 @@ import {
   mostrarInativosDaQueryString,
 } from "@/lib/futebol/atletas-filtro";
 import { AtletasResumoDocument, type AtletaResumoPdfItem } from "@/lib/pdf/atletas-resumo-document";
-import type { AtletaBaseRow, AtletaBaseStatus } from "@/lib/supabase/types";
+import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
 
-// Mesmos rótulos "Apto"/"Não apto"/"Depto. Médico"/"Dispensado" de `app/base/atletas/[categoria]/
-// page.tsx` (ver item 7 do ajuste de 2026-09-10) — o resumo do PDF precisa bater com o que a tela
-// mostra.
-const STATUS_LABEL: Record<AtletaBaseStatus, string> = {
+// Mesmos rótulos "Apto"/"Transição"/"Depto. Médico"/"Dispensado" de `app/base/atletas/[categoria]/
+// page.tsx` (ver item 7 do ajuste de 2026-09-10 e a unificação de Atletas de 28/10/2026, que tirou
+// "Suspenso" do vocabulário) — o resumo do PDF precisa bater com o que a tela mostra.
+const STATUS_LABEL: Record<AtletaStatus, string> = {
   liberado: "Apto",
-  suspenso: "Não apto",
+  transicao: "Transição",
   departamento_medico: "Depto. Médico",
   dispensado: "Dispensado",
 };
 
 const STATUS_OPTIONS = [
   { value: "liberado", label: STATUS_LABEL.liberado },
-  { value: "suspenso", label: STATUS_LABEL.suspenso },
+  { value: "transicao", label: STATUS_LABEL.transicao },
   { value: "departamento_medico", label: STATUS_LABEL.departamento_medico },
   { value: "dispensado", label: STATUS_LABEL.dispensado },
 ];
@@ -54,11 +54,11 @@ export async function GET(request: NextRequest, { params }: { params: { categori
   const supabase = createClient();
 
   const { data } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("*")
     .eq("categoria", categoria)
     .order("nome_completo", { ascending: true });
-  const atletas = ((data ?? []) as AtletaBaseRow[]).filter(
+  const atletas = ((data ?? []) as AtletaRow[]).filter(
     (a) =>
       atletaVisivelPorAtivo(a.ativo, mostrarInativos) &&
       atletaPassaFiltro(

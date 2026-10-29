@@ -13,7 +13,7 @@ import {
 } from "@/lib/pdf/relatorio-avulso-document";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import type { AtletaBaseRow, ComissaoTecnicaRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
+import type { AtletaRow, ComissaoTecnicaRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
   const supabase = createClient();
 
   const [{ data: atletasData }, { data: comissaoData }, { data: staffData }] = await Promise.all([
-    atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+    atletaIds.length > 0 ? supabase.from("atletas").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
     comissaoIds.length > 0
       ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
       : Promise.resolve({ data: [] }),
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
       : Promise.resolve({ data: [] }),
   ]);
 
-  const atletas: RelatorioAvulsoPessoa[] = ((atletasData ?? []) as AtletaBaseRow[])
+  const atletas: RelatorioAvulsoPessoa[] = ((atletasData ?? []) as AtletaRow[])
     .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, "pt-BR"))
     .map((a) => ({
       nome: a.nome_completo,

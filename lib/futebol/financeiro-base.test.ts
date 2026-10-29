@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calcularGeralBase, custoAtletaBase, mapaContratoVigentePorAtleta, tipoPagamentoAtletaBase } from "./financeiro-base";
-import type { AtletaBaseRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
+import type { AtletaRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
 
 /** Fábrica mínima de `ComissaoTecnicaRow` — só os campos que `calcularGeralBase` de fato lê
  * (`categorias`, `valor_salario`); o resto é preenchido com valores neutros só pra satisfazer o
@@ -28,7 +28,7 @@ function comissao(overrides: Partial<ComissaoTecnicaRow> & Pick<ComissaoTecnicaR
   };
 }
 
-function atleta(overrides: Partial<AtletaBaseRow> & Pick<AtletaBaseRow, "id" | "categoria">): AtletaBaseRow {
+function atleta(overrides: Partial<AtletaRow> & Pick<AtletaRow, "id" | "categoria">): AtletaRow {
   return {
     nome_completo: "Atleta",
     posicao: "ATA",
@@ -44,7 +44,7 @@ function atleta(overrides: Partial<AtletaBaseRow> & Pick<AtletaBaseRow, "id" | "
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
     ...overrides,
-  } as AtletaBaseRow;
+  } as AtletaRow;
 }
 
 describe("calcularGeralBase — Comissão Técnica já unificada (Profissional + Base)", () => {

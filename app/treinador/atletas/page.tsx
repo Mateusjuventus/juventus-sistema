@@ -7,7 +7,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { buscarNotificacoes } from "@/lib/notificacoes/actions";
 import { salvarClassificacaoTreinador } from "./actions";
 import { TreinadorAtletasView } from "./treinador-atletas-view";
-import type { AtletaBaseRow, CaptacaoBaseRow } from "@/lib/supabase/types";
+import type { AtletaRow, CaptacaoBaseRow } from "@/lib/supabase/types";
 
 /**
  * Aba "Atletas" da Área do Treinador — candidatos "Em avaliação" (Captação) das categorias do
@@ -60,12 +60,12 @@ export default async function TreinadorAtletasPage() {
   // da fila de candidatos da Captação acima. Dispensados não aparecem aqui, mesmo raciocínio da
   // listagem interna (só quem está ativo no elenco).
   const { data: atletasData } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("*")
     .in("categoria", categorias)
     .neq("status", "dispensado")
     .order("nome_completo", { ascending: true });
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  const atletas = (atletasData ?? []) as AtletaRow[];
 
   const [pendentesFotos, decididosFotos, atletasFotos] = await Promise.all([
     Promise.all(pendentes.map((c) => getSignedPhotoUrl(supabase, c.foto_path))),

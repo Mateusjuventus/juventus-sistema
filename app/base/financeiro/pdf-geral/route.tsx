@@ -23,8 +23,8 @@ import {
   type RelatorioGeralBaseFatia,
 } from "@/lib/pdf/relatorio-geral-base-document";
 import type {
-  AtletaBaseContratoRow,
-  AtletaBaseRow,
+  AtletaContratoRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   DespesaAvulsaBaseComCategoriaRow,
 } from "@/lib/supabase/types";
@@ -44,13 +44,13 @@ export async function GET() {
     podeVerSalario,
   ] = await Promise.all([
     supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
-    supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
+    supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
     supabase
       .from("despesas_avulsas_base")
       .select("*, categoria_gasto:categorias_gasto(nome)")
       .order("data", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
-    supabase.from("atleta_base_contratos").select("*").eq("vigente", true),
+    supabase.from("atleta_contratos").select("*").eq("vigente", true),
     getAssinaturasFinanceiroBase(supabase),
     podeVerCampoSensivel(supabase, "salario"),
   ]);
@@ -60,9 +60,15 @@ export async function GET() {
   const comissao = ((comissaoData ?? []) as ComissaoTecnicaRow[]).filter((c) =>
     c.categorias.some(ehCategoriaBaseValida),
   );
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  // Mesmo filtro de `geral-base-view.tsx`: `atletas`/`atleta_contratos` são compartilhadas com o
+  // Profissional desde a unificação de Atletas (28/10/2026) — só entra quem tem `categoria` da
+  // Base, e os contratos vigentes são filtrados pro mesmo conjunto de atletas (por `atleta_id`).
+  const atletas = ((atletasData ?? []) as AtletaRow[]).filter((a) => a.categoria !== "profissional");
+  const atletaIdsBase = new Set(atletas.map((a) => a.id));
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
-  const contratosVigentes = (contratosData ?? []) as AtletaBaseContratoRow[];
+  const contratosVigentes = ((contratosData ?? []) as AtletaContratoRow[]).filter((c) =>
+    atletaIdsBase.has(c.atleta_id),
+  );
   const contratoPorAtleta = mapaContratoVigentePorAtleta(contratosVigentes);
 
   if (comissao.length === 0 && atletas.length === 0 && despesas.length === 0) {

@@ -7,7 +7,7 @@ import { CONTRATO_ATLETA_COR, CONTRATO_ATLETA_LABEL } from "@/lib/futebol/contra
 import { nomeExibido } from "@/lib/futebol/nome-atleta";
 import { iniciaisNome } from "@/lib/futebol/avatar-cor";
 import { ATLETA_POSICAO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaBaseTipoContrato } from "@/lib/supabase/types";
+import type { AtletaTipoContrato } from "@/lib/supabase/types";
 
 /**
  * PDF "Resumo de Atletas" — resumo (Status/Posições/Contrato, mesmos três blocos da tela) + a grade
@@ -36,7 +36,7 @@ export interface AtletaResumoPdfItem {
   fotoUrl: string | null;
   dataNascimento: string | null;
   dataFimContrato: string | null;
-  tipoContrato: AtletaBaseTipoContrato | null;
+  tipoContrato: AtletaTipoContrato | null;
   posicao: string;
   numeroCamisa: number | null;
   dispensado: boolean;
@@ -221,8 +221,8 @@ function ResumoContrato({
   contagens,
   total,
 }: {
-  contratoOptions: AtletaBaseTipoContrato[];
-  contagens: Map<AtletaBaseTipoContrato, number>;
+  contratoOptions: AtletaTipoContrato[];
+  contagens: Map<AtletaTipoContrato, number>;
   total: number;
 }) {
   const fatias = fatiasPizza(contratoOptions.map((tipo) => ({ chave: tipo, valor: contagens.get(tipo) ?? 0 })));
@@ -387,7 +387,7 @@ export function AtletasResumoDocument({
 }: {
   titulo: string;
   atletas: AtletaResumoPdfItem[];
-  contratoOptions: AtletaBaseTipoContrato[];
+  contratoOptions: AtletaTipoContrato[];
   statusOptions: StatusOpcaoPdf[];
   juventusLogoSrc: LogoSrc;
   geradoEm: Date;
@@ -400,7 +400,7 @@ export function AtletasResumoDocument({
 }) {
   const contagensStatus = new Map<string, number>();
   const contagensPosicao = new Map<string, number>();
-  const contagensContrato = new Map<AtletaBaseTipoContrato, number>();
+  const contagensContrato = new Map<AtletaTipoContrato, number>();
   let totalComContrato = 0;
 
   for (const a of atletas) {

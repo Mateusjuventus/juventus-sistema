@@ -13,8 +13,8 @@ import {
 import { DonutComposicao, type FatiaComposicao } from "@/components/charts/donut-composicao";
 import { BarrasCategoria } from "@/components/charts/barras-categoria";
 import type {
-  AtletaBaseContratoRow,
-  AtletaBaseRow,
+  AtletaContratoRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   DespesaAvulsaBaseComCategoriaRow,
 } from "@/lib/supabase/types";
@@ -54,13 +54,13 @@ export async function GeralBaseView() {
   const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }, { data: contratosData }, podeVerSalario] =
     await Promise.all([
       supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
-      supabase.from("atletas_base").select("*").order("nome_completo", { ascending: true }),
+      supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
       supabase
         .from("despesas_avulsas_base")
         .select("*, categoria_gasto:categorias_gasto(nome)")
         .order("data", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false }),
-      supabase.from("atleta_base_contratos").select("*").eq("vigente", true),
+      supabase.from("atleta_contratos").select("*").eq("vigente", true),
       podeVerCampoSensivel(supabase, "salario"),
     ]);
 
@@ -70,9 +70,17 @@ export async function GeralBaseView() {
   const comissao = ((comissaoData ?? []) as ComissaoTecnicaRow[]).filter((c) =>
     c.categorias.some(ehCategoriaBaseValida),
   );
-  const atletas = (atletasData ?? []) as AtletaBaseRow[];
+  // Desde a unificação de Atletas (28/10/2026), `atletas` é a tabela toda (Profissional + Base) —
+  // aqui só entra quem tem `categoria` da Base; quem é "profissional" tem esse custo coberto no
+  // Financeiro do Profissional, não aqui. `atleta_contratos` também é compartilhada, então os
+  // contratos vigentes precisam ser filtrados pro mesmo conjunto de atletas (por `atleta_id`), senão
+  // o salário de contrato do Profissional entraria somado no Gasto Geral da Base.
+  const atletas = ((atletasData ?? []) as AtletaRow[]).filter((a) => a.categoria !== "profissional");
+  const atletaIdsBase = new Set(atletas.map((a) => a.id));
   const despesas = (despesasData ?? []) as DespesaAvulsaBaseComCategoriaRow[];
-  const contratosVigentes = (contratosData ?? []) as AtletaBaseContratoRow[];
+  const contratosVigentes = ((contratosData ?? []) as AtletaContratoRow[]).filter((c) =>
+    atletaIdsBase.has(c.atleta_id),
+  );
   const contratoPorAtleta = mapaContratoVigentePorAtleta(contratosVigentes);
 
   const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =

@@ -26,6 +26,7 @@ const STATUS_LABEL: Record<AtletaStatus, string> = {
   liberado: "Apto",
   departamento_medico: "Depto. Médico",
   transicao: "Transição",
+  dispensado: "Dispensado",
 };
 
 const STATUS_OPTIONS = [

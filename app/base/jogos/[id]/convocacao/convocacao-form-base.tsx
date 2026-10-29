@@ -5,7 +5,7 @@ import { useFormState } from "react-dom";
 import { SubmitButton } from "@/components/submit-button";
 import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
 import { categoriaDaPosicao, corCategoriaPosicao, siglaCategoriaPosicao } from "@/lib/futebol/categoria-posicao";
-import type { AtletaBaseRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
+import type { AtletaRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
 import { nomeExibido, ordenarPorNomeExibido } from "@/lib/futebol/nome-atleta";
 import type { ConvocacaoFormState } from "@/lib/jogos-base/convocacao-actions";
 
@@ -15,7 +15,7 @@ const initialState: ConvocacaoFormState = {};
 const TITULARES_MAX = 11;
 const RESERVAS_MAX = 12;
 
-type AtletaComFoto = AtletaBaseRow & { fotoUrl: string | null };
+type AtletaComFoto = AtletaRow & { fotoUrl: string | null };
 
 /** Avatar do atleta na grade de Convocação — foto real quando cadastrada, senão o avatar colorido
  * de iniciais (ver `components/atleta-avatar.tsx`), mesmo usado em "Meus Atletas" e nos candidatos

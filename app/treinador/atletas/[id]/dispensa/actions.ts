@@ -42,7 +42,7 @@ export async function salvarRelatorioDispensaTreinador(
   }
 
   const { data: atleta } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("categoria, dispensa_data, nome_completo")
     .eq("id", atletaId)
     .maybeSingle();
@@ -67,7 +67,7 @@ export async function salvarRelatorioDispensaTreinador(
 
   const data = result.data;
   const { error } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .update({
       status: "dispensado",
       dispensa_data: data.dispensaData,

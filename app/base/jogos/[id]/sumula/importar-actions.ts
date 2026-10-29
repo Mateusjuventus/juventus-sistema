@@ -11,7 +11,7 @@ import {
   type SumulaPdfEventoTipoGol,
 } from "@/lib/fpf/sumula-pdf";
 import { sugerirAtleta, type AtletaParaMatch } from "@/lib/fpf/atleta-match";
-import type { AtletaBaseRow, CompeticaoBaseRow, CompeticaoJogoBaseRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
+import type { AtletaRow, CompeticaoBaseRow, CompeticaoJogoBaseRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/types";
 
 /**
  * Espelha app/jogos/[id]/sumula/importar-actions.ts (Profissional) para o Futebol de Base — ver
@@ -101,7 +101,7 @@ export interface PreviaImportacaoResultadoBase {
   dados?: PreviaImportacaoSumulaBase;
 }
 
-function paraAtletaParaMatch(a: AtletaBaseRow): AtletaParaMatch {
+function paraAtletaParaMatch(a: AtletaRow): AtletaParaMatch {
   return { id: a.id, nome_completo: a.nome_completo, numero_fpf: a.numero_fpf };
 }
 
@@ -133,9 +133,9 @@ export async function buscarPreviaImportacaoSumulaBase(
   // Convocação pra esse jogo, e também a base pra montar a sugestão de Convocação em si (ver
   // `convocacaoSugerida` mais abaixo).
   const { data: atletasCompletosData } = categoria
-    ? await supabase.from("atletas_base").select("id, nome_completo, numero_fpf").eq("categoria", categoria)
-    : { data: [] as AtletaBaseRow[] };
-  const atletasCompletos = ((atletasCompletosData ?? []) as AtletaBaseRow[]).map(paraAtletaParaMatch);
+    ? await supabase.from("atletas").select("id, nome_completo, numero_fpf").eq("categoria", categoria)
+    : { data: [] as AtletaRow[] };
+  const atletasCompletos = ((atletasCompletosData ?? []) as AtletaRow[]).map(paraAtletaParaMatch);
 
   // Uma Convocação "existe" mas sem nenhum atleta selecionado (linha órfã em `convocacoes_base`,
   // sem `convocacao_atletas_base`) não carrega nenhuma informação real pra proteger — trata

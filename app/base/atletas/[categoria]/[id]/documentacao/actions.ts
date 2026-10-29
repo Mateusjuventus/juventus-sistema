@@ -37,7 +37,7 @@ export async function adicionarDocumentoBase(
 
   if (uploadError) return { error: "Não foi possível enviar o arquivo. Tente novamente." };
 
-  const { error: insertError } = await supabase.from("atleta_documentos_base").insert({
+  const { error: insertError } = await supabase.from("atleta_documentos").insert({
     id: documentoId,
     atleta_id: atletaId,
     nome,
@@ -59,18 +59,18 @@ export async function removerDocumentoBase(formData: FormData): Promise<void> {
 
   const supabase = createClient();
   const { data: documento } = await supabase
-    .from("atleta_documentos_base")
+    .from("atleta_documentos")
     .select("atleta_id, arquivo_path")
     .eq("id", id)
     .single();
 
   if (!documento) return;
 
-  await supabase.from("atleta_documentos_base").delete().eq("id", id);
+  await supabase.from("atleta_documentos").delete().eq("id", id);
   await supabase.storage.from(ATLETA_DOCUMENTOS_BUCKET).remove([documento.arquivo_path]);
 
   const { data: atleta } = await supabase
-    .from("atletas_base")
+    .from("atletas")
     .select("categoria")
     .eq("id", documento.atleta_id)
     .single();

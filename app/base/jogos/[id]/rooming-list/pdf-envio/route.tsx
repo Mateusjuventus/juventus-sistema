@@ -14,7 +14,7 @@ import {
 } from "@/lib/pdf/rooming-list-envio-document";
 import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   RoomingListBaseRow,
   RoomingListOcupanteBaseRow,
@@ -64,7 +64,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, adversarioLogoUrl] = await Promise.all([
     atletaIds.length > 0
-      ? supabase.from("atletas_base").select("id, nome_completo, apelido").in("id", atletaIds)
+      ? supabase.from("atletas").select("id, nome_completo, apelido").in("id", atletaIds)
       : Promise.resolve({ data: [] }),
     comissaoIds.length > 0
       ? supabase.from("comissao_tecnica").select("id, nome_completo").in("id", comissaoIds)
@@ -76,7 +76,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   ]);
 
   const atletaMap = new Map(
-    ((atletasData ?? []) as Pick<AtletaBaseRow, "id" | "nome_completo" | "apelido">[]).map((a) => [a.id, a]),
+    ((atletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "apelido">[]).map((a) => [a.id, a]),
   );
   const comissaoMap = new Map(
     ((comissaoData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo">[]).map((c) => [c.id, c]),

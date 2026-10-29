@@ -9,7 +9,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { OnibusDocument, type OnibusPdfItem, type OnibusPdfPassageiro } from "@/lib/pdf/onibus-document";
 import type {
-  AtletaBaseRow,
+  AtletaRow,
   ComissaoTecnicaRow,
   OnibusListaBaseRow,
   OnibusPassageiroBaseRow,
@@ -44,7 +44,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, adversarioLogoUrl] =
     await Promise.all([
-      atletaIds.length > 0 ? supabase.from("atletas_base").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
+      atletaIds.length > 0 ? supabase.from("atletas").select("*").in("id", atletaIds) : Promise.resolve({ data: [] }),
       comissaoIds.length > 0
         ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
         : Promise.resolve({ data: [] }),
@@ -54,7 +54,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
     ]);
 
-  const atletaMap = new Map(((atletasData ?? []) as AtletaBaseRow[]).map((a) => [a.id, a]));
+  const atletaMap = new Map(((atletasData ?? []) as AtletaRow[]).map((a) => [a.id, a]));
   const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c]));
   const staffMap = new Map(((staffData ?? []) as StaffOperacionalBaseRow[]).map((s) => [s.id, s]));
 
