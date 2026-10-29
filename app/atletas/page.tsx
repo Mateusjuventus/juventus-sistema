@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { AtletasResumoFiltros, type AtletaResumoItem, type StatusFiltroOpcao } from "@/components/atletas/atletas-resumo-filtros";
+import { IconAtletas } from "@/components/module-icons";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getCategoriasBasePermitidas, getModulosPermitidos } from "@/lib/auth/role";
-import { CATEGORIAS_ATLETA, categoriaAtletaLabel, ehCategoriaAtletaValida } from "@/lib/auth/categorias-base";
-import type { AtletaRow, AtletaStatus, CategoriaAtleta } from "@/lib/supabase/types";
+import {
+  CATEGORIAS_ATLETA,
+  CATEGORIA_ATLETA_COR,
+  categoriaAtletaLabel,
+  ehCategoriaAtletaValida,
+} from "@/lib/auth/categorias-base";
+import { ATLETA_TIPO_CONTRATO_OPTIONS, ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import type { AtletaRow, AtletaStatus, AtletaTipoContrato, CategoriaAtleta } from "@/lib/supabase/types";
 
 // Rótulos "Apto"/"Depto. Médico" (em vez de Liberado/Departamento Médico) — pedido do Mateus pra
 // bater com o layout antigo de antes do redesign (ver item 7 do ajuste de 2026-09-10).
@@ -34,6 +41,39 @@ const STATUS_OPTIONS: StatusFiltroOpcao[] = [
 // pra valor próprio em 2026-09-10 (ver supabase/migrations/0097_atleta_contrato_formacao_tipo.sql).
 const CONTRATO_OPTIONS_PROFISSIONAL = ["definitivo", "emprestimo", "amador", "formacao"] as const;
 const CONTRATO_OPTIONS_BASE = ["definitivo", "emprestimo", "amador", "formacao", "iniciacao"] as const;
+
+/** Agrupa as linhas (já restritas às categorias que o usuário pode ver — ver `AtletasIndice`) por
+ * `tipo_contrato`, separando Base de Profissional pelo mesmo critério usado em todo o resto da
+ * tela (`categoria !== "profissional"`). Nulo cai no balde "sem_tipo" — cadastro antigo sem esse
+ * campo preenchido. */
+function contarPorTipoContrato(
+  linhas: { categoria: string; tipo_contrato: AtletaTipoContrato | null }[],
+  grupoBase: boolean,
+): Map<AtletaTipoContrato | "sem_tipo", number> {
+  const contagem = new Map<AtletaTipoContrato | "sem_tipo", number>();
+  for (const linha of linhas) {
+    if ((linha.categoria !== "profissional") !== grupoBase) continue;
+    const chave = linha.tipo_contrato ?? "sem_tipo";
+    contagem.set(chave, (contagem.get(chave) ?? 0) + 1);
+  }
+  return contagem;
+}
+
+/** Transforma a contagem acima numa lista pronta pra exibir no painel de resumo — na ordem das
+ * opções de tipo de contrato (ver `ATLETA_TIPO_CONTRATO_OPTIONS`/`ATLETA_BASE_TIPO_CONTRATO_OPTIONS`
+ * em lib/validation/schemas.ts), escondendo o que está zerado, com "Sem tipo definido" sempre por
+ * último quando houver algum. */
+function linhasResumoContrato(
+  contagem: Map<AtletaTipoContrato | "sem_tipo", number>,
+  opcoes: readonly { value: string; label: string }[],
+): { label: string; valor: number }[] {
+  const linhas = opcoes
+    .map((opcao) => ({ label: opcao.label, valor: contagem.get(opcao.value as AtletaTipoContrato) ?? 0 }))
+    .filter((linha) => linha.valor > 0);
+  const semTipo = contagem.get("sem_tipo") ?? 0;
+  if (semTipo > 0) linhas.push({ label: "Sem tipo definido", valor: semTipo });
+  return linhas;
+}
 
 function calcularIdade(dataNascimento: string, hoje: Date): number {
   const nascimento = new Date(dataNascimento);
@@ -77,17 +117,33 @@ async function AtletasIndice() {
   const [modulosPermitidos, categoriasBasePermitidas, { data }] = await Promise.all([
     getModulosPermitidos(supabase),
     getCategoriasBasePermitidas(supabase),
-    supabase.from("atletas").select("categoria").eq("ativo", true),
+    supabase.from("atletas").select("categoria, tipo_contrato").eq("ativo", true),
   ]);
 
   const podeVerProfissional = modulosPermitidos.includes("atletas");
+  const linhas = (data ?? []) as { categoria: string; tipo_contrato: AtletaTipoContrato | null }[];
+
   const contagens = new Map<string, number>();
-  for (const row of (data ?? []) as { categoria: string }[]) {
-    contagens.set(row.categoria, (contagens.get(row.categoria) ?? 0) + 1);
+  for (const linha of linhas) {
+    contagens.set(linha.categoria, (contagens.get(linha.categoria) ?? 0) + 1);
   }
 
   const categoriasVisiveis = CATEGORIAS_ATLETA.filter((cat) =>
     cat.value === "profissional" ? podeVerProfissional : categoriasBasePermitidas.includes(cat.value),
+  );
+
+  // O painel de resumo só conta o que o próprio usuário já pode ver nos cards abaixo — nunca
+  // mistura atleta de uma categoria de Base fora do seu acesso.
+  const categoriasVisiveisValores = new Set<string>(categoriasVisiveis.map((cat) => cat.value));
+  const linhasVisiveis = linhas.filter((linha) => categoriasVisiveisValores.has(linha.categoria));
+  const temBaseVisivel = categoriasVisiveis.some((cat) => cat.value !== "profissional");
+
+  const totalBase = linhasVisiveis.filter((linha) => linha.categoria !== "profissional").length;
+  const totalProfissional = linhasVisiveis.filter((linha) => linha.categoria === "profissional").length;
+  const resumoBase = linhasResumoContrato(contarPorTipoContrato(linhasVisiveis, true), ATLETA_BASE_TIPO_CONTRATO_OPTIONS);
+  const resumoProfissional = linhasResumoContrato(
+    contarPorTipoContrato(linhasVisiveis, false),
+    ATLETA_TIPO_CONTRATO_OPTIONS,
   );
 
   return (
@@ -95,24 +151,120 @@ async function AtletasIndice() {
       <h1 className="text-2xl font-bold text-grena-escuro">Atletas</h1>
       <p className="mt-1 text-sm text-neutral-500">Escolha uma categoria pra ver a listagem completa.</p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {categoriasVisiveis.map((cat) => (
-          <Link
-            key={cat.value}
-            href={`/atletas?categoria=${cat.value}`}
-            className="card flex items-center justify-between p-5 transition-colors hover:border-grena"
-          >
-            <span className="text-lg font-semibold text-grena-escuro">{cat.label}</span>
-            <span className="rounded-full bg-grena/10 px-3 py-1 text-sm font-semibold text-grena-escuro">
-              {contagens.get(cat.value) ?? 0}
-            </span>
-          </Link>
-        ))}
+      {temBaseVisivel || podeVerProfissional ? (
+        <div className="card mt-6 divide-y divide-linha overflow-hidden sm:flex sm:divide-x sm:divide-y-0">
+          {temBaseVisivel ? (
+            <ResumoGrupo
+              titulo="Base"
+              total={totalBase}
+              linhas={resumoBase}
+              corTexto="text-grena-escuro"
+              corFundo="bg-grena/10"
+              corBarra="bg-grena"
+            />
+          ) : null}
+          {podeVerProfissional ? (
+            <ResumoGrupo
+              titulo="Profissional"
+              total={totalProfissional}
+              linhas={resumoProfissional}
+              corTexto="text-dourado"
+              corFundo="bg-dourado/10"
+              corBarra="bg-dourado"
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {categoriasVisiveis.map((cat) => {
+          const cor = CATEGORIA_ATLETA_COR[cat.value];
+          const quantidade = contagens.get(cat.value) ?? 0;
+          return (
+            <Link
+              key={cat.value}
+              href={`/atletas?categoria=${cat.value}`}
+              className="card group relative overflow-hidden p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: cor }} aria-hidden />
+              <div className="flex items-center justify-between gap-3">
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: `${cor}1A`, color: cor }}
+                >
+                  <IconAtletas className="h-5 w-5" />
+                </span>
+                <span className="text-3xl font-bold tabular-nums text-grena-escuro">{quantidade}</span>
+              </div>
+              <p className="mt-3 text-base font-semibold text-neutral-800 transition-colors group-hover:text-grena-escuro">
+                {cat.label}
+              </p>
+              <p className="text-xs text-neutral-400">{quantidade === 1 ? "atleta ativo" : "atletas ativos"}</p>
+            </Link>
+          );
+        })}
         {categoriasVisiveis.length === 0 ? (
           <p className="text-sm text-neutral-400">Nenhuma categoria liberada pro seu acesso.</p>
         ) : null}
       </div>
     </AppShell>
+  );
+}
+
+/** Uma coluna do painel de resumo (Base ou Profissional) — total em destaque + composição por tipo
+ * de contrato, cada linha com uma barrinha de proporção (mesmo espírito do `DonutComposicao` de
+ * `components/charts/donut-composicao.tsx`, mas em lista/barra em vez de rosca: aqui são contagens
+ * de atleta, não valores em R$, e o painel é só leitura, sem precisar de interação/hover). */
+function ResumoGrupo({
+  titulo,
+  total,
+  linhas,
+  corTexto,
+  corFundo,
+  corBarra,
+}: {
+  titulo: string;
+  total: number;
+  linhas: { label: string; valor: number }[];
+  corTexto: string;
+  corFundo: string;
+  corBarra: string;
+}) {
+  return (
+    <div className="flex-1 p-5 sm:p-6">
+      <div className="flex items-center gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${corFundo} ${corTexto}`}>
+          <IconAtletas className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">{titulo}</p>
+          <p className="text-2xl font-bold leading-tight text-grena-escuro">
+            {total} <span className="text-sm font-medium text-neutral-400">{total === 1 ? "atleta" : "atletas"}</span>
+          </p>
+        </div>
+      </div>
+
+      {linhas.length > 0 ? (
+        <ul className="mt-5 flex flex-col gap-3">
+          {linhas.map((linha) => {
+            const pct = total > 0 ? Math.round((linha.valor / total) * 100) : 0;
+            return (
+              <li key={linha.label}>
+                <div className="flex items-baseline justify-between gap-2 text-sm">
+                  <span className="font-medium text-neutral-700">{linha.label}</span>
+                  <span className="shrink-0 font-semibold tabular-nums text-neutral-800">{linha.valor}</span>
+                </div>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                  <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${pct}%` }} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-5 text-sm text-neutral-400">Nenhum atleta ativo por aqui ainda.</p>
+      )}
+    </div>
   );
 }
 
