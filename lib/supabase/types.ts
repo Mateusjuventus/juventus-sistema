@@ -6,12 +6,16 @@
 
 export type PeDominante = "destro" | "canhoto" | "ambidestro";
 
-/** Status do atleta (Profissional + Base, unificados em 28/10/2026 — ver docs/superpowers/specs/
- * 2026-10-28-unificacao-atletas-design.md). Histórico: até 01/10/2026 o Profissional tinha só
- * liberado/departamento_medico/suspenso (mesmo vocabulário da Base, ver 0125); nessa data o
- * Profissional trocou "suspenso" por "transicao", desacoplando os dois lados. Na unificação, a
- * Base ganhou "transicao" no lugar de "suspenso" (migração converteu as linhas existentes) e
- * "dispensado" passou a valer pros dois — `AtletaBaseStatus` deixou de existir como tipo próprio. */
+/** Status do atleta — ver docs/superpowers/specs/
+ * 2026-10-01-departamento-medico-historico-status-design.md. Até 01/10/2026 estes mesmos 3
+ * valores (com "suspenso" no lugar de "transicao") eram compartilhados com `AtletaBaseStatus`
+ * (`AtletaBaseStatus = AtletaStatus | "dispensado"`); os dois tipos foram desacoplados nessa troca
+ * — a Base continuou com "suspenso" (constraint própria em `atletas_base`, sem mudança), só o
+ * Profissional ganhou "transicao" no lugar. Na unificação de 28/10/2026 (ver
+ * docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md e 0150_unificacao_atletas.sql,
+ * passo 3), `atletas.status` passou a aceitar também "dispensado" (valor que só a Base usava) —
+ * `status = 'suspenso'` foi convertido pra `'liberado'` na hora da migração de dados, então
+ * "suspenso" nunca aparece aqui. */
 export type AtletaStatus = "liberado" | "departamento_medico" | "transicao" | "dispensado";
 export type TipoQuarto = "single" | "duplo" | "triplo";
 
@@ -22,7 +26,7 @@ export type CategoriaPosicao = "goleiro" | "zagueiro" | "lateral" | "meia" | "at
 
 /** As 9 posições fixas do cadastro de Atleta (Profissional e Base) — ver
  * `docs/superpowers/specs/2026-08-25-atleta-contrato-posicao-cpf-design.md`. Mesmo valor gravado
- * em `AtletaRow.posicao` pra qualquer categoria (texto legível, não um código) — o tipo aqui é só
+ * em `AtletaRow.posicao`/`AtletaBaseRow.posicao` (texto legível, não um código) — o tipo aqui é só
  * usado como chave de `categoriaDaPosicao`, as colunas continuam tipadas como `string`. */
 export type AtletaPosicao =
   | "Goleiro"
@@ -35,12 +39,13 @@ export type AtletaPosicao =
   | "Ponta Direita"
   | "Ponta Esquerda";
 
-/** Tipo de contrato do atleta (Profissional + Base, unificados em 28/10/2026). "Formação" é seu
- * próprio valor aqui (ver migração 0097) — separado de "Amador" desde que passou a existir na tela
- * de Atletas como uma categoria própria, não mais um sub-flag ("possui contrato de formação", que
- * continua existindo só pra registros antigos de "Amador" sem essa marcação). "Iniciação" era só
- * da Base (`AtletaBaseTipoContrato`, removido na unificação) — passa a valer pra qualquer
- * categoria, mesmo sem uso real esperado no Profissional por enquanto. */
+/** Tipo de contrato do atleta. "Formação" é seu próprio valor aqui (ver migração 0097) — separado
+ * de "Amador" desde que passou a existir na tela de Atletas como uma categoria própria, não mais
+ * um sub-flag ("possui contrato de formação", que continua existindo só pra registros antigos de
+ * "Amador" sem essa marcação). "Iniciação" era só do Futebol de Base (ver `AtletaBaseTipoContrato`)
+ * até a unificação de 28/10/2026 liberar esse valor também em `atletas`/`atleta_contratos` (ver
+ * 0150_unificacao_atletas.sql, passo 4), já que atletas de categorias mais jovens da Base agora
+ * moram na mesma tabela. */
 export type AtletaTipoContrato = "definitivo" | "emprestimo" | "amador" | "formacao" | "iniciacao";
 
 /** Tamanho de uniforme (PP a XG) — pedido do Mateus em 2026-10-16, lista fixa de confecção
@@ -49,10 +54,12 @@ export type TamanhoUniforme = "PP" | "P" | "M" | "G" | "GG" | "XG";
 
 export interface AtletaRow {
   id: string;
-  /** Profissional ou uma das 7 categorias da Base (ver `CategoriaAtleta`) — unificação de
-   * 28/10/2026, ver docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md. Um valor só
-   * por atleta (nunca uma lista — diferente de `comissao_tecnica.categorias`). */
-  categoria: CategoriaAtleta;
+  /** Unificação de Atletas (Profissional + Base), 28/10/2026 — ver docs/superpowers/specs/
+   * 2026-10-28-unificacao-atletas-design.md e 0150_unificacao_atletas.sql. "profissional" é o
+   * valor de toda linha que já existia antes da unificação; as 7 categorias de `CategoriaBase`
+   * (ver linha ~234) são as que vieram de `atletas_base` (agora `atletas_base_old`, backup). Um
+   * atleta nunca está em duas categorias ao mesmo tempo — valor escalar, não lista. */
+  categoria: "profissional" | CategoriaBase;
   nome_completo: string;
   rg: string;
   cpf: string;
@@ -67,8 +74,9 @@ export interface AtletaRow {
   telefone: string | null;
   /** Pedido de 2026-10-16 (ver docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md). */
   email: string | null;
-  /** E-mail do pai/mãe — eram só da Base (atleta menor de idade); existem pra qualquer categoria
-   * desde a unificação (28/10/2026), mas só aparecem no formulário pra categorias de Base. */
+  /** Até a unificação de 28/10/2026 só existiam em `atletas_base` (atletas menores de idade) — ver
+   * 0150_unificacao_atletas.sql, passo 2. Seguem sem exibição no formulário quando `categoria` é
+   * "profissional". */
   email_pai: string | null;
   email_mae: string | null;
   cidade_natal: string | null;
@@ -121,25 +129,17 @@ export interface AtletaRow {
    * de criar contrato). */
   tipo_contrato: AtletaTipoContrato | null;
   possui_contrato_formacao: boolean;
-  /** Pedido de 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md):
-   * "Possui alergia a algum medicamento? Se sim, qual". `alergia_medicamento_qual` só é preenchido
-   * quando `possui_alergia_medicamento` é `true`. */
-  possui_alergia_medicamento: boolean;
-  alergia_medicamento_qual: string | null;
-  /** Mora no alojamento do clube — alimenta `/base/alojamento` (ver lib/futebol/alojamento.ts).
-   * Sem uso real esperado fora das categorias de Base, mas existe pra qualquer atleta desde a
-   * unificação (28/10/2026) — o formulário só mostra esse campo quando a categoria é de Base. */
+  /** Mora no alojamento do clube — alimenta `/base/alojamento` (ver lib/futebol/alojamento.ts). Até
+   * a unificação de 28/10/2026 só existia em `atletas_base`; o Mateus decidiu estender pro
+   * Profissional também (ver 0150_unificacao_atletas.sql, passo 2). */
   alojado: boolean;
-  /** Classificação G1/G2/G3 (ver `AtletaClassificacao`) — até 28/10/2026 era só da Base; a
-   * unificação estendeu pro Profissional também (decisão do Mateus: "Estender pro Profissional
-   * também"). `null` quando o atleta ainda não foi classificado. */
+  /** Classificação G1/G2/G3 (ver `AtletaClassificacao`, linha ~254) — `null` quando o atleta ainda
+   * não foi classificado. Mesma origem/decisão de `alojado` acima. */
   classificacao: AtletaClassificacao | null;
   /** Campos do Relatório de Dispensa (ver docs/superpowers/specs/
-   * 2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 3, e
-   * 2026-10-28-unificacao-atletas-design.md) — todos `null` até o relatório ser gerado pela
-   * primeira vez. O status "dispensado" sozinho vale pra qualquer atleta desde a unificação, mas o
-   * RELATÓRIO formal (estes campos + o PDF) continua restrito a atletas de categoria de Base. As 4
-   * notas usam a mesma escala 3-9 do Parecer Final. */
+   * 2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 3) — todos `null` até o
+   * relatório ser gerado pela primeira vez. As 4 notas usam a mesma escala 3-9 do Parecer Final.
+   * Até a unificação de 28/10/2026 só existiam em `atletas_base`. */
   dispensa_motivo: string | null;
   dispensa_nota_tecnica: number | null;
   dispensa_nota_fisica: number | null;
@@ -148,10 +148,8 @@ export interface AtletaRow {
   dispensa_data: string | null;
   dispensado_por: string | null;
   dispensado_em: string | null;
-  /** Os campos a seguir (ajuda de custo/agência/dados de mãe-pai-escola) são do contexto de atleta
-   * menor de idade/Base — continuam existindo no banco pra qualquer categoria (pra não travar a
-   * unificação), mas só aparecem no formulário/tela quando a categoria do atleta é uma categoria
-   * de Base (decisão do Mateus, 28/10/2026). */
+  /** Até a unificação de 28/10/2026 só existiam em `atletas_base` — ver 0150_unificacao_atletas.sql,
+   * passo 2. */
   valor_ajuda_custo: number | null;
   agencia: string | null;
   mae_nome: string | null;
@@ -159,6 +157,11 @@ export interface AtletaRow {
   pai_nome: string | null;
   pai_telefone: string | null;
   escola: string | null;
+  /** Pedido de 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md):
+   * "Possui alergia a algum medicamento? Se sim, qual". `alergia_medicamento_qual` só é preenchido
+   * quando `possui_alergia_medicamento` é `true`. */
+  possui_alergia_medicamento: boolean;
+  alergia_medicamento_qual: string | null;
   /** Ativo/inativo (ver 0098_atleta_ativo.sql) — independente do `status` esportivo (Liberado/
    * Suspenso/Departamento Médico). Mesmo padrão de Staff Operacional/Veículos/Hotéis: em vez de
    * excluir o cadastro, ele fica marcado como inativo e some das listas/exportações por padrão
@@ -193,14 +196,33 @@ export interface AtletaContatoEmergenciaRow {
   created_at: string;
 }
 
+/** Espelha `AtletaContatoEmergenciaRow`, mas pra `atletas_base`. */
+export interface AtletaBaseContatoEmergenciaRow {
+  id: string;
+  atleta_id: string;
+  nome: string;
+  parentesco: string | null;
+  contato: string | null;
+  created_at: string;
+}
+
 /** Anotação do histórico do atleta (aba "Anotações") — texto livre, nunca editada depois de criada;
- * só apagada por quem é "master" (ver `removerAnotacao` em `app/atletas/actions.ts`). Pra atletas
- * de categoria de Base, a tela mistura isto com uma entrada "virtual" de Dispensa (montada a
- * partir dos campos `dispensa_*` de `AtletaRow`, não gravada aqui) — ver docs/superpowers/specs/
- * 2026-10-27-ficha-atleta-dossie-anotacoes-design.md. Também escrita pelo Treinador (só cria,
- * nunca apaga) — antes de 28/10/2026 isso vivia num tipo/tabela próprios (`AtletaBaseAnotacaoRow`),
- * removidos na unificação. */
+ * só apagada por quem é "master" (ver `removerAnotacao` em `app/atletas/actions.ts`). Na Base, a
+ * tela mistura isto com uma entrada "virtual" de Dispensa (montada a partir dos campos `dispensa_*`
+ * de `AtletaBaseRow`, não gravada aqui) — ver docs/superpowers/specs/
+ * 2026-10-27-ficha-atleta-dossie-anotacoes-design.md. */
 export interface AtletaAnotacaoRow {
+  id: string;
+  atleta_id: string;
+  texto: string;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+}
+
+/** Espelha `AtletaAnotacaoRow`, mas pra `atletas_base` — também escrita pelo Treinador (só cria,
+ * nunca apaga). */
+export interface AtletaBaseAnotacaoRow {
   id: string;
   atleta_id: string;
   texto: string;
@@ -232,45 +254,202 @@ export interface AtletaContratoRow {
   encerrado_em: string | null;
 }
 
+/** Espelha `AtletaContratoRow`, mas pra `atletas_base` (`tipo_contrato` aceita também
+ * "iniciacao"). */
+export interface AtletaBaseContratoRow {
+  id: string;
+  atleta_id: string;
+  vigente: boolean;
+  tipo_contrato: AtletaBaseTipoContrato;
+  clube_origem: string | null;
+  vigencia_inicio: string | null;
+  vigencia_fim: string | null;
+  salario_ctps: number;
+  direito_imagem: number;
+  bonificacao: number;
+  auxilio_moradia: number;
+  outros: number;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+  encerrado_em: string | null;
+}
+
 /** Categorias de idade do Futebol de Base (Sub20 a Sub11) — ver `lib/auth/categorias-base.ts`. */
 export type CategoriaBase = "sub20" | "sub17" | "sub15" | "sub14" | "sub13" | "sub12" | "sub11";
 
-/** Categorias da Comissão Técnica unificada (Profissional + Base) — ver
- * `lib/auth/categorias-base.ts` e docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-
- * design.md. Só vale pra `comissao_tecnica.categorias`; não é um valor válido de `CategoriaBase`
- * (jogos_base e outros módulos ainda não unificados continuam sem "profissional"). */
-export type CategoriaComissaoTecnica = "profissional" | CategoriaBase;
+/** Tipo de contrato do atleta no Futebol de Base — mesmas opções de `AtletaTipoContrato` (incluindo
+ * "formacao"), mais "Iniciação" (categorias mais jovens, sem vínculo formal ainda). */
+export type AtletaBaseTipoContrato = "definitivo" | "emprestimo" | "amador" | "formacao" | "iniciacao";
 
-/** Categoria do atleta, unificada em 28/10/2026 (ver docs/superpowers/specs/
- * 2026-10-28-unificacao-atletas-design.md) — mesmo formato de `CategoriaComissaoTecnica`, mas um
- * valor ESCALAR só (`AtletaRow.categoria`), nunca uma lista: um atleta nunca está em duas
- * categorias ao mesmo tempo (diferente de `comissao_tecnica.categorias`, que é array). */
-export type CategoriaAtleta = "profissional" | CategoriaBase;
+/** Status do atleta no Futebol de Base (ver docs/superpowers/specs/
+ * 2026-08-25-classificacao-dispensa-atleta-base-design.md e
+ * 0087_atleta_base_classificacao_dispensa.sql) — tipo próprio, independente de `AtletaStatus`
+ * desde 01/10/2026 (ver docs/superpowers/specs/2026-10-01-departamento-medico-historico-status-
+ * design.md): a Base continua com "suspenso" e sem "transicao", então os dois nunca mais devem
+ * derivar um do outro. */
+export type AtletaBaseStatus = "liberado" | "suspenso" | "departamento_medico" | "dispensado";
 
-/** Classificação G1/G2/G3 do atleta — rótulo livre, sem significado fixo documentado no sistema
- * (cabe ao clube decidir o que cada grupo representa); o sistema só guarda e mostra a cor de borda
- * (verde/amarelo/laranja). Opcional — nem todo atleta precisa estar classificado. Até 28/10/2026
- * era só da Base; a unificação estendeu pro Profissional também. "dispensa" ("Dispensa
- * (pendente)", ver docs/superpowers/specs/2026-09-02-campograma-edicao-rapida-design.md) é um 4º
- * valor — sinalizador de saída em avaliação, NÃO muda `AtletaStatus`; só o Relatório de Dispensa
- * formal (continua restrito à Base) muda o status pra "dispensado". */
+/** Classificação G1/G2/G3 do atleta da Base — rótulo livre, sem significado fixo documentado no
+ * sistema (cabe ao clube decidir o que cada grupo representa); o sistema só guarda e mostra a cor
+ * de borda (verde/amarelo/laranja). Opcional — nem todo atleta precisa estar classificado.
+ * "dispensa" ("Dispensa (pendente)", ver docs/superpowers/specs/
+ * 2026-09-02-campograma-edicao-rapida-design.md) é um 4º valor — sinalizador de saída em avaliação,
+ * NÃO muda `AtletaBaseStatus`; só o Relatório de Dispensa formal muda o status pra "dispensado". */
 export type AtletaClassificacao = "g1" | "g2" | "g3" | "dispensa";
+
+/** Espelha `AtletaRow`, mas para o departamento Futebol de Base — tabela `atletas_base`, totalmente
+ * independente de `atletas` (ver docs/superpowers/specs/2026-07-20-futebol-de-base-design.md). */
+export interface AtletaBaseRow {
+  id: string;
+  categoria: CategoriaBase;
+  nome_completo: string;
+  /** Opcional desde a Captação/Avaliação (ver 0076_captacao_alojamento_base.sql) — quem é
+   * aprovado direto de lá normalmente ainda não tem RG/CPF à mão; o Mateus completa depois. */
+  rg: string | null;
+  cpf: string | null;
+  /** Opcional desde a inclusão rápida pelo Campograma (ver docs/superpowers/specs/
+   * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) — nesse fluxo o atleta é criado só com
+   * nome e posição; `null` aqui, junto de `rg`/`cpf` também nulos, é o que marca "Cadastro
+   * incompleto" nas listagens/página do atleta. */
+  data_nascimento: string | null;
+  posicao: string;
+  numero_camisa: number | null;
+  numero_cbf: number | null;
+  /** Deixou de ser editável pelo formulário em 2026-10-16 — ver nota equivalente em `AtletaRow`. */
+  numero_fpf: number | null;
+  pe_dominante: PeDominante | null;
+  telefone: string | null;
+  /** Pedido de 2026-10-16, junto com `email_pai`/`email_mae` abaixo (ver docs/superpowers/specs/
+   * 2026-10-16-atleta-dados-pessoais-design.md) — só na Base, por serem atletas menores de idade. */
+  email: string | null;
+  email_pai: string | null;
+  email_mae: string | null;
+  cidade_natal: string | null;
+  uf_natal: string | null;
+  /** Texto livre antigo — os cadastros novos usam os campos estruturados abaixo (cep/logradouro/
+   * etc.), que alimentam o autopreenchimento por CEP. Mantido só pra não perder o que já tinha. */
+  endereco_atual: string | null;
+  /** Segundo endereço estruturado — ver nota equivalente em `AtletaRow`. */
+  origem_cep: string | null;
+  origem_logradouro: string | null;
+  origem_numero: string | null;
+  origem_complemento: string | null;
+  origem_bairro: string | null;
+  origem_cidade: string | null;
+  origem_uf: string | null;
+  data_inicio_clube: string | null;
+  /** Distinto de `data_inicio_clube` — quando o vínculo de contrato começou, não quando o atleta
+   * entrou no clube. Só cadastro interno, nunca vem do link público. Ver nota de congelamento/
+   * sincronização equivalente em `AtletaRow` — mesma lógica aqui. */
+  data_inicio_contrato: string | null;
+  empresario_nome: string | null;
+  empresario_email: string | null;
+  tamanho_uniforme: TamanhoUniforme | null;
+  foto_path: string | null;
+  status: AtletaBaseStatus;
+  data_fim_contrato: string | null;
+  apelido: string | null;
+  tipo_contrato: AtletaBaseTipoContrato | null;
+  possui_contrato_formacao: boolean;
+  /** Mora no alojamento do clube — alimenta `/base/alojamento` (ver lib/futebol/alojamento.ts). */
+  alojado: boolean;
+  /** Classificação G1/G2/G3 (ver `AtletaClassificacao`) — `null` quando o atleta ainda não foi
+   * classificado. */
+  classificacao: AtletaClassificacao | null;
+  /** Campos do Relatório de Dispensa (ver docs/superpowers/specs/
+   * 2026-08-25-classificacao-dispensa-atleta-base-design.md, seção 3) — todos `null` até o
+   * relatório ser gerado pela primeira vez. As 4 notas usam a mesma escala 3-9 do Parecer Final. */
+  dispensa_motivo: string | null;
+  dispensa_nota_tecnica: number | null;
+  dispensa_nota_fisica: number | null;
+  dispensa_nota_tatica: number | null;
+  dispensa_nota_comportamental: number | null;
+  dispensa_data: string | null;
+  dispensado_por: string | null;
+  dispensado_em: string | null;
+  valor_ajuda_custo: number | null;
+  agencia: string | null;
+  empresario_telefone: string | null;
+  mae_nome: string | null;
+  mae_telefone: string | null;
+  pai_nome: string | null;
+  pai_telefone: string | null;
+  escola: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  /** Pedido de 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md):
+   * "Possui alergia a algum medicamento? Se sim, qual". `alergia_medicamento_qual` só é preenchido
+   * quando `possui_alergia_medicamento` é `true`. */
+  possui_alergia_medicamento: boolean;
+  alergia_medicamento_qual: string | null;
+  /** Ativo/inativo (ver 0098_atleta_ativo.sql) — independente do `status` esportivo, e diferente de
+   * "dispensado" (que é ligado ao Relatório de Dispensa formal). Mesmo padrão de Staff Operacional/
+   * Veículos/Hotéis: em vez de excluir o cadastro, ele fica marcado como inativo e some das listas/
+   * exportações por padrão. */
+  ativo: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Espelha `AtletaDocumentoRow`, mas para o Futebol de Base — tabela `atleta_documentos_base`. */
+export interface AtletaDocumentoBaseRow {
+  id: string;
+  atleta_id: string;
+  nome: string;
+  arquivo_path: string;
+  created_by: string | null;
+  created_at: string;
+}
 
 /** Tipo de contrato da Comissão Técnica/Diretoria (Profissional e Base) — ver
  * `COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS` em `lib/validation/schemas.ts`. */
 export type ComissaoTecnicaTipoContrato = "clt" | "pj" | "sem_contrato";
 
-/** Tabela única de Comissão Técnica (Profissional + Base) desde a unificação — ver
- * docs/superpowers/specs/2026-10-28-unificacao-comissao-tecnica-design.md. Antes desta frente,
- * existia uma tabela própria `comissao_tecnica_base` (e um `ComissaoTecnicaBaseRow` aqui) só pra
- * Base; agora `categorias` cobre os dois lados, com "profissional" como mais um valor possível ao
- * lado das 7 categorias de `CategoriaBase`. A tabela antiga foi renomeada pra
- * `comissao_tecnica_base_old` (guardada, não apagada) pela migration 0149. */
 export interface ComissaoTecnicaRow {
   id: string;
-  /** Sempre pelo menos 1 item — uma pessoa pode estar em mais de uma categoria ao mesmo tempo (ex.:
-   * coordenador que acompanha o Profissional e o Sub-20, ou um treinador do Sub-11 e do Sub-12). */
-  categorias: CategoriaComissaoTecnica[];
+  /** Unificação da Comissão Técnica (Profissional + Base), 28/10/2026 — ver docs/superpowers/specs/
+   * 2026-10-28-unificacao-comissao-tecnica-design.md e 0149_unificacao_comissao_tecnica.sql. Uma
+   * pessoa pode atuar em mais de uma categoria (ex.: mesmo coordenador no Profissional e no Sub-11)
+   * — por isso é array, nunca vazio ("profissional" é o valor de toda linha que já existia antes
+   * da unificação). Diferente de `AtletaRow.categoria`, que é escalar. */
+  categorias: Array<"profissional" | CategoriaBase>;
+  nome_completo: string;
+  rg: string;
+  cpf: string;
+  data_nascimento: string;
+  funcao: string;
+  telefone: string | null;
+  email: string | null;
+  foto_path: string | null;
+  /** Não é mais exibido/editado em lugar nenhum do sistema (cadastro ou Relatórios Avulsos) desde
+   * 25/08 — coluna mantida só pelo histórico de quem já preenchia (ver a spec de 25/08). */
+  tipo_quarto_preferido: TipoQuarto | null;
+  apelido: string | null;
+  tipo_contrato: ComissaoTecnicaTipoContrato | null;
+  data_inicio: string | null;
+  /** Salário mensal — mesmo campo que já existia em `ComissaoTecnicaBaseRow` (ver
+   * docs/superpowers/specs/2026-08-19-financeiro-base-design.md), agora também no Profissional. */
+  valor_salario: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Espelha `ComissaoTecnicaRow`, mas para o Futebol de Base — tabela `comissao_tecnica_base`, mais
+ * `categoria` (ver `lib/auth/categorias-base.ts`). */
+export interface ComissaoTecnicaBaseRow {
+  id: string;
+  /** Uma pessoa pode atuar em mais de uma categoria (ex.: mesmo treinador no Sub-11 e no Sub-12) —
+   * ver docs/superpowers/specs/2026-08-19-comissao-tecnica-multi-categoria-design.md. Sempre pelo
+   * menos 1 item. */
+  categorias: CategoriaBase[];
   nome_completo: string;
   rg: string;
   cpf: string;
@@ -286,7 +465,7 @@ export interface ComissaoTecnicaRow {
   tipo_contrato: ComissaoTecnicaTipoContrato | null;
   data_inicio: string | null;
   /** Salário mensal — snapshot do valor atual, não um lançamento recorrente (ver
-   * docs/superpowers/specs/2026-08-19-financeiro-base-design.md). */
+   * docs/superpowers/specs/2026-08-19-financeiro-base-design.md). `null` até o Mateus preencher. */
   valor_salario: number | null;
   created_by: string | null;
   created_at: string;
@@ -296,11 +475,7 @@ export interface ComissaoTecnicaRow {
 /** Uma caixa do Organograma do Futebol de Base (ver
  * docs/superpowers/specs/2026-08-23-organograma-base-design.md). Com `comissao_tecnica_base_id`
  * preenchido, nome/função exibidos vêm sempre do cadastro vinculado — `nome`/`cargo` aqui só valem
- * pra caixa sem pessoa vinculada (Presidente, Diretor, vaga em aberto). O nome da coluna ficou
- * como estava depois da unificação da Comissão Técnica (ver docs/superpowers/specs/2026-10-28-
- * unificacao-comissao-tecnica-design.md) — o Organograma continua só da Base — mas o id que ela
- * guarda agora referencia `comissao_tecnica(id)` (tabela unificada), não mais uma tabela própria
- * da Base. */
+ * pra caixa sem pessoa vinculada (Presidente, Diretor, vaga em aberto). */
 export interface OrganogramaBaseRow {
   id: string;
   comissao_tecnica_base_id: string | null;
@@ -421,6 +596,11 @@ export interface StaffOperacionalBaseComFuncaoRow extends StaffOperacionalBaseRo
 
 export interface JogoRow {
   id: string;
+  /** Unificação de Jogos/Convocação, 30/10/2026 — ver docs/superpowers/specs/
+   * 2026-10-29-unificacao-jogos-design.md e 0157_unificacao_jogos.sql. Mesmo formato de
+   * `AtletaRow.categoria`/`ComissaoTecnicaRow.categorias` ("profissional" + as 7 de `CategoriaBase`)
+   * — um jogo é sempre de uma categoria só, nunca duas ao mesmo tempo (escalar, não lista). */
+  categoria: "profissional" | CategoriaBase;
   competicao: string;
   rodada_fase: string | null;
   adversario_nome: string;
@@ -443,6 +623,11 @@ export interface JogoRow {
    * `JogoBaseRow` de verdade (mesmo formato estrutural, ver comentário desses arquivos) — nenhum
    * desses componentes lê esse campo. */
   fpf_link_sumula?: string | null;
+  /** Pênaltis marcados pelo Juventus/adversário na disputa (quando o jogo foi a pênaltis) — até a
+   * unificação de 30/10/2026 só existia em `JogoBaseRow` (ver 0146_sumula_pdf_terceiro_tempo_
+   * penaltis.sql). Null = não houve disputa de pênaltis ou ainda não informado. */
+  penaltis_pro: number | null;
+  penaltis_contra: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -500,11 +685,20 @@ export interface ConvocacaoAtletaRow {
   convocacao_id: string;
   atleta_id: string;
   status: ConvocacaoAtletaStatus;
+  /** Até a unificação de 30/10/2026 só existia em `ConvocacaoAtletaBaseRow` (0059_convocacao_
+   * atleta_base_numero_camisa.sql) — editável só quando a categoria do jogo é de Base; o
+   * Profissional continua lendo o número fixo do cadastro do atleta (`AtletaRow.numero_camisa`). */
+  numero_camisa: number | null;
 }
 
 export interface ConvocacaoComissaoRow {
   convocacao_id: string;
   comissao_id: string;
+}
+
+export interface ConvocacaoStaffRow {
+  convocacao_id: string;
+  staff_id: string;
 }
 
 export type SumulaEventoTipo = "gol" | "cartao_amarelo" | "cartao_vermelho" | "substituicao";
@@ -766,6 +960,10 @@ export interface DespesaAvulsaBaseComCategoriaRow extends DespesaAvulsaBaseRow {
  */
 export interface ConfiguracaoFinanceiroRow {
   id: string;
+  /** Unificação de Jogos/Convocação, 30/10/2026 — ver 0157_unificacao_jogos.sql. Mesma ideia de
+   * `AtletaRow.categoria`, no nível de departamento em vez de categoria de idade (esta tabela é
+   * singleton por departamento, não tem uma linha por jogo). */
+  departamento: "futebol_profissional" | "futebol_base";
   assinatura1_nome: string;
   assinatura1_cargo: string;
   assinatura2_nome: string;
@@ -1446,19 +1644,17 @@ export interface PerfilRow {
    * acesso-por-categoria-comissao-tecnica-design.md) — quando preenchido, nome/função pra
    * assinatura digital passam a vir do registro vinculado em vez de `nome`/`cargo` acima (ver
    * `resolverNomeCargoParaAssinatura`), e `nome`/`cargo` desta linha viram somente-leitura em
-   * `/minha-conta`. Desde a unificação da Comissão Técnica (ver docs/superpowers/specs/2026-10-28-
-   * unificacao-comissao-tecnica-design.md), é um vínculo só — antes existiam dois campos
-   * separados (`comissao_tecnica_id` pro Profissional, `comissao_tecnica_base_id` pra Base); a
-   * migration 0149 colapsou os dois, dando prioridade ao vínculo da Base quando os dois estavam
-   * preenchidos (mesma regra que já valia antes). Também passa a decidir `categorias_base_permitidas`
-   * quando o registro vinculado tem alguma categoria da Base entre as dele (ver
-   * `getCategoriasBasePermitidas`). `null` até alguém vincular pela tela de Usuários. */
+   * `/minha-conta`. `comissao_tecnica_id` é do Futebol Profissional; `comissao_tecnica_base_id` é
+   * do Futebol de Base e também passa a decidir `categorias_base_permitidas` (ver
+   * `getCategoriasBasePermitidas`) — se os dois estiverem preenchidos (não deveria acontecer em uso
+   * normal), o vínculo da Base tem prioridade. `null` até alguém vincular pela tela de Usuários. */
   comissao_tecnica_id: string | null;
+  comissao_tecnica_base_id: string | null;
   /** Categorias do Futebol de Base que esta pessoa pode ver/acessar (Atletas, Jogos e tudo dentro
-   * de um jogo) — só usada quando `comissao_tecnica_id` está vazio, ou vinculado a um registro sem
-   * nenhuma categoria da Base (sem vínculo útil pra Base, o vínculo sempre tem prioridade e usa as
-   * categorias do próprio registro da Comissão Técnica). Segue a mesma convenção de todo o resto de
-   * `perfis`: "not null default <lista completa>", nunca "vazio = tudo liberado". */
+   * de um jogo) — só usada quando `comissao_tecnica_base_id` está vazio (sem vínculo, o vínculo
+   * sempre tem prioridade e usa as categorias do próprio registro da Comissão Técnica). Segue a
+   * mesma convenção de todo o resto de `perfis`: "not null default <lista completa>", nunca "vazio
+   * = tudo liberado". */
   categorias_base_permitidas: string[];
   /** Sub-área Fisioterapia do módulo Departamento Médico (Futebol Profissional) — ver docs/
    * superpowers/specs/2026-09-30-fisioterapia-design.md. "Master" sempre pode editar independente
@@ -2419,6 +2615,20 @@ export interface FisioterapiaAtendimentoBaseRow {
   quantidade: number | null;
   status_dia: FisioterapiaStatusDia | null;
   created_by: string | null;
+  created_at: string;
+}
+
+/** Linha do tempo de status do atleta da Base — espelha `AtletaStatusHistoricoRow`, mas com os 4
+ * valores de `AtletaBaseStatus` (inclui "suspenso"/"dispensado", que não existem no Profissional).
+ * A sincronização automática (abrir/fechar lesão) só alterna entre "departamento_medico" e
+ * "liberado" — as outras duas entram só por lançamento manual. */
+export interface AtletaBaseStatusHistoricoRow {
+  id: string;
+  atleta_id: string;
+  status: AtletaBaseStatus;
+  data: string;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
   created_at: string;
 }
 

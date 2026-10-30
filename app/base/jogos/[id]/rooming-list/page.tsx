@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { JogoTabsBase } from "@/components/jogo-tabs-base";
 import { AvisoSemConvocacao } from "@/components/aviso-sem-convocacao";
 import { createClient } from "@/lib/supabase/server";
-import type { RoomingListBaseRow, RoomingListOcupanteBaseRow, RoomingListQuartoBaseRow } from "@/lib/supabase/types";
+import type { RoomingListRow, RoomingListOcupanteRow, RoomingListQuartoRow } from "@/lib/supabase/types";
 import { getJogoBaseEConvocados } from "../operacao-data";
 import { RoomingListFormBase, type QuartoInicial } from "./rooming-list-form-base";
 import { saveRoomingListBase } from "../operacao-actions";
@@ -30,28 +30,28 @@ export default async function RoomingListBasePage({
 
   const supabase = createClient();
   const { data: roomingListData } = await supabase
-    .from("rooming_list_base")
+    .from("rooming_list")
     .select("*")
     .eq("jogo_id", jogo.id)
     .maybeSingle();
-  const roomingList = roomingListData as RoomingListBaseRow | null;
+  const roomingList = roomingListData as RoomingListRow | null;
 
   let quartosIniciais: QuartoInicial[] = [];
   if (roomingList) {
     const { data: quartosData } = await supabase
-      .from("rooming_list_quartos_base")
+      .from("rooming_list_quartos")
       .select("*")
       .eq("rooming_list_id", roomingList.id)
       .order("ordem", { ascending: true });
-    const quartos = (quartosData ?? []) as RoomingListQuartoBaseRow[];
+    const quartos = (quartosData ?? []) as RoomingListQuartoRow[];
     const quartoIds = quartos.map((q) => q.id);
-    let ocupantes: RoomingListOcupanteBaseRow[] = [];
+    let ocupantes: RoomingListOcupanteRow[] = [];
     if (quartoIds.length > 0) {
       const { data: ocupantesData } = await supabase
-        .from("rooming_list_ocupantes_base")
+        .from("rooming_list_ocupantes")
         .select("*")
         .in("quarto_id", quartoIds);
-      ocupantes = (ocupantesData ?? []) as RoomingListOcupanteBaseRow[];
+      ocupantes = (ocupantesData ?? []) as RoomingListOcupanteRow[];
     }
     quartosIniciais = quartos.map((q) => ({
       tipo: q.tipo,

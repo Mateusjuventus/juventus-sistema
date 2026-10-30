@@ -16,10 +16,10 @@ import type {
   AtletaRow,
   CompeticaoBaseRow,
   CompeticaoJogoBaseRow,
-  ConvocacaoAtletaBaseRow,
-  ConvocacaoBaseRow,
-  SumulaBaseRow,
-  SumulaEventoBaseRow,
+  ConvocacaoAtletaRow,
+  ConvocacaoRow,
+  SumulaRow,
+  SumulaEventoRow,
 } from "@/lib/supabase/types";
 import { DadosJogoFormBase } from "./dados-jogo-form-base";
 import { EventoFormBase, type ConvocadoOption } from "./evento-form-base";
@@ -51,7 +51,7 @@ function LinhaEvento({
   acrescimoPrimeiroTempo,
   acrescimoSegundoTempo,
 }: {
-  evento: SumulaEventoBaseRow;
+  evento: SumulaEventoRow;
   atletasMap: Map<string, AtletaRow>;
   duracaoPrimeiroTempo: number;
   /** Só precisa ser informado quando o jogo tem 3º tempo — usado pra deslocar o "relógio corrido"
@@ -124,7 +124,7 @@ function TempoSection({
 }: {
   label: string;
   tempo: "primeiro" | "segundo" | "terceiro";
-  eventos: SumulaEventoBaseRow[];
+  eventos: SumulaEventoRow[];
   atletasMap: Map<string, AtletaRow>;
   jogoId: string;
   convocados: ConvocadoOption[];
@@ -189,8 +189,8 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
         .select("*")
         .eq("categoria", categoria)
         .order("nome_completo", { ascending: true }),
-      supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
-      supabase.from("sumulas_base").select("*").eq("jogo_id", params.id).maybeSingle(),
+      supabase.from("convocacoes").select("*").eq("jogo_id", params.id).maybeSingle(),
+      supabase.from("sumulas").select("*").eq("jogo_id", params.id).maybeSingle(),
       // Formato de partida (3º tempo, regras de substituição por tempo etc.) vem da competição à
       // qual este jogo está vinculado — ver docs/superpowers/specs/2026-10-21-competicoes-
       // formato-partida-design.md. A maioria dos jogos não está vinculada a nenhuma: nesse caso
@@ -200,8 +200,8 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
 
   const atletas = (atletasData ?? []) as AtletaRow[];
   const atletasMap = new Map(atletas.map((a) => [a.id, a]));
-  const convocacao = convocacaoData as ConvocacaoBaseRow | null;
-  const sumula = sumulaData as SumulaBaseRow | null;
+  const convocacao = convocacaoData as ConvocacaoRow | null;
+  const sumula = sumulaData as SumulaRow | null;
 
   const vinculo = vinculoData as Pick<CompeticaoJogoBaseRow, "competicao_id"> | null;
   let competicaoFormato: CompeticaoBaseRow | null = null;
@@ -234,10 +234,10 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   let reservasAtletas: AtletaRow[] = [];
   if (convocacao) {
     const { data: caData } = await supabase
-      .from("convocacao_atletas_base")
+      .from("convocacao_atletas")
       .select("*")
       .eq("convocacao_id", convocacao.id);
-    const rows = (caData ?? []) as ConvocacaoAtletaBaseRow[];
+    const rows = (caData ?? []) as ConvocacaoAtletaRow[];
     titulares = rows
       .filter((r) => r.status === "titular")
       .map((r) => atletasMap.get(r.atleta_id))
@@ -250,15 +250,15 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   const convocadosOptions = [...titulares, ...reservasAtletas].map(paraOpcao);
   const reservasOptions = reservasAtletas.map(paraOpcao);
 
-  let eventos: SumulaEventoBaseRow[] = [];
+  let eventos: SumulaEventoRow[] = [];
   if (sumula) {
     const { data: eventosData } = await supabase
-      .from("sumula_eventos_base")
+      .from("sumula_eventos")
       .select("*")
       .eq("sumula_id", sumula.id)
       .order("minuto", { ascending: true })
       .order("ordem", { ascending: true });
-    eventos = (eventosData ?? []) as SumulaEventoBaseRow[];
+    eventos = (eventosData ?? []) as SumulaEventoRow[];
   }
   const eventosPrimeiro = eventos.filter((e) => e.tempo === "primeiro");
   const eventosSegundo = eventos.filter((e) => e.tempo === "segundo");

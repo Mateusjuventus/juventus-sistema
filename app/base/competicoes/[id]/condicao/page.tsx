@@ -14,8 +14,10 @@ const STATUS_INFO: Record<CondicaoJogoStatus, { label: string; classe: string; o
 };
 
 /**
- * Condição de jogo (Futebol de Base) — espelha `app/competicoes/[id]/condicao/page.tsx`, lendo
- * `convocacoes_base`/`convocacao_atletas_base`/`atletas_base` no lugar das tabelas do Profissional.
+ * Condição de jogo (Futebol de Base) — espelha `app/competicoes/[id]/condicao/page.tsx`. Desde a
+ * unificação de Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql) `convocacoes`/
+ * `convocacao_atletas` são as mesmas tabelas do Profissional (sem sufixo `_base`) — o universo já
+ * fica restrito ao jogo selecionado via `jogo_id`, então não precisa de filtro extra por categoria.
  */
 export default async function CompeticaoBaseCondicaoPage({
   params,
@@ -41,13 +43,13 @@ export default async function CompeticaoBaseCondicaoPage({
   let convocadosNaoInscritos: string[] = [];
   if (jogoSelecionado) {
     const { data: convocacaoData } = await supabase
-      .from("convocacoes_base")
+      .from("convocacoes")
       .select("id")
       .eq("jogo_id", jogoSelecionado.jogoId)
       .maybeSingle();
     if (convocacaoData) {
       const { data: convocadosData } = await supabase
-        .from("convocacao_atletas_base")
+        .from("convocacao_atletas")
         .select("atleta_id")
         .eq("convocacao_id", convocacaoData.id as string);
       const inscritosIds = new Set(inscricoes.map((i) => i.atleta_id));

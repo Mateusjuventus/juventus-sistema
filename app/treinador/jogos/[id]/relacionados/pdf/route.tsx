@@ -17,7 +17,7 @@ import { RelacionadosDocument } from "@/lib/pdf/relacionados-document";
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
   const categorias = await getCategoriasTreinador(supabase);
-  const { data: jogo } = await supabase.from("jogos_base").select("categoria").eq("id", params.id).maybeSingle();
+  const { data: jogo } = await supabase.from("jogos").select("categoria").eq("id", params.id).maybeSingle();
   if (!jogo || categorias.length === 0 || !categorias.includes(jogo.categoria)) {
     return new NextResponse("Você não tem permissão para acessar este jogo.", { status: 403 });
   }

@@ -85,7 +85,7 @@ export async function createGastoBase(
   const categoria = await resolveCategoriaId(supabase, data.categoriaId, data.novaCategoriaNome ?? "");
   if (categoria.error || !categoria.id) return { error: categoria.error, values: raw };
 
-  const { error } = await supabase.from("gastos_jogo_base").insert({
+  const { error } = await supabase.from("gastos_jogo").insert({
     id: randomUUID(),
     jogo_id: jogoId,
     categoria_id: categoria.id,
@@ -115,8 +115,8 @@ async function avisarSeNovoBlocoAssinavel(
   temEfetuado: boolean,
 ): Promise<void> {
   const [{ data: jogo }, { data: gastos }] = await Promise.all([
-    supabase.from("jogos_base").select("adversario_nome, data_jogo, categoria").eq("id", jogoId).maybeSingle(),
-    supabase.from("gastos_jogo_base").select("valor_efetuado").eq("jogo_id", jogoId),
+    supabase.from("jogos").select("adversario_nome, data_jogo, categoria").eq("id", jogoId).maybeSingle(),
+    supabase.from("gastos_jogo").select("valor_efetuado").eq("jogo_id", jogoId),
   ]);
   if (!jogo) return;
 
@@ -128,7 +128,7 @@ async function avisarSeNovoBlocoAssinavel(
   // docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md.
   if (total === 1) {
     await notificarAssinantesFinanceiro({
-      tabelaConfig: "configuracoes_financeiro_base",
+      departamento: "futebol_base",
       jogoId,
       categoria: jogo.categoria,
       adversarioNome: jogo.adversario_nome,
@@ -139,7 +139,7 @@ async function avisarSeNovoBlocoAssinavel(
   }
   if (temEfetuado && totalEfetuados === 1) {
     await notificarAssinantesFinanceiro({
-      tabelaConfig: "configuracoes_financeiro_base",
+      departamento: "futebol_base",
       jogoId,
       categoria: jogo.categoria,
       adversarioNome: jogo.adversario_nome,
@@ -175,7 +175,7 @@ export async function updateGastoBase(
   if (categoria.error || !categoria.id) return { error: categoria.error, values: raw };
 
   const { error } = await supabase
-    .from("gastos_jogo_base")
+    .from("gastos_jogo")
     .update({
       categoria_id: categoria.id,
       descricao: data.descricao || null,
@@ -200,8 +200,8 @@ export async function deleteGastoBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
 
-  const { data } = await supabase.from("gastos_jogo_base").select("jogo_id").eq("id", id).maybeSingle();
-  await supabase.from("gastos_jogo_base").delete().eq("id", id);
+  const { data } = await supabase.from("gastos_jogo").select("jogo_id").eq("id", id).maybeSingle();
+  await supabase.from("gastos_jogo").delete().eq("id", id);
 
   if (data?.jogo_id) {
     const caminho = caminhoFinanceiro(data.jogo_id);

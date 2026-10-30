@@ -75,10 +75,10 @@ export async function salvarDadosJogoBase(
 
   const [{ error: jogoError }, { error: sumulaError }] = await Promise.all([
     supabase
-      .from("jogos_base")
+      .from("jogos")
       .update({ gols_pro: golsPro, gols_contra: golsContra, penaltis_pro: penaltisPro, penaltis_contra: penaltisContra })
       .eq("id", jogoId),
-    supabase.from("sumulas_base").upsert(
+    supabase.from("sumulas").upsert(
       {
         jogo_id: jogoId,
         duracao_primeiro_tempo: duracaoPrimeiro,
@@ -138,7 +138,7 @@ export async function adicionarEventoBase(
   const supabase = createClient();
 
   const { data: sumula, error: sumulaError } = await supabase
-    .from("sumulas_base")
+    .from("sumulas")
     .upsert({ jogo_id: jogoId }, { onConflict: "jogo_id" })
     .select("id")
     .single();
@@ -150,12 +150,12 @@ export async function adicionarEventoBase(
   const sumulaId = sumula.id as string;
 
   const { count } = await supabase
-    .from("sumula_eventos_base")
+    .from("sumula_eventos")
     .select("*", { count: "exact", head: true })
     .eq("sumula_id", sumulaId);
   const proximaOrdem = count ?? 0;
 
-  const { error: insertError } = await supabase.from("sumula_eventos_base").insert({
+  const { error: insertError } = await supabase.from("sumula_eventos").insert({
     sumula_id: sumulaId,
     tipo,
     tempo,
@@ -180,16 +180,16 @@ export async function removerEventoBase(formData: FormData): Promise<void> {
 
   const supabase = createClient();
   const { data: evento } = await supabase
-    .from("sumula_eventos_base")
+    .from("sumula_eventos")
     .select("sumula_id")
     .eq("id", id)
     .single();
 
-  await supabase.from("sumula_eventos_base").delete().eq("id", id);
+  await supabase.from("sumula_eventos").delete().eq("id", id);
 
   if (evento) {
     const { data: sumula } = await supabase
-      .from("sumulas_base")
+      .from("sumulas")
       .select("jogo_id")
       .eq("id", evento.sumula_id)
       .single();

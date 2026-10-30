@@ -13,11 +13,11 @@ import {
   vagasRestantes,
 } from "@/lib/futebol/vagas-staff";
 import type {
-  JogoVagasStaffBaseFuncaoRow,
-  JogoVagasStaffBaseInscricaoRow,
-  JogoVagasStaffBaseRow,
+  JogoVagasStaffFuncaoRow,
+  JogoVagasStaffInscricaoRow,
+  JogoVagasStaffRow,
   StaffFuncaoCatalogoRow,
-  StaffOperacionalBaseRow,
+  StaffOperacionalRow,
 } from "@/lib/supabase/types";
 import {
   alternarVagasAbertasBase,
@@ -31,7 +31,7 @@ import { VagasForm, type FuncaoInicial } from "@/components/vagas-form";
 
 /**
  * Espelha `app/jogos/[id]/vagas/page.tsx` para o Futebol de Base — mesma tela, tabelas
- * `jogo_vagas_staff_base*` e link público em `/vagas-base/<token>`. Ninguém é selecionado — é por
+ * `jogo_vagas_staff*` e link público em `/vagas-base/<token>`. Ninguém é selecionado — é por
  * ordem de chegada, e o limite é garantido pela função `pegar_vaga_staff_base` no banco (ver
  * 0075_vagas_staff_base.sql).
  */
@@ -40,35 +40,35 @@ export default async function VagasStaffBasePage({ params }: { params: { id: str
 
   const [jogo, { data: vagasData }, { data: funcoesCatalogoData }] = await Promise.all([
     verificarAcessoJogoBase(supabase, params.id),
-    supabase.from("jogo_vagas_staff_base").select("*").eq("jogo_id", params.id).maybeSingle(),
+    supabase.from("jogo_vagas_staff").select("*").eq("jogo_id", params.id).maybeSingle(),
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
   ]);
 
   if (!jogo) notFound();
-  const vagas = vagasData as JogoVagasStaffBaseRow | null;
+  const vagas = vagasData as JogoVagasStaffRow | null;
   const funcoesCatalogo = (funcoesCatalogoData ?? []) as StaffFuncaoCatalogoRow[];
   const nomePorFuncaoId = new Map(funcoesCatalogo.map((f) => [f.id, f.nome]));
 
-  let funcoes: JogoVagasStaffBaseFuncaoRow[] = [];
-  let inscricoes: JogoVagasStaffBaseInscricaoRow[] = [];
-  let staffPorId = new Map<string, StaffOperacionalBaseRow>();
+  let funcoes: JogoVagasStaffFuncaoRow[] = [];
+  let inscricoes: JogoVagasStaffInscricaoRow[] = [];
+  let staffPorId = new Map<string, StaffOperacionalRow>();
 
   if (vagas) {
     const [{ data: funcoesData }, { data: inscricoesData }] = await Promise.all([
-      supabase.from("jogo_vagas_staff_base_funcoes").select("*").eq("vagas_id", vagas.id),
+      supabase.from("jogo_vagas_staff_funcoes").select("*").eq("vagas_id", vagas.id),
       supabase
-        .from("jogo_vagas_staff_base_inscricoes")
+        .from("jogo_vagas_staff_inscricoes")
         .select("*")
         .eq("vagas_id", vagas.id)
         .order("created_at", { ascending: true }),
     ]);
-    funcoes = (funcoesData ?? []) as JogoVagasStaffBaseFuncaoRow[];
-    inscricoes = (inscricoesData ?? []) as JogoVagasStaffBaseInscricaoRow[];
+    funcoes = (funcoesData ?? []) as JogoVagasStaffFuncaoRow[];
+    inscricoes = (inscricoesData ?? []) as JogoVagasStaffInscricaoRow[];
 
     const staffIds = inscricoes.map((i) => i.staff_id);
     if (staffIds.length > 0) {
-      const { data: staffData } = await supabase.from("staff_operacional_base").select("*").in("id", staffIds);
-      staffPorId = new Map(((staffData ?? []) as StaffOperacionalBaseRow[]).map((s) => [s.id, s]));
+      const { data: staffData } = await supabase.from("staff_operacional").select("*").in("id", staffIds);
+      staffPorId = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s]));
     }
   }
 
@@ -80,8 +80,8 @@ export default async function VagasStaffBasePage({ params }: { params: { id: str
 
   // Agrupa quem já pegou vaga por função — ver o comentário equivalente no Profissional
   // (`app/jogos/[id]/vagas/page.tsx`).
-  const confirmadosPorFuncao = new Map<string, JogoVagasStaffBaseInscricaoRow[]>();
-  const esperaPorFuncao = new Map<string, JogoVagasStaffBaseInscricaoRow[]>();
+  const confirmadosPorFuncao = new Map<string, JogoVagasStaffInscricaoRow[]>();
+  const esperaPorFuncao = new Map<string, JogoVagasStaffInscricaoRow[]>();
   for (const i of confirmados) {
     const lista = confirmadosPorFuncao.get(i.vaga_funcao_id) ?? [];
     lista.push(i);

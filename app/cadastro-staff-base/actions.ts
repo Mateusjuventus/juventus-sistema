@@ -7,8 +7,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
 import { normalizeCPF } from "@/lib/validation/cpf";
 
-/** Espelha `app/cadastro-staff/actions.ts`, mas grava em `staff_operacional_base` e confere
- * `configuracoes_cadastro_staff_base` — totalmente independente do fluxo do Profissional. */
+/** Espelha `app/cadastro-staff/actions.ts` e confere `configuracoes_cadastro_staff_base`
+ * (totalmente independente do fluxo do Profissional). Desde a unificação de Staff Operacional
+ * (30/10/2026, ver 0155_unificacao_staff_operacional.sql) grava na MESMA tabela `staff_operacional`
+ * do Profissional — lista única, sem categoria/departamento. */
 export interface CadastroPublicoBaseFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
@@ -105,7 +107,7 @@ export async function cadastrarStaffPublicoBase(
   const data = result.data;
 
   const { data: nomeExistente } = await admin
-    .from("staff_operacional_base")
+    .from("staff_operacional")
     .select("id")
     .ilike("nome_completo", data.nomeCompleto.trim())
     .limit(1);
@@ -137,7 +139,7 @@ export async function cadastrarStaffPublicoBase(
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(admin, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
-  const { error } = await admin.from("staff_operacional_base").insert({
+  const { error } = await admin.from("staff_operacional").insert({
     id,
     nome_completo: data.nomeCompleto,
     rg: data.rg,

@@ -83,7 +83,7 @@ export async function createComissaoBase(
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw, categoriasSelecionadas: categorias };
 
-  const { error } = await supabase.from("comissao_tecnica_base").insert({
+  const { error } = await supabase.from("comissao_tecnica").insert({
     id,
     categorias: data.categorias,
     nome_completo: data.nomeCompleto,
@@ -144,7 +144,7 @@ export async function updateComissaoBase(
   // design.md) não chega no `formData`, então não grava por cima do valor já salvo.
   if (formData.has("valorSalario")) updatePayload.valor_salario = data.valorSalario ?? null;
 
-  const { error } = await supabase.from("comissao_tecnica_base").update(updatePayload).eq("id", id);
+  const { error } = await supabase.from("comissao_tecnica").update(updatePayload).eq("id", id);
 
   if (error) return { error: friendlyDbError(error), values: raw, categoriasSelecionadas: categorias };
 
@@ -156,7 +156,7 @@ export async function deleteComissaoBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
 
-  await supabase.from("comissao_tecnica_base").delete().eq("id", id);
+  await supabase.from("comissao_tecnica").delete().eq("id", id);
 
   revalidatePath("/base/comissao-tecnica");
 }

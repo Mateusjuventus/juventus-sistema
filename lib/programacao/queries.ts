@@ -4,17 +4,18 @@ import type {
   ProgramacaoAtividadeRow,
   ProgramacaoSubatividadeRow,
   ProgramacaoCatalogoSubatividadeRow,
-  JogoBaseRow,
+  JogoRow,
 } from "@/lib/supabase/types";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { somarDias } from "./semana";
 
-/** Só os campos de `jogos_base` que a grade/exportação precisam pra mostrar o card do jogo (escudo,
- * adversário, horário, local, competição) — nunca duplicados em `programacao_atividades` (ver
- * spec, "Atividade de jogo não duplica dado"). `adversarioLogoUrl` já vem resolvida (signed URL,
- * 1h) pra quem chama não precisar do client do Supabase de novo. */
+/** Só os campos de `jogos` (desde a unificação de Jogos/Convocação de 30/10/2026, ver
+ * 0157_unificacao_jogos.sql, a mesma tabela do Profissional) que a grade/exportação precisam pra
+ * mostrar o card do jogo (escudo, adversário, horário, local, competição) — nunca duplicados em
+ * `programacao_atividades` (ver spec, "Atividade de jogo não duplica dado"). `adversarioLogoUrl`
+ * já vem resolvida (signed URL, 1h) pra quem chama não precisar do client do Supabase de novo. */
 export type JogoResumoAtividade = Pick<
-  JogoBaseRow,
+  JogoRow,
   | "id"
   | "adversario_nome"
   | "adversario_logo_path"
@@ -40,7 +41,7 @@ async function resolverLogos(
 export interface AtividadeComDetalhes extends ProgramacaoAtividadeRow {
   subatividades: ProgramacaoSubatividadeRow[];
   /** Só presente quando `tipo` é 'jogo_oficial'/'jogo_treino' e o jogo referenciado por `jogo_id`
-   * ainda existe em `jogos_base`. */
+   * ainda existe em `jogos`. */
   jogo: JogoResumoAtividade | null;
 }
 
@@ -82,7 +83,7 @@ async function buscarAtividadesComDetalhes(
   const jogoIds = [...new Set(atividades.map((a) => a.jogo_id).filter((id): id is string => Boolean(id)))];
   let jogos: JogoResumoAtividade[] = [];
   if (jogoIds.length > 0) {
-    const { data: jogosData } = await supabase.from("jogos_base").select(CAMPOS_JOGO_RESUMO).in("id", jogoIds);
+    const { data: jogosData } = await supabase.from("jogos").select(CAMPOS_JOGO_RESUMO).in("id", jogoIds);
     jogos = await resolverLogos(supabase, (jogosData ?? []) as Omit<JogoResumoAtividade, "adversarioLogoUrl">[]);
   }
 
@@ -128,18 +129,18 @@ export async function buscarCatalogo(
 }
 
 /** Jogos já cadastrados de uma categoria, pro seletor do formulário de Nova Atividade quando o tipo
- * é 'jogo_oficial'/'jogo_treino' — evita digitar de novo dados que já existem em `jogos_base`.
- * Pro Profissional (`categoria === "profissional"`), sempre volta vazio: os jogos dele moram na
- * tabela `jogos`, não em `jogos_base` (que não tem essa categoria), e não dá pra reaproveitar o
- * atalho de seleção sem uma tabela `jogos_base`-like — ver docs/superpowers/specs/2026-10-05-
- * programacao-profissional-design.md, "Fora de escopo". Jogo Oficial/Jogo Treino aí é preenchido
- * manualmente, como qualquer outra atividade. */
+ * é 'jogo_oficial'/'jogo_treino' — evita digitar de novo dados que já existem em `jogos` (desde a
+ * unificação de Jogos/Convocação de 30/10/2026, mesma tabela do Profissional, filtrada por
+ * categoria aqui). Pro Profissional (`categoria === "profissional"`) a função funcionaria do mesmo
+ * jeito, mas não é chamada nesse caso — ver docs/superpowers/specs/2026-10-05-programacao-
+ * profissional-design.md, "Fora de escopo". Jogo Oficial/Jogo Treino aí é preenchido manualmente,
+ * como qualquer outra atividade. */
 export async function buscarJogosParaSelecao(
   supabase: ReturnType<typeof createClient>,
   categoria: CategoriaProgramacao,
 ): Promise<JogoResumoAtividade[]> {
   const { data } = await supabase
-    .from("jogos_base")
+    .from("jogos")
     .select(CAMPOS_JOGO_RESUMO)
     .eq("categoria", categoria)
     .order("data_jogo", { ascending: false });

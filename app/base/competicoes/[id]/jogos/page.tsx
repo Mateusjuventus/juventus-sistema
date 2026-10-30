@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { verificarAcessoCompeticaoBase } from "@/lib/auth/competicao-base-guard";
 import { confrontoResumoBase } from "@/lib/futebol/competicao-query-base";
 import { hojeBrasilia } from "@/lib/data-brasil";
-import type { JogoBaseRow } from "@/lib/supabase/types";
+import type { JogoRow } from "@/lib/supabase/types";
 import { atualizarVinculoJogoBase, desvincularJogoBase, vincularJogoBase } from "../../actions";
 
 function formatData(data: string): string {
@@ -28,13 +28,16 @@ export default async function CompeticaoBaseJogosPage({ params }: { params: { id
   const hojeStr = hojeBrasilia();
 
   // Jogos da MESMA categoria ainda sem vínculo com NENHUMA competição (jogo_id é unique em
-  // competicao_jogos_base).
+  // competicao_jogos_base). Desde a unificação de Jogos/Convocação (30/10/2026, ver
+  // 0157_unificacao_jogos.sql) os jogos ficam todos em `jogos` — o filtro por categoria aqui já
+  // restringe à categoria desta competição, então não mistura com o Profissional ou outras
+  // categorias da Base.
   const [{ data: jogosData }, { data: vinculadosData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("categoria", competicao.categoria).order("data_jogo", { ascending: false }),
+    supabase.from("jogos").select("*").eq("categoria", competicao.categoria).order("data_jogo", { ascending: false }),
     supabase.from("competicao_jogos_base").select("jogo_id"),
   ]);
   const jaVinculados = new Set(((vinculadosData ?? []) as { jogo_id: string }[]).map((v) => v.jogo_id));
-  const jogosDisponiveis = ((jogosData ?? []) as JogoBaseRow[]).filter((j) => !jaVinculados.has(j.id));
+  const jogosDisponiveis = ((jogosData ?? []) as JogoRow[]).filter((j) => !jaVinculados.has(j.id));
 
   const vincularAction = vincularJogoBase.bind(null, competicao.id);
   const atualizarAction = atualizarVinculoJogoBase.bind(null, competicao.id);

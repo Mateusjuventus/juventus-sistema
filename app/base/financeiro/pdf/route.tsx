@@ -11,20 +11,26 @@ import {
   type RelatorioPdfCategoria,
   type RelatorioPdfJogo,
 } from "@/lib/pdf/relatorio-financeiro-document";
-import type { GastoJogoBaseComCategoriaRow, JogoBaseRow } from "@/lib/supabase/types";
+import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
+import { TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 
 /** Espelha `app/financeiro/pdf/route.tsx` para o Futebol de Base. */
 export async function GET() {
   const supabase = createClient();
 
-  const [{ data: jogosData }, { data: gastosData }, { assinatura1, assinatura2 }] = await Promise.all([
-    supabase.from("jogos_base").select("*").order("data_jogo", { ascending: false }),
-    supabase.from("gastos_jogo_base").select("*, categoria:categorias_gasto(nome)"),
+  const [{ data: jogosData }, { assinatura1, assinatura2 }] = await Promise.all([
+    supabase.from("jogos").select("*").in("categoria", TODAS_CATEGORIAS_BASE).order("data_jogo", { ascending: false }),
     getAssinaturasFinanceiroBase(supabase),
   ]);
+  const jogos = (jogosData ?? []) as JogoRow[];
+  const jogoIds = jogos.map((j) => j.id);
 
-  const jogos = (jogosData ?? []) as JogoBaseRow[];
-  const gastos = (gastosData ?? []) as GastoJogoBaseComCategoriaRow[];
+  // Desde a unificação de Jogos/Convocação (30/10/2026) `gastos_jogo` guarda os dois departamentos
+  // juntos — filtra pelos jogos da Base buscados acima.
+  const { data: gastosData } = jogoIds.length
+    ? await supabase.from("gastos_jogo").select("*, categoria:categorias_gasto(nome)").in("jogo_id", jogoIds)
+    : { data: [] };
+  const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
 
   if (gastos.length === 0) {
     return new NextResponse("Ainda não há gastos lançados em nenhum jogo.", { status: 400 });
@@ -45,7 +51,7 @@ export async function GET() {
     .map(([nome, valores]) => ({ nome, ...valores }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-  const gastosPorJogo = new Map<string, GastoJogoBaseComCategoriaRow[]>();
+  const gastosPorJogo = new Map<string, GastoJogoComCategoriaRow[]>();
   for (const g of gastos) {
     const lista = gastosPorJogo.get(g.jogo_id) ?? [];
     lista.push(g);

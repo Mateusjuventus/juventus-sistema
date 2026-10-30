@@ -9,9 +9,11 @@ import { staffOperacionalSchema, NOVA_FUNCAO_VALUE } from "@/lib/validation/sche
 import { normalizeCPF } from "@/lib/validation/cpf";
 
 /**
- * Espelha `app/staff-operacional/actions.ts`, mas grava em `staff_operacional_base` — lista única,
- * sem categoria (ver a spec). O catálogo de funções (`staff_funcoes_catalogo`) é o MESMO do
- * Profissional — reaproveitado sem duplicar, já que são só nomes de função.
+ * Espelha `app/staff-operacional/actions.ts`. Desde a unificação de Staff Operacional (30/10/2026,
+ * ver 0155_unificacao_staff_operacional.sql) grava na MESMA tabela `staff_operacional` do
+ * Profissional — lista única, sem categoria/departamento (ver a spec). O catálogo de funções
+ * (`staff_funcoes_catalogo`) também é o MESMO do Profissional — reaproveitado sem duplicar, já que
+ * são só nomes de função.
  */
 export interface StaffBaseFormState {
   error?: string;
@@ -56,7 +58,7 @@ async function existeNomeDuplicado(
   ignorarId?: string,
 ): Promise<boolean> {
   let query = supabase
-    .from("staff_operacional_base")
+    .from("staff_operacional")
     .select("id")
     .ilike("nome_completo", nomeCompleto.trim());
   if (ignorarId) query = query.neq("id", ignorarId);
@@ -169,7 +171,7 @@ export async function createStaffBase(
   const { error: uploadError, path: fotoPath } = await uploadFotoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
-  const { error } = await supabase.from("staff_operacional_base").insert({
+  const { error } = await supabase.from("staff_operacional").insert({
     id,
     nome_completo: data.nomeCompleto,
     rg: data.rg,
@@ -279,7 +281,7 @@ export async function updateStaffBase(
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 
-  const { error } = await supabase.from("staff_operacional_base").update(updatePayload).eq("id", id);
+  const { error } = await supabase.from("staff_operacional").update(updatePayload).eq("id", id);
 
   if (error) return { error: friendlyDbError(error), values: raw };
 
@@ -295,7 +297,7 @@ export async function updateStaffBase(
 export async function deleteStaffBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
-  await supabase.from("staff_operacional_base").delete().eq("id", id);
+  await supabase.from("staff_operacional").delete().eq("id", id);
   revalidatePath("/base/staff-operacional");
 }
 
@@ -306,6 +308,6 @@ export async function alternarStaffBaseAtivo(formData: FormData): Promise<void> 
   if (!id) return;
 
   const supabase = createClient();
-  await supabase.from("staff_operacional_base").update({ ativo: novoValor }).eq("id", id);
+  await supabase.from("staff_operacional").update({ ativo: novoValor }).eq("id", id);
   revalidatePath("/base/staff-operacional");
 }

@@ -16,6 +16,9 @@ import {
 function jogo(overrides: Partial<JogoRow>): JogoRow {
   return {
     id: "jogo-1",
+    categoria: "profissional",
+    penaltis_pro: null,
+    penaltis_contra: null,
     competicao: "Copa Paulista",
     rodada_fase: null,
     adversario_nome: "Adversário",

@@ -10,10 +10,10 @@ import { saveConvocacaoBase } from "@/lib/jogos-base/convocacao-actions";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  ConvocacaoAtletaBaseRow,
-  ConvocacaoBaseRow,
-  ConvocacaoComissaoBaseRow,
-  JogoBaseRow,
+  ConvocacaoAtletaRow,
+  ConvocacaoComissaoRow,
+  ConvocacaoRow,
+  JogoRow,
 } from "@/lib/supabase/types";
 
 /**
@@ -30,9 +30,9 @@ export default async function TreinadorConvocacaoPage({ params }: { params: { id
   const supabase = createClient();
   const categorias = await getCategoriasTreinador(supabase);
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", params.id).single();
+  const { data: jogoData } = await supabase.from("jogos").select("*").eq("id", params.id).single();
   if (!jogoData) notFound();
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = jogoData as JogoRow;
   if (categorias.length === 0 || !categorias.includes(jogo.categoria)) notFound();
 
   const notificacoes = await buscarNotificacoes();
@@ -45,12 +45,12 @@ export default async function TreinadorConvocacaoPage({ params }: { params: { id
       .select("*")
       .contains("categorias", [categoria])
       .order("nome_completo", { ascending: true }),
-    supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
+    supabase.from("convocacoes").select("*").eq("jogo_id", params.id).maybeSingle(),
   ]);
 
   const atletas = (atletasData ?? []) as AtletaRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaRow[];
-  const convocacao = convocacaoData as ConvocacaoBaseRow | null;
+  const convocacao = convocacaoData as ConvocacaoRow | null;
 
   const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));
   const atletasComFoto = atletas.map((a, i) => ({ ...a, fotoUrl: fotoUrls[i] }));
@@ -61,15 +61,15 @@ export default async function TreinadorConvocacaoPage({ params }: { params: { id
 
   if (convocacao) {
     const [{ data: caData }, { data: ccData }] = await Promise.all([
-      supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
-      supabase.from("convocacao_comissao_base").select("*").eq("convocacao_id", convocacao.id),
+      supabase.from("convocacao_atletas").select("*").eq("convocacao_id", convocacao.id),
+      supabase.from("convocacao_comissao").select("*").eq("convocacao_id", convocacao.id),
     ]);
 
-    ((caData ?? []) as ConvocacaoAtletaBaseRow[]).forEach((row) => {
+    ((caData ?? []) as ConvocacaoAtletaRow[]).forEach((row) => {
       atletaStatusMap[row.atleta_id] = row.status;
       atletaNumeroCamisaMap[row.atleta_id] = row.numero_camisa;
     });
-    ((ccData ?? []) as ConvocacaoComissaoBaseRow[]).forEach((row) => comissaoSelecionados.add(row.comissao_id));
+    ((ccData ?? []) as ConvocacaoComissaoRow[]).forEach((row) => comissaoSelecionados.add(row.comissao_id));
   }
 
   return (

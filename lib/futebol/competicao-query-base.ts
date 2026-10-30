@@ -11,7 +11,7 @@ import type {
   CompeticaoJogoBaseRow,
   CompeticaoPrazoBaseRow,
   CompeticaoSuspensaoManualBaseRow,
-  JogoBaseRow,
+  JogoRow,
 } from "@/lib/supabase/types";
 import {
   calcularDisciplina,
@@ -36,8 +36,9 @@ import {
 /**
  * Espelha lib/futebol/competicao-query.ts (Profissional) para o Futebol de Base — ver
  * docs/superpowers/specs/2026-10-03-competicoes-base-design.md. Mesma lógica, só trocando as
- * tabelas-fonte pelas `_base` (jogos_base, atletas_base, sumulas_base, sumula_eventos_base,
- * competicao_*_base).
+ * tabelas-fonte pelas `_base` (competicao_*_base) — desde a unificação de Jogos/Convocação
+ * (30/10/2026, ver 0157_unificacao_jogos.sql) `jogos`/`sumulas`/`sumula_eventos` já são as tabelas
+ * únicas (sem `_base`), só `competicao_jogos_base.jogo_id` continua apontando pra elas.
  */
 
 /** Só o que as telas do módulo precisam de cada atleta. */
@@ -51,7 +52,7 @@ export interface CompeticaoBaseCarregada {
   equipesPorGrupo: Map<string, CompeticaoGrupoEquipeBaseRow[]>;
   resultadosPorGrupo: Map<string, CompeticaoGrupoResultadoBaseRow[]>;
   vinculos: CompeticaoJogoBaseRow[];
-  jogosById: Map<string, JogoBaseRow>;
+  jogosById: Map<string, JogoRow>;
   jogosOrdenados: JogoDisciplina[];
   disciplina: DisciplinaCompeticao;
   eventosCartao: CartaoEvento[];
@@ -67,12 +68,12 @@ export interface CompeticaoBaseCarregada {
   nomesGrupos: Map<string, string>;
 }
 
-export function confrontoResumoBase(jogo: Pick<JogoBaseRow, "mandante" | "adversario_nome">): string {
+export function confrontoResumoBase(jogo: Pick<JogoRow, "mandante" | "adversario_nome">): string {
   return jogo.mandante ? `${JUVENTUS_NOME} x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x ${JUVENTUS_NOME}`;
 }
 
 export function confrontoComDataBase(
-  jogo: Pick<JogoBaseRow, "mandante" | "adversario_nome" | "data_jogo">,
+  jogo: Pick<JogoRow, "mandante" | "adversario_nome" | "data_jogo">,
 ): string {
   const [, mes, dia] = jogo.data_jogo.split("-");
   return `${confrontoResumoBase(jogo)} (${dia}/${mes})`;
@@ -157,24 +158,24 @@ export async function carregarCompeticaoBase(
           .order("data_jogo", { ascending: true, nullsFirst: true })
       : Promise.resolve({ data: [] }),
     jogoIds.length
-      ? supabase.from("jogos_base").select("*").in("id", jogoIds)
+      ? supabase.from("jogos").select("*").in("id", jogoIds)
       : Promise.resolve({ data: [] }),
   ]);
 
   const equipes = (equipesData ?? []) as CompeticaoGrupoEquipeBaseRow[];
   const resultados = (resultadosData ?? []) as CompeticaoGrupoResultadoBaseRow[];
-  const jogos = (jogosData ?? []) as JogoBaseRow[];
+  const jogos = (jogosData ?? []) as JogoRow[];
   const jogosById = new Map(jogos.map((j) => [j.id, j]));
 
   // Eventos de cartão das súmulas dos jogos vinculados — a ÚNICA origem de cartões do módulo.
   let eventosCartao: CartaoEvento[] = [];
   if (jogoIds.length) {
-    const { data: sumulasData } = await supabase.from("sumulas_base").select("id, jogo_id").in("jogo_id", jogoIds);
+    const { data: sumulasData } = await supabase.from("sumulas").select("id, jogo_id").in("jogo_id", jogoIds);
     const sumulas = (sumulasData ?? []) as { id: string; jogo_id: string }[];
     if (sumulas.length) {
       const jogoPorSumula = new Map(sumulas.map((s) => [s.id, s.jogo_id]));
       const { data: eventosData } = await supabase
-        .from("sumula_eventos_base")
+        .from("sumula_eventos")
         .select("sumula_id, tipo, atleta_id")
         .in("sumula_id", sumulas.map((s) => s.id))
         .in("tipo", ["cartao_amarelo", "cartao_vermelho"]);
@@ -191,7 +192,7 @@ export async function carregarCompeticaoBase(
   const fasePorJogo = new Map(vinculos.map((v) => [v.jogo_id, v.fase_id]));
   const jogosOrdenados: JogoDisciplina[] = vinculos
     .map((v) => jogosById.get(v.jogo_id))
-    .filter((j): j is JogoBaseRow => Boolean(j))
+    .filter((j): j is JogoRow => Boolean(j))
     .sort((a, b) => (a.data_jogo === b.data_jogo ? a.id.localeCompare(b.id) : a.data_jogo.localeCompare(b.data_jogo)))
     .map((j) => ({
       jogoId: j.id,

@@ -23,9 +23,13 @@ import type { createClient } from "@/lib/supabase/server";
 type ClienteComTabelas = ReturnType<typeof createAdminClient> | ReturnType<typeof createClient>;
 
 interface TabelasReciboAutoSync {
-  /** "staff_operacional" ou "staff_operacional_base". */
+  /** Sempre "staff_operacional" — desde a unificação de Staff Operacional (30/10/2026, ver
+   * 0155_unificacao_staff_operacional.sql) é a mesma tabela única pros dois departamentos. O
+   * parâmetro continua existindo pra não mudar as duas chamadas (Profissional e Base) além do
+   * necessário. */
   staff: string;
-  /** "recibos_jogo" ou "recibos_jogo_base". */
+  /** Sempre "recibos_jogo" — desde a unificação de Jogos/Convocação (30/10/2026, ver
+   * 0157_unificacao_jogos.sql) também é a mesma tabela única pros dois departamentos. */
   recibos: string;
 }
 

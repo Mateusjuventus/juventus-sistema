@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { configuracaoFinanceiroSchema } from "@/lib/validation/schemas";
 
-/** Espelha `app/financeiro/configuracoes/actions.ts` para o Futebol de Base — grava em
- * `configuracoes_financeiro_base` (tabela singleton independente). */
+/** Espelha `app/financeiro/configuracoes/actions.ts` para o Futebol de Base. Desde a unificação
+ * de Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql) `configuracoes_financeiro`
+ * ganhou a coluna `departamento` e passou a guardar os dois singletons (Profissional e Base)
+ * juntos — `configuracoes_financeiro_base` deixou de existir. */
 export interface ConfiguracaoFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
@@ -55,8 +57,8 @@ export async function updateConfiguracaoFinanceiroBase(
   };
 
   const { error } = id
-    ? await supabase.from("configuracoes_financeiro_base").update(payload).eq("id", id)
-    : await supabase.from("configuracoes_financeiro_base").insert(payload);
+    ? await supabase.from("configuracoes_financeiro").update(payload).eq("id", id)
+    : await supabase.from("configuracoes_financeiro").insert({ ...payload, departamento: "futebol_base" });
 
   if (error) return { error: "Não foi possível salvar as assinaturas. Tente novamente.", values: raw };
 

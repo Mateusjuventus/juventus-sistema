@@ -35,13 +35,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const supabase = createClient();
   let convocadosNaoInscritos: string[] = [];
   const { data: convocacaoData } = await supabase
-    .from("convocacoes_base")
+    .from("convocacoes")
     .select("id")
     .eq("jogo_id", jogo.jogoId)
     .maybeSingle();
   if (convocacaoData) {
     const { data: convocadosData } = await supabase
-      .from("convocacao_atletas_base")
+      .from("convocacao_atletas")
       .select("atleta_id")
       .eq("convocacao_id", convocacaoData.id as string);
     const inscritosIds = new Set(inscricoes.map((i) => i.atleta_id));

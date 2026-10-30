@@ -34,6 +34,9 @@ import {
  */
 
 export interface TabelasEstatisticasAtleta {
+  /** Desde a unificação de Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql) `jogos`,
+   * `convocacoes`, `convocacao_atletas`, `sumulas` e `sumula_eventos` guardam os dois departamentos
+   * juntos — por isso este campo é sempre `"jogos"`/`"convocacoes"`/etc, nunca mais `_base`. */
   jogos: string;
   convocacoes: string;
   convocacaoAtletas: string;
@@ -41,13 +44,20 @@ export interface TabelasEstatisticasAtleta {
   sumulaEventos: string;
   /** Tabela de vínculo Competição<->Jogo (ex: `competicao_jogos`/`competicao_jogos_base`) — usada
    * pro filtro por Competição/Temporada e pra montar a lista jogo a jogo agrupada (ver
-   * `buscarCompeticaoTemporadaPorJogoId`). */
+   * `buscarCompeticaoTemporadaPorJogoId`). Continua em dois conjuntos: Competições (Base) não foi
+   * unificada com o Profissional nesta fase, só o `jogo_id` de `competicao_jogos_base` passou a
+   * apontar pra `jogos` em vez de `jogos_base`. */
   competicaoJogos: string;
   /** Tabela de Competições formais (ex: `competicoes`/`competicoes_base`). */
   competicoes: string;
   /** Tabela de Temporadas — `temporadas` no Profissional, `temporadas_base` na Base (são duas
    * tabelas distintas; ver `lib/futebol/competicao-query.ts`/`competicao-query-base.ts`). */
   temporadas: string;
+  /** Categoria(s) de `jogos.categoria` que delimitam o universo deste chamador — `["profissional"]`
+   * pro Profissional, `TODAS_CATEGORIAS_BASE` pra Base. Obrigatório desde a unificação de Jogos/
+   * Convocação (30/10/2026): como `jogos`/`convocacoes`/etc agora guardam os dois departamentos
+   * juntos, sem este filtro as consultas misturariam jogos do outro departamento. */
+  categoriaJogos: string[];
 }
 
 export interface FiltroEstatisticasAtleta {
@@ -216,14 +226,18 @@ export async function buscarEstatisticasAtleta(
   tabelas: TabelasEstatisticasAtleta,
   filtro: FiltroEstatisticasAtleta,
 ): Promise<ResultadoEstatisticasAtleta> {
-  const { data: todosJogosData } = await supabase.from(tabelas.jogos).select("competicao");
+  const { data: todosJogosData } = await supabase
+    .from(tabelas.jogos)
+    .select("competicao")
+    .in("categoria", tabelas.categoriaJogos);
   const competicoesDisponiveis = Array.from(
     new Set(((todosJogosData ?? []) as { competicao: string }[]).map((j) => j.competicao)),
   ).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   let jogosQuery = supabase
     .from(tabelas.jogos)
-    .select("id, competicao, data_jogo, horario, adversario_nome, mandante, gols_pro, gols_contra");
+    .select("id, competicao, data_jogo, horario, adversario_nome, mandante, gols_pro, gols_contra")
+    .in("categoria", tabelas.categoriaJogos);
 
   const usandoFiltroCompeticao = filtro.competicaoIds !== undefined;
   if (!usandoFiltroCompeticao) {
@@ -447,7 +461,23 @@ export async function buscarCompeticoesDisponiveisAtleta(
   supabase: SupabaseClient,
   tabelas: TabelasEstatisticasAtleta,
 ): Promise<CompeticoesDisponiveisAtleta> {
-  const { data: convocacoesData } = await supabase.from(tabelas.convocacoes).select("jogo_id");
+  // Desde a unificação de Jogos/Convocação, `tabelas.convocacoes` guarda os dois departamentos —
+  // restringe primeiro aos jogos do departamento de `tabelas.categoriaJogos` antes de olhar as
+  // Convocações, senão o universo "sem filtro" misturaria o outro departamento.
+  const { data: jogosDoDepartamentoData } = await supabase
+    .from(tabelas.jogos)
+    .select("id")
+    .in("categoria", tabelas.categoriaJogos);
+  const idsDoDepartamento = ((jogosDoDepartamentoData ?? []) as { id: string }[]).map((j) => j.id);
+
+  if (idsDoDepartamento.length === 0) {
+    return { competicoes: [], temJogosSemCompeticao: false };
+  }
+
+  const { data: convocacoesData } = await supabase
+    .from(tabelas.convocacoes)
+    .select("jogo_id")
+    .in("jogo_id", idsDoDepartamento);
   const jogoIdsComConvocacao = Array.from(
     new Set(((convocacoesData ?? []) as { jogo_id: string }[]).map((c) => c.jogo_id)),
   );

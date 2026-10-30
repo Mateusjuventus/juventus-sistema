@@ -4,9 +4,10 @@ import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  JogoBaseRow,
-  StaffOperacionalBaseComFuncaoRow,
+  JogoRow,
+  StaffOperacionalComFuncaoRow,
 } from "@/lib/supabase/types";
+import { TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { RelatorioAvulsoFormBase, type JogoOpcao, type PessoaSelecionavel } from "./relatorio-avulso-form-base";
 
 /** Espelha `app/relatorios/avulso/page.tsx` para o Futebol de Base. */
@@ -25,13 +26,14 @@ export default async function RelatorioAvulsoBasePage() {
         .select("id, nome_completo, funcao, categorias")
         .order("nome_completo", { ascending: true }),
       supabase
-        .from("staff_operacional_base")
-        .select("*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome)")
+        .from("staff_operacional")
+        .select("*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome)")
         .eq("ativo", true)
         .order("nome_completo", { ascending: true }),
       supabase
-        .from("jogos_base")
+        .from("jogos")
         .select("id, adversario_nome, competicao, data_jogo, horario, local_estadio")
+        .in("categoria", TODAS_CATEGORIAS_BASE)
         .order("data_jogo", { ascending: false }),
     ]);
 
@@ -42,9 +44,9 @@ export default async function RelatorioAvulsoBasePage() {
   const comissao = (
     (comissaoData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo" | "funcao" | "categorias">[]
   ).filter((p) => p.categorias.some(ehCategoriaBaseValida));
-  const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
+  const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
   const jogos = (jogosData ?? []) as Pick<
-    JogoBaseRow,
+    JogoRow,
     "id" | "adversario_nome" | "competicao" | "data_jogo" | "horario" | "local_estadio"
   >[];
 

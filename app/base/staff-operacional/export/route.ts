@@ -5,7 +5,7 @@ import { formatCPF } from "@/lib/validation/cpf";
 import { formatTelefone } from "@/lib/validation/telefone";
 import { formatCEP } from "@/lib/validation/cep";
 import { STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
-import type { StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
+import type { StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
@@ -31,16 +31,16 @@ export async function GET(request: NextRequest) {
   const supabase = createClient();
 
   let query = supabase
-    .from("staff_operacional_base")
+    .from("staff_operacional")
     .select(
-      "*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_base_funcao_terceirizada_id_fkey(nome)",
+      "*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_funcao_terceirizada_id_fkey(nome)",
     )
     .order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
   if (funcaoId) query = query.eq("funcao_id", funcaoId);
 
   const { data } = await query;
-  const staff = (data ?? []) as StaffOperacionalBaseComFuncaoRow[];
+  const staff = (data ?? []) as StaffOperacionalComFuncaoRow[];
 
   const linhas = staff.map((s) => ({
     "Nome completo": s.nome_completo,

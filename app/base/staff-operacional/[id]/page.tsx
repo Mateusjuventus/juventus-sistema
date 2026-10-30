@@ -4,20 +4,20 @@ import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
-import type { StaffFuncaoCatalogoRow, StaffOperacionalBaseRow } from "@/lib/supabase/types";
+import type { StaffFuncaoCatalogoRow, StaffOperacionalRow } from "@/lib/supabase/types";
 import { StaffBaseForm } from "../staff-base-form";
 import { updateStaffBase } from "../actions";
 
 export default async function EditarStaffBasePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const [{ data }, { data: funcoesData }] = await Promise.all([
-    supabase.from("staff_operacional_base").select("*").eq("id", params.id).single(),
+    supabase.from("staff_operacional").select("*").eq("id", params.id).single(),
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
   ]);
 
   if (!data) notFound();
 
-  const s = data as StaffOperacionalBaseRow;
+  const s = data as StaffOperacionalRow;
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
   const fotoUrl = await getSignedPhotoUrl(supabase, s.foto_path);
 

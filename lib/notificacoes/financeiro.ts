@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notificarSignerConfiguravel } from "@/lib/notificacoes/actions";
 import type { CategoriaBase } from "@/lib/auth/categorias-base";
-import type { ConfiguracaoFinanceiroBaseRow, ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
+import type { ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
 
 function formatDataBr(iso: string): string {
   const [ano, mes, dia] = iso.split("-");
@@ -42,11 +42,14 @@ async function buscarSupervisoresDaCategoriaBase(
  * efetuado (mesma regra de gate que `lib/assinaturas/pendencias.ts` usa pra decidir o que listar em
  * "Documentos Pendentes"). Assinatura 2 continua um vínculo fixo configurado (igual nos dois
  * departamentos). Assinatura 1: no Profissional continua o vínculo fixo configurado; na Base
- * depende da categoria do jogo — por isso `categoria` é obrigatório pra `configuracoes_financeiro_
- * base` (ver docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md).
+ * depende da categoria do jogo — por isso `categoria` é obrigatório quando `departamento` é
+ * `"futebol_base"` (ver docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-
+ * supervisor-design.md). Desde a unificação de Jogos/Convocação (30/10/2026, ver
+ * 0157_unificacao_jogos.sql) `configuracoes_financeiro` ganhou a coluna `departamento` e guarda os
+ * dois singletons juntos — por isso o parâmetro mudou de `tabelaConfig` pra `departamento`.
  */
 export async function notificarAssinantesFinanceiro(params: {
-  tabelaConfig: "configuracoes_financeiro" | "configuracoes_financeiro_base";
+  departamento: "futebol_profissional" | "futebol_base";
   jogoId: string;
   categoria?: CategoriaBase;
   adversarioNome: string;
@@ -55,18 +58,22 @@ export async function notificarAssinantesFinanceiro(params: {
   link: string;
 }): Promise<void> {
   const supabase = createClient();
-  const { data: configData } = await supabase.from(params.tabelaConfig).select("*").limit(1).maybeSingle();
-  const config = configData as (ConfiguracaoFinanceiroRow | ConfiguracaoFinanceiroBaseRow) | null;
+  const { data: configData } = await supabase
+    .from("configuracoes_financeiro")
+    .select("*")
+    .eq("departamento", params.departamento)
+    .maybeSingle();
+  const config = configData as ConfiguracaoFinanceiroRow | null;
   if (!config) return;
 
   const mensagem = `Financeiro — vs. ${params.adversarioNome}, ${formatDataBr(params.dataJogo)} (${params.bloco}) está esperando sua assinatura.`;
 
   const alvosAssinatura1: (string | null)[] =
-    params.tabelaConfig === "configuracoes_financeiro_base"
+    params.departamento === "futebol_base"
       ? params.categoria
         ? await buscarSupervisoresDaCategoriaBase(supabase, params.categoria)
         : [null]
-      : [(config as ConfiguracaoFinanceiroRow).assinatura1_usuario_id ?? null];
+      : [config.assinatura1_usuario_id ?? null];
 
   // Dedupe: se mais de um alvo apontar pra mesma coisa (mesma pessoa, ou os dois caindo no mesmo
   // fallback "todo master") evita mandar o aviso repetido.

@@ -10,19 +10,23 @@ import {
 } from "@/lib/futebol/vagas-staff";
 import { desmarcarReciboAutomatico, marcarReciboAutomatico } from "@/lib/futebol/recibo-auto-sync";
 
-const TABELAS_RECIBO_BASE = { staff: "staff_operacional_base", recibos: "recibos_jogo_base" };
+const TABELAS_RECIBO_BASE = { staff: "staff_operacional", recibos: "recibos_jogo" };
 
 async function jogoIdDoToken(
   admin: ReturnType<typeof createAdminClient>,
   token: string,
 ): Promise<string | null> {
-  const { data } = await admin.from("jogo_vagas_staff_base").select("jogo_id").eq("token", token).maybeSingle();
+  const { data } = await admin.from("jogo_vagas_staff").select("jogo_id").eq("token", token).maybeSingle();
   return (data as { jogo_id: string } | null)?.jogo_id ?? null;
 }
 
 /**
- * Espelha `app/vagas/[token]/actions.ts` para o Futebol de Base — tabelas `jogo_vagas_staff_base*`
- * e RPCs `pegar_vaga_staff_base` / `desistir_vaga_staff_base` (ver 0075_vagas_staff_base.sql).
+ * Espelha `app/vagas/[token]/actions.ts` para o link público da Base — desde a unificação de
+ * Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql) usa as MESMAS tabelas
+ * (`jogo_vagas_staff*`, `staff_operacional`) e as MESMAS RPCs (`pegar_vaga_staff`/
+ * `desistir_vaga_staff`) do Profissional — `pegar_vaga_staff_base`/`desistir_vaga_staff_base`
+ * foram removidas pela migration. O link `/vagas-base/<token>` continua existindo (token
+ * diferente por jogo), só a tabela/RPC por trás é a unificada.
  */
 
 export type { VagaPublicaState } from "@/components/vaga-publica-form";
@@ -46,7 +50,7 @@ export async function pegarVagaBase(
   const admin = createAdminClient();
 
   const { data: pessoa } = await admin
-    .from("staff_operacional_base")
+    .from("staff_operacional")
     .select("id, cpf, ativo")
     .eq("id", staffId)
     .maybeSingle();
@@ -60,7 +64,7 @@ export async function pegarVagaBase(
     return { error: "Os 4 dígitos não conferem com esse nome. Confira e tente de novo." };
   }
 
-  const { data, error } = await admin.rpc("pegar_vaga_staff_base", { p_token: token, p_staff_id: staffId });
+  const { data, error } = await admin.rpc("pegar_vaga_staff", { p_token: token, p_staff_id: staffId });
   if (error) return { error: `Não foi possível registrar agora: ${error.message}` };
 
   const resultado = data as ResultadoPegarVaga;
@@ -90,14 +94,14 @@ async function detalheDaVaga(
   staffId: string,
 ): Promise<{ funcaoNome?: string; horario?: string | null }> {
   const { data: vagas } = await admin
-    .from("jogo_vagas_staff_base")
+    .from("jogo_vagas_staff")
     .select("id, horario_apresentacao")
     .eq("token", token)
     .maybeSingle();
   if (!vagas) return {};
 
   const { data: inscricao } = await admin
-    .from("jogo_vagas_staff_base_inscricoes")
+    .from("jogo_vagas_staff_inscricoes")
     .select("vaga_funcao_id")
     .eq("vagas_id", (vagas as { id: string }).id)
     .eq("staff_id", staffId)
@@ -105,7 +109,7 @@ async function detalheDaVaga(
   if (!inscricao) return {};
 
   const { data: vagaFuncao } = await admin
-    .from("jogo_vagas_staff_base_funcoes")
+    .from("jogo_vagas_staff_funcoes")
     .select("funcao_id, horario_apresentacao")
     .eq("id", (inscricao as { vaga_funcao_id: string }).vaga_funcao_id)
     .maybeSingle();
@@ -137,12 +141,12 @@ export async function desistirVagaBase(
   if (!staffId) return { error: "Escolha o seu nome na lista." };
 
   const admin = createAdminClient();
-  const { data: pessoa } = await admin.from("staff_operacional_base").select("cpf").eq("id", staffId).maybeSingle();
+  const { data: pessoa } = await admin.from("staff_operacional").select("cpf").eq("id", staffId).maybeSingle();
   if (!confereFinalCpf((pessoa as { cpf: string | null } | null)?.cpf, finalCpf)) {
     return { error: "Os 4 dígitos não conferem com esse nome." };
   }
 
-  const { error } = await admin.rpc("desistir_vaga_staff_base", { p_token: token, p_staff_id: staffId });
+  const { error } = await admin.rpc("desistir_vaga_staff", { p_token: token, p_staff_id: staffId });
   if (error) return { error: `Não foi possível desistir agora: ${error.message}` };
 
   const jogoId = await jogoIdDoToken(admin, token);

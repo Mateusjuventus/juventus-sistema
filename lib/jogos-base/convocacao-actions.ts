@@ -31,7 +31,7 @@ export async function saveConvocacaoBase(
   // categoria, mas Server Actions são endpoints públicos e não devem confiar só na tela.
   const [categorias, { data: jogo }] = await Promise.all([
     getCategoriasConvocacao(supabase),
-    supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle(),
+    supabase.from("jogos").select("categoria").eq("id", jogoId).maybeSingle(),
   ]);
   if (categorias.length === 0) return { error: "Você não tem permissão para fazer isso." };
   if (!jogo || !categorias.includes(jogo.categoria)) {
@@ -65,7 +65,7 @@ export async function saveConvocacaoBase(
   }
 
   const { data: convocacao, error: convocacaoError } = await supabase
-    .from("convocacoes_base")
+    .from("convocacoes")
     .upsert({ jogo_id: jogoId, capitao_atleta_id: capitaoAtletaId }, { onConflict: "jogo_id" })
     .select("id")
     .single();
@@ -77,15 +77,15 @@ export async function saveConvocacaoBase(
   const convocacaoId = convocacao.id as string;
 
   await Promise.all([
-    supabase.from("convocacao_atletas_base").delete().eq("convocacao_id", convocacaoId),
-    supabase.from("convocacao_comissao_base").delete().eq("convocacao_id", convocacaoId),
+    supabase.from("convocacao_atletas").delete().eq("convocacao_id", convocacaoId),
+    supabase.from("convocacao_comissao").delete().eq("convocacao_id", convocacaoId),
   ]);
 
   const inserts: Promise<unknown>[] = [];
   if (atletaStatus.length > 0) {
     inserts.push(
       Promise.resolve(
-        supabase.from("convocacao_atletas_base").insert(
+        supabase.from("convocacao_atletas").insert(
           atletaStatus.map((a) => ({
             convocacao_id: convocacaoId,
             atleta_id: a.atletaId,
@@ -99,7 +99,7 @@ export async function saveConvocacaoBase(
   if (comissaoIds.length > 0) {
     inserts.push(
       Promise.resolve(
-        supabase.from("convocacao_comissao_base").insert(
+        supabase.from("convocacao_comissao").insert(
           comissaoIds.map((id) => ({ convocacao_id: convocacaoId, comissao_id: id })),
         ),
       ),

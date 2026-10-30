@@ -5,13 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { staffComVagaConfirmada } from "@/lib/futebol/vagas-confirmadas";
 import type {
-  ReciboJogoBaseRow,
-  StaffOperacionalBaseComFuncaoRow,
+  ReciboJogoRow,
+  StaffOperacionalComFuncaoRow,
 } from "@/lib/supabase/types";
 import { ReciboFormBase } from "./recibo-form-base";
 import { saveReciboBase } from "../operacao-actions";
 
-const TABELAS_VAGAS = { vagas: "jogo_vagas_staff_base", inscricoes: "jogo_vagas_staff_base_inscricoes" };
+const TABELAS_VAGAS = { vagas: "jogo_vagas_staff", inscricoes: "jogo_vagas_staff_inscricoes" };
 
 /**
  * Espelha `app/jogos/[id]/recibo/page.tsx` para o Futebol de Base. Recibo de Pagamento é só pra
@@ -31,11 +31,11 @@ export default async function ReciboBasePage({
 
   const [jogo, { data: recibosData }, { data: staffData }, staffComVaga] = await Promise.all([
     verificarAcessoJogoBase(supabase, params.id),
-    supabase.from("recibos_jogo_base").select("*").eq("jogo_id", params.id),
+    supabase.from("recibos_jogo").select("*").eq("jogo_id", params.id),
     supabase
-      .from("staff_operacional_base")
+      .from("staff_operacional")
       .select(
-        "*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_base_funcao_terceirizada_id_fkey(nome)",
+        "*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_funcao_terceirizada_id_fkey(nome)",
       )
       .eq("ativo", true)
       .order("nome_completo", { ascending: true }),
@@ -45,8 +45,8 @@ export default async function ReciboBasePage({
   ]);
 
   if (!jogo) notFound();
-  const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
-  const staff = (staffData ?? []) as StaffOperacionalBaseComFuncaoRow[];
+  const recibos = (recibosData ?? []) as ReciboJogoRow[];
+  const staff = (staffData ?? []) as StaffOperacionalComFuncaoRow[];
   const temRecibos = recibos.length > 0;
 
   return (

@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
-import type { ConfiguracaoFinanceiroBaseRow, ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
+import type { ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
 import type { AssinaturaComImagem } from "@/lib/assinaturas/actions";
 import type { AssinaturaInfo } from "./logistica-shared";
 
@@ -27,13 +27,19 @@ export async function getAssinaturasFinanceiro(
   };
 }
 
-/** Mesma coisa que `getAssinaturasFinanceiro`, mas para o Futebol de Base
- * (`configuracoes_financeiro_base` — tabela totalmente independente, ver a spec). */
+/** Mesma coisa que `getAssinaturasFinanceiro`, mas para o Futebol de Base. Desde a unificação de
+ * Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql) `configuracoes_financeiro` ganhou a
+ * coluna `departamento` e guarda os dois singletons juntos — `configuracoes_financeiro_base`
+ * deixou de existir. */
 export async function getAssinaturasFinanceiroBase(
   supabase: ReturnType<typeof createClient>,
 ): Promise<{ assinatura1: AssinaturaInfo; assinatura2: AssinaturaInfo }> {
-  const { data } = await supabase.from("configuracoes_financeiro_base").select("*").limit(1).maybeSingle();
-  const config = data as ConfiguracaoFinanceiroBaseRow | null;
+  const { data } = await supabase
+    .from("configuracoes_financeiro")
+    .select("*")
+    .eq("departamento", "futebol_base")
+    .maybeSingle();
+  const config = data as ConfiguracaoFinanceiroRow | null;
 
   return {
     assinatura1: config

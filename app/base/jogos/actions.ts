@@ -9,7 +9,7 @@ import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { jogoBaseSchema } from "@/lib/validation/schemas";
 
 /**
- * Espelha `app/jogos/actions.ts`, mas grava em `jogos_base` (tabela totalmente independente — ver
+ * Espelha `app/jogos/actions.ts`, mas grava em `jogos` (tabela totalmente independente — ver
  * docs/superpowers/specs/2026-07-20-futebol-de-base-design.md) e inclui `categoria`. A lista de
  * Jogos do Futebol de Base é unificada (sem segmento de categoria na URL) — a categoria continua
  * sendo um campo do formulário, editável a qualquer momento, mas não afeta o redirecionamento.
@@ -116,10 +116,10 @@ export async function createJogoBase(
   const { error: uploadError, path: logoPath } = await uploadLogoIfPresent(supabase, formData, id);
   if (uploadError) return { error: uploadError, values: raw };
 
-  const { error } = await supabase.from("jogos_base").insert({
+  const { error } = await supabase.from("jogos").insert({
     id,
     categoria: data.categoria,
-    // `jogos_base.competicao` é "text not null" — sem seleção, grava "" (nunca null). Ver
+    // `jogos.competicao` é "text not null" — sem seleção, grava "" (nunca null). Ver
     // doc-comment de `jogoBaseSchema`.
     competicao: selecionada?.nome ?? "",
     rodada_fase: data.rodadaFase || null,
@@ -201,7 +201,7 @@ export async function updateJogoBase(
     updatePayload.competicao = "";
   }
 
-  const { error } = await supabase.from("jogos_base").update(updatePayload).eq("id", id);
+  const { error } = await supabase.from("jogos").update(updatePayload).eq("id", id);
 
   if (error) return { error: "Não foi possível salvar o jogo. Tente novamente.", values: raw };
 
@@ -227,7 +227,7 @@ export async function deleteJogoBase(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
 
-  await supabase.from("jogos_base").delete().eq("id", id);
+  await supabase.from("jogos").delete().eq("id", id);
 
   revalidatePath("/base/jogos");
   // Chamado agora de dentro do próprio jogo (`/base/jogos/[id]`) — ver comentário equivalente no

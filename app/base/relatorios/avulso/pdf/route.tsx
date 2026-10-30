@@ -13,7 +13,7 @@ import {
 } from "@/lib/pdf/relatorio-avulso-document";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import type { AtletaRow, ComissaoTecnicaRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
+import type { AtletaRow, ComissaoTecnicaRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -116,8 +116,8 @@ export async function POST(request: Request) {
       : Promise.resolve({ data: [] }),
     staffIds.length > 0
       ? supabase
-          .from("staff_operacional_base")
-          .select("*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome)")
+          .from("staff_operacional")
+          .select("*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome)")
           .in("id", staffIds)
       : Promise.resolve({ data: [] }),
   ]);
@@ -176,7 +176,7 @@ export async function POST(request: Request) {
       categoria: c.categorias.map(categoriaBaseLabel).join(" · "),
     }));
 
-  const staff: RelatorioAvulsoPessoa[] = ((staffData ?? []) as StaffOperacionalBaseComFuncaoRow[])
+  const staff: RelatorioAvulsoPessoa[] = ((staffData ?? []) as StaffOperacionalComFuncaoRow[])
     .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, "pt-BR"))
     .map((s) => ({
       nome: s.nome_completo,

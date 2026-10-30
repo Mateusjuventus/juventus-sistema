@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasTreinador } from "@/lib/auth/role";
-import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { categoriaBaseLabel, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { DonutChart } from "@/components/donut-chart";
 import { StatCard } from "@/components/stat-card";
@@ -13,17 +13,18 @@ import type { AtletaAnotacaoRow, AtletaRow } from "@/lib/supabase/types";
 import { AnotacaoFormTreinador } from "./anotacao-form-treinador";
 
 const TABELAS = {
-  jogos: "jogos_base",
-  convocacoes: "convocacoes_base",
-  convocacaoAtletas: "convocacao_atletas_base",
-  sumulas: "sumulas_base",
-  sumulaEventos: "sumula_eventos_base",
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
   // Campos novos de `TabelasEstatisticasAtleta` (ver estatisticas-atleta-query.ts) — esta tela não
   // usa o filtro por Competição (mantém "sem filtro de período... só o histórico completo" de
   // propósito, pra manter simples pro Treinador), mas precisa informar as tabelas pro tipo bater.
   competicaoJogos: "competicao_jogos_base",
   competicoes: "competicoes_base",
   temporadas: "temporadas_base",
+  categoriaJogos: TODAS_CATEGORIAS_BASE,
 };
 
 function formatDataHora(iso: string): string {

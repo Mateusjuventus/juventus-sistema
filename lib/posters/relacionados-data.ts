@@ -3,11 +3,8 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import type {
   AtletaRow,
-  ConvocacaoAtletaBaseRow,
   ConvocacaoAtletaRow,
-  ConvocacaoBaseRow,
   ConvocacaoRow,
-  JogoBaseRow,
   JogoRow,
 } from "@/lib/supabase/types";
 import { nomeExibido, ordenarPorNomeExibido } from "@/lib/futebol/nome-atleta";
@@ -103,34 +100,37 @@ export async function buildRelacionadosData(jogoId: string): Promise<Relacionado
   };
 }
 
-/** Mesma coisa que `buildRelacionadosData`, mas para o Futebol de Base — ver `buildConcentracaoDataBase`. */
+/** Mesma coisa que `buildRelacionadosData`, mas para o Futebol de Base — ver
+ * `buildConcentracaoDataBase` (desde a unificação de Jogos/Convocação de 30/10/2026, mesmas
+ * tabelas `jogos`/`convocacoes`/`convocacao_atletas` do Profissional, restringidas pela checagem
+ * de categoria abaixo). */
 export async function buildRelacionadosDataBase(jogoId: string): Promise<RelacionadosData | null> {
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", jogoId).single();
+  const { data: jogoData } = await supabase.from("jogos").select("*").eq("id", jogoId).single();
   if (!jogoData) return null;
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = jogoData as JogoRow;
 
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
-  if (!categoriasPermitidas.includes(jogo.categoria)) return null;
+  if (!(categoriasPermitidas as string[]).includes(jogo.categoria)) return null;
 
   const { data: convocacaoData } = await supabase
-    .from("convocacoes_base")
+    .from("convocacoes")
     .select("*")
     .eq("jogo_id", jogoId)
     .maybeSingle();
   if (!convocacaoData) return null;
-  const convocacao = convocacaoData as ConvocacaoBaseRow;
+  const convocacao = convocacaoData as ConvocacaoRow;
 
   const [{ data: caData }, adversarioLogoUrl] = await Promise.all([
     supabase
-      .from("convocacao_atletas_base")
+      .from("convocacao_atletas")
       .select("*, atleta:atletas(*)")
       .eq("convocacao_id", convocacao.id),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const convocados = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaRow })[];
+  const convocados = (caData ?? []) as (ConvocacaoAtletaRow & { atleta: AtletaRow })[];
   // Ordem ALFABÉTICA pelo nome que aparece no pôster (apelido, quando existe) — pedido do usuário.
   // Antes saía pela numeração da camisa, que não ajuda quem procura um nome na lista impressa.
   const nomes = ordenarPorNomeExibido(convocados.map((c) => c.atleta)).map((atleta) =>
@@ -148,7 +148,7 @@ export async function buildRelacionadosDataBase(jogoId: string): Promise<Relacio
   if (jogo.local_estadio) partesDados.push(jogo.local_estadio);
 
   return {
-    jogo: jogo as unknown as JogoRow,
+    jogo,
     adversarioLogoUrl,
     confrontoTexto: buildConfrontoTexto(jogo),
     dadosJogoTexto: partesDados.join(" | "),

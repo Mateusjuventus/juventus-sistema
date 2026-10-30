@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { CATEGORIAS_BASE, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
-import type { JogoBaseRow } from "@/lib/supabase/types";
+import type { JogoBaseRow, JogoRow } from "@/lib/supabase/types";
 
 /**
  * Lista unificada de Jogos do Futebol de Base — espelha `app/jogos/page.tsx`, mas com um filtro de
@@ -30,7 +30,7 @@ export default async function JogosBasePage({
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
 
   let query = supabase
-    .from("jogos_base")
+    .from("jogos")
     .select("*")
     .in("categoria", categoriasPermitidas)
     .order("data_jogo", { ascending: false });
@@ -41,13 +41,19 @@ export default async function JogosBasePage({
 
   const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }] = await Promise.all([
     query,
-    supabase.from("jogos_base").select("id, data_jogo").in("categoria", categoriasPermitidas),
-    supabase.from("convocacoes_base").select("jogo_id"),
+    supabase.from("jogos").select("id, data_jogo").in("categoria", categoriasPermitidas),
+    supabase.from("convocacoes").select("jogo_id"),
   ]);
   const hojeStr = new Date().toISOString().slice(0, 10);
   const hojeTime = new Date(hojeStr).getTime();
 
-  const jogos = ((data ?? []) as JogoBaseRow[]).sort((a, b) => {
+  // `JogoCardBase` (fora do escopo desta unificação) ainda espera o tipo antigo `JogoBaseRow`. Como
+  // a query acima já filtra por `categoriasPermitidas` (só categorias da Base), `categoria` nunca é
+  // de fato `"profissional"` aqui — a diferença entre os dois tipos é só essa união mais larga em
+  // `JogoRow`, então o cast é seguro em tempo de execução.
+  const paraJogoCardBase = (j: JogoRow): JogoBaseRow => j as unknown as JogoBaseRow;
+
+  const jogos = ((data ?? []) as JogoRow[]).sort((a, b) => {
     if (ordem === "cronologico") {
       return new Date(a.data_jogo).getTime() - new Date(b.data_jogo).getTime();
     }
@@ -139,7 +145,7 @@ export default async function JogosBasePage({
             {jogosProximos.map((j) => (
               <JogoCardBase
                 key={j.id}
-                jogo={j}
+                jogo={paraJogoCardBase(j)}
                 logoUrl={logoUrlPorJogoId.get(j.id) ?? null}
                 href={`/base/jogos/${j.id}`}
                 footer={
@@ -171,7 +177,7 @@ export default async function JogosBasePage({
           {jogosAnteriores.map((j) => (
             <JogoCardBase
               key={j.id}
-              jogo={j}
+              jogo={paraJogoCardBase(j)}
               logoUrl={logoUrlPorJogoId.get(j.id) ?? null}
               href={`/base/jogos/${j.id}`}
               footer={

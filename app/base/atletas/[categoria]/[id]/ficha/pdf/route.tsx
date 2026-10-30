@@ -10,7 +10,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { formatTelefone } from "@/lib/validation/telefone";
 import { formatCEP } from "@/lib/validation/cep";
-import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import { categoriaBaseLabel, ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import {
@@ -34,14 +34,15 @@ import type {
 } from "@/lib/supabase/types";
 
 const TABELAS_JOGO = {
-  jogos: "jogos_base",
-  convocacoes: "convocacoes_base",
-  convocacaoAtletas: "convocacao_atletas_base",
-  sumulas: "sumulas_base",
-  sumulaEventos: "sumula_eventos_base",
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
   competicaoJogos: "competicao_jogos_base",
   competicoes: "competicoes_base",
   temporadas: "temporadas_base",
+  categoriaJogos: TODAS_CATEGORIAS_BASE,
 };
 
 function formatDataHora(iso: string): string {

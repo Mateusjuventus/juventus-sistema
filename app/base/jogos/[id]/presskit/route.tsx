@@ -12,9 +12,9 @@ import { PresskitDocument, type AtletaPresskitItem } from "@/lib/pdf/presskit-do
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  ConvocacaoAtletaBaseRow,
-  ConvocacaoBaseRow,
-  ConvocacaoComissaoBaseRow,
+  ConvocacaoAtletaRow,
+  ConvocacaoRow,
+  ConvocacaoComissaoRow,
 } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/presskit/route.tsx` para o Futebol de Base. */
@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 
   const { data: convocacaoData } = await supabase
-    .from("convocacoes_base")
+    .from("convocacoes")
     .select("*")
     .eq("jogo_id", params.id)
     .maybeSingle();
@@ -38,18 +38,18 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       { status: 400 },
     );
   }
-  const convocacao = convocacaoData as ConvocacaoBaseRow;
+  const convocacao = convocacaoData as ConvocacaoRow;
 
   const [{ data: caData }, { data: ccData }, adversarioLogoUrl] = await Promise.all([
-    supabase.from("convocacao_atletas_base").select("*, atleta:atletas(*)").eq("convocacao_id", convocacao.id),
+    supabase.from("convocacao_atletas").select("*, atleta:atletas(*)").eq("convocacao_id", convocacao.id),
     supabase
-      .from("convocacao_comissao_base")
+      .from("convocacao_comissao")
       .select("*, pessoa:comissao_tecnica(nome_completo)")
       .eq("convocacao_id", convocacao.id),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaBaseRow & { atleta: AtletaRow })[];
+  const convocacaoAtletas = (caData ?? []) as (ConvocacaoAtletaRow & { atleta: AtletaRow })[];
   // Na Base o número da camisa é da CONVOCAÇÃO (esse jogo), não do cadastro do atleta — sobrepõe
   // `numero_camisa` do atleta pelo valor informado na convocação antes de ordenar/exibir, sem
   // precisar mexer no resto do PresskitDocument (que já lê `atleta.numero_camisa`). Titulares e
@@ -57,7 +57,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   // não faz sentido agrupar por posição como no Profissional — ver
   // 0059_convocacao_atleta_base_numero_camisa.sql), COM O GOLEIRO SEMPRE NA FRENTE: é regra do
   // Presskit e vale nas duas listas, senão o goleiro reserva de camisa 12 cai depois dos de linha.
-  const comNumeroDaConvocacao = (c: ConvocacaoAtletaBaseRow & { atleta: AtletaRow }): AtletaRow => ({
+  const comNumeroDaConvocacao = (c: ConvocacaoAtletaRow & { atleta: AtletaRow }): AtletaRow => ({
     ...c.atleta,
     numero_camisa: c.numero_camisa,
   });
@@ -79,7 +79,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     );
   const [titulares, reservas] = await Promise.all([comFoto(atletasTitulares), comFoto(atletasReservas)]);
 
-  const comissaoNomes = ((ccData ?? []) as (ConvocacaoComissaoBaseRow & {
+  const comissaoNomes = ((ccData ?? []) as (ConvocacaoComissaoRow & {
     pessoa: Pick<ComissaoTecnicaRow, "nome_completo"> | null;
   })[])
     .map((c) => c.pessoa?.nome_completo)

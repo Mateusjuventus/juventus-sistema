@@ -16,6 +16,9 @@ import { FuncaoCreateForm, FuncaoRenameForm } from "./funcao-forms";
  * Uma função só pode ser excluída quando não está em uso por nenhum staff (Profissional ou Base) —
  * em vez de deixar o Postgres bloquear a exclusão com um erro de chave estrangeira, a contagem de
  * uso é calculada aqui e o botão de excluir simplesmente não aparece quando a função está em uso.
+ * Desde a unificação de Staff Operacional (30/10/2026, ver 0155_unificacao_staff_operacional.sql)
+ * `staff_operacional` já guarda os dois departamentos juntos (lista única, sem coluna de
+ * departamento) — uma consulta só é suficiente, sem precisar somar duas tabelas.
  */
 export default async function FuncoesStaffPage({
   searchParams,
@@ -25,16 +28,15 @@ export default async function FuncoesStaffPage({
   const veioDoBase = searchParams.voltar === "base";
   const supabase = createClient();
 
-  const [{ data: funcoesData }, { data: staffProfData }, { data: staffBaseData }] = await Promise.all([
+  const [{ data: funcoesData }, { data: staffData }] = await Promise.all([
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
     supabase.from("staff_operacional").select("funcao_id, funcao_terceirizada_id"),
-    supabase.from("staff_operacional_base").select("funcao_id, funcao_terceirizada_id"),
   ]);
 
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
 
   const contagem = new Map<string, number>();
-  for (const row of [...(staffProfData ?? []), ...(staffBaseData ?? [])] as {
+  for (const row of (staffData ?? []) as {
     funcao_id: string;
     funcao_terceirizada_id: string | null;
   }[]) {

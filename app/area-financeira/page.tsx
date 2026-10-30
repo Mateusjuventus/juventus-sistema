@@ -2,8 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { podeVerAreaFinanceira } from "@/lib/auth/role";
 import { AreaFinanceiraHeader } from "@/components/area-financeira/area-financeira-header";
-import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import type { GastoJogoBaseRow, GastoJogoRow, JogoBaseRow, JogoRow } from "@/lib/supabase/types";
+import { categoriaBaseLabel, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import type { GastoJogoRow, JogoRow } from "@/lib/supabase/types";
 
 /**
  * Início da Área Financeira — ver docs/superpowers/specs/2026-10-22-area-financeira-design.md.
@@ -31,7 +31,7 @@ interface TotaisGasto {
 }
 
 function somarPorJogo(
-  gastos: Array<Pick<GastoJogoRow | GastoJogoBaseRow, "jogo_id" | "valor_previsto" | "valor_efetuado">>,
+  gastos: Array<Pick<GastoJogoRow, "jogo_id" | "valor_previsto" | "valor_efetuado">>,
 ): Map<string, TotaisGasto> {
   const porJogo = new Map<string, TotaisGasto>();
   for (const g of gastos) {
@@ -118,25 +118,25 @@ export default async function AreaFinanceiraPage() {
     );
   }
 
-  const [{ data: jogosData }, { data: jogosBaseData }, { data: gastosData }, { data: gastosBaseData }] =
-    await Promise.all([
-      supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
-      supabase.from("jogos_base").select("*").order("data_jogo", { ascending: false }),
-      supabase.from("gastos_jogo").select("jogo_id, valor_previsto, valor_efetuado"),
-      supabase.from("gastos_jogo_base").select("jogo_id, valor_previsto, valor_efetuado"),
-    ]);
+  // Unificação de Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql): `jogos` e
+  // `gastos_jogo` agora guardam os dois departamentos juntos (`jogos.categoria` distingue) — uma
+  // query só de cada, filtrando por categoria em vez de duas tabelas separadas.
+  const [{ data: jogosData }, { data: jogosBaseData }, { data: gastosData }] = await Promise.all([
+    supabase.from("jogos").select("*").eq("categoria", "profissional").order("data_jogo", { ascending: false }),
+    supabase.from("jogos").select("*").in("categoria", TODAS_CATEGORIAS_BASE).order("data_jogo", { ascending: false }),
+    supabase.from("gastos_jogo").select("jogo_id, valor_previsto, valor_efetuado"),
+  ]);
 
   const jogos = (jogosData ?? []) as JogoRow[];
-  const jogosBase = (jogosBaseData ?? []) as JogoBaseRow[];
+  const jogosBase = (jogosBaseData ?? []) as JogoRow[];
   const totaisPorJogo = somarPorJogo(gastosData ?? []);
-  const totaisPorJogoBase = somarPorJogo(gastosBaseData ?? []);
   const totalGeralProfissional = somarTotalGeral(
     jogos.map((j) => j.id),
     totaisPorJogo,
   );
   const totalGeralBase = somarTotalGeral(
     jogosBase.map((j) => j.id),
-    totaisPorJogoBase,
+    totaisPorJogo,
   );
 
   return (
@@ -177,7 +177,7 @@ export default async function AreaFinanceiraPage() {
                 href={`/area-financeira/base/jogos/${j.id}`}
                 titulo={`${j.mandante ? "Juventus" : j.adversario_nome} x ${j.mandante ? j.adversario_nome : "Juventus"}`}
                 subtitulo={`${categoriaBaseLabel(j.categoria)} · ${j.competicao} · ${formatData(j.data_jogo)}`}
-                totais={totaisPorJogoBase.get(j.id) ?? { previsto: 0, efetuado: 0 }}
+                totais={totaisPorJogo.get(j.id) ?? { previsto: 0, efetuado: 0 }}
               />
             ))}
           </div>

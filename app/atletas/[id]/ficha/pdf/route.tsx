@@ -34,6 +34,7 @@ const TABELAS_JOGO = {
   competicaoJogos: "competicao_jogos",
   competicoes: "competicoes",
   temporadas: "temporadas",
+  categoriaJogos: ["profissional"],
 };
 
 function formatDataHora(iso: string): string {

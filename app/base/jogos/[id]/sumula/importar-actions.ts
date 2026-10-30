@@ -119,14 +119,14 @@ export async function buscarPreviaImportacaoSumulaBase(
 
   const supabase = createClient();
   const { data: convocacao } = await supabase
-    .from("convocacoes_base")
+    .from("convocacoes")
     .select("id")
     .eq("jogo_id", jogoId)
     .maybeSingle();
 
   // Precisa da categoria do jogo pra filtrar o elenco completo (atletas_base tem todas as
   // categorias juntas) — mesma consulta de app/base/jogos/[id]/sumula/page.tsx.
-  const { data: jogoBaseData } = await supabase.from("jogos_base").select("categoria").eq("id", jogoId).maybeSingle();
+  const { data: jogoBaseData } = await supabase.from("jogos").select("categoria").eq("id", jogoId).maybeSingle();
   const categoria = (jogoBaseData?.categoria as string | undefined) ?? null;
 
   // Elenco completo DA CATEGORIA — universo de candidatos ao vínculo quando ainda não existe
@@ -137,7 +137,7 @@ export async function buscarPreviaImportacaoSumulaBase(
     : { data: [] as AtletaRow[] };
   const atletasCompletos = ((atletasCompletosData ?? []) as AtletaRow[]).map(paraAtletaParaMatch);
 
-  // Uma Convocação "existe" mas sem nenhum atleta selecionado (linha órfã em `convocacoes_base`,
+  // Uma Convocação "existe" mas sem nenhum atleta selecionado (linha órfã em `convocacoes`,
   // sem `convocacao_atletas_base`) não carrega nenhuma informação real pra proteger — trata
   // exatamente igual a "não existe Convocação" pra fins de sugestão automática (senão a
   // importação ficava bloqueada à toa, por exemplo depois de limpar uma Convocação errada pra
@@ -145,7 +145,7 @@ export async function buscarPreviaImportacaoSumulaBase(
   let idsConvocadosExistentes: string[] = [];
   if (convocacao) {
     const { data: caData } = await supabase
-      .from("convocacao_atletas_base")
+      .from("convocacao_atletas")
       .select("atleta_id")
       .eq("convocacao_id", convocacao.id);
     idsConvocadosExistentes = (caData ?? []).map((r) => r.atleta_id as string);
@@ -199,7 +199,7 @@ export async function buscarPreviaImportacaoSumulaBase(
   }
 
   const { data: sumulaExistente } = await supabase
-    .from("sumulas_base")
+    .from("sumulas")
     .select("duracao_primeiro_tempo, duracao_segundo_tempo, duracao_terceiro_tempo")
     .eq("jogo_id", jogoId)
     .maybeSingle();
@@ -424,34 +424,34 @@ export async function confirmarImportacaoSumulaBase(
   let convocacaoCriada = false;
   if (input.novaConvocacao && input.novaConvocacao.length > 0) {
     const { data: convocacaoExistente } = await supabase
-      .from("convocacoes_base")
+      .from("convocacoes")
       .select("id")
       .eq("jogo_id", input.jogoId)
       .maybeSingle();
     // Defensivo: só preenche se a Convocação realmente não tem nenhum atleta ainda — nunca
     // sobrescreve uma que já tenha sido salva (com atleta selecionado) manualmente nesse
-    // meio-tempo (ver "Manter como está" na spec). Uma linha "órfã" em `convocacoes_base` sem
+    // meio-tempo (ver "Manter como está" na spec). Uma linha "órfã" em `convocacoes` sem
     // nenhum `convocacao_atletas_base` (ex.: sobrou de uma limpeza manual pra testar de novo)
     // conta como vazia — não é um motivo pra bloquear, por isso usa upsert (não insert) pra
     // reaproveitar essa linha em vez de falhar por conflito de `jogo_id`.
     let convocacaoTemAtletas = false;
     if (convocacaoExistente) {
       const { count } = await supabase
-        .from("convocacao_atletas_base")
+        .from("convocacao_atletas")
         .select("atleta_id", { count: "exact", head: true })
         .eq("convocacao_id", convocacaoExistente.id);
       convocacaoTemAtletas = (count ?? 0) > 0;
     }
     if (!convocacaoTemAtletas) {
       const { data: novaConv, error: convError } = await supabase
-        .from("convocacoes_base")
+        .from("convocacoes")
         .upsert({ jogo_id: input.jogoId }, { onConflict: "jogo_id" })
         .select("id")
         .single();
       if (!convError && novaConv) {
         const atletasValidos = input.novaConvocacao.filter((a) => a.atletaId != null);
         if (atletasValidos.length > 0) {
-          await supabase.from("convocacao_atletas_base").insert(
+          await supabase.from("convocacao_atletas").insert(
             atletasValidos.map((a) => ({
               convocacao_id: novaConv.id,
               atleta_id: a.atletaId as string,
@@ -466,7 +466,7 @@ export async function confirmarImportacaoSumulaBase(
   }
 
   const { error: jogoError } = await supabase
-    .from("jogos_base")
+    .from("jogos")
     .update({
       ...(input.golsPro != null ? { gols_pro: input.golsPro } : {}),
       ...(input.golsContra != null ? { gols_contra: input.golsContra } : {}),
@@ -478,7 +478,7 @@ export async function confirmarImportacaoSumulaBase(
   if (jogoError) return { erro: "Não foi possível atualizar o placar do jogo." };
 
   const { data: sumula, error: sumulaError } = await supabase
-    .from("sumulas_base")
+    .from("sumulas")
     .upsert(
       {
         jogo_id: input.jogoId,
@@ -492,13 +492,13 @@ export async function confirmarImportacaoSumulaBase(
     .single();
   if (sumulaError || !sumula) return { erro: "Não foi possível salvar a súmula." };
 
-  await supabase.from("sumula_eventos_base").delete().eq("sumula_id", sumula.id);
+  await supabase.from("sumula_eventos").delete().eq("sumula_id", sumula.id);
 
   const eventosParaGravar = input.eventos.filter(
     (e) => e.incluido && (e.atletaId != null || e.nomeAdversario != null),
   );
   if (eventosParaGravar.length > 0) {
-    const { error: eventosError } = await supabase.from("sumula_eventos_base").insert(
+    const { error: eventosError } = await supabase.from("sumula_eventos").insert(
       eventosParaGravar.map((e, i) => ({
         sumula_id: sumula.id,
         tipo: e.tipo,

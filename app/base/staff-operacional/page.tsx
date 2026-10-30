@@ -11,7 +11,7 @@ import { formatTelefone } from "@/lib/validation/telefone";
 import type {
   ConfiguracaoCadastroStaffBaseRow,
   StaffFuncaoCatalogoRow,
-  StaffOperacionalBaseComFuncaoRow,
+  StaffOperacionalComFuncaoRow,
 } from "@/lib/supabase/types";
 import { deleteStaffBase, alternarStaffBaseAtivo } from "./actions";
 import { alternarCadastroPublicoBase } from "./cadastro-publico-actions";
@@ -26,7 +26,7 @@ function StaffRow({
   fotoUrl,
   opaco,
 }: {
-  s: StaffOperacionalBaseComFuncaoRow;
+  s: StaffOperacionalComFuncaoRow;
   fotoUrl: string | null;
   opaco?: boolean;
 }) {
@@ -81,9 +81,9 @@ export default async function StaffOperacionalBasePage({
   const supabase = createClient();
 
   let query = supabase
-    .from("staff_operacional_base")
+    .from("staff_operacional")
     .select(
-      "*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_base_funcao_terceirizada_id_fkey(nome)",
+      "*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_funcao_terceirizada_id_fkey(nome)",
     )
     .order("nome_completo", { ascending: true });
   if (q) query = query.ilike("nome_completo", `%${q}%`);
@@ -94,7 +94,7 @@ export default async function StaffOperacionalBasePage({
     supabase.from("staff_funcoes_catalogo").select("*").order("nome", { ascending: true }),
     supabase.from("configuracoes_cadastro_staff_base").select("*").limit(1).maybeSingle(),
   ]);
-  const staff = (data ?? []) as StaffOperacionalBaseComFuncaoRow[];
+  const staff = (data ?? []) as StaffOperacionalComFuncaoRow[];
   const funcoes = (funcoesData ?? []) as StaffFuncaoCatalogoRow[];
   const config = configData as ConfiguracaoCadastroStaffBaseRow | null;
 

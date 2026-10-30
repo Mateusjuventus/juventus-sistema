@@ -25,6 +25,7 @@ const TABELAS = {
   competicaoJogos: "competicao_jogos",
   competicoes: "competicoes",
   temporadas: "temporadas",
+  categoriaJogos: ["profissional"],
 };
 
 /** Agrupa a lista de Competições disponíveis por Temporada pra exibir no checklist — o array já vem

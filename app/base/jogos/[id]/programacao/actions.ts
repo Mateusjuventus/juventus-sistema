@@ -36,7 +36,7 @@ export async function adicionarItemProgramacaoBase(
   const supabase = createClient();
 
   const { count, error: countError } = await supabase
-    .from("jogo_programacao_itens_base")
+    .from("jogo_programacao_itens")
     .select("*", { count: "exact", head: true })
     .eq("jogo_id", jogoId)
     .eq("tipo", tipo);
@@ -45,7 +45,7 @@ export async function adicionarItemProgramacaoBase(
     return { error: `Não foi possível adicionar a linha: ${countError.message}` };
   }
 
-  const { error: insertError } = await supabase.from("jogo_programacao_itens_base").insert({
+  const { error: insertError } = await supabase.from("jogo_programacao_itens").insert({
     jogo_id: jogoId,
     tipo,
     ordem: count ?? 0,
@@ -82,13 +82,13 @@ export async function atualizarItemProgramacaoBase(
 
   const supabase = createClient();
   const { data: item } = await supabase
-    .from("jogo_programacao_itens_base")
+    .from("jogo_programacao_itens")
     .select("jogo_id")
     .eq("id", itemId)
     .single();
 
   const { error } = await supabase
-    .from("jogo_programacao_itens_base")
+    .from("jogo_programacao_itens")
     .update({ horario, atividade, local, eh_confronto: ehConfronto })
     .eq("id", itemId);
 
@@ -104,12 +104,12 @@ export async function removerItemProgramacaoBase(formData: FormData): Promise<vo
 
   const supabase = createClient();
   const { data: item } = await supabase
-    .from("jogo_programacao_itens_base")
+    .from("jogo_programacao_itens")
     .select("jogo_id")
     .eq("id", id)
     .single();
 
-  await supabase.from("jogo_programacao_itens_base").delete().eq("id", id);
+  await supabase.from("jogo_programacao_itens").delete().eq("id", id);
   if (item) {
     const caminho = caminhoProgramacao(item.jogo_id);
     if (caminho) revalidatePath(caminho);
@@ -124,7 +124,7 @@ export async function salvarConfigConcentracaoBase(formData: FormData): Promise<
 
   const supabase = createClient();
   await supabase
-    .from("jogos_base")
+    .from("jogos")
     .update({
       concentracao_data: concentracaoData || null,
       concentracao_regras: concentracaoRegras,
@@ -142,7 +142,7 @@ export async function salvarConfigDiaJogoBase(formData: FormData): Promise<void>
 
   const supabase = createClient();
   await supabase
-    .from("jogos_base")
+    .from("jogos")
     .update({ dia_jogo_liberacao: diaJogoLiberacao || null })
     .eq("id", jogoId);
 

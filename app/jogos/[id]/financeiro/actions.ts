@@ -119,7 +119,7 @@ async function avisarSeNovoBlocoAssinavel(
 
   if (total === 1) {
     await notificarAssinantesFinanceiro({
-      tabelaConfig: "configuracoes_financeiro",
+      departamento: "futebol_profissional",
       jogoId,
       adversarioNome: jogo.adversario_nome,
       dataJogo: jogo.data_jogo,
@@ -129,7 +129,7 @@ async function avisarSeNovoBlocoAssinavel(
   }
   if (temEfetuado && totalEfetuados === 1) {
     await notificarAssinantesFinanceiro({
-      tabelaConfig: "configuracoes_financeiro",
+      departamento: "futebol_profissional",
       jogoId,
       adversarioNome: jogo.adversario_nome,
       dataJogo: jogo.data_jogo,

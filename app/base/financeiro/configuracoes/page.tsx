@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { buscarPerfisParaSelecao } from "@/lib/auth/perfis";
-import type { ConfiguracaoFinanceiroBaseRow } from "@/lib/supabase/types";
+import type { ConfiguracaoFinanceiroRow } from "@/lib/supabase/types";
 import { ConfiguracaoFormBase } from "./configuracao-form-base";
 import { updateConfiguracaoFinanceiroBase } from "./actions";
 
@@ -17,10 +17,10 @@ const PADRAO = {
 export default async function ConfiguracoesFinanceiroBasePage() {
   const supabase = createClient();
   const [{ data }, perfis] = await Promise.all([
-    supabase.from("configuracoes_financeiro_base").select("*").limit(1).maybeSingle(),
+    supabase.from("configuracoes_financeiro").select("*").eq("departamento", "futebol_base").maybeSingle(),
     buscarPerfisParaSelecao(supabase),
   ]);
-  const config = data as ConfiguracaoFinanceiroBaseRow | null;
+  const config = data as ConfiguracaoFinanceiroRow | null;
 
   const defaultValues = {
     assinatura1Nome: config?.assinatura1_nome ?? PADRAO.assinatura1_nome,

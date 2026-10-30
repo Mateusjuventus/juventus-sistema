@@ -21,6 +21,7 @@ const TABELAS = {
   competicaoJogos: "competicao_jogos",
   competicoes: "competicoes",
   temporadas: "temporadas",
+  categoriaJogos: ["profissional"],
 };
 
 function naturalidade(cidade: string | null, uf: string | null): string | null {

@@ -10,9 +10,10 @@ import {
   CATEGORIA_ATLETA_COR,
   categoriaAtletaLabel,
   ehCategoriaAtletaValida,
+  type CategoriaAtleta,
 } from "@/lib/auth/categorias-base";
 import { ATLETA_TIPO_CONTRATO_OPTIONS, ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaRow, AtletaStatus, AtletaTipoContrato, CategoriaAtleta } from "@/lib/supabase/types";
+import type { AtletaRow, AtletaStatus, AtletaTipoContrato } from "@/lib/supabase/types";
 
 // Rótulos "Apto"/"Depto. Médico" (em vez de Liberado/Departamento Médico) — pedido do Mateus pra
 // bater com o layout antigo de antes do redesign (ver item 7 do ajuste de 2026-09-10).

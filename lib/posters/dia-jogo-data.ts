@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { ordenarPorHorario } from "@/lib/futebol/programacao-horario";
-import type { JogoBaseRow, JogoProgramacaoItemBaseRow, JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
+import type { JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
 import { buildConfrontoTexto } from "./jogo-texto";
 import { formatDataFaixa } from "./concentracao-data";
 import type { ItemProgramacaoTexto } from "./programacao-item";
@@ -58,20 +58,22 @@ export async function buildDiaJogoData(jogoId: string): Promise<DiaJogoData | nu
   };
 }
 
-/** Mesma coisa que `buildDiaJogoData`, mas para o Futebol de Base — ver `buildConcentracaoDataBase`. */
+/** Mesma coisa que `buildDiaJogoData`, mas para o Futebol de Base — ver `buildConcentracaoDataBase`
+ * (desde a unificação de Jogos/Convocação de 30/10/2026, mesmas tabelas `jogos`/
+ * `jogo_programacao_itens` do Profissional, restringidas pela checagem de categoria abaixo). */
 export async function buildDiaJogoDataBase(jogoId: string): Promise<DiaJogoData | null> {
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", jogoId).single();
+  const { data: jogoData } = await supabase.from("jogos").select("*").eq("id", jogoId).single();
   if (!jogoData) return null;
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = jogoData as JogoRow;
 
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
-  if (!categoriasPermitidas.includes(jogo.categoria)) return null;
+  if (!(categoriasPermitidas as string[]).includes(jogo.categoria)) return null;
 
   const [{ data: itensData }, adversarioLogoUrl] = await Promise.all([
     supabase
-      .from("jogo_programacao_itens_base")
+      .from("jogo_programacao_itens")
       .select("*")
       .eq("jogo_id", jogoId)
       .eq("tipo", "dia_jogo")
@@ -79,7 +81,7 @@ export async function buildDiaJogoDataBase(jogoId: string): Promise<DiaJogoData 
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const itensRaw = (itensData ?? []) as JogoProgramacaoItemBaseRow[];
+  const itensRaw = (itensData ?? []) as JogoProgramacaoItemRow[];
   if (itensRaw.length === 0) return null;
 
   const confrontoTexto = buildConfrontoTexto(jogo);
@@ -90,7 +92,7 @@ export async function buildDiaJogoDataBase(jogoId: string): Promise<DiaJogoData 
   }));
 
   return {
-    jogo: jogo as unknown as JogoRow,
+    jogo,
     adversarioLogoUrl,
     dataFaixaTexto: formatDataFaixa(jogo.data_jogo),
     itens,

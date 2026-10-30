@@ -9,9 +9,11 @@ export const dynamic = "force-dynamic";
 /**
  * Link público de autocadastro do Staff Operacional do Futebol de Base — espelha
  * `app/cadastro-staff/page.tsx`, mas controlado por `configuracoes_cadastro_staff_base`
- * (totalmente independente do toggle do Profissional) e gravando em `staff_operacional_base`. Sem
- * login (ver PUBLIC_PATHS em lib/supabase/middleware.ts); só permite CRIAR um cadastro. O catálogo
- * de funções (`staff_funcoes_catalogo`) é o mesmo do Profissional — compartilhado, não duplicado.
+ * (totalmente independente do toggle do Profissional). Desde a unificação de Staff Operacional
+ * (30/10/2026, ver 0155_unificacao_staff_operacional.sql) grava na MESMA tabela `staff_operacional`
+ * do Profissional. Sem login (ver PUBLIC_PATHS em lib/supabase/middleware.ts); só permite CRIAR um
+ * cadastro. O catálogo de funções (`staff_funcoes_catalogo`) é o mesmo do Profissional —
+ * compartilhado, não duplicado.
  */
 export default async function CadastroStaffBasePublicoPage() {
   const admin = createAdminClient();

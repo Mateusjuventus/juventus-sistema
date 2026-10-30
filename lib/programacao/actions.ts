@@ -134,7 +134,7 @@ export async function criarAtividadeDeJogo(
   }
 
   const { data: jogo } = await supabase
-    .from("jogos_base")
+    .from("jogos")
     .select("categoria, data_jogo, horario")
     .eq("id", data.jogoId)
     .maybeSingle();
@@ -246,7 +246,7 @@ export async function atualizarAtividadeDeJogo(
   }
 
   const { data: jogo } = await supabase
-    .from("jogos_base")
+    .from("jogos")
     .select("categoria, data_jogo, horario")
     .eq("id", data.jogoId)
     .maybeSingle();

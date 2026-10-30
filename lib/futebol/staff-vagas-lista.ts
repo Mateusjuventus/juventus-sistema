@@ -20,12 +20,16 @@ export interface StaffAtivoParaVagas {
  * comportamento é exatamente o mesmo de antes desta mudança, então não há risco de regressão
  * enquanto `SUPABASE_DIRECT_DB_URL` não estiver definida.
  *
- * `tabela` só recebe um destes dois literais fixos (nunca entrada de usuário) — é seguro interpolar
- * direto no SQL da leitura direta.
+ * `tabela` só recebe este literal fixo (nunca entrada de usuário) — é seguro interpolar direto no
+ * SQL da leitura direta. Até a unificação de Staff Operacional (30/10/2026, ver
+ * 0155_unificacao_staff_operacional.sql) havia uma segunda tabela (`staff_operacional_base`) pro
+ * Futebol de Base — a função aceitava as duas; agora é só `staff_operacional` pros dois
+ * departamentos, mas o parâmetro continua existindo pra não mudar as duas chamadas
+ * (`app/vagas/[token]/page.tsx` e `app/vagas-base/[token]/page.tsx`) além do necessário.
  */
 export async function listarStaffAtivoParaVagas(
   admin: ReturnType<typeof createAdminClient>,
-  tabela: "staff_operacional" | "staff_operacional_base",
+  tabela: "staff_operacional",
 ): Promise<StaffAtivoParaVagas[]> {
   try {
     return await queryDireto<StaffAtivoParaVagas>(

@@ -12,7 +12,7 @@ import { decidirInclusaoRecibo } from "@/lib/futebol/recibo-inclusao";
  * recibo de pagamento (Credenciamento por zona fica fora de escopo, ver a spec).
  */
 
-const TABELAS_VAGAS_RECIBO_BASE = { vagas: "jogo_vagas_staff_base", inscricoes: "jogo_vagas_staff_base_inscricoes" };
+const TABELAS_VAGAS_RECIBO_BASE = { vagas: "jogo_vagas_staff", inscricoes: "jogo_vagas_staff_inscricoes" };
 
 function revalidarAbaBase(jogoId: string, aba: "rooming-list" | "onibus" | "recibo") {
   revalidatePath(`/base/jogos/${jogoId}/${aba}`);
@@ -83,7 +83,7 @@ export async function saveRoomingListBase(
   const supabase = createClient();
 
   const { data: roomingList, error: roomingListError } = await supabase
-    .from("rooming_list_base")
+    .from("rooming_list")
     .upsert(
       { jogo_id: jogoId, hotel_nome: hotelNome, hotel_endereco: hotelEndereco, checkin, checkout },
       { onConflict: "jogo_id" },
@@ -97,11 +97,11 @@ export async function saveRoomingListBase(
 
   const roomingListId = roomingList.id as string;
 
-  await supabase.from("rooming_list_quartos_base").delete().eq("rooming_list_id", roomingListId);
+  await supabase.from("rooming_list_quartos").delete().eq("rooming_list_id", roomingListId);
 
   for (let i = 0; i < quartos.length; i++) {
     const { data: quartoRow, error: quartoError } = await supabase
-      .from("rooming_list_quartos_base")
+      .from("rooming_list_quartos")
       .insert({
         rooming_list_id: roomingListId,
         tipo: quartos[i].tipo,
@@ -117,7 +117,7 @@ export async function saveRoomingListBase(
 
     const ocupantes = ocupacaoPorQuarto.get(i) ?? [];
     if (ocupantes.length > 0) {
-      const { error: ocupantesError } = await supabase.from("rooming_list_ocupantes_base").insert(
+      const { error: ocupantesError } = await supabase.from("rooming_list_ocupantes").insert(
         ocupantes.map((o) => ({
           quarto_id: quartoRow.id,
           pessoa_tipo: o.pessoaTipo,
@@ -166,7 +166,7 @@ export async function saveOnibusBase(
   const supabase = createClient();
 
   const { data: onibusExistente } = await supabase
-    .from("onibus_lista_base")
+    .from("onibus_lista")
     .select("id")
     .eq("jogo_id", jogoId)
     .eq("onibus_numero", 1)
@@ -176,18 +176,18 @@ export async function saveOnibusBase(
 
   if (onibusId) {
     const { error } = await supabase
-      .from("onibus_lista_base")
+      .from("onibus_lista")
       .update({ horario_saida: horario })
       .eq("id", onibusId);
     if (error) return { error: "Não foi possível salvar a lista de ônibus. Tente novamente." };
     const { error: deleteError } = await supabase
-      .from("onibus_passageiros_base")
+      .from("onibus_passageiros")
       .delete()
       .eq("onibus_lista_id", onibusId);
     if (deleteError) return { error: "Não foi possível salvar a lista de ônibus. Tente novamente." };
   } else {
     const { data: onibusRow, error } = await supabase
-      .from("onibus_lista_base")
+      .from("onibus_lista")
       .insert({ jogo_id: jogoId, onibus_numero: 1, horario_saida: horario })
       .select("id")
       .single();
@@ -196,7 +196,7 @@ export async function saveOnibusBase(
   }
 
   if (passageiros.length > 0) {
-    const { error: passageirosError } = await supabase.from("onibus_passageiros_base").insert(
+    const { error: passageirosError } = await supabase.from("onibus_passageiros").insert(
       passageiros.map((p) => ({
         onibus_lista_id: onibusId,
         pessoa_tipo: p.pessoaTipo,
@@ -295,7 +295,7 @@ export async function saveReciboBase(
 
   const idsParaManter = new Set(linhas.map((l) => l.pessoaId));
   const { data: existentesData } = await supabase
-    .from("recibos_jogo_base")
+    .from("recibos_jogo")
     .select("pessoa_id")
     .eq("jogo_id", jogoId)
     .eq("pessoa_tipo", "staff");
@@ -305,19 +305,19 @@ export async function saveReciboBase(
 
   if (idsParaRemover.length > 0) {
     const { error: deleteError } = await supabase
-      .from("recibos_jogo_base")
+      .from("recibos_jogo")
       .delete()
       .eq("jogo_id", jogoId)
       .eq("pessoa_tipo", "staff")
       .in("pessoa_id", idsParaRemover);
     if (deleteError) {
-      console.error("saveReciboBase: falha ao remover de recibos_jogo_base", deleteError);
+      console.error("saveReciboBase: falha ao remover de recibos_jogo", deleteError);
       return { error: "Não foi possível salvar os recibos. Tente novamente." };
     }
   }
 
   if (linhas.length > 0) {
-    const { error: upsertError } = await supabase.from("recibos_jogo_base").upsert(
+    const { error: upsertError } = await supabase.from("recibos_jogo").upsert(
       linhas.map((l) => ({
         jogo_id: jogoId,
         pessoa_tipo: l.pessoaTipo,
@@ -331,7 +331,7 @@ export async function saveReciboBase(
       { onConflict: "jogo_id,pessoa_tipo,pessoa_id" },
     );
     if (upsertError) {
-      console.error("saveReciboBase: falha ao salvar em recibos_jogo_base", upsertError);
+      console.error("saveReciboBase: falha ao salvar em recibos_jogo", upsertError);
       // 23514 = violação de check constraint — ver o mesmo tratamento em saveRecibo
       // (app/jogos/[id]/operacao-actions.ts) para detalhes da migração 0039.
       if (upsertError.code === "23514") {

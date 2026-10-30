@@ -7,7 +7,7 @@ import { JuventusCrestMark } from "@/components/juventus-crest";
 import { logout } from "@/app/actions";
 import { buscarNotificacoes } from "@/lib/notificacoes/actions";
 import Link from "next/link";
-import type { JogoBaseRow } from "@/lib/supabase/types";
+import type { JogoBaseRow, JogoRow } from "@/lib/supabase/types";
 
 /**
  * Aba "Jogos" da Área do Treinador — mesmos cartões de `/base/jogos` (ver `JogoCardBase`), filtrados
@@ -39,10 +39,10 @@ export default async function TreinadorJogosPage() {
   }
 
   const [{ data: jogosData }, { data: convocacoesData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").in("categoria", categorias).order("data_jogo", { ascending: true }),
-    supabase.from("convocacoes_base").select("jogo_id"),
+    supabase.from("jogos").select("*").in("categoria", categorias).order("data_jogo", { ascending: true }),
+    supabase.from("convocacoes").select("jogo_id"),
   ]);
-  const jogos = (jogosData ?? []) as JogoBaseRow[];
+  const jogos = (jogosData ?? []) as JogoRow[];
   const jogoIdsComConvocacao = new Set((convocacoesData ?? []).map((c) => c.jogo_id as string));
 
   const logoUrls = await Promise.all(jogos.map((j) => getSignedPhotoUrl(supabase, j.adversario_logo_path)));
@@ -61,7 +61,11 @@ export default async function TreinadorJogosPage() {
               return (
                 <JogoCardBase
                   key={j.id}
-                  jogo={j}
+                  // `JogoCardBase` ainda espera o tipo legado `JogoBaseRow` (fora do escopo desta
+                  // varredura mecânica, ver `components/jogos/jogo-card-base.tsx`) — `JogoRow` já
+                  // cobre todos os campos que ele usa desde a unificação de Jogos/Convocação
+                  // (30/10/2026, ver 0157_unificacao_jogos.sql).
+                  jogo={j as unknown as JogoBaseRow}
                   logoUrl={logoUrls[i]}
                   href={`/treinador/jogos/${j.id}/convocacao`}
                   footer={

@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { desmarcarReciboAutomatico, marcarReciboAutomatico } from "@/lib/futebol/recibo-auto-sync";
 
-const TABELAS_RECIBO_BASE = { staff: "staff_operacional_base", recibos: "recibos_jogo_base" };
+const TABELAS_RECIBO_BASE = { staff: "staff_operacional", recibos: "recibos_jogo" };
 
 /**
  * Espelha `app/jogos/[id]/vagas/actions.ts` para o Futebol de Base — mesma lógica, tabelas
- * `jogo_vagas_staff_base*` (ver docs/superpowers/specs/2026-08-14-vagas-staff-design.md e
+ * `jogo_vagas_staff*` (ver docs/superpowers/specs/2026-08-14-vagas-staff-design.md e
  * 0075_vagas_staff_base.sql).
  *
  * Nada aqui decide quem entra: isso acontece na função `pegar_vaga_staff_base` do banco, chamada
@@ -29,7 +29,7 @@ function textoOuNull(formData: FormData, campo: string): string | null {
 }
 
 async function idDasVagas(supabase: ReturnType<typeof createClient>, jogoId: string): Promise<string | null> {
-  const { data } = await supabase.from("jogo_vagas_staff_base").select("id").eq("jogo_id", jogoId).maybeSingle();
+  const { data } = await supabase.from("jogo_vagas_staff").select("id").eq("jogo_id", jogoId).maybeSingle();
   return (data?.id as string | undefined) ?? null;
 }
 
@@ -67,7 +67,7 @@ export async function salvarVagasBase(
 
   if (!vagasId) {
     const { data, error } = await supabase
-      .from("jogo_vagas_staff_base")
+      .from("jogo_vagas_staff")
       .insert({
         jogo_id: jogoId,
         horario_apresentacao: textoOuNull(formData, "horarioApresentacao"),
@@ -80,7 +80,7 @@ export async function salvarVagasBase(
     vagasId = data.id as string;
   } else {
     const { error } = await supabase
-      .from("jogo_vagas_staff_base")
+      .from("jogo_vagas_staff")
       .update({
         horario_apresentacao: textoOuNull(formData, "horarioApresentacao"),
         local_apresentacao: textoOuNull(formData, "localApresentacao"),
@@ -91,8 +91,8 @@ export async function salvarVagasBase(
   }
 
   const [{ data: atuaisData }, { data: inscricoesData }] = await Promise.all([
-    supabase.from("jogo_vagas_staff_base_funcoes").select("id, funcao_id").eq("vagas_id", vagasId),
-    supabase.from("jogo_vagas_staff_base_inscricoes").select("vaga_funcao_id").eq("vagas_id", vagasId),
+    supabase.from("jogo_vagas_staff_funcoes").select("id, funcao_id").eq("vagas_id", vagasId),
+    supabase.from("jogo_vagas_staff_inscricoes").select("vaga_funcao_id").eq("vagas_id", vagasId),
   ]);
 
   const atuais = (atuaisData ?? []) as { id: string; funcao_id: string }[];
@@ -110,7 +110,7 @@ export async function salvarVagasBase(
 
   for (const atual of atuais) {
     if (!mantidas.has(atual.funcao_id)) {
-      await supabase.from("jogo_vagas_staff_base_funcoes").delete().eq("id", atual.id);
+      await supabase.from("jogo_vagas_staff_funcoes").delete().eq("id", atual.id);
     }
   }
 
@@ -118,11 +118,11 @@ export async function salvarVagasBase(
     const existente = atuais.find((a) => a.funcao_id === f.funcao_id);
     if (existente) {
       await supabase
-        .from("jogo_vagas_staff_base_funcoes")
+        .from("jogo_vagas_staff_funcoes")
         .update({ quantidade: f.quantidade, horario_apresentacao: f.horario_apresentacao })
         .eq("id", existente.id);
     } else {
-      await supabase.from("jogo_vagas_staff_base_funcoes").insert({ ...f, vagas_id: vagasId });
+      await supabase.from("jogo_vagas_staff_funcoes").insert({ ...f, vagas_id: vagasId });
     }
   }
 
@@ -134,7 +134,7 @@ export async function salvarVagasBase(
 export async function alternarVagasAbertasBase(jogoId: string, formData: FormData): Promise<void> {
   const abrir = String(formData.get("abrir") ?? "") === "1";
   const supabase = createClient();
-  await supabase.from("jogo_vagas_staff_base").update({ aberto: abrir }).eq("jogo_id", jogoId);
+  await supabase.from("jogo_vagas_staff").update({ aberto: abrir }).eq("jogo_id", jogoId);
   revalidatePath(`/base/jogos/${jogoId}/vagas`);
 }
 
@@ -147,7 +147,7 @@ export async function removerInscricaoBase(jogoId: string, formData: FormData): 
   const supabase = createClient();
 
   const { data: inscricaoData } = await supabase
-    .from("jogo_vagas_staff_base_inscricoes")
+    .from("jogo_vagas_staff_inscricoes")
     .select("staff_id")
     .eq("id", id)
     .maybeSingle();
@@ -158,7 +158,7 @@ export async function removerInscricaoBase(jogoId: string, formData: FormData): 
   // o que o Mateus relatou (removeu a pessoa aqui, mas ela continuou aparecendo com a vaga pro lado
   // dela). Logar o erro não resolve a causa raiz sozinho, mas garante que uma falha real não passe
   // despercebida de novo.
-  const { error } = await supabase.from("jogo_vagas_staff_base_inscricoes").delete().eq("id", id);
+  const { error } = await supabase.from("jogo_vagas_staff_inscricoes").delete().eq("id", id);
   if (error) console.error("[vagas-base] falha ao remover inscrição:", id, error);
   else if (staffId) {
     await desmarcarReciboAutomatico({ cliente: supabase, tabelaRecibos: TABELAS_RECIBO_BASE.recibos, jogoId, staffId });
@@ -176,14 +176,14 @@ export async function chamarDaEsperaBase(jogoId: string, formData: FormData): Pr
   const supabase = createClient();
 
   const { data: inscricaoData } = await supabase
-    .from("jogo_vagas_staff_base_inscricoes")
+    .from("jogo_vagas_staff_inscricoes")
     .select("staff_id")
     .eq("id", id)
     .maybeSingle();
   const staffId = (inscricaoData as { staff_id: string } | null)?.staff_id ?? null;
 
   const { error } = await supabase
-    .from("jogo_vagas_staff_base_inscricoes")
+    .from("jogo_vagas_staff_inscricoes")
     .update({ situacao: "confirmado" })
     .eq("id", id);
   // Vira confirmado de verdade — entra no Recibo de Pagamento automaticamente, igual a quem pegou
@@ -203,6 +203,6 @@ export async function trocarFuncaoInscricaoBase(jogoId: string, formData: FormDa
   const vagaFuncaoId = String(formData.get("vagaFuncaoId") ?? "");
   if (!id || !vagaFuncaoId) return;
   const supabase = createClient();
-  await supabase.from("jogo_vagas_staff_base_inscricoes").update({ vaga_funcao_id: vagaFuncaoId }).eq("id", id);
+  await supabase.from("jogo_vagas_staff_inscricoes").update({ vaga_funcao_id: vagaFuncaoId }).eq("id", id);
   revalidatePath(`/base/jogos/${jogoId}/vagas`);
 }

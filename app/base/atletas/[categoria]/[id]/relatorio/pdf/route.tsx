@@ -10,18 +10,19 @@ import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-quer
 import { textoFiltroCompeticaoAtleta } from "@/lib/futebol/ficha-atleta";
 import { AtletaRelatorioDocument } from "@/lib/pdf/atleta-relatorio-document";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
+import { categoriaBaseLabel, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type { AtletaRow } from "@/lib/supabase/types";
 
 const TABELAS = {
-  jogos: "jogos_base",
-  convocacoes: "convocacoes_base",
-  convocacaoAtletas: "convocacao_atletas_base",
-  sumulas: "sumulas_base",
-  sumulaEventos: "sumula_eventos_base",
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
   competicaoJogos: "competicao_jogos_base",
   competicoes: "competicoes_base",
   temporadas: "temporadas_base",
+  categoriaJogos: TODAS_CATEGORIAS_BASE,
 };
 
 function naturalidade(cidade: string | null, uf: string | null): string | null {

@@ -9,7 +9,8 @@ import { ehSupervisorDaCategoriaBase, isMaster } from "@/lib/auth/role";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { papeisAssinaturaFinanceiro, podeAssinarPapel } from "@/lib/assinaturas/config";
 import { buscarAssinaturas, possuiAssinaturaCadastrada, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
-import type { ConfiguracaoFinanceiroBaseRow, GastoJogoBaseComCategoriaRow } from "@/lib/supabase/types";
+import type { ConfiguracaoFinanceiroRow, GastoJogoComCategoriaRow } from "@/lib/supabase/types";
+import type { CategoriaBase } from "@/lib/auth/categorias-base";
 import { deleteGastoBase } from "./actions";
 
 function formatMoeda(valor: number | null): string {
@@ -39,7 +40,7 @@ function TabelaGastosFase({
   base,
 }: {
   fase: string | null;
-  gastos: GastoJogoBaseComCategoriaRow[];
+  gastos: GastoJogoComCategoriaRow[];
   base: string;
 }) {
   const totalPrevisto = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
@@ -133,11 +134,15 @@ export default async function FinanceiroJogoBasePage({
   ] = await Promise.all([
     verificarAcessoJogoBase(supabase, params.id),
     supabase
-      .from("gastos_jogo_base")
+      .from("gastos_jogo")
       .select("*, categoria:categorias_gasto(nome)")
       .eq("jogo_id", params.id)
       .order("created_at", { ascending: true }),
-    supabase.from("configuracoes_financeiro_base").select("*").limit(1).maybeSingle(),
+    supabase
+      .from("configuracoes_financeiro")
+      .select("*")
+      .eq("departamento", "futebol_base")
+      .maybeSingle(),
     supabase.auth.getUser(),
     isMaster(supabase),
     buscarAssinaturas("orcamento_jogo", params.id),
@@ -146,8 +151,8 @@ export default async function FinanceiroJogoBasePage({
 
   if (!jogo) notFound();
 
-  const gastos = (gastosData ?? []) as GastoJogoBaseComCategoriaRow[];
-  const configFinanceiro = configData as ConfiguracaoFinanceiroBaseRow | null;
+  const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
+  const configFinanceiro = configData as ConfiguracaoFinanceiroRow | null;
 
   const totalPrevisto = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
   const totalEfetuado = gastos.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);
@@ -164,7 +169,7 @@ export default async function FinanceiroJogoBasePage({
   const papeisQuePossoAssinar: Array<"assinatura1" | "assinatura2"> = [];
   if (user) {
     const [possoAssinatura1, possoAssinatura2] = await Promise.all([
-      ehSupervisorDaCategoriaBase(supabase, jogo.categoria),
+      ehSupervisorDaCategoriaBase(supabase, jogo.categoria as CategoriaBase),
       Promise.resolve(podeAssinarPapel(configFinanceiro?.assinatura2_usuario_id, user.id, master)),
     ]);
     if (possoAssinatura1) papeisQuePossoAssinar.push("assinatura1");

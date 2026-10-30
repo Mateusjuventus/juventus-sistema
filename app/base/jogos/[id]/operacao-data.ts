@@ -3,10 +3,10 @@ import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  ConvocacaoAtletaBaseRow,
-  ConvocacaoBaseRow,
-  ConvocacaoComissaoBaseRow,
-  JogoBaseRow,
+  ConvocacaoAtletaRow,
+  ConvocacaoRow,
+  ConvocacaoComissaoRow,
+  JogoRow,
 } from "@/lib/supabase/types";
 
 /**
@@ -16,8 +16,8 @@ import type {
  * cadastro, sem depender de convocação.
  */
 export interface ConvocadosJogoBase {
-  jogo: JogoBaseRow;
-  convocacao: ConvocacaoBaseRow | null;
+  jogo: JogoRow;
+  convocacao: ConvocacaoRow | null;
   atletas: AtletaRow[];
   comissao: ComissaoTecnicaRow[];
 }
@@ -26,30 +26,34 @@ export async function getJogoBaseEConvocados(jogoId: string): Promise<Convocados
   const supabase = createClient();
 
   const [{ data: jogoData }, { data: convocacaoData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("id", jogoId).single(),
-    supabase.from("convocacoes_base").select("*").eq("jogo_id", jogoId).maybeSingle(),
+    supabase.from("jogos").select("*").eq("id", jogoId).single(),
+    supabase.from("convocacoes").select("*").eq("jogo_id", jogoId).maybeSingle(),
   ]);
 
   if (!jogoData) return null;
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = jogoData as JogoRow;
 
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
-  if (!categoriasPermitidas.includes(jogo.categoria)) return null;
+  // `jogo.categoria` é `CategoriaBase | "profissional"` (tabela `jogos` agora é compartilhada com o
+  // Profissional — ver a unificação de Jogos/Convocação), mas `categoriasPermitidas` só contém
+  // categorias da Base. O cast pra `string[]` é só pra satisfazer o tipo do `.includes` — se vier
+  // "profissional" aqui, a comparação segue batendo `false` normalmente, igual antes.
+  if (!(categoriasPermitidas as string[]).includes(jogo.categoria)) return null;
 
-  const convocacao = convocacaoData as ConvocacaoBaseRow | null;
+  const convocacao = convocacaoData as ConvocacaoRow | null;
 
   if (!convocacao) return { jogo, convocacao: null, atletas: [], comissao: [] };
 
   const [{ data: caData }, { data: ccData }] = await Promise.all([
-    supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
+    supabase.from("convocacao_atletas").select("*").eq("convocacao_id", convocacao.id),
     supabase
-      .from("convocacao_comissao_base")
+      .from("convocacao_comissao")
       .select("*, pessoa:comissao_tecnica(*)")
       .eq("convocacao_id", convocacao.id),
   ]);
 
-  const convocacaoAtletaIds = ((caData ?? []) as ConvocacaoAtletaBaseRow[]).map((c) => c.atleta_id);
-  const comissao = ((ccData ?? []) as (ConvocacaoComissaoBaseRow & { pessoa: ComissaoTecnicaRow | null })[])
+  const convocacaoAtletaIds = ((caData ?? []) as ConvocacaoAtletaRow[]).map((c) => c.atleta_id);
+  const comissao = ((ccData ?? []) as (ConvocacaoComissaoRow & { pessoa: ComissaoTecnicaRow | null })[])
     .map((c) => c.pessoa)
     .filter((p): p is ComissaoTecnicaRow => Boolean(p));
 

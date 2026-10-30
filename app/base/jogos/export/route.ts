@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import type { JogoBaseRow } from "@/lib/supabase/types";
+import type { JogoRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ function formatHorario(horario: string | null): string {
   return horario.slice(0, 5);
 }
 
-function formatResultado(j: JogoBaseRow): string {
+function formatResultado(j: JogoRow): string {
   if (j.gols_pro === null || j.gols_contra === null) return "";
   if (j.gols_pro > j.gols_contra) return "Vitória";
   if (j.gols_pro < j.gols_contra) return "Derrota";
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
 
   let query = supabase
-    .from("jogos_base")
+    .from("jogos")
     .select("*")
     .in("categoria", categoriasPermitidas)
     .order("data_jogo", { ascending: false });
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   if (ehCategoriaBaseValida(categoriaFiltro)) query = query.eq("categoria", categoriaFiltro);
 
   const { data } = await query;
-  const jogos = (data ?? []) as JogoBaseRow[];
+  const jogos = (data ?? []) as JogoRow[];
 
   const linhas = jogos.map((j) => ({
     Categoria: categoriaBaseLabel(j.categoria),

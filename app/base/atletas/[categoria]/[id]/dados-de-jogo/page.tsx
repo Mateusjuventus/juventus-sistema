@@ -14,18 +14,19 @@ import {
 } from "@/lib/futebol/estatisticas-atleta-query";
 import { JogoDetalheLinha } from "@/components/atletas/jogo-detalhe-linha";
 import { juventusTheme } from "@/lib/theme";
-import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import { categoriaBaseLabel, ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type { AtletaRow } from "@/lib/supabase/types";
 
 const TABELAS = {
-  jogos: "jogos_base",
-  convocacoes: "convocacoes_base",
-  convocacaoAtletas: "convocacao_atletas_base",
-  sumulas: "sumulas_base",
-  sumulaEventos: "sumula_eventos_base",
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
   competicaoJogos: "competicao_jogos_base",
   competicoes: "competicoes_base",
   temporadas: "temporadas_base",
+  categoriaJogos: TODAS_CATEGORIAS_BASE,
 };
 
 /** Agrupa a lista de Competições disponíveis por Temporada pra exibir no checklist — espelha a

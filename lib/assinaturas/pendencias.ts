@@ -1,19 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { podeAssinarPapel } from "./config";
 import { getPerfilPermissoes, resolverEhSupervisorDaCategoriaBase } from "@/lib/auth/role";
-import type { CategoriaBase } from "@/lib/auth/categorias-base";
+import { TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
 import type {
   AtletaRow,
   CaptacaoBaseRow,
   ConfiguracaoDispensaBaseRow,
-  ConfiguracaoFinanceiroBaseRow,
   ConfiguracaoFinanceiroRow,
   ConfiguracaoParecerCaptacaoBaseRow,
   ConfiguracaoSolicitacoesBaseRow,
   ConfiguracaoSolicitacoesRow,
-  GastoJogoBaseRow,
   GastoJogoRow,
-  JogoBaseRow,
   JogoRow,
   SolicitacaoBaseRow,
   SolicitacaoRow,
@@ -140,7 +137,12 @@ async function pendenciasParecer(supabase: Supabase, userId: string, master: boo
  * continua um usuário vinculado fixo; na Base agora depende da categoria de CADA jogo (função
  * "Supervisor" cadastrada na Comissão Técnica da Base + aquela categoria entre as dela — ver
  * docs/superpowers/specs/2026-10-27-assinatura-financeiro-base-por-supervisor-design.md), por isso
- * é resolvida jogo a jogo dentro do loop, não de uma vez só antes de buscar os jogos. */
+ * é resolvida jogo a jogo dentro do loop, não de uma vez só antes de buscar os jogos.
+ *
+ * Desde a unificação de Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql) `jogos`,
+ * `gastos_jogo` e `configuracoes_financeiro` guardam os dois departamentos juntos — o parâmetro
+ * `categoriasJogos` delimita o universo de cada chamada (`["profissional"]` ou
+ * `TODAS_CATEGORIAS_BASE`) no lugar do antigo par de tabelas `_base`. */
 async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: boolean): Promise<PendenciaAssinatura[]> {
   const perfil = await getPerfilPermissoes(supabase);
   // Gate grosseiro (evita a query de jogos quando é impossível essa pessoa ter qualquer papel 1
@@ -149,45 +151,40 @@ async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: 
     master || (perfil?.comissao_tecnica?.funcao.toLowerCase().includes("supervisor") ?? false);
 
   async function paraDepartamento(
-    tabelaJogos: "jogos" | "jogos_base",
-    tabelaGastos: "gastos_jogo" | "gastos_jogo_base",
-    tabelaConfig: "configuracoes_financeiro" | "configuracoes_financeiro_base",
+    departamento: "futebol_profissional" | "futebol_base",
+    categoriasJogos: string[],
     linkBase: (jogoId: string) => string,
-    departamento: "profissional" | "base",
   ): Promise<PendenciaAssinatura[]> {
-    const { data: configData } = await supabase.from(tabelaConfig).select("*").limit(1).maybeSingle();
-    const config = configData as (ConfiguracaoFinanceiroRow | ConfiguracaoFinanceiroBaseRow) | null;
+    const { data: configData } = await supabase
+      .from("configuracoes_financeiro")
+      .select("*")
+      .eq("departamento", departamento)
+      .maybeSingle();
+    const config = configData as ConfiguracaoFinanceiroRow | null;
 
     const podeAssinatura2 = podeAssinarPapel(config?.assinatura2_usuario_id, userId, master);
     const podeAssinatura1Profissional =
-      departamento === "profissional" &&
-      podeAssinarPapel((config as ConfiguracaoFinanceiroRow | null)?.assinatura1_usuario_id, userId, master);
-    const podeTalvezAssinatura1 = departamento === "profissional" ? podeAssinatura1Profissional : podeTalvezAssinatura1Base;
+      departamento === "futebol_profissional" && podeAssinarPapel(config?.assinatura1_usuario_id, userId, master);
+    const podeTalvezAssinatura1 =
+      departamento === "futebol_profissional" ? podeAssinatura1Profissional : podeTalvezAssinatura1Base;
 
     if (!podeTalvezAssinatura1 && !podeAssinatura2) return [];
 
-    // `.select()` precisa de uma string literal só (nunca um ternário) pra o parser de tipos do
-    // Supabase conseguir inferir as colunas direito — por isso os dois ramos chamam `.from()` com
-    // o nome literal da tabela (`tabelaJogos` já garante que o ramo certo é escolhido pelos dois
-    // lugares que chamam `paraDepartamento`), em vez de um `.select()` condicional por cima do
-    // mesmo `.from(tabelaJogos)`.
-    const jogosData =
-      tabelaJogos === "jogos_base"
-        ? (await supabase.from("jogos_base").select("id, adversario_nome, data_jogo, categoria")).data
-        : (await supabase.from("jogos").select("id, adversario_nome, data_jogo")).data;
-    const jogos = (jogosData ?? []) as (Pick<JogoRow | JogoBaseRow, "id" | "adversario_nome" | "data_jogo"> & {
-      categoria?: CategoriaBase;
-    })[];
+    const { data: jogosData } = await supabase
+      .from("jogos")
+      .select("id, adversario_nome, data_jogo, categoria")
+      .in("categoria", categoriasJogos);
+    const jogos = (jogosData ?? []) as Pick<JogoRow, "id" | "adversario_nome" | "data_jogo" | "categoria">[];
     if (jogos.length === 0) return [];
 
     const { data: gastosData } = await supabase
-      .from(tabelaGastos)
+      .from("gastos_jogo")
       .select("jogo_id, valor_efetuado")
       .in(
         "jogo_id",
         jogos.map((j) => j.id),
       );
-    const gastos = (gastosData ?? []) as Pick<GastoJogoRow | GastoJogoBaseRow, "jogo_id" | "valor_efetuado">[];
+    const gastos = (gastosData ?? []) as Pick<GastoJogoRow, "jogo_id" | "valor_efetuado">[];
     const gastosPorJogo = new Map<string, { total: number; temEfetuado: boolean }>();
     for (const g of gastos) {
       const atual = gastosPorJogo.get(g.jogo_id) ?? { total: 0, temEfetuado: false };
@@ -206,9 +203,9 @@ async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: 
       if (!info || info.total === 0) continue;
 
       const podeAssinatura1 =
-        departamento === "profissional"
+        departamento === "futebol_profissional"
           ? podeAssinatura1Profissional
-          : jogo.categoria !== undefined && resolverEhSupervisorDaCategoriaBase(perfil, jogo.categoria);
+          : resolverEhSupervisorDaCategoriaBase(perfil, jogo.categoria as CategoriaBase);
       const papeisElegiveisDoJogo: Array<"assinatura1" | "assinatura2"> = [];
       if (podeAssinatura1) papeisElegiveisDoJogo.push("assinatura1");
       if (podeAssinatura2) papeisElegiveisDoJogo.push("assinatura2");
@@ -231,14 +228,8 @@ async function pendenciasFinanceiro(supabase: Supabase, userId: string, master: 
   }
 
   const [profissional, base] = await Promise.all([
-    paraDepartamento("jogos", "gastos_jogo", "configuracoes_financeiro", (id) => `/jogos/${id}/financeiro`, "profissional"),
-    paraDepartamento(
-      "jogos_base",
-      "gastos_jogo_base",
-      "configuracoes_financeiro_base",
-      (id) => `/base/jogos/${id}/financeiro`,
-      "base",
-    ),
+    paraDepartamento("futebol_profissional", ["profissional"], (id) => `/jogos/${id}/financeiro`),
+    paraDepartamento("futebol_base", TODAS_CATEGORIAS_BASE, (id) => `/base/jogos/${id}/financeiro`),
   ]);
   return [...profissional, ...base];
 }

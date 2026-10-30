@@ -5,7 +5,7 @@ import { ProgramacaoLinha } from "@/components/programacao-linha";
 import { createClient } from "@/lib/supabase/server";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { ordenarPorHorario } from "@/lib/futebol/programacao-horario";
-import type { JogoProgramacaoItemBaseRow } from "@/lib/supabase/types";
+import type { JogoProgramacaoItemRow } from "@/lib/supabase/types";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import {
   adicionarItemProgramacaoBase,
@@ -27,14 +27,14 @@ export default async function ProgramacaoBasePage({
   const [jogo, { data: itensData }] = await Promise.all([
     verificarAcessoJogoBase(supabase, params.id),
     supabase
-      .from("jogo_programacao_itens_base")
+      .from("jogo_programacao_itens")
       .select("*")
       .eq("jogo_id", params.id)
       .order("ordem", { ascending: true }),
   ]);
 
   if (!jogo) notFound();
-  const itens = (itensData ?? []) as JogoProgramacaoItemBaseRow[];
+  const itens = (itensData ?? []) as JogoProgramacaoItemRow[];
 
   // Do menor horário pro maior — igual ao Profissional (ver `lib/futebol/programacao-horario.ts`).
   const itensConcentracao = ordenarPorHorario(itens.filter((i) => i.tipo === "concentracao"));

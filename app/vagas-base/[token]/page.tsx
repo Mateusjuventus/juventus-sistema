@@ -5,10 +5,10 @@ import { diaDaSemana, formatDataBr, formatHorario } from "@/lib/posters/relacion
 import { horarioDaFuncao, montarResumo, todasPreenchidas, vagasRestantes } from "@/lib/futebol/vagas-staff";
 import { listarStaffAtivoParaVagas } from "@/lib/futebol/staff-vagas-lista";
 import type {
-  JogoBaseRow,
-  JogoVagasStaffBaseFuncaoRow,
-  JogoVagasStaffBaseInscricaoRow,
-  JogoVagasStaffBaseRow,
+  JogoRow,
+  JogoVagasStaffFuncaoRow,
+  JogoVagasStaffInscricaoRow,
+  JogoVagasStaffRow,
   StaffFuncaoCatalogoRow,
 } from "@/lib/supabase/types";
 import { desistirVagaBase, pegarVagaBase } from "./actions";
@@ -44,7 +44,7 @@ export default async function VagasPublicasBasePage({ params }: { params: { toke
   const admin = createAdminClient();
 
   const { data: vagasData, error: vagasError } = await admin
-    .from("jogo_vagas_staff_base")
+    .from("jogo_vagas_staff")
     .select("*")
     .eq("token", params.token)
     .maybeSingle();
@@ -85,26 +85,26 @@ export default async function VagasPublicasBasePage({ params }: { params: { toke
     );
   }
 
-  const vagas = vagasData as JogoVagasStaffBaseRow;
+  const vagas = vagasData as JogoVagasStaffRow;
 
   const [{ data: jogoData }, { data: funcoesData }, { data: inscricoesData }, { data: catalogoData }] =
     await Promise.all([
-      admin.from("jogos_base").select("*").eq("id", vagas.jogo_id).maybeSingle(),
-      admin.from("jogo_vagas_staff_base_funcoes").select("*").eq("vagas_id", vagas.id),
-      admin.from("jogo_vagas_staff_base_inscricoes").select("*").eq("vagas_id", vagas.id),
+      admin.from("jogos").select("*").eq("id", vagas.jogo_id).maybeSingle(),
+      admin.from("jogo_vagas_staff_funcoes").select("*").eq("vagas_id", vagas.id),
+      admin.from("jogo_vagas_staff_inscricoes").select("*").eq("vagas_id", vagas.id),
       admin.from("staff_funcoes_catalogo").select("*"),
     ]);
 
-  const jogo = jogoData as JogoBaseRow | null;
-  const funcoes = (funcoesData ?? []) as JogoVagasStaffBaseFuncaoRow[];
-  const inscricoes = (inscricoesData ?? []) as JogoVagasStaffBaseInscricaoRow[];
+  const jogo = jogoData as JogoRow | null;
+  const funcoes = (funcoesData ?? []) as JogoVagasStaffFuncaoRow[];
+  const inscricoes = (inscricoesData ?? []) as JogoVagasStaffInscricaoRow[];
   const catalogo = (catalogoData ?? []) as StaffFuncaoCatalogoRow[];
   const nomePorFuncaoId = new Map(catalogo.map((f) => [f.id, f.nome]));
 
   const resumos = montarResumo(funcoes, inscricoes, nomePorFuncaoId);
   const lotado = todasPreenchidas(resumos);
 
-  const staff = await listarStaffAtivoParaVagas(admin, "staff_operacional_base");
+  const staff = await listarStaffAtivoParaVagas(admin, "staff_operacional");
 
   const resumoPorFuncaoId = new Map(resumos.map((r) => [r.funcaoId, r]));
   const pessoas: PessoaOpcao[] = staff.map((p) => {

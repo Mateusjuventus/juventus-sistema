@@ -5,7 +5,7 @@ import { useFormState } from "react-dom";
 import { ReciboLinha } from "@/components/recibo-linha";
 import { SubmitButton } from "@/components/submit-button";
 import { funcaoCadastroStaff } from "@/lib/futebol/funcao-staff";
-import type { ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
+import type { ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 import type { ReciboFormState } from "../operacao-actions";
 
 const initialState: ReciboFormState = {};
@@ -21,8 +21,8 @@ export function ReciboFormBase({
 }: {
   action: (prevState: ReciboFormState, formData: FormData) => Promise<ReciboFormState>;
   jogoId: string;
-  staff: StaffOperacionalBaseComFuncaoRow[];
-  recibos: ReciboJogoBaseRow[];
+  staff: StaffOperacionalComFuncaoRow[];
+  recibos: ReciboJogoRow[];
   /** Quem está com vaga CONFIRMADA agora neste jogo — ver o comentário equivalente em
    * `recibo-form.tsx` do Profissional. */
   staffComVaga?: string[];

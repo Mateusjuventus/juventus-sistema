@@ -15,7 +15,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { formatTelefone } from "@/lib/validation/telefone";
 import { formatCEP } from "@/lib/validation/cep";
-import { categoriaAtletaLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import { categoriaAtletaLabel, ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
 import { ContratoSecao } from "@/components/contrato-secao";
@@ -42,10 +42,11 @@ const PE_DOMINANTE_LABEL: Record<string, string> = {
 };
 
 /** Tabelas de Jogos/Convocação/Súmula usadas só pra listar as Competições disponíveis pro
- * checklist do botão "Gerar ficha" — continuam em dois conjuntos (Profissional sem sufixo, Base
- * com `_base`) porque Jogos/Convocação da Base ainda não passou pela unificação (fora do escopo
- * desta fase — ver docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md, "Fora de
- * escopo"). */
+ * checklist do botão "Gerar ficha". Desde a unificação de Jogos/Convocação (30/10/2026, ver
+ * 0157_unificacao_jogos.sql) `jogos`/`convocacoes`/`convocacao_atletas`/`sumulas`/`sumula_eventos`
+ * guardam os dois departamentos juntos — por isso Profissional e Base usam os mesmos nomes de
+ * tabela aqui, só o `categoriaJogos` muda. Competições/Temporadas continuam em dois conjuntos
+ * (Profissional sem sufixo, Base com `_base`) porque esse módulo não foi unificado nesta fase. */
 const TABELAS_JOGO_PROFISSIONAL = {
   jogos: "jogos",
   convocacoes: "convocacoes",
@@ -55,16 +56,18 @@ const TABELAS_JOGO_PROFISSIONAL = {
   competicaoJogos: "competicao_jogos",
   competicoes: "competicoes",
   temporadas: "temporadas",
+  categoriaJogos: ["profissional"],
 };
 const TABELAS_JOGO_BASE = {
-  jogos: "jogos_base",
-  convocacoes: "convocacoes_base",
-  convocacaoAtletas: "convocacao_atletas_base",
-  sumulas: "sumulas_base",
-  sumulaEventos: "sumula_eventos_base",
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
   competicaoJogos: "competicao_jogos_base",
   competicoes: "competicoes_base",
   temporadas: "temporadas_base",
+  categoriaJogos: TODAS_CATEGORIAS_BASE,
 };
 
 function formatData(data: string | null): string {

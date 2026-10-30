@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { ordenarPorHorario } from "@/lib/futebol/programacao-horario";
-import type { JogoBaseRow, JogoProgramacaoItemBaseRow, JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
+import type { JogoProgramacaoItemRow, JogoRow } from "@/lib/supabase/types";
 import { diaDaSemana } from "./relacionados-data";
 import type { ItemProgramacaoTexto } from "./programacao-item";
 
@@ -67,25 +67,28 @@ export async function buildConcentracaoData(jogoId: string): Promise<Concentraca
 }
 
 /**
- * Mesma coisa que `buildConcentracaoData`, mas para o Futebol de Base (`jogos_base`/
- * `jogo_programacao_itens_base`). Devolve o mesmo formato `ConcentracaoData` — o documento/imagem
- * do pôster (`ConcentracaoDocument`/`concentracaoImagemJsx`) recebe só dados já achatados, então
- * não precisa de nenhuma mudança pra funcionar com o Futebol de Base.
+ * Mesma coisa que `buildConcentracaoData`, mas para o Futebol de Base. Desde a unificação de
+ * Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql) `jogos`/`jogo_programacao_itens`
+ * são as mesmas tabelas do Profissional — a checagem de categoria abaixo é quem garante que só
+ * jogos da Base (e só os permitidos a este usuário) chegam até aqui. Devolve o mesmo formato
+ * `ConcentracaoData` — o documento/imagem do pôster (`ConcentracaoDocument`/`concentracaoImagemJsx`)
+ * recebe só dados já achatados, então não precisa de nenhuma mudança pra funcionar com o Futebol
+ * de Base.
  */
 export async function buildConcentracaoDataBase(jogoId: string): Promise<ConcentracaoData | null> {
   const supabase = createClient();
 
-  const { data: jogoData } = await supabase.from("jogos_base").select("*").eq("id", jogoId).single();
+  const { data: jogoData } = await supabase.from("jogos").select("*").eq("id", jogoId).single();
   if (!jogoData) return null;
-  const jogo = jogoData as JogoBaseRow;
+  const jogo = jogoData as JogoRow;
   if (!jogo.concentracao_data) return null;
 
   const categoriasPermitidas = await getCategoriasBasePermitidas(supabase);
-  if (!categoriasPermitidas.includes(jogo.categoria)) return null;
+  if (!(categoriasPermitidas as string[]).includes(jogo.categoria)) return null;
 
   const [{ data: itensData }, adversarioLogoUrl] = await Promise.all([
     supabase
-      .from("jogo_programacao_itens_base")
+      .from("jogo_programacao_itens")
       .select("*")
       .eq("jogo_id", jogoId)
       .eq("tipo", "concentracao")
@@ -93,7 +96,7 @@ export async function buildConcentracaoDataBase(jogoId: string): Promise<Concent
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const itensRaw = (itensData ?? []) as JogoProgramacaoItemBaseRow[];
+  const itensRaw = (itensData ?? []) as JogoProgramacaoItemRow[];
   if (itensRaw.length === 0) return null;
 
   const itens: ItemProgramacaoTexto[] = ordenarPorHorario(itensRaw).map((item) => ({
@@ -108,7 +111,7 @@ export async function buildConcentracaoDataBase(jogoId: string): Promise<Concent
     .filter(Boolean);
 
   return {
-    jogo: jogo as unknown as JogoRow,
+    jogo,
     adversarioLogoUrl,
     dataFaixaTexto: formatDataFaixa(jogo.concentracao_data),
     itens,

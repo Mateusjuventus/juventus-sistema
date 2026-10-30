@@ -16,10 +16,10 @@ import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  RoomingListBaseRow,
-  RoomingListOcupanteBaseRow,
-  RoomingListQuartoBaseRow,
-  StaffOperacionalBaseRow,
+  RoomingListRow,
+  RoomingListOcupanteRow,
+  RoomingListQuartoRow,
+  StaffOperacionalRow,
 } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/rooming-list/pdf-envio/route.tsx` para o Futebol de Base. */
@@ -32,30 +32,30 @@ export async function GET(request: Request, { params }: { params: { id: string }
   if (!jogo) return new NextResponse("Jogo não encontrado.", { status: 404 });
 
   const { data: roomingListData } = await supabase
-    .from("rooming_list_base")
+    .from("rooming_list")
     .select("*")
     .eq("jogo_id", params.id)
     .maybeSingle();
   if (!roomingListData) {
     return new NextResponse("Ainda não há rooming list registrada para este jogo.", { status: 400 });
   }
-  const roomingList = roomingListData as RoomingListBaseRow;
+  const roomingList = roomingListData as RoomingListRow;
 
   const { data: quartosData } = await supabase
-    .from("rooming_list_quartos_base")
+    .from("rooming_list_quartos")
     .select("*")
     .eq("rooming_list_id", roomingList.id)
     .order("ordem", { ascending: true });
-  const quartos = (quartosData ?? []) as RoomingListQuartoBaseRow[];
+  const quartos = (quartosData ?? []) as RoomingListQuartoRow[];
   const quartoIds = quartos.map((q) => q.id);
 
-  let ocupantes: RoomingListOcupanteBaseRow[] = [];
+  let ocupantes: RoomingListOcupanteRow[] = [];
   if (quartoIds.length > 0) {
     const { data: ocupantesData } = await supabase
-      .from("rooming_list_ocupantes_base")
+      .from("rooming_list_ocupantes")
       .select("*")
       .in("quarto_id", quartoIds);
-    ocupantes = (ocupantesData ?? []) as RoomingListOcupanteBaseRow[];
+    ocupantes = (ocupantesData ?? []) as RoomingListOcupanteRow[];
   }
 
   const atletaIds = ocupantes.filter((o) => o.pessoa_tipo === "atleta").map((o) => o.pessoa_id);
@@ -70,7 +70,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       ? supabase.from("comissao_tecnica").select("id, nome_completo").in("id", comissaoIds)
       : Promise.resolve({ data: [] }),
     staffIds.length > 0
-      ? supabase.from("staff_operacional_base").select("id, nome_completo").in("id", staffIds)
+      ? supabase.from("staff_operacional").select("id, nome_completo").in("id", staffIds)
       : Promise.resolve({ data: [] }),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
@@ -82,10 +82,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
     ((comissaoData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo">[]).map((c) => [c.id, c]),
   );
   const staffMap = new Map(
-    ((staffData ?? []) as Pick<StaffOperacionalBaseRow, "id" | "nome_completo">[]).map((s) => [s.id, s]),
+    ((staffData ?? []) as Pick<StaffOperacionalRow, "id" | "nome_completo">[]).map((s) => [s.id, s]),
   );
 
-  const pessoaDe = (o: RoomingListOcupanteBaseRow): RoomingListEnvioOcupante => {
+  const pessoaDe = (o: RoomingListOcupanteRow): RoomingListEnvioOcupante => {
     // Atleta: prioriza o apelido (como ele é conhecido no dia a dia) sobre o nome completo — pedido
     // do usuário, só pra atletas (Comissão Técnica e Staff continuam com nome completo).
     if (o.pessoa_tipo === "atleta") {

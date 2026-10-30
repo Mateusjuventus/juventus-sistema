@@ -12,10 +12,10 @@ import { parseOrdemApartamento } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  RoomingListBaseRow,
-  RoomingListOcupanteBaseRow,
-  RoomingListQuartoBaseRow,
-  StaffOperacionalBaseRow,
+  RoomingListRow,
+  RoomingListOcupanteRow,
+  RoomingListQuartoRow,
+  StaffOperacionalRow,
 } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/rooming-list/pdf/route.tsx` para o Futebol de Base. */
@@ -28,30 +28,30 @@ export async function GET(request: Request, { params }: { params: { id: string }
   if (!jogo) return new NextResponse("Jogo não encontrado.", { status: 404 });
 
   const { data: roomingListData } = await supabase
-    .from("rooming_list_base")
+    .from("rooming_list")
     .select("*")
     .eq("jogo_id", params.id)
     .maybeSingle();
   if (!roomingListData) {
     return new NextResponse("Ainda não há rooming list registrada para este jogo.", { status: 400 });
   }
-  const roomingList = roomingListData as RoomingListBaseRow;
+  const roomingList = roomingListData as RoomingListRow;
 
   const { data: quartosData } = await supabase
-    .from("rooming_list_quartos_base")
+    .from("rooming_list_quartos")
     .select("*")
     .eq("rooming_list_id", roomingList.id)
     .order("ordem", { ascending: true });
-  const quartos = (quartosData ?? []) as RoomingListQuartoBaseRow[];
+  const quartos = (quartosData ?? []) as RoomingListQuartoRow[];
   const quartoIds = quartos.map((q) => q.id);
 
-  let ocupantes: RoomingListOcupanteBaseRow[] = [];
+  let ocupantes: RoomingListOcupanteRow[] = [];
   if (quartoIds.length > 0) {
     const { data: ocupantesData } = await supabase
-      .from("rooming_list_ocupantes_base")
+      .from("rooming_list_ocupantes")
       .select("*")
       .in("quarto_id", quartoIds);
-    ocupantes = (ocupantesData ?? []) as RoomingListOcupanteBaseRow[];
+    ocupantes = (ocupantesData ?? []) as RoomingListOcupanteRow[];
   }
 
   const atletaIds = ocupantes.filter((o) => o.pessoa_tipo === "atleta").map((o) => o.pessoa_id);
@@ -64,16 +64,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
       ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
       : Promise.resolve({ data: [] }),
     staffIds.length > 0
-      ? supabase.from("staff_operacional_base").select("*").in("id", staffIds)
+      ? supabase.from("staff_operacional").select("*").in("id", staffIds)
       : Promise.resolve({ data: [] }),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
   const atletaMap = new Map(((atletasData ?? []) as AtletaRow[]).map((a) => [a.id, a]));
   const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c]));
-  const staffMap = new Map(((staffData ?? []) as StaffOperacionalBaseRow[]).map((s) => [s.id, s]));
+  const staffMap = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s]));
 
-  const pessoaDe = (o: RoomingListOcupanteBaseRow): RoomingListPdfOcupante => {
+  const pessoaDe = (o: RoomingListOcupanteRow): RoomingListPdfOcupante => {
     const registro =
       o.pessoa_tipo === "atleta"
         ? atletaMap.get(o.pessoa_id)

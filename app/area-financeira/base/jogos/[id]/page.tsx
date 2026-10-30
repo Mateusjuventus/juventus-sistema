@@ -4,7 +4,7 @@ import { AreaFinanceiraHeader } from "@/components/area-financeira/area-financei
 import { createClient } from "@/lib/supabase/server";
 import { podeVerAreaFinanceira } from "@/lib/auth/role";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
-import type { GastoJogoBaseComCategoriaRow, JogoBaseRow } from "@/lib/supabase/types";
+import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 
 function formatMoeda(valor: number | null): string {
   if (valor === null) return "—";
@@ -34,7 +34,7 @@ function TabelaGastosFaseLeitura({
   gastos,
 }: {
   fase: string | null;
-  gastos: GastoJogoBaseComCategoriaRow[];
+  gastos: GastoJogoComCategoriaRow[];
 }) {
   const totalPrevisto = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
   const totalEfetuado = gastos.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);
@@ -98,10 +98,11 @@ function TabelaGastosFaseLeitura({
 
 /**
  * Financeiro de um jogo da Base, versão só-leitura da Área Financeira — espelha
- * `app/area-financeira/jogos/[id]/page.tsx` (Profissional). Consulta direto `jogos_base`/
- * `gastos_jogo_base` por id, sem passar pelo guard de categoria (`verificarAcessoJogoBase`): esse
- * papel não é escopado por categoria, vê os jogos dos dois departamentos sempre (ver
- * docs/superpowers/specs/2026-10-22-area-financeira-design.md).
+ * `app/area-financeira/jogos/[id]/page.tsx` (Profissional). Consulta `jogos`/`gastos_jogo` direto
+ * por id (desde a unificação de Jogos/Convocação de 30/10/2026, ver 0157_unificacao_jogos.sql, são
+ * as mesmas tabelas do Profissional), sem passar pelo guard de categoria
+ * (`verificarAcessoJogoBase`): esse papel não é escopado por categoria, vê os jogos dos dois
+ * departamentos sempre (ver docs/superpowers/specs/2026-10-22-area-financeira-design.md).
  */
 export default async function AreaFinanceiraJogoBasePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -116,9 +117,9 @@ export default async function AreaFinanceiraJogoBasePage({ params }: { params: {
   }
 
   const [{ data: jogoData }, { data: gastosData }] = await Promise.all([
-    supabase.from("jogos_base").select("*").eq("id", params.id).single(),
+    supabase.from("jogos").select("*").eq("id", params.id).single(),
     supabase
-      .from("gastos_jogo_base")
+      .from("gastos_jogo")
       .select("*, categoria:categorias_gasto(nome)")
       .eq("jogo_id", params.id)
       .order("created_at", { ascending: true }),
@@ -126,8 +127,8 @@ export default async function AreaFinanceiraJogoBasePage({ params }: { params: {
 
   if (!jogoData) notFound();
 
-  const jogo = jogoData as JogoBaseRow;
-  const gastos = (gastosData ?? []) as GastoJogoBaseComCategoriaRow[];
+  const jogo = jogoData as JogoRow;
+  const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
 
   const totalPrevisto = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
   const totalEfetuado = gastos.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);

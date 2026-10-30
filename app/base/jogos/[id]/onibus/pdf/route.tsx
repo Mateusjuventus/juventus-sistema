@@ -11,9 +11,9 @@ import { OnibusDocument, type OnibusPdfItem, type OnibusPdfPassageiro } from "@/
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  OnibusListaBaseRow,
-  OnibusPassageiroBaseRow,
-  StaffOperacionalBaseRow,
+  OnibusListaRow,
+  OnibusPassageiroRow,
+  StaffOperacionalRow,
 } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/onibus/pdf/route.tsx` para o Futebol de Base. */
@@ -24,19 +24,19 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!jogo) return new NextResponse("Jogo não encontrado.", { status: 404 });
 
   const { data: onibusData } = await supabase
-    .from("onibus_lista_base")
+    .from("onibus_lista")
     .select("*")
     .eq("jogo_id", params.id)
     .order("onibus_numero", { ascending: true });
-  const onibusRows = (onibusData ?? []) as OnibusListaBaseRow[];
+  const onibusRows = (onibusData ?? []) as OnibusListaRow[];
   if (onibusRows.length === 0) return new NextResponse("Ainda não há ônibus registrado para este jogo.", { status: 400 });
   const onibusIds = onibusRows.map((o) => o.id);
 
   const { data: passageirosData } = await supabase
-    .from("onibus_passageiros_base")
+    .from("onibus_passageiros")
     .select("*")
     .in("onibus_lista_id", onibusIds);
-  const passageiros = (passageirosData ?? []) as OnibusPassageiroBaseRow[];
+  const passageiros = (passageirosData ?? []) as OnibusPassageiroRow[];
 
   const atletaIds = passageiros.filter((p) => p.pessoa_tipo === "atleta").map((p) => p.pessoa_id);
   const comissaoIds = passageiros.filter((p) => p.pessoa_tipo === "comissao").map((p) => p.pessoa_id);
@@ -49,16 +49,16 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         ? supabase.from("comissao_tecnica").select("*").in("id", comissaoIds)
         : Promise.resolve({ data: [] }),
       staffIds.length > 0
-        ? supabase.from("staff_operacional_base").select("*").in("id", staffIds)
+        ? supabase.from("staff_operacional").select("*").in("id", staffIds)
         : Promise.resolve({ data: [] }),
       getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
     ]);
 
   const atletaMap = new Map(((atletasData ?? []) as AtletaRow[]).map((a) => [a.id, a]));
   const comissaoMap = new Map(((comissaoData ?? []) as ComissaoTecnicaRow[]).map((c) => [c.id, c]));
-  const staffMap = new Map(((staffData ?? []) as StaffOperacionalBaseRow[]).map((s) => [s.id, s]));
+  const staffMap = new Map(((staffData ?? []) as StaffOperacionalRow[]).map((s) => [s.id, s]));
 
-  const passageiroDe = (p: OnibusPassageiroBaseRow): OnibusPdfPassageiro => {
+  const passageiroDe = (p: OnibusPassageiroRow): OnibusPdfPassageiro => {
     const registro =
       p.pessoa_tipo === "atleta"
         ? atletaMap.get(p.pessoa_id)

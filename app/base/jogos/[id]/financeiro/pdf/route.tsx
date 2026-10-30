@@ -13,7 +13,7 @@ import type { FaseGasto } from "@/lib/pdf/relatorio-despesas-document";
 const ORDEM_FASES: FaseGasto[] = ["pre_jogo", "pos_jogo", null];
 import { getAssinaturasFinanceiroBase, montarAssinaturasFinanceiroComDigital } from "@/lib/pdf/assinaturas";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
-import type { GastoJogoBaseComCategoriaRow } from "@/lib/supabase/types";
+import type { GastoJogoComCategoriaRow } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/financeiro/pdf/route.tsx` para o Futebol de Base. */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
@@ -24,7 +24,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const [{ data: gastosData }, adversarioLogoUrl, assinaturasConfig, assinaturasSalvas] = await Promise.all([
     supabase
-      .from("gastos_jogo_base")
+      .from("gastos_jogo")
       .select("*, categoria:categorias_gasto(nome)")
       .eq("jogo_id", params.id)
       .order("created_at", { ascending: true }),
@@ -34,7 +34,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   ]);
   const assinaturasComImagem = await resolverImagensAssinaturas(supabase, assinaturasSalvas);
   const { assinatura1, assinatura2 } = montarAssinaturasFinanceiroComDigital(assinaturasConfig, assinaturasComImagem);
-  const gastos = (gastosData ?? []) as GastoJogoBaseComCategoriaRow[];
+  const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
 
   if (gastos.length === 0) {
     return new NextResponse("Ainda não há gastos lançados para este jogo.", { status: 400 });

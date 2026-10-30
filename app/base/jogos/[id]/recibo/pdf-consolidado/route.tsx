@@ -9,7 +9,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { ReciboConsolidadoDocument, type ReciboPdfItem } from "@/lib/pdf/recibo-document";
 import { funcaoCadastroStaff } from "@/lib/futebol/funcao-staff";
-import type { ReciboJogoBaseRow, StaffOperacionalBaseComFuncaoRow } from "@/lib/supabase/types";
+import type { ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
 
 /** Espelha `app/jogos/[id]/recibo/pdf-consolidado/route.tsx` para o Futebol de Base. Recibo de
  * Pagamento é só pra Staff Operacional — o filtro `pessoa_tipo=staff` também protege contra
@@ -21,11 +21,11 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!jogo) return new NextResponse("Jogo não encontrado.", { status: 404 });
 
   const { data: recibosData } = await supabase
-    .from("recibos_jogo_base")
+    .from("recibos_jogo")
     .select("*")
     .eq("jogo_id", params.id)
     .eq("pessoa_tipo", "staff");
-  const recibos = (recibosData ?? []) as ReciboJogoBaseRow[];
+  const recibos = (recibosData ?? []) as ReciboJogoRow[];
   if (recibos.length === 0) {
     return new NextResponse("Ainda não há ninguém marcado como incluído neste jogo.", { status: 400 });
   }
@@ -35,16 +35,16 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const [{ data: staffData }, adversarioLogoUrl] = await Promise.all([
     staffIds.length > 0
       ? supabase
-          .from("staff_operacional_base")
+          .from("staff_operacional")
           .select(
-            "*, funcao:staff_funcoes_catalogo!staff_operacional_base_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_base_funcao_terceirizada_id_fkey(nome)",
+            "*, funcao:staff_funcoes_catalogo!staff_operacional_funcao_id_fkey(nome), funcao_terceirizada:staff_funcoes_catalogo!staff_operacional_funcao_terceirizada_id_fkey(nome)",
           )
           .in("id", staffIds)
       : Promise.resolve({ data: [] }),
     getSignedPhotoUrl(supabase, jogo.adversario_logo_path),
   ]);
 
-  const staffMap = new Map(((staffData ?? []) as StaffOperacionalBaseComFuncaoRow[]).map((s) => [s.id, s]));
+  const staffMap = new Map(((staffData ?? []) as StaffOperacionalComFuncaoRow[]).map((s) => [s.id, s]));
 
   const itens: ReciboPdfItem[] = recibos.map((r) => {
     const pessoa = staffMap.get(r.pessoa_id);

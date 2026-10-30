@@ -7,9 +7,9 @@ import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  ConvocacaoAtletaBaseRow,
-  ConvocacaoBaseRow,
-  ConvocacaoComissaoBaseRow,
+  ConvocacaoAtletaRow,
+  ConvocacaoRow,
+  ConvocacaoComissaoRow,
 } from "@/lib/supabase/types";
 import { ConvocacaoFormBase } from "./convocacao-form-base";
 import { saveConvocacaoBase } from "@/lib/jogos-base/convocacao-actions";
@@ -42,12 +42,12 @@ export default async function ConvocacaoBasePage({
         .select("*")
         .contains("categorias", [categoria])
         .order("nome_completo", { ascending: true }),
-      supabase.from("convocacoes_base").select("*").eq("jogo_id", params.id).maybeSingle(),
+      supabase.from("convocacoes").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);
 
   const atletas = (atletasData ?? []) as AtletaRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaRow[];
-  const convocacao = convocacaoData as ConvocacaoBaseRow | null;
+  const convocacao = convocacaoData as ConvocacaoRow | null;
 
   const fotoUrls = await Promise.all(atletas.map((a) => getSignedPhotoUrl(supabase, a.foto_path)));
   const atletasComFoto = atletas.map((a, i) => ({ ...a, fotoUrl: fotoUrls[i] }));
@@ -61,15 +61,15 @@ export default async function ConvocacaoBasePage({
 
   if (convocacao) {
     const [{ data: caData }, { data: ccData }] = await Promise.all([
-      supabase.from("convocacao_atletas_base").select("*").eq("convocacao_id", convocacao.id),
-      supabase.from("convocacao_comissao_base").select("*").eq("convocacao_id", convocacao.id),
+      supabase.from("convocacao_atletas").select("*").eq("convocacao_id", convocacao.id),
+      supabase.from("convocacao_comissao").select("*").eq("convocacao_id", convocacao.id),
     ]);
 
-    ((caData ?? []) as ConvocacaoAtletaBaseRow[]).forEach((row) => {
+    ((caData ?? []) as ConvocacaoAtletaRow[]).forEach((row) => {
       atletaStatusMap[row.atleta_id] = row.status;
       atletaNumeroCamisaMap[row.atleta_id] = row.numero_camisa;
     });
-    ((ccData ?? []) as ConvocacaoComissaoBaseRow[]).forEach((row) => comissaoSelecionados.add(row.comissao_id));
+    ((ccData ?? []) as ConvocacaoComissaoRow[]).forEach((row) => comissaoSelecionados.add(row.comissao_id));
   }
 
   return (

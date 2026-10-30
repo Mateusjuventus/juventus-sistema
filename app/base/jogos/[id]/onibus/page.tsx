@@ -7,8 +7,8 @@ import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type {
   AtletaRow,
   ComissaoTecnicaRow,
-  OnibusListaBaseRow,
-  OnibusPassageiroBaseRow,
+  OnibusListaRow,
+  OnibusPassageiroRow,
 } from "@/lib/supabase/types";
 import { getJogoBaseEConvocados } from "../operacao-data";
 import { OnibusFormBase, type PessoaOnibus } from "./onibus-form-base";
@@ -45,7 +45,7 @@ export default async function OnibusBasePage({ params }: { params: { id: string 
       .from("comissao_tecnica")
       .select("id, nome_completo, funcao, categorias")
       .order("nome_completo", { ascending: true }),
-    supabase.from("onibus_lista_base").select("*").eq("jogo_id", jogo.id).eq("onibus_numero", 1).maybeSingle(),
+    supabase.from("onibus_lista").select("*").eq("jogo_id", jogo.id).eq("onibus_numero", 1).maybeSingle(),
   ]);
 
   const todosAtletas = (todosAtletasData ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "posicao">[];
@@ -55,12 +55,12 @@ export default async function OnibusBasePage({ params }: { params: { id: string 
   const todaComissao = (
     (todaComissaoData ?? []) as Pick<ComissaoTecnicaRow, "id" | "nome_completo" | "funcao" | "categorias">[]
   ).filter((p) => p.categorias.some(ehCategoriaBaseValida));
-  const onibus = onibusData as OnibusListaBaseRow | null;
+  const onibus = onibusData as OnibusListaRow | null;
 
-  let passageiros: OnibusPassageiroBaseRow[] = [];
+  let passageiros: OnibusPassageiroRow[] = [];
   if (onibus) {
-    const { data } = await supabase.from("onibus_passageiros_base").select("*").eq("onibus_lista_id", onibus.id);
-    passageiros = (data ?? []) as OnibusPassageiroBaseRow[];
+    const { data } = await supabase.from("onibus_passageiros").select("*").eq("onibus_lista_id", onibus.id);
+    passageiros = (data ?? []) as OnibusPassageiroRow[];
   }
 
   const convocadoAtletaIds = new Set(atletas.map((a) => a.id));
