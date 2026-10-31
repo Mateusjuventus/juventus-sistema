@@ -147,7 +147,10 @@ export async function buscarPreviaImportacaoSumula(
   // Elenco completo — universo de candidatos ao vínculo quando ainda não existe Convocação pra
   // esse jogo, e também a base pra montar a sugestão de Convocação em si (ver
   // `convocacaoSugerida` mais abaixo).
-  const { data: atletasCompletosData } = await supabase.from("atletas").select("id, nome_completo, numero_fpf");
+  const { data: atletasCompletosData } = await supabase
+    .from("atletas")
+    .select("id, nome_completo, numero_fpf")
+    .eq("categoria", "profissional");
   const atletasCompletos = ((atletasCompletosData ?? []) as AtletaRow[]).map(paraAtletaParaMatch);
 
   // Uma Convocação "existe" mas sem nenhum atleta selecionado (linha órfã em `convocacoes`, sem

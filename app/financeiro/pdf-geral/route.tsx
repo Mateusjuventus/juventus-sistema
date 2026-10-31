@@ -36,7 +36,7 @@ export async function GET() {
     podeVerSalario,
   ] = await Promise.all([
     supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
-    supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
+    supabase.from("atletas").select("*").eq("categoria", "profissional").order("nome_completo", { ascending: true }),
     supabase.from("atleta_contratos").select("*").eq("vigente", true),
     getAssinaturasFinanceiro(supabase),
     podeVerCampoSensivel(supabase, "salario"),

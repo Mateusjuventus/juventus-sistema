@@ -20,7 +20,7 @@ export default async function ConvocacaoPage({ params }: { params: { id: string 
   const [{ data: jogoData }, { data: atletasData }, { data: comissaoData }, { data: convocacaoData }] =
     await Promise.all([
       supabase.from("jogos").select("*").eq("id", params.id).single(),
-      supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
+      supabase.from("atletas").select("*").eq("categoria", "profissional").order("nome_completo", { ascending: true }),
       supabase
         .from("comissao_tecnica")
         .select("*")

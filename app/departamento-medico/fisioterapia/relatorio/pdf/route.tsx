@@ -29,7 +29,7 @@ export async function GET() {
     { data: atendimentosData },
     { data: historicoGeralData },
   ] = await Promise.all([
-    supabase.from("atletas").select("id, nome_completo, apelido"),
+    supabase.from("atletas").select("id, nome_completo, apelido").eq("categoria", "profissional"),
     supabase.from("fisioterapia_lesoes").select("atleta_id, data_inicio, data_fim"),
     supabase.from("fisioterapia_queixas").select("atleta_id, data"),
     supabase.from("fisioterapia_atendimentos").select("atleta_id, quantidade"),

@@ -23,6 +23,7 @@ export default async function FisioterapiaListagemPage() {
       .from("atletas")
       .select("*")
       .eq("ativo", true)
+      .eq("categoria", "profissional")
       .order("nome_completo", { ascending: true }),
     // `.not("data_inicio", "is", null)`: uma lesão do histórico importado (sem data, ver migração
     // 0115) também tem `data_fim` nulo, mas não é uma lesão ATIVA agora — sem esse filtro, todo

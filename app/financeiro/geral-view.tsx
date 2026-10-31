@@ -36,7 +36,7 @@ export async function GeralProfissionalView() {
   const [{ data: comissaoData }, { data: atletasData }, { data: contratosData }, podeVerSalario] =
     await Promise.all([
       supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
-      supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
+      supabase.from("atletas").select("*").eq("categoria", "profissional").order("nome_completo", { ascending: true }),
       supabase.from("atleta_contratos").select("*").eq("vigente", true),
       podeVerCampoSensivel(supabase, "salario"),
     ]);

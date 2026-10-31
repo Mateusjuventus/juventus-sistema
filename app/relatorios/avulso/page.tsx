@@ -14,7 +14,11 @@ export default async function RelatorioAvulsoPage() {
 
   const [{ data: atletasData }, { data: comissaoData }, { data: staffData }, { data: jogosData }] =
     await Promise.all([
-      supabase.from("atletas").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
+      supabase
+        .from("atletas")
+        .select("id, nome_completo, posicao")
+        .eq("categoria", "profissional")
+        .order("nome_completo", { ascending: true }),
       supabase
         .from("comissao_tecnica")
         .select("id, nome_completo, funcao")

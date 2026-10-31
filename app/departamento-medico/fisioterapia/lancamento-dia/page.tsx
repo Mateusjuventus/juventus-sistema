@@ -29,7 +29,12 @@ export default async function LancamentoDiaPage({ searchParams }: { searchParams
 
   const [{ data: atletasData }, { data: lesoesAtivasData }, { data: atendimentosHojeData }, podeEditar] =
     await Promise.all([
-      supabase.from("atletas").select("*").eq("ativo", true).order("nome_completo", { ascending: true }),
+      supabase
+        .from("atletas")
+        .select("*")
+        .eq("ativo", true)
+        .eq("categoria", "profissional")
+        .order("nome_completo", { ascending: true }),
       supabase
         .from("fisioterapia_lesoes")
         .select("id, atleta_id, descricao")

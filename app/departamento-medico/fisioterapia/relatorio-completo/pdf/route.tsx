@@ -39,6 +39,7 @@ export async function GET() {
     .from("atletas")
     .select("*")
     .eq("ativo", true)
+    .eq("categoria", "profissional")
     .order("nome_completo", { ascending: true });
   const atletas = (atletasData ?? []) as AtletaRow[];
   const atletaIds = atletas.map((a) => a.id);

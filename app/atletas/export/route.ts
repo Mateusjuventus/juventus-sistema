@@ -68,7 +68,11 @@ export async function GET(request: NextRequest) {
   const gruposSelecionados = gruposCampoExportDaQueryString(searchParams);
   const supabase = createClient();
 
-  const { data } = await supabase.from("atletas").select("*").order("nome_completo", { ascending: true });
+  const { data } = await supabase
+    .from("atletas")
+    .select("*")
+    .eq("categoria", "profissional")
+    .order("nome_completo", { ascending: true });
   const atletas = ((data ?? []) as AtletaRow[]).filter(
     (a) =>
       atletaVisivelPorAtivo(a.ativo, mostrarInativos) &&

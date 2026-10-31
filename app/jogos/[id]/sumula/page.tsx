@@ -173,7 +173,7 @@ export default async function SumulaPage({ params }: { params: { id: string } })
   const [{ data: jogoData }, { data: atletasData }, { data: convocacaoData }, { data: sumulaData }] =
     await Promise.all([
       supabase.from("jogos").select("*").eq("id", params.id).single(),
-      supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
+      supabase.from("atletas").select("*").eq("categoria", "profissional").order("nome_completo", { ascending: true }),
       supabase.from("convocacoes").select("*").eq("jogo_id", params.id).maybeSingle(),
       supabase.from("sumulas").select("*").eq("jogo_id", params.id).maybeSingle(),
     ]);

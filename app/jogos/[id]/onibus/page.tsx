@@ -29,7 +29,11 @@ export default async function OnibusPage({ params }: { params: { id: string } })
   const supabase = createClient();
 
   const [{ data: todosAtletasData }, { data: todaComissaoData }, { data: onibusData }] = await Promise.all([
-    supabase.from("atletas").select("id, nome_completo, posicao").order("nome_completo", { ascending: true }),
+    supabase
+      .from("atletas")
+      .select("id, nome_completo, posicao")
+      .eq("categoria", "profissional")
+      .order("nome_completo", { ascending: true }),
     supabase
       .from("comissao_tecnica")
       .select("id, nome_completo, funcao")

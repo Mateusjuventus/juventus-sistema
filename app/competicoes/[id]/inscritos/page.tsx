@@ -33,6 +33,7 @@ export default async function CompeticaoInscritosPage({ params }: { params: { id
   const { data: atletasData } = await supabase
     .from("atletas")
     .select("id, nome_completo, posicao")
+    .eq("categoria", competicao.categoria)
     .order("nome_completo", { ascending: true });
   const todosAtletas = (atletasData ?? []) as { id: string; nome_completo: string; posicao: string | null }[];
   const inscritosIds = new Set(inscricoes.map((i) => i.atleta_id));
