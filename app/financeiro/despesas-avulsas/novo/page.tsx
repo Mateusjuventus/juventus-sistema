@@ -9,7 +9,7 @@ export default async function NovaDespesaAvulsaPage() {
   const supabase = createClient();
   const [{ data: categoriasData }, { data: jogosData }] = await Promise.all([
     supabase.from("categorias_gasto").select("*").order("nome", { ascending: true }),
-    supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
+    supabase.from("jogos").select("*").eq("categoria", "profissional").order("data_jogo", { ascending: false }),
   ]);
 
   const categorias = (categoriasData ?? []) as CategoriaGastoRow[];

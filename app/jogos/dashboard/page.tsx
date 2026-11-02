@@ -19,7 +19,11 @@ function StatCard({ label, valor, destaque }: { label: string; valor: string | n
 
 export default async function JogosDashboardPage() {
   const supabase = createClient();
-  const { data, error } = await supabase.from("jogos").select("*").order("data_jogo", { ascending: false });
+  const { data, error } = await supabase
+    .from("jogos")
+    .select("*")
+    .eq("categoria", "profissional")
+    .order("data_jogo", { ascending: false });
   const jogos = (data ?? []) as JogoRow[];
 
   const finalizados = jogos.filter((j) => j.gols_pro !== null && j.gols_contra !== null);

@@ -32,6 +32,9 @@ export default async function ConvocacaoPage({ params }: { params: { id: string 
   if (!jogoData) notFound();
 
   const jogo = jogoData as JogoRow;
+  // Ver comentário equivalente em `app/jogos/[id]/page.tsx` — jogo de categoria de Base chegando
+  // aqui por engano mostraria o elenco Profissional errado em vez dos atletas da categoria certa.
+  if (jogo.categoria !== "profissional") notFound();
   const atletas = (atletasData ?? []) as AtletaRow[];
   const comissao = (comissaoData ?? []) as ComissaoTecnicaRow[];
   const convocacao = convocacaoData as ConvocacaoRow | null;

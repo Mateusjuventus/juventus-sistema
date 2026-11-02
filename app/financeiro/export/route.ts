@@ -16,9 +16,10 @@ function formatData(data: string | null): string {
 export async function GET() {
   const supabase = createClient();
 
-  const [{ data: jogosData }, { data: gastosData }, { data: despesasAvulsasData }] = await Promise.all([
-    supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
-    supabase.from("gastos_jogo").select("*, categoria:categorias_gasto(nome)"),
+  // Ver comentário em `app/financeiro/page.tsx` sobre o filtro de categoria pós-unificação de
+  // Jogos/Convocação (0157_unificacao_jogos.sql).
+  const [{ data: jogosData }, { data: despesasAvulsasData }] = await Promise.all([
+    supabase.from("jogos").select("*").eq("categoria", "profissional").order("data_jogo", { ascending: false }),
     supabase
       .from("despesas_avulsas")
       .select("*, categoria:categorias_gasto(nome)")
@@ -26,6 +27,10 @@ export async function GET() {
   ]);
 
   const jogos = (jogosData ?? []) as JogoRow[];
+  const jogoIds = jogos.map((j) => j.id);
+  const { data: gastosData } = jogoIds.length
+    ? await supabase.from("gastos_jogo").select("*, categoria:categorias_gasto(nome)").in("jogo_id", jogoIds)
+    : { data: [] };
   const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
   const despesasAvulsas = (despesasAvulsasData ?? []) as DespesaAvulsaComCategoriaRow[];
 

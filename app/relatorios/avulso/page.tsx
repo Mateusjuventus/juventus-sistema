@@ -32,6 +32,7 @@ export default async function RelatorioAvulsoPage() {
       supabase
         .from("jogos")
         .select("id, adversario_nome, competicao, data_jogo, horario, local_estadio")
+        .eq("categoria", "profissional")
         .order("data_jogo", { ascending: false }),
     ]);
 

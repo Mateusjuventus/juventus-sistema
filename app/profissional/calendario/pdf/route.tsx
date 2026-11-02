@@ -43,7 +43,13 @@ export async function GET() {
   const { inicio, fim } = limitesDoMes(ano, mes);
 
   const [{ data: jogosData }, { data: eventosData }] = await Promise.all([
-    supabase.from("jogos").select("*").gte("data_jogo", inicio).lte("data_jogo", fim).order("data_jogo"),
+    supabase
+      .from("jogos")
+      .select("*")
+      .eq("categoria", "profissional")
+      .gte("data_jogo", inicio)
+      .lte("data_jogo", fim)
+      .order("data_jogo"),
     supabase.from("eventos_calendario").select("*").gte("data", inicio).lte("data", fim).order("data"),
   ]);
 

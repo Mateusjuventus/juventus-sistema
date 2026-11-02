@@ -34,7 +34,7 @@ export default async function DespesasAvulsasPage() {
       .select("*, categoria:categorias_gasto(nome)")
       .order("data", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
-    supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
+    supabase.from("jogos").select("*").eq("categoria", "profissional").order("data_jogo", { ascending: false }),
   ]);
 
   const despesas = (despesasData ?? []) as DespesaAvulsaComCategoriaRow[];

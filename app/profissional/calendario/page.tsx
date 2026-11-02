@@ -32,7 +32,14 @@ export default async function ProfissionalCalendarioPage() {
   const temJogos = (modulosPermitidos as string[]).includes("jogos");
 
   const jogosDoMesData = temJogos
-    ? (await supabase.from("jogos").select("*").gte("data_jogo", inicioMes).lte("data_jogo", fimMes)).data
+    ? (
+        await supabase
+          .from("jogos")
+          .select("*")
+          .eq("categoria", "profissional")
+          .gte("data_jogo", inicioMes)
+          .lte("data_jogo", fimMes)
+      ).data
     : [];
 
   const jogosDoMes = (jogosDoMesData ?? []) as JogoRow[];

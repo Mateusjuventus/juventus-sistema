@@ -181,6 +181,8 @@ export default async function SumulaPage({ params }: { params: { id: string } })
   if (!jogoData) notFound();
 
   const jogo = jogoData as JogoRow;
+  // Ver comentário equivalente em `app/jogos/[id]/page.tsx`.
+  if (jogo.categoria !== "profissional") notFound();
   const atletas = (atletasData ?? []) as AtletaRow[];
   const atletasMap = new Map(atletas.map((a) => [a.id, a]));
   const convocacao = convocacaoData as ConvocacaoRow | null;

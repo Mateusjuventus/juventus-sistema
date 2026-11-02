@@ -30,7 +30,11 @@ export async function GET(request: NextRequest) {
   const mandanteFiltro = searchParams.get("mandante") ?? "";
   const supabase = createClient();
 
-  let query = supabase.from("jogos").select("*").order("data_jogo", { ascending: false });
+  let query = supabase
+    .from("jogos")
+    .select("*")
+    .eq("categoria", "profissional")
+    .order("data_jogo", { ascending: false });
   if (q) query = query.ilike("adversario_nome", `%${q}%`);
   if (mandanteFiltro === "casa") query = query.eq("mandante", true);
   if (mandanteFiltro === "fora") query = query.eq("mandante", false);

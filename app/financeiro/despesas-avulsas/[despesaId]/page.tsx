@@ -16,7 +16,7 @@ export default async function EditarDespesaAvulsaPage({
     await Promise.all([
       supabase.from("despesas_avulsas").select("*").eq("id", params.despesaId).single(),
       supabase.from("categorias_gasto").select("*").order("nome", { ascending: true }),
-      supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
+      supabase.from("jogos").select("*").eq("categoria", "profissional").order("data_jogo", { ascending: false }),
       supabase.from("despesas_avulsas_jogos").select("jogo_id").eq("despesa_id", params.despesaId),
     ]);
 

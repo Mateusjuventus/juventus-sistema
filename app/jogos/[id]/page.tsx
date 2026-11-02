@@ -15,6 +15,11 @@ export default async function EditarJogoPage({ params }: { params: { id: string 
   if (!data) notFound();
 
   const jogo = data as JogoRow;
+  // Desde a unificação de Jogos (30/10/2026, ver 0157_unificacao_jogos.sql), `jogos` guarda Base e
+  // Profissional juntos — essa rota é só pro Profissional, então um jogo de categoria de Base (ex:
+  // sub11) que chegue aqui por engano (link velho, favorito) tem que dar 404, não renderizar com os
+  // dados errados.
+  if (jogo.categoria !== "profissional") notFound();
   const logoUrl = await getSignedPhotoUrl(supabase, jogo.adversario_logo_path);
 
   const defaultValues: Record<string, string> = {

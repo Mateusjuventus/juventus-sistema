@@ -28,7 +28,7 @@ export default async function CompeticaoJogosPage({ params }: { params: { id: st
 
   // Jogos ainda sem vínculo com NENHUMA competição (jogo_id é unique em competicao_jogos).
   const [{ data: jogosData }, { data: vinculadosData }] = await Promise.all([
-    supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
+    supabase.from("jogos").select("*").eq("categoria", competicao.categoria).order("data_jogo", { ascending: false }),
     supabase.from("competicao_jogos").select("jogo_id"),
   ]);
   const jaVinculados = new Set(((vinculadosData ?? []) as { jogo_id: string }[]).map((v) => v.jogo_id));

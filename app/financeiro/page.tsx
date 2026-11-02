@@ -40,9 +40,11 @@ function StatCard({ label, valor, destaque }: { label: string; valor: string; de
 async function JogosView() {
   const supabase = createClient();
 
-  const [{ data: jogosData }, { data: gastosData }, { data: despesasAvulsasData }] = await Promise.all([
-    supabase.from("jogos").select("*").order("data_jogo", { ascending: false }),
-    supabase.from("gastos_jogo").select("*, categoria:categorias_gasto(nome)"),
+  // Desde a unificação de Jogos/Convocação (30/10/2026, ver 0157_unificacao_jogos.sql), `jogos` e
+  // `gastos_jogo` guardam os dois departamentos juntos — filtra pra Profissional aqui, igual
+  // `app/base/financeiro/page.tsx` já filtra pra Base (ver comentário lá).
+  const [{ data: jogosData }, { data: despesasAvulsasData }] = await Promise.all([
+    supabase.from("jogos").select("*").eq("categoria", "profissional").order("data_jogo", { ascending: false }),
     supabase
       .from("despesas_avulsas")
       .select("*, categoria:categorias_gasto(nome)")
@@ -51,6 +53,10 @@ async function JogosView() {
   ]);
 
   const jogos = (jogosData ?? []) as JogoRow[];
+  const jogoIds = jogos.map((j) => j.id);
+  const { data: gastosData } = jogoIds.length
+    ? await supabase.from("gastos_jogo").select("*, categoria:categorias_gasto(nome)").in("jogo_id", jogoIds)
+    : { data: [] };
   const gastos = (gastosData ?? []) as GastoJogoComCategoriaRow[];
   const despesasAvulsas = (despesasAvulsasData ?? []) as DespesaAvulsaComCategoriaRow[];
 

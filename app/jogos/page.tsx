@@ -23,7 +23,7 @@ export default async function JogosPage({
   const ordem = searchParams.ordem === "proximidade" ? "proximidade" : "cronologico";
   const supabase = createClient();
 
-  let query = supabase.from("jogos").select("*").order("data_jogo", { ascending: false });
+  let query = supabase.from("jogos").select("*").eq("categoria", "profissional").order("data_jogo", { ascending: false });
   if (q) query = query.ilike("adversario_nome", `%${q}%`);
   if (mandanteFiltro === "casa") query = query.eq("mandante", true);
   if (mandanteFiltro === "fora") query = query.eq("mandante", false);
@@ -31,7 +31,7 @@ export default async function JogosPage({
   const [{ data, error }, { data: todosJogosData }, { data: convocacoesData }, { data: golsData }] =
     await Promise.all([
       query,
-      supabase.from("jogos").select("id, data_jogo"),
+      supabase.from("jogos").select("id, data_jogo").eq("categoria", "profissional"),
       supabase.from("convocacoes").select("jogo_id"),
       supabase.from("sumula_eventos").select("atleta_id").eq("tipo", "gol").not("atleta_id", "is", null),
     ]);
