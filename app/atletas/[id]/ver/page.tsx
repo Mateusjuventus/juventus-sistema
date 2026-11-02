@@ -173,7 +173,7 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
 
   return (
     <AppShell departamento={isBase ? "futebol_base" : undefined} breadcrumb="Dados Pessoais">
-      <AtletaTabs atletaId={atleta.id} active="dados-pessoais" />
+      <AtletaTabs atletaId={atleta.id} categoria={atleta.categoria} active="dados-pessoais" />
 
       <AtletaPerfilHeader
         nome={atleta.nome_completo}

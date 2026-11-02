@@ -47,7 +47,7 @@ export default async function DocumentacaoAtletaPage({ params }: { params: { id:
 
   return (
     <AppShell departamento={isBase ? "futebol_base" : undefined} breadcrumb="Documentação">
-      <AtletaTabs atletaId={atleta.id} active="documentacao" />
+      <AtletaTabs atletaId={atleta.id} categoria={atleta.categoria} active="documentacao" />
 
       <AtletaPerfilHeader
         nome={atleta.nome_completo}

@@ -90,7 +90,7 @@ export default async function DadosDeJogoAtletaPage({
 
   return (
     <AppShell breadcrumb="Dados de Jogo">
-      <AtletaTabs atletaId={atleta.id} active="dados-de-jogo" />
+      <AtletaTabs atletaId={atleta.id} categoria={atleta.categoria} active="dados-de-jogo" />
 
       <AtletaPerfilHeader
         nome={atleta.nome_completo}

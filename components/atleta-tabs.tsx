@@ -9,9 +9,14 @@ import Link from "next/link";
  */
 export function AtletaTabs({
   atletaId,
+  categoria,
   active,
 }: {
   atletaId: string;
+  /** Categoria do atleta (`atleta.categoria`) — usada só pro link de Voltar, pra cair de volta na
+   * mesma listagem filtrada (`/atletas?categoria=...`) de onde a pessoa veio, em vez do índice de
+   * categorias (`/atletas` sozinho, com um card por categoria) — pedido do Mateus (02/11/2026). */
+  categoria: string;
   active: "dados-pessoais" | "documentacao" | "dados-de-jogo" | "anotacoes";
 }) {
   const tabs = [
@@ -23,7 +28,7 @@ export function AtletaTabs({
 
   return (
     <div>
-      <Link href="/atletas" className="text-sm font-medium text-grena hover:underline">
+      <Link href={`/atletas?categoria=${categoria}`} className="text-sm font-medium text-grena hover:underline">
         ← Voltar
       </Link>
       <div className="tab-bar mb-4 mt-3">

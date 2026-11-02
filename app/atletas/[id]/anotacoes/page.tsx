@@ -72,7 +72,7 @@ export default async function AnotacoesAtletaPage({ params }: { params: { id: st
 
   return (
     <AppShell departamento={isBase ? "futebol_base" : undefined} breadcrumb="Anotações">
-      <AtletaTabs atletaId={atleta.id} active="anotacoes" />
+      <AtletaTabs atletaId={atleta.id} categoria={atleta.categoria} active="anotacoes" />
 
       <AtletaPerfilHeader
         nome={atleta.nome_completo}
