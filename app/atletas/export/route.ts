@@ -1,5 +1,6 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { formatCPF } from "@/lib/validation/cpf";
 import { formatTelefone } from "@/lib/validation/telefone";
@@ -67,6 +68,10 @@ export async function GET(request: NextRequest) {
   const mostrarInativos = mostrarInativosDaQueryString(searchParams);
   const gruposSelecionados = gruposCampoExportDaQueryString(searchParams);
   const supabase = createClient();
+
+  if (!(await isMaster(supabase))) {
+    return new NextResponse("Você não tem permissão para exportar esta lista.", { status: 403 });
+  }
 
   const { data } = await supabase
     .from("atletas")

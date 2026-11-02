@@ -5,6 +5,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import {
   RelacaoAtletasBaseDocument,
   type RelacaoAtletaLinha,
@@ -54,6 +55,11 @@ const TODOS_STATUS_KEYS: { key: string; status: AtletaStatus }[] = [
  * numa aba nova.
  */
 export async function POST(request: Request) {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) {
+    return new NextResponse("Você não tem permissão para exportar esta lista.", { status: 403 });
+  }
+
   const formData = await request.formData();
 
   const categoriasMarcadas = formData
@@ -85,8 +91,6 @@ export async function POST(request: Request) {
     status: formData.get("colStatus") === "on",
     classificacao: formData.get("colClassificacao") === "on",
   };
-
-  const supabase = createClient();
 
   const { data } = await supabase
     .from("atletas")

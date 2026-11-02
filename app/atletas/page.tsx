@@ -4,7 +4,7 @@ import { AtletasResumoFiltros, type AtletaResumoItem, type StatusFiltroOpcao } f
 import { IconAtletas } from "@/components/module-icons";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { getCategoriasBasePermitidas, getModulosPermitidos } from "@/lib/auth/role";
+import { getCategoriasBasePermitidas, getModulosPermitidos, isMaster } from "@/lib/auth/role";
 import {
   CATEGORIAS_ATLETA,
   CATEGORIA_ATLETA_COR,
@@ -316,13 +316,21 @@ async function AtletasCategoriaListagem({ categoria }: { categoria: CategoriaAtl
     href: `/atletas/${atleta.id}/ver`,
   }));
 
-  const exportar = isBase
-    ? {
-        excelHref: `/base/atletas/${categoria}/export`,
-        pdfHref: `/base/atletas/${categoria}/export/pdf`,
-        extras: [{ label: "Exportar relação", href: `/base/atletas/relacao?categoria=${categoria}` }],
-      }
-    : { excelHref: "/atletas/export", pdfHref: "/atletas/export/pdf" };
+  // Exportar (Excel/PDF/Relação) é restrito ao master — pedido do Mateus (02/11/2026): os demais
+  // perfis (regular, financeiro, treinador) continuam vendo e filtrando os atletas na tela
+  // normalmente, só perdem a opção de baixar o arquivo. `exportar` fica `undefined` pra quem não é
+  // master, e `AtletasResumoFiltros` já esconde os botões nesse caso — a trava de verdade é no
+  // servidor (ver checagem de `isMaster` em cada rota de export).
+  const souMaster = await isMaster(supabase);
+  const exportar = !souMaster
+    ? undefined
+    : isBase
+      ? {
+          excelHref: `/base/atletas/${categoria}/export`,
+          pdfHref: `/base/atletas/${categoria}/export/pdf`,
+          extras: [{ label: "Exportar relação", href: `/base/atletas/relacao?categoria=${categoria}` }],
+        }
+      : { excelHref: "/atletas/export", pdfHref: "/atletas/export/pdf" };
 
   return (
     <AppShell departamento={isBase ? "futebol_base" : undefined} largura="total" breadcrumb="Atletas">

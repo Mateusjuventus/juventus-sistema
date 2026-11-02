@@ -6,6 +6,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { notFound } from "next/navigation";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
@@ -52,6 +53,10 @@ export async function GET(request: NextRequest, { params }: { params: { categori
   const mostrarInativos = mostrarInativosDaQueryString(searchParams);
   const camposOcultos = camposOcultosDaQueryString(searchParams);
   const supabase = createClient();
+
+  if (!(await isMaster(supabase))) {
+    return new NextResponse("Você não tem permissão para exportar esta lista.", { status: 403 });
+  }
 
   const { data } = await supabase
     .from("atletas")

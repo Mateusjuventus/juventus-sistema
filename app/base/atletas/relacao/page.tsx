@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/server";
+import { isMaster } from "@/lib/auth/role";
 import { ehCategoriaBaseValida, type CategoriaBase } from "@/lib/auth/categorias-base";
 import { RelacaoAtletasForm } from "./relacao-atletas-form";
 
@@ -13,9 +15,20 @@ import { RelacaoAtletasForm } from "./relacao-atletas-form";
  * aquela categoria; ausente (vindo do botão da tela principal de Atletas) começa em "Todas as
  * categorias".
  */
-export default function RelacaoAtletasBasePage({ searchParams }: { searchParams: { categoria?: string } }) {
+export default async function RelacaoAtletasBasePage({ searchParams }: { searchParams: { categoria?: string } }) {
   const categoriaInicial: CategoriaBase | "todas" =
     searchParams.categoria && ehCategoriaBaseValida(searchParams.categoria) ? searchParams.categoria : "todas";
+
+  // Exportar é restrito ao master (pedido do Mateus, 02/11/2026) — espelha a mesma checagem das
+  // rotas de export; sem isso alguém acessando o link direto ainda conseguiria abrir o formulário.
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) {
+    return (
+      <AppShell departamento="futebol_base" breadcrumb="Exportar relação de atletas">
+        <p className="mt-4 text-sm text-neutral-500">Você não tem permissão para acessar esta página.</p>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell departamento="futebol_base" breadcrumb="Exportar relação de atletas">
