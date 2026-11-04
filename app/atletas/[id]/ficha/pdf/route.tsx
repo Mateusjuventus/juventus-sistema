@@ -19,11 +19,26 @@ import {
   extrasFichaAtletaDaQueryString,
   textoFiltroCompeticaoAtleta,
 } from "@/lib/futebol/ficha-atleta";
+import {
+  contratoVazio,
+  diasRestantesContrato,
+  direitosEconomicos,
+  evolucoesProximas,
+  statusContrato,
+  valorEfetivoRubrica,
+} from "@/lib/futebol/contrato";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { montarHistoricoAtleta } from "@/lib/futebol/anotacoes-atleta";
 import { FichaAtletaDocument, type FichaAtletaAnotacaoItem, type FichaAtletaDadosDeJogo } from "@/lib/pdf/ficha-atleta-document";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
-import type { AtletaAnotacaoRow, AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
+import type {
+  AtletaAnotacaoRow,
+  AtletaContatoEmergenciaRow,
+  AtletaContratoEvolucaoSalarialRow,
+  AtletaContratoRow,
+  AtletaRow,
+} from "@/lib/supabase/types";
 
 const TABELAS_JOGO = {
   jogos: "jogos",
@@ -104,7 +119,21 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
   const contratos = (contratosData ?? []) as AtletaContratoRow[];
   const anotacoes = (anotacoesData ?? []) as AtletaAnotacaoRow[];
-  const vigente = contratos.find((c) => c.vigente) ?? null;
+  // Contrato "vazio" (sem data nem valor nenhum, sobra de migração antiga — ver `contratoVazio`)
+  // não entra como vigente na ficha: mostra o aviso "Nenhum contrato vigente cadastrado" como se
+  // não houvesse nenhum, em vez de uma seção cheia de "—" (pedido do Mateus em 04/11/2026).
+  const vigenteBruto = contratos.find((c) => c.vigente) ?? null;
+  const vigente = vigenteBruto && !contratoVazio(vigenteBruto) ? vigenteBruto : null;
+
+  // Extensões de 04/11/2026 (ver docs/superpowers/specs/2026-11-04-contrato-atleta-extensoes-
+  // design.md) — pedido do Mateus pra essas informações "acompanharem junto" quando gerar a ficha,
+  // não só aparecerem na tela. Evolução salarial é presa ao contrato, por isso só busca depois de
+  // saber o id do vigente.
+  const hojeStr = hojeBrasilia();
+  const { data: evolucoesData } = vigente
+    ? await supabase.from("atleta_contrato_evolucao_salarial").select("*").eq("contrato_id", vigente.id)
+    : { data: [] };
+  const evolucoesDoVigente = (evolucoesData ?? []) as AtletaContratoEvolucaoSalarialRow[];
 
   const dadosDeJogo: FichaAtletaDadosDeJogo | null = extras.dadosDeJogo
     ? await (async () => {
@@ -137,11 +166,23 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
-  const valorTotalContrato = vigente
-    ? vigente.salario_ctps + vigente.direito_imagem + vigente.bonificacao + vigente.auxilio_moradia + vigente.outros
-    : 0;
+  // Valor efetivo de cada rubrica — a evolução salarial já aplicável na data de hoje, ou o valor
+  // gravado no contrato quando não há nenhuma (mesmo cálculo da tela "Ver atleta").
+  const valorRubrica = (chave: Parameters<typeof valorEfetivoRubrica>[2], valorContrato: number) =>
+    valorEfetivoRubrica(valorContrato, evolucoesDoVigente, chave, hojeStr);
+  const salarioCtpsEfetivo = vigente ? valorRubrica("salario_ctps", vigente.salario_ctps) : 0;
+  const direitoImagemEfetivo = vigente ? valorRubrica("direito_imagem", vigente.direito_imagem) : 0;
+  const bonificacaoEfetiva = vigente ? valorRubrica("bonificacao", vigente.bonificacao) : 0;
+  const auxilioMoradiaEfetivo = vigente ? valorRubrica("auxilio_moradia", vigente.auxilio_moradia) : 0;
+  const outrosEfetivo = vigente ? valorRubrica("outros", vigente.outros) : 0;
+  const valorTotalContrato = salarioCtpsEfetivo + direitoImagemEfetivo + bonificacaoEfetiva + auxilioMoradiaEfetivo + outrosEfetivo;
   const percentual = (valor: number) =>
     valorTotalContrato > 0 ? ` (${((valor / valorTotalContrato) * 100).toFixed(1)}%)` : "";
+
+  const statusContratoAtleta = statusContrato(vigente ?? undefined, hojeStr);
+  const diasRestantesAtleta = vigente ? diasRestantesContrato(vigente.vigencia_fim, hojeStr) : null;
+  const direitosEconomicosAtleta = vigente ? direitosEconomicos(vigente) : [];
+  const evolucoesProximasAtleta = evolucoesProximas(evolucoesDoVigente, hojeStr);
 
   const valores: Record<string, string | null> = {
     nome_completo: atleta.nome_completo,
@@ -200,19 +241,37 @@ export async function GET(request: Request, { params }: { params: { id: string }
           vigente.tipo_contrato === "emprestimo" && vigente.clube_origem ? ` — ${vigente.clube_origem}` : ""
         }`
       : null,
-    contrato_vigencia: vigente
-      ? `${formatDataBr(vigente.vigencia_inicio)} – ${formatDataBr(vigente.vigencia_fim)}`
-      : null,
-    contrato_salario_ctps: vigente ? `${formatMoeda(vigente.salario_ctps)}${percentual(vigente.salario_ctps)}` : null,
+    contrato_vigencia:
+      vigente && (vigente.vigencia_inicio || vigente.vigencia_fim)
+        ? `${formatDataBr(vigente.vigencia_inicio)} – ${formatDataBr(vigente.vigencia_fim)}${
+            diasRestantesAtleta
+              ? ` (faltam ${diasRestantesAtleta.dias} dias)`
+              : !vigente.vigencia_fim
+                ? " (sem prazo definido)"
+                : ""
+          }`
+        : null,
+    contrato_salario_ctps: vigente ? `${formatMoeda(salarioCtpsEfetivo)}${percentual(salarioCtpsEfetivo)}` : null,
     contrato_direito_imagem: vigente
-      ? `${formatMoeda(vigente.direito_imagem)}${percentual(vigente.direito_imagem)}`
+      ? `${formatMoeda(direitoImagemEfetivo)}${percentual(direitoImagemEfetivo)}`
       : null,
-    contrato_bonificacao: vigente ? `${formatMoeda(vigente.bonificacao)}${percentual(vigente.bonificacao)}` : null,
+    contrato_bonificacao: vigente ? `${formatMoeda(bonificacaoEfetiva)}${percentual(bonificacaoEfetiva)}` : null,
     contrato_auxilio_moradia: vigente
-      ? `${formatMoeda(vigente.auxilio_moradia)}${percentual(vigente.auxilio_moradia)}`
+      ? `${formatMoeda(auxilioMoradiaEfetivo)}${percentual(auxilioMoradiaEfetivo)}`
       : null,
-    contrato_outros: vigente ? `${formatMoeda(vigente.outros)}${percentual(vigente.outros)}` : null,
+    contrato_outros: vigente ? `${formatMoeda(outrosEfetivo)}${percentual(outrosEfetivo)}` : null,
     contrato_valor_total: vigente ? formatMoeda(valorTotalContrato) : null,
+    contrato_status: statusContratoAtleta.label,
+    contrato_direitos_economicos:
+      direitosEconomicosAtleta.length > 0
+        ? direitosEconomicosAtleta.map((p) => `${p.nome}: ${p.pct}%`).join(" · ")
+        : null,
+    contrato_evolucao_salarial:
+      evolucoesProximasAtleta.length > 0
+        ? evolucoesProximasAtleta
+            .map((a) => `A partir de ${formatDataBr(a.data)} — ${a.rubricaLabel} passa a ${formatMoeda(a.novoValor)}`)
+            .join("; ")
+        : null,
   };
 
   const secoes = construirSecoesFichaAtleta(CAMPOS_FICHA_ATLETA_PROFISSIONAL, selecionados, valores, !!vigente);

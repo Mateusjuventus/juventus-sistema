@@ -18,6 +18,8 @@ import { formatCEP } from "@/lib/validation/cep";
 import { categoriaAtletaLabel, ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
+import { contratoVazio, statusContrato } from "@/lib/futebol/contrato";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import { ContratoSecao } from "@/components/contrato-secao";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { alternarAtletaAtivo } from "../../actions";
@@ -177,6 +179,14 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
     : { data: [] };
   const evolucoesSalariais = (evolucoesData ?? []) as AtletaContratoEvolucaoSalarialRow[];
 
+  // Mesmo selo da seção de Contrato (ver `statusContrato`/`contratoVazio` em
+  // lib/futebol/contrato.ts), repetido aqui no cabeçalho — pedido do Mateus pra não precisar rolar
+  // a página até "Contrato" só pra saber se o atleta está com contrato ativo. Um contrato "vazio"
+  // (sem data nem valor nenhum, sobra de migração antiga) conta como "Sem contrato" aqui também.
+  const vigenteBruto = contratos.find((c) => c.vigente);
+  const vigenteParaStatus = vigenteBruto && !contratoVazio(vigenteBruto) ? vigenteBruto : undefined;
+  const statusContratoAtleta = statusContrato(vigenteParaStatus, hojeBrasilia());
+
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = isBase
     ? `${categoriaAtletaLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`
@@ -199,6 +209,7 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
         fotoUrl={fotoUrl}
         editarHref={`/atletas/${atleta.id}`}
         ativo={atleta.ativo}
+        statusContrato={statusContratoAtleta}
         acoesExtra={
           <>
             <GerarFichaAtletaButton

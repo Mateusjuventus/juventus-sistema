@@ -1,6 +1,13 @@
 import Link from "next/link";
 import type { AtletaContratoRow, AtletaContratoEvolucaoSalarialRow } from "@/lib/supabase/types";
-import { diasRestantesContrato, evolucoesProximas, statusContrato, valorEfetivoRubrica } from "@/lib/futebol/contrato";
+import {
+  contratoVazio,
+  diasRestantesContrato,
+  direitosEconomicos,
+  evolucoesProximas,
+  statusContrato,
+  valorEfetivoRubrica,
+} from "@/lib/futebol/contrato";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { RUBRICA_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { EvolucaoSalarialForm } from "@/components/evolucao-salarial-form";
@@ -24,8 +31,10 @@ function formatMoeda(valor: number): string {
 
 /** Selo "Contrato Ativo"/"Contrato Vencido"/"Sem contrato" (ver `statusContrato` em
  * lib/futebol/contrato.ts) — cores seguem a mesma régua de urgência usada no resto do sistema
- * (verde=ok, vermelho=atenção, cinza=neutro). */
-function SeloStatusContrato({ status, label }: { status: "ativo" | "vencido" | "sem_contrato"; label: string }) {
+ * (verde=ok, vermelho=atenção, cinza=neutro). Exportado porque, a partir de 04/11/2026 (pedido do
+ * Mateus ao ver a tela: "essa parte de contrato ativo deve aparecer lá em cima no nome dele"),
+ * também aparece em `AtletaPerfilHeader`, ao lado do nome, não só aqui dentro da seção de Contrato. */
+export function SeloStatusContrato({ status, label }: { status: "ativo" | "vencido" | "sem_contrato"; label: string }) {
   const cor =
     status === "ativo"
       ? "bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20"
@@ -36,13 +45,7 @@ function SeloStatusContrato({ status, label }: { status: "ativo" | "vencido" | "
 }
 
 function DireitosEconomicos({ contrato }: { contrato: ContratoRow }) {
-  const partes = [
-    contrato.direito_economico_juventus_pct ? { nome: "Juventus", pct: contrato.direito_economico_juventus_pct } : null,
-    contrato.direito_economico_atleta_pct ? { nome: "Atleta", pct: contrato.direito_economico_atleta_pct } : null,
-    contrato.direito_economico_terceiro_pct && contrato.direito_economico_terceiro_nome
-      ? { nome: contrato.direito_economico_terceiro_nome, pct: contrato.direito_economico_terceiro_pct }
-      : null,
-  ].filter((p): p is { nome: string; pct: number } => p !== null);
+  const partes = direitosEconomicos(contrato);
 
   if (partes.length === 0) return null;
 
@@ -80,6 +83,15 @@ function EvolucaoSalarialSecao({
   return (
     <div className="mt-3 border-t border-linha pt-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Evolução salarial</p>
+      {/* Explica o que a seção faz antes do mini-formulário — "Rubrica" sozinho (o nome técnico do
+          campo no banco) confundiu o Mateus na primeira vez que viu a tela ("o que seria essa
+          rubrica?"). Só aparece quando os controles de adicionar aparecem (contrato vigente). */}
+      {editavel ? (
+        <p className="mt-0.5 text-xs text-neutral-400">
+          Já sabe que um valor do contrato vai mudar numa data futura (reajuste, fim de carência etc.)? Registre
+          aqui pra não esquecer — o valor novo passa a valer automaticamente a partir da data marcada.
+        </p>
+      ) : null}
       {evolucoes.length > 0 ? (
         <ul className="mt-1.5 space-y-1">
           {evolucoes.map((e) => (
@@ -144,6 +156,14 @@ function ContratoCard({
   const total = rubricas.reduce((soma, r) => soma + r.valor, 0);
   const percentual = (valor: number) => (total > 0 ? `${((valor / total) * 100).toFixed(1)}%` : "—");
   const restantes = destaque ? diasRestantesContrato(contrato.vigencia_fim, hojeStr) : null;
+  // Sem nenhuma das duas datas, deixa o campo em branco em vez de escrever algo no lugar (pedido do
+  // Mateus em 04/11/2026: "se não tem data, deixa em branco, não faz sentido"). Um contrato chega
+  // aqui sem nenhuma data só quando tem valor de remuneração lançado — sem data E sem valor nenhum
+  // já nem conta como o vigente (ver `contratoVazio`/filtro em `ContratoSecao`).
+  const vigenciaTexto =
+    contrato.vigencia_inicio || contrato.vigencia_fim
+      ? `${formatData(contrato.vigencia_inicio)} – ${formatData(contrato.vigencia_fim)}`
+      : "";
 
   return (
     <div className={`rounded-lg border p-4 ${destaque ? "border-grena bg-grena/5" : "border-linha bg-neutral-50"}`}>
@@ -153,8 +173,14 @@ function ContratoCard({
           {contrato.tipo_contrato === "emprestimo" && contrato.clube_origem ? ` — ${contrato.clube_origem}` : ""}
         </h3>
         <span className="text-sm text-neutral-500">
-          {formatData(contrato.vigencia_inicio)} – {formatData(contrato.vigencia_fim)}
-          {restantes ? ` · faltam ${restantes.dias} dias (≈ ${restantes.meses} ${restantes.meses === 1 ? "mês" : "meses"})` : ""}
+          {vigenciaTexto}
+          {restantes
+            ? `${vigenciaTexto ? " · " : ""}faltam ${restantes.dias} dias (≈ ${restantes.meses} ${restantes.meses === 1 ? "mês" : "meses"})`
+            : destaque && !contrato.vigencia_fim
+              ? vigenciaTexto
+                ? " · sem prazo definido"
+                : "Sem prazo definido"
+              : ""}
         </span>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -209,7 +235,13 @@ export function ContratoSecao({
   novoContratoHref: string;
 }) {
   const hojeStr = hojeBrasilia();
-  const vigente = contratos.find((c) => c.vigente);
+  // Contrato "vazio" (sem data nem valor nenhum, sobra da migração — ver `contratoVazio`) não conta
+  // como o contrato vigente de verdade: tela mostra "Sem contrato" em vez do card sem nenhuma
+  // informação (pedido do Mateus em 04/11/2026). O registro continua no banco com `vigente = true`
+  // (por isso não entra no histórico, que filtra `!vigente`) — só não aparece em lugar nenhum até
+  // ser substituído por um contrato de verdade.
+  const vigenteBruto = contratos.find((c) => c.vigente);
+  const vigente = vigenteBruto && !contratoVazio(vigenteBruto) ? vigenteBruto : undefined;
   const historico = contratos.filter((c) => !c.vigente);
   const status = statusContrato(vigente, hojeStr);
   const evolucoesDoVigente = vigente ? evolucoes.filter((e) => e.contrato_id === vigente.id) : [];

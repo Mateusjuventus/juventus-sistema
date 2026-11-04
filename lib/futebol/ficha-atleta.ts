@@ -68,6 +68,9 @@ export const CAMPOS_FICHA_ATLETA_PROFISSIONAL: CampoFichaAtleta[] = [
   { chave: "contrato_auxilio_moradia", label: "Auxílio moradia", secao: "contrato" },
   { chave: "contrato_outros", label: "Outros", secao: "contrato" },
   { chave: "contrato_valor_total", label: "Valor total", secao: "contrato" },
+  { chave: "contrato_status", label: "Situação do contrato", secao: "contrato" },
+  { chave: "contrato_direitos_economicos", label: "Direitos econômicos", secao: "contrato" },
+  { chave: "contrato_evolucao_salarial", label: "Evolução salarial programada", secao: "contrato" },
 ];
 
 /** Espelha `CAMPOS_FICHA_ATLETA_PROFISSIONAL`, acrescentando os campos que só existem no cadastro da
@@ -109,6 +112,9 @@ export const CAMPOS_FICHA_ATLETA_BASE: CampoFichaAtleta[] = [
   { chave: "contrato_auxilio_moradia", label: "Auxílio moradia", secao: "contrato" },
   { chave: "contrato_outros", label: "Outros", secao: "contrato" },
   { chave: "contrato_valor_total", label: "Valor total", secao: "contrato" },
+  { chave: "contrato_status", label: "Situação do contrato", secao: "contrato" },
+  { chave: "contrato_direitos_economicos", label: "Direitos econômicos", secao: "contrato" },
+  { chave: "contrato_evolucao_salarial", label: "Evolução salarial programada", secao: "contrato" },
 ];
 
 /** Estado inicial do modal — todos os campos marcados, pra quem só clica "Gerar PDF" direto continuar

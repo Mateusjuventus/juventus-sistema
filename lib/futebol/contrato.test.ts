@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { AtletaContratoEvolucaoSalarialRow } from "@/lib/supabase/types";
-import { diasRestantesContrato, evolucoesProximas, statusContrato, valorEfetivoRubrica } from "./contrato";
+import {
+  contratoVazio,
+  diasRestantesContrato,
+  direitosEconomicos,
+  evolucoesProximas,
+  statusContrato,
+  valorEfetivoRubrica,
+} from "./contrato";
 
 function evolucao(overrides: Partial<AtletaContratoEvolucaoSalarialRow>): AtletaContratoEvolucaoSalarialRow {
   return {
@@ -84,6 +91,68 @@ describe("valorEfetivoRubrica", () => {
   it("ignora evolução de outra rubrica", () => {
     const evolucoes = [evolucao({ data_vigencia: "2026-10-01", novo_valor: 500, rubrica: "bonificacao" })];
     expect(valorEfetivoRubrica(8000, evolucoes, "salario_ctps", "2026-11-04")).toBe(8000);
+  });
+});
+
+describe("contratoVazio", () => {
+  const base = {
+    vigencia_inicio: null,
+    vigencia_fim: null,
+    salario_ctps: 0,
+    direito_imagem: 0,
+    bonificacao: 0,
+    auxilio_moradia: 0,
+    outros: 0,
+  };
+
+  it("vazio quando não tem nenhuma data nem nenhum valor de remuneração", () => {
+    expect(contratoVazio(base)).toBe(true);
+  });
+
+  it("não é vazio quando tem uma data de vigência", () => {
+    expect(contratoVazio({ ...base, vigencia_inicio: "2026-01-01" })).toBe(false);
+  });
+
+  it("não é vazio quando tem algum valor de remuneração lançado", () => {
+    expect(contratoVazio({ ...base, salario_ctps: 5000 })).toBe(false);
+  });
+});
+
+describe("direitosEconomicos", () => {
+  it("vazio quando nenhuma parte tem percentual", () => {
+    expect(
+      direitosEconomicos({
+        direito_economico_juventus_pct: null,
+        direito_economico_atleta_pct: null,
+        direito_economico_terceiro_nome: null,
+        direito_economico_terceiro_pct: null,
+      }),
+    ).toEqual([]);
+  });
+
+  it("inclui só as partes com percentual lançado", () => {
+    expect(
+      direitosEconomicos({
+        direito_economico_juventus_pct: 20,
+        direito_economico_atleta_pct: null,
+        direito_economico_terceiro_nome: "Botafogo-SP",
+        direito_economico_terceiro_pct: 30,
+      }),
+    ).toEqual([
+      { nome: "Juventus", pct: 20 },
+      { nome: "Botafogo-SP", pct: 30 },
+    ]);
+  });
+
+  it("ignora o terceiro clube quando o nome está vazio (dado inconsistente)", () => {
+    expect(
+      direitosEconomicos({
+        direito_economico_juventus_pct: null,
+        direito_economico_atleta_pct: null,
+        direito_economico_terceiro_nome: null,
+        direito_economico_terceiro_pct: 30,
+      }),
+    ).toEqual([]);
   });
 });
 

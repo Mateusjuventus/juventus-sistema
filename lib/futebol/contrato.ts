@@ -62,6 +62,61 @@ export function valorEfetivoRubrica(
   return aplicaveis[0]?.novo_valor ?? valorContrato;
 }
 
+/** Contrato "vazio" — sem nenhuma data de vigência e sem nenhum valor de remuneração lançado (só
+ * sobrou o tipo). É o formato que o backfill da migração original (0137_atleta_contrato.sql) cria
+ * pra quem já tinha `tipo_contrato` preenchido no cadastro antes desta tela existir, mas nenhuma
+ * data nem rubrica — na prática não é um contrato de verdade, só um marcador. Pedido do Mateus em
+ * 04/11/2026, depois de ver um desses na tela: "não faz sentido ter ali esse contrato se não tem
+ * tipo e nem data nenhuma" — por isso esse tipo de registro é tratado como "Sem contrato" (ver
+ * `statusContrato`) em vez de aparecer como o contrato vigente. Continua existindo no banco (não é
+ * apagado) e seria substituído normalmente ao lançar um "Novo contrato" de verdade. */
+export function contratoVazio(contrato: {
+  vigencia_inicio: string | null;
+  vigencia_fim: string | null;
+  salario_ctps: number;
+  direito_imagem: number;
+  bonificacao: number;
+  auxilio_moradia: number;
+  outros: number;
+}): boolean {
+  return (
+    !contrato.vigencia_inicio &&
+    !contrato.vigencia_fim &&
+    contrato.salario_ctps === 0 &&
+    contrato.direito_imagem === 0 &&
+    contrato.bonificacao === 0 &&
+    contrato.auxilio_moradia === 0 &&
+    contrato.outros === 0
+  );
+}
+
+export interface ParteDireitoEconomico {
+  nome: string;
+  pct: number;
+}
+
+/** As partes de direito econômico do contrato que de fato têm percentual lançado (0%/vazio não
+ * entra) — centraliza a lista que tanto `DireitosEconomicos` (components/contrato-secao.tsx)
+ * quanto a Ficha do atleta (PDF) precisam montar a partir das mesmas 4 colunas. */
+export function direitosEconomicos(contrato: {
+  direito_economico_juventus_pct: number | null;
+  direito_economico_atleta_pct: number | null;
+  direito_economico_terceiro_nome: string | null;
+  direito_economico_terceiro_pct: number | null;
+}): ParteDireitoEconomico[] {
+  const partes: ParteDireitoEconomico[] = [];
+  if (contrato.direito_economico_juventus_pct) {
+    partes.push({ nome: "Juventus", pct: contrato.direito_economico_juventus_pct });
+  }
+  if (contrato.direito_economico_atleta_pct) {
+    partes.push({ nome: "Atleta", pct: contrato.direito_economico_atleta_pct });
+  }
+  if (contrato.direito_economico_terceiro_pct && contrato.direito_economico_terceiro_nome) {
+    partes.push({ nome: contrato.direito_economico_terceiro_nome, pct: contrato.direito_economico_terceiro_pct });
+  }
+  return partes;
+}
+
 export interface AvisoEvolucaoSalarial {
   rubricaLabel: string;
   novoValor: number;

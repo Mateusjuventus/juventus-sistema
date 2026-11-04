@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { SeloStatusContrato } from "@/components/contrato-secao";
+import type { StatusContrato } from "@/lib/futebol/contrato";
 
 /**
  * Cabeçalho compartilhado pelas três abas do perfil do atleta (Dados Pessoais / Documentação /
@@ -14,6 +16,7 @@ export function AtletaPerfilHeader({
   fotoUrl,
   editarHref,
   ativo = true,
+  statusContrato,
   acoesExtra,
 }: {
   nome: string;
@@ -24,6 +27,11 @@ export function AtletaPerfilHeader({
   /** `false` mostra o selo "Inativo" ao lado do nome (ver 0098_atleta_ativo.sql) — `true` por
    * padrão pra não quebrar quem ainda não passa essa prop. */
   ativo?: boolean;
+  /** Selo "Contrato Ativo"/"Contrato Vencido"/"Sem contrato" ao lado do nome — pedido do Mateus em
+   * 04/11/2026 ao ver a tela em produção ("essa parte de contrato ativo deve aparecer lá em cima
+   * no nome dele"), além de já aparecer dentro da seção de Contrato mais abaixo. Opcional pra não
+   * quebrar quem ainda não passa essa prop; só `VerAtletaPage` passa hoje. */
+  statusContrato?: { status: StatusContrato; label: string };
   /** Botão(ões) extra(s) entre o nome e "Editar" — hoje só o Ativar/Desativar
    * (`AtletaAtivoButton`), mas fica genérico pra não precisar mudar a assinatura de novo. */
   acoesExtra?: ReactNode;
@@ -38,6 +46,7 @@ export function AtletaPerfilHeader({
               Inativo
             </span>
           ) : null}
+          {statusContrato ? <SeloStatusContrato status={statusContrato.status} label={statusContrato.label} /> : null}
         </div>
         <div className="flex flex-wrap gap-2">
           {acoesExtra}

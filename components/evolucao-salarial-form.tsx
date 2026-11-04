@@ -21,7 +21,7 @@ function AdicionarButton() {
 }
 
 /**
- * Mini-formulário de "+ Adicionar evolução" (Rubrica/Data/Novo valor) — evolução salarial do
+ * Mini-formulário de "+ Adicionar evolução" (O que vai mudar/Data/Novo valor) — evolução salarial do
  * contrato vigente (ver docs/superpowers/specs/2026-11-04-contrato-atleta-extensoes-design.md).
  * Mesmo padrão de `ContatoEmergenciaForm` (components/contato-emergencia-form.tsx): usa `key` pra
  * limpar os campos depois de um envio com sucesso, sem redirect.
@@ -56,7 +56,7 @@ export function EvolucaoSalarialForm({
         <input type="hidden" name="atletaId" value={atletaId} />
 
         <div className="min-w-[160px] flex-1">
-          <SelectField label="Rubrica" name="rubrica" required>
+          <SelectField label="O que vai mudar" name="rubrica" required>
             <option value="">Selecione</option>
             {RUBRICA_CONTRATO_OPTIONS.map((r) => (
               <option key={r.value} value={r.value}>
