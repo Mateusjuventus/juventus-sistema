@@ -33,13 +33,25 @@ function truncarTitulo(titulo: string, max = 16): string {
   return titulo.length > max ? `${titulo.slice(0, max - 1)}…` : titulo;
 }
 
-/** Gera o PDF do widget "Calendário" (mês corrente) como uma grade visual do mês — ver
- * `app/profissional/calendario-widget.tsx` e `lib/pdf/calendario-document.tsx`. Sem parâmetro de
- * mês por enquanto: sempre o mês corrente, mesmo recorte que a Home mostra. */
-export async function GET() {
+/** `ano`/`mes` vêm da URL como string (ou ausentes) — mesma validação da tela (ver
+ * `mesDaUrl` em `app/profissional/calendario/page.tsx`), cai no mês atual quando ausente/inválido. */
+function mesDaUrl(valor: string | null, min: number, max: number, padrao: number): number {
+  const numero = Number(valor);
+  return valor !== null && Number.isInteger(numero) && numero >= min && numero <= max ? numero : padrao;
+}
+
+/** Gera o PDF do widget "Calendário" como uma grade visual do mês — ver
+ * `app/profissional/calendario-widget.tsx` e `lib/pdf/calendario-document.tsx`. Aceita `?ano=&mes=`
+ * pra gerar o mês que está sendo visualizado na tela (decisão do Mateus em 04/11, ver
+ * docs/superpowers/specs/2026-11-04-ajustes-rapidos-calendario-painel-atletas-design.md) —
+ * ausentes/inválidos caem no mês corrente, mesmo comportamento de antes dessa navegação existir. */
+export async function GET(request: Request) {
   const supabase = createClient();
   const hojeStr = hojeBrasilia();
-  const [ano, mes] = hojeStr.split("-").map(Number);
+  const [anoHoje, mesHoje] = hojeStr.split("-").map(Number);
+  const { searchParams } = new URL(request.url);
+  const ano = mesDaUrl(searchParams.get("ano"), 2000, 2100, anoHoje);
+  const mes = mesDaUrl(searchParams.get("mes"), 1, 12, mesHoje);
   const { inicio, fim } = limitesDoMes(ano, mes);
 
   const [{ data: jogosData }, { data: eventosData }] = await Promise.all([
@@ -104,10 +116,11 @@ export async function GET() {
     />,
   );
 
+  const mesArquivo = `${ano}-${String(mes).padStart(2, "0")}`;
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="calendario-${hojeStr.slice(0, 7)}.pdf"`,
+      "Content-Disposition": `inline; filename="calendario-${mesArquivo}.pdf"`,
     },
   });
 }

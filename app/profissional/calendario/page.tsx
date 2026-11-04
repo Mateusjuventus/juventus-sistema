@@ -3,9 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { getModulosPermitidos } from "@/lib/auth/role";
 import { hojeBrasilia } from "@/lib/data-brasil";
-import { agruparPorDia, gradeDoMes, limitesDoMes, montarItensCalendario } from "@/lib/futebol/calendario";
+import { agruparPorDia, gradeDoMes, limitesDoMes, mesAdjacente, montarItensCalendario } from "@/lib/futebol/calendario";
 import type { EventoCalendarioRow, JogoRow } from "@/lib/supabase/types";
 import { CalendarioWidget } from "../calendario-widget";
+
+/** `ano`/`mes` vêm da URL como string (ou ausentes) — valida pra um inteiro dentro de uma faixa
+ * razoável, cai no mês atual quando ausente/inválido (mesmo comportamento de antes da navegação
+ * existir, ver docs/superpowers/specs/2026-11-04-ajustes-rapidos-calendario-painel-atletas-design.md). */
+function mesDaUrl(valor: string | undefined, min: number, max: number, padrao: number): number {
+  const numero = Number(valor);
+  return valor !== undefined && Number.isInteger(numero) && numero >= min && numero <= max ? numero : padrao;
+}
 
 /**
  * Calendário do Futebol Profissional — até 05/10 isso vivia dentro do Início (painel com
@@ -18,11 +26,21 @@ import { CalendarioWidget } from "../calendario-widget";
  *
  * Sem o módulo "jogos" liberado, a pessoa ainda vê o calendário, só que sem os jogos (só os eventos
  * manuais) — mesma régua de permissão que o widget já respeitava dentro do Início.
+ *
+ * `?ano=&mes=` deixam navegar pra outro mês (ver docs/superpowers/specs/2026-11-04-ajustes-
+ * rapidos-calendario-painel-atletas-design.md) — ausentes/inválidos caem no mês atual, mesmo
+ * comportamento de antes dessa navegação existir.
  */
-export default async function ProfissionalCalendarioPage() {
+export default async function ProfissionalCalendarioPage({
+  searchParams,
+}: {
+  searchParams: { ano?: string; mes?: string };
+}) {
   const supabase = createClient();
   const hojeStr = hojeBrasilia();
-  const [ano, mes] = hojeStr.split("-").map(Number);
+  const [anoHoje, mesHoje] = hojeStr.split("-").map(Number);
+  const ano = mesDaUrl(searchParams.ano, 2000, 2100, anoHoje);
+  const mes = mesDaUrl(searchParams.mes, 1, 12, mesHoje);
   const { inicio: inicioMes, fim: fimMes } = limitesDoMes(ano, mes);
 
   const [modulosPermitidos, { data: eventosDoMesData }] = await Promise.all([
@@ -57,6 +75,9 @@ export default async function ProfissionalCalendarioPage() {
     ),
   );
 
+  const mesAnterior = mesAdjacente(ano, mes, -1);
+  const mesSeguinte = mesAdjacente(ano, mes, 1);
+
   return (
     <AppShell breadcrumb="Calendário">
       <CalendarioWidget
@@ -67,6 +88,10 @@ export default async function ProfissionalCalendarioPage() {
         itensDoMes={itensDoMes}
         logoPorJogoId={logoPorJogoId}
         hojeStr={hojeStr}
+        ehMesAtual={ano === anoHoje && mes === mesHoje}
+        hrefMesAnterior={`/profissional/calendario?ano=${mesAnterior.ano}&mes=${mesAnterior.mes}`}
+        hrefMesSeguinte={`/profissional/calendario?ano=${mesSeguinte.ano}&mes=${mesSeguinte.mes}`}
+        hrefHoje="/profissional/calendario"
       />
     </AppShell>
   );

@@ -9,6 +9,7 @@ import {
   gradeDoMes,
   itensMural,
   limitesDoMes,
+  mesAdjacente,
   montarItensCalendario,
   tituloJogo,
 } from "./calendario";
@@ -342,5 +343,23 @@ describe("gradeDoMes", () => {
     const grade = gradeDoMes(2026, 8);
     const datas = grade.map((d) => d.data);
     expect(new Set(datas).size).toBe(datas.length);
+  });
+});
+
+describe("mesAdjacente", () => {
+  it("mês seguinte dentro do mesmo ano", () => {
+    expect(mesAdjacente(2026, 8, 1)).toEqual({ ano: 2026, mes: 9 });
+  });
+
+  it("mês anterior dentro do mesmo ano", () => {
+    expect(mesAdjacente(2026, 8, -1)).toEqual({ ano: 2026, mes: 7 });
+  });
+
+  it("virada de ano pra frente (dezembro -> janeiro)", () => {
+    expect(mesAdjacente(2026, 12, 1)).toEqual({ ano: 2027, mes: 1 });
+  });
+
+  it("virada de ano pra trás (janeiro -> dezembro)", () => {
+    expect(mesAdjacente(2026, 1, -1)).toEqual({ ano: 2025, mes: 12 });
   });
 });

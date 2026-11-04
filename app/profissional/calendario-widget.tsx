@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   CATEGORIAS_EVENTO,
   COR_CATEGORIA_JOGO,
@@ -118,9 +119,13 @@ function DiaCelula({
 
 /**
  * Widget "Calendário" — o maior da coluna central da Home do Futebol Profissional (ver a spec do
- * redesign visual). Mostra só o mês corrente (sem navegação pra outros meses — não fazia parte do
- * mockup aprovado; pode virar um ajuste futuro se precisar). Jogos e eventos manuais entram juntos
- * na mesma grade — `itensPorDia`/`itensDoMes` já vêm prontos de `lib/futebol/calendario.ts`.
+ * redesign visual). Jogos e eventos manuais entram juntos na mesma grade — `itensPorDia`/
+ * `itensDoMes` já vêm prontos de `lib/futebol/calendario.ts`.
+ *
+ * Navegação entre meses (setas ◀▶ + atalho "Hoje" quando fora do mês atual) adicionada em 04/11
+ * (ver docs/superpowers/specs/2026-11-04-ajustes-rapidos-calendario-painel-atletas-design.md) — os
+ * `href*` vêm prontos da página (`mesAdjacente`), o widget só desenha os links. O botão "Gerar PDF"
+ * segue o mês exibido (não sempre o mês atual), por isso leva `ano`/`mes` na query string.
  */
 export function CalendarioWidget({
   ano,
@@ -130,6 +135,10 @@ export function CalendarioWidget({
   itensDoMes,
   logoPorJogoId,
   hojeStr,
+  ehMesAtual,
+  hrefMesAnterior,
+  hrefMesSeguinte,
+  hrefHoje,
 }: {
   ano: number;
   mes: number;
@@ -138,6 +147,10 @@ export function CalendarioWidget({
   itensDoMes: ItemCalendario[];
   logoPorJogoId: Map<string, string | null>;
   hojeStr: string;
+  ehMesAtual: boolean;
+  hrefMesAnterior: string;
+  hrefMesSeguinte: string;
+  hrefHoje: string;
 }) {
   // Só a partir de hoje: dias já passados do mês não precisam mais de ação (editar/remover) e só
   // deixavam essa lista comprida, empurrando o resto da página pra baixo — altura limitada com
@@ -147,12 +160,33 @@ export function CalendarioWidget({
   return (
     <div className="card p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-bold text-grena-escuro">
-          Calendário — {MESES[mes - 1]} de {ano}
-        </h2>
+        <div className="flex items-center gap-1.5">
+          <Link
+            href={hrefMesAnterior}
+            aria-label="Mês anterior"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-grena-escuro"
+          >
+            ◀
+          </Link>
+          <h2 className="text-base font-bold text-grena-escuro">
+            Calendário — {MESES[mes - 1]} de {ano}
+          </h2>
+          <Link
+            href={hrefMesSeguinte}
+            aria-label="Mês seguinte"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-grena-escuro"
+          >
+            ▶
+          </Link>
+          {!ehMesAtual ? (
+            <Link href={hrefHoje} className="ml-1 text-xs font-medium text-grena hover:underline">
+              Hoje
+            </Link>
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           <a
-            href="/profissional/calendario/pdf"
+            href={`/profissional/calendario/pdf?ano=${ano}&mes=${mes}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary text-xs"

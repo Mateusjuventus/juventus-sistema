@@ -118,7 +118,12 @@ async function AtletasIndice() {
   const [modulosPermitidos, categoriasBasePermitidas, { data }] = await Promise.all([
     getModulosPermitidos(supabase),
     getCategoriasBasePermitidas(supabase),
-    supabase.from("atletas").select("categoria, tipo_contrato").eq("ativo", true),
+    // `ativo` e "dispensado" são independentes (ver comentário de `AtletaRow.ativo`) — um atleta
+    // dispensado pode continuar `ativo: true`. O painel geral (este índice) não deve contar nem
+    // um nem o outro (pedido do Mateus, 04/11/2026, ver docs/superpowers/specs/2026-11-04-ajustes-
+    // rapidos-calendario-painel-atletas-design.md). A listagem detalhada de cada categoria não
+    // muda: ela já esconde "Dispensado" só por filtro padrão, continuando acessível.
+    supabase.from("atletas").select("categoria, tipo_contrato").eq("ativo", true).neq("status", "dispensado"),
   ]);
 
   const podeVerProfissional = modulosPermitidos.includes("atletas");

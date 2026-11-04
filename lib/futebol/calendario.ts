@@ -236,3 +236,12 @@ export function limitesDoMes(ano: number, mes: number): { inicio: string; fim: s
     fim: formatISO(new Date(Date.UTC(ano, mes, 0))),
   };
 }
+
+/** Mês `delta` posições antes/depois de `ano`/`mes` (1-12), com virada de ano nas duas direções —
+ * usado pelas setas "mês anterior"/"mês seguinte" do widget "Calendário" (ver
+ * docs/superpowers/specs/2026-11-04-ajustes-rapidos-calendario-painel-atletas-design.md). `delta`
+ * negativo volta no tempo. */
+export function mesAdjacente(ano: number, mes: number, delta: number): { ano: number; mes: number } {
+  const totalMeses = (ano * 12 + (mes - 1)) + delta;
+  return { ano: Math.floor(totalMeses / 12), mes: (((totalMeses % 12) + 12) % 12) + 1 };
+}
