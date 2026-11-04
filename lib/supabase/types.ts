@@ -248,10 +248,39 @@ export interface AtletaContratoRow {
   bonificacao: number;
   auxilio_moradia: number;
   outros: number;
+  /** Direitos econômicos (até 3 partes, em %) — ver 0158_atleta_contrato_extensoes.sql. Todos
+   * opcionais e independentes entre si; a soma dos 3 não pode passar de 100 (checada no banco),
+   * mas pode ficar abaixo — nem sempre as partes já estão 100% negociadas. */
+  direito_economico_juventus_pct: number | null;
+  direito_economico_atleta_pct: number | null;
+  /** Nome do clube co-detentor — só faz sentido junto de `direito_economico_terceiro_pct`. */
+  direito_economico_terceiro_nome: string | null;
+  direito_economico_terceiro_pct: number | null;
   criado_por_perfil_id: string | null;
   criado_por_nome: string | null;
   created_at: string;
   encerrado_em: string | null;
+}
+
+/** Rubrica de remuneração do contrato — as mesmas 5 colunas de valor de `AtletaContratoRow`,
+ * como union type pra identificar qual delas uma evolução salarial afeta (ver
+ * `AtletaContratoEvolucaoSalarialRow` abaixo). */
+export type RubricaContrato = "salario_ctps" | "direito_imagem" | "bonificacao" | "auxilio_moradia" | "outros";
+
+/** Agenda de mudanças futuras de uma rubrica dentro de um contrato — "a partir de tal data, tal
+ * rubrica passa a valer R$ X" (ver 0158_atleta_contrato_extensoes.sql e docs/superpowers/specs/
+ * 2026-11-04-contrato-atleta-extensoes-design.md). Presa ao `contrato_id`: só é editável enquanto
+ * esse contrato é o vigente (sem sentido editar a evolução de um contrato que já é histórico),
+ * mas continua visível (só leitura) quando o contrato vira histórico. */
+export interface AtletaContratoEvolucaoSalarialRow {
+  id: string;
+  contrato_id: string;
+  rubrica: RubricaContrato;
+  data_vigencia: string;
+  novo_valor: number;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
 }
 
 /** Espelha `AtletaContratoRow`, mas pra `atletas_base` (`tipo_contrato` aceita também

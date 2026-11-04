@@ -241,6 +241,19 @@ export type AtletaAnotacaoInput = z.infer<typeof atletaAnotacaoSchema>;
  * `ATLETA_BASE_TIPO_CONTRATO_OPTIONS` com ela pra Base — ver `app/atletas/[id]/contrato/novo/
  * page.tsx`), só o `.safeParse` deste schema que ficou único. Ver docs/superpowers/specs/
  * 2026-10-16-atleta-dados-esportivos-contrato-design.md. */
+/** Um percentual de direito econômico (0-100), vazio vira `undefined` — campo opcional em todos os
+ * 3 (ver docs/superpowers/specs/2026-11-04-contrato-atleta-extensoes-design.md). Não usa
+ * `z.coerce.number()` direto: `Number("")` é `0`, então uma string vazia coeria pra "0%"
+ * preenchido em vez de "não preenchido" — o `.transform` abaixo distingue os dois antes de coagir. */
+const percentualDireitoEconomicoField = z
+  .string()
+  .optional()
+  .or(z.literal(""))
+  .transform((valor) => (valor ? Number(valor) : undefined))
+  .refine((valor) => valor === undefined || (valor >= 0 && valor <= 100), {
+    message: "Percentual deve estar entre 0 e 100",
+  });
+
 export const atletaContratoSchema = z
   .object({
     tipoContrato: z.enum(["definitivo", "emprestimo", "amador", "formacao", "iniciacao"], {
@@ -254,12 +267,54 @@ export const atletaContratoSchema = z
     bonificacao: z.coerce.number().nonnegative().default(0),
     auxilioMoradia: z.coerce.number().nonnegative().default(0),
     outros: z.coerce.number().nonnegative().default(0),
+    direitoEconomicoJuventusPct: percentualDireitoEconomicoField,
+    direitoEconomicoAtletaPct: percentualDireitoEconomicoField,
+    direitoEconomicoTerceiroNome: z.string().optional().or(z.literal("")),
+    direitoEconomicoTerceiroPct: percentualDireitoEconomicoField,
   })
   .refine(
     (data) => data.tipoContrato !== "emprestimo" || Boolean(data.clubeOrigem?.trim()),
     { message: "Informe o clube de origem", path: ["clubeOrigem"] },
+  )
+  .refine(
+    (data) => !data.direitoEconomicoTerceiroPct || Boolean(data.direitoEconomicoTerceiroNome?.trim()),
+    { message: "Informe o nome do clube", path: ["direitoEconomicoTerceiroNome"] },
+  )
+  .refine(
+    (data) =>
+      (data.direitoEconomicoJuventusPct ?? 0) +
+        (data.direitoEconomicoAtletaPct ?? 0) +
+        (data.direitoEconomicoTerceiroPct ?? 0) <=
+      100,
+    { message: "A soma dos direitos econômicos não pode passar de 100%", path: ["direitoEconomicoTerceiroPct"] },
   );
 export type AtletaContratoInput = z.infer<typeof atletaContratoSchema>;
+
+/** As 5 rubricas de remuneração do contrato — mesma lista usada no formulário de contrato
+ * (`CurrencyField` por rubrica) e, agora, no seletor de "Evolução salarial" (qual rubrica muda).
+ * Centralizada aqui pra não ter duas listas podendo divergir. */
+export const RUBRICA_CONTRATO_OPTIONS = [
+  { value: "salario_ctps", label: "Salário CTPS" },
+  { value: "direito_imagem", label: "Direito de imagem" },
+  { value: "bonificacao", label: "Bonificação" },
+  { value: "auxilio_moradia", label: "Auxílio moradia" },
+  { value: "outros", label: "Outros" },
+] as const;
+
+export const RUBRICA_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
+  RUBRICA_CONTRATO_OPTIONS.map((r) => [r.value, r.label]),
+);
+
+/** "+ Adicionar evolução" (dentro do contrato vigente) — ver
+ * docs/superpowers/specs/2026-11-04-contrato-atleta-extensoes-design.md. */
+export const atletaContratoEvolucaoSalarialSchema = z.object({
+  rubrica: z.enum(["salario_ctps", "direito_imagem", "bonificacao", "auxilio_moradia", "outros"], {
+    errorMap: () => ({ message: "Selecione a rubrica" }),
+  }),
+  dataVigencia: z.string().min(1, { message: "Informe a data" }),
+  novoValor: z.coerce.number().nonnegative({ message: "Valor inválido" }),
+});
+export type AtletaContratoEvolucaoSalarialInput = z.infer<typeof atletaContratoEvolucaoSalarialSchema>;
 
 /**
  * Inclusão rápida de atleta pelo Campograma (ver docs/superpowers/specs/

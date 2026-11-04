@@ -21,7 +21,13 @@ import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
 import { ContratoSecao } from "@/components/contrato-secao";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { alternarAtletaAtivo } from "../../actions";
-import type { AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow, AtletaStatus } from "@/lib/supabase/types";
+import type {
+  AtletaContatoEmergenciaRow,
+  AtletaContratoEvolucaoSalarialRow,
+  AtletaContratoRow,
+  AtletaRow,
+  AtletaStatus,
+} from "@/lib/supabase/types";
 
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
   ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
@@ -160,6 +166,17 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
 
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
   const contratos = (contratosData ?? []) as AtletaContratoRow[];
+
+  // Evolução salarial (ver docs/superpowers/specs/2026-11-04-contrato-atleta-extensoes-design.md)
+  // é presa a `contrato_id`, não a `atleta_id` — só dá pra buscar depois de saber os ids dos
+  // contratos acima (histórico incluso, pra mostrar nos cards antigos também, só sem os controles
+  // de editar).
+  const contratoIds = contratos.map((c) => c.id);
+  const { data: evolucoesData } = contratoIds.length
+    ? await supabase.from("atleta_contrato_evolucao_salarial").select("*").in("contrato_id", contratoIds)
+    : { data: [] };
+  const evolucoesSalariais = (evolucoesData ?? []) as AtletaContratoEvolucaoSalarialRow[];
+
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = isBase
     ? `${categoriaAtletaLabel(atleta.categoria)} · ${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`
@@ -366,7 +383,9 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             lançar um novo contrato sem precisar entrar em edição. */}
         <FormSection title="Contrato">
           <ContratoSecao
+            atletaId={atleta.id}
             contratos={contratos}
+            evolucoes={evolucoesSalariais}
             tipoContratoLabel={TIPO_CONTRATO_LABEL}
             novoContratoHref={`/atletas/${atleta.id}/contrato/novo?origem=ver`}
           />

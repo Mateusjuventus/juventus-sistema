@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
-import { atletaContratoSchema } from "@/lib/validation/schemas";
+import { atletaContratoEvolucaoSalarialSchema, atletaContratoSchema } from "@/lib/validation/schemas";
 import type { ContratoFormState } from "@/components/contrato-form";
+import type { EvolucaoSalarialFormState } from "@/components/evolucao-salarial-form";
 
 function parseForm(formData: FormData) {
   const raw = {
@@ -18,6 +19,10 @@ function parseForm(formData: FormData) {
     bonificacao: String(formData.get("bonificacao") ?? "0"),
     auxilioMoradia: String(formData.get("auxilioMoradia") ?? "0"),
     outros: String(formData.get("outros") ?? "0"),
+    direitoEconomicoJuventusPct: String(formData.get("direitoEconomicoJuventusPct") ?? ""),
+    direitoEconomicoAtletaPct: String(formData.get("direitoEconomicoAtletaPct") ?? ""),
+    direitoEconomicoTerceiroNome: String(formData.get("direitoEconomicoTerceiroNome") ?? ""),
+    direitoEconomicoTerceiroPct: String(formData.get("direitoEconomicoTerceiroPct") ?? ""),
   };
 
   const result = atletaContratoSchema.safeParse(raw);
@@ -68,6 +73,10 @@ export async function criarContrato(
     p_outros: data.outros,
     p_criado_por_perfil_id: user?.id ?? null,
     p_criado_por_nome: nomeAtual,
+    p_direito_economico_juventus_pct: data.direitoEconomicoJuventusPct ?? null,
+    p_direito_economico_atleta_pct: data.direitoEconomicoAtletaPct ?? null,
+    p_direito_economico_terceiro_nome: data.direitoEconomicoTerceiroNome || null,
+    p_direito_economico_terceiro_pct: data.direitoEconomicoTerceiroPct ?? null,
   });
 
   if (error) return { error: "Não foi possível salvar o contrato. Tente novamente.", values: raw };
@@ -81,4 +90,62 @@ export async function criarContrato(
   revalidatePath(`/atletas/${atletaId}/ver`);
   revalidatePath("/atletas");
   redirect(destino);
+}
+
+/**
+ * "+ Adicionar evolução" (dentro do contrato vigente, em `ContratoSecao`) — ver docs/superpowers/
+ * specs/2026-11-04-contrato-atleta-extensoes-design.md. Mesmo padrão de
+ * `adicionarContatoEmergencia` (app/atletas/actions.ts): sem redirect, só revalida a página do
+ * atleta (`atletaId` vem num campo oculto do formulário, já que a tabela só guarda `contrato_id`).
+ */
+export async function salvarEvolucaoSalarial(
+  _prevState: EvolucaoSalarialFormState,
+  formData: FormData,
+): Promise<EvolucaoSalarialFormState> {
+  const contratoId = String(formData.get("contratoId") ?? "");
+  const atletaId = String(formData.get("atletaId") ?? "");
+  if (!contratoId || !atletaId) return { error: "Contrato não identificado. Recarregue a página e tente novamente." };
+
+  const raw = {
+    rubrica: String(formData.get("rubrica") ?? ""),
+    dataVigencia: String(formData.get("dataVigencia") ?? ""),
+    novoValor: String(formData.get("novoValor") ?? ""),
+  };
+  const result = atletaContratoEvolucaoSalarialSchema.safeParse(raw);
+  if (!result.success) return { error: result.error.issues[0]?.message ?? "Dados inválidos." };
+
+  const supabase = createClient();
+  const nomeAtual = await nomeDaContaAtual(supabase);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase.from("atleta_contrato_evolucao_salarial").insert({
+    contrato_id: contratoId,
+    rubrica: result.data.rubrica,
+    data_vigencia: result.data.dataVigencia,
+    novo_valor: result.data.novoValor,
+    criado_por_perfil_id: user?.id ?? null,
+    criado_por_nome: nomeAtual,
+  });
+
+  if (error) return { error: "Não foi possível salvar a evolução salarial. Tente novamente." };
+
+  revalidatePath(`/atletas/${atletaId}`);
+  revalidatePath(`/atletas/${atletaId}/ver`);
+  return { success: true };
+}
+
+/** Remove uma evolução salarial — mesmo padrão de `removerContatoEmergencia`
+ * (app/atletas/actions.ts): sem confirmação/estado de erro, só apaga e revalida. */
+export async function removerEvolucaoSalarial(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const atletaId = String(formData.get("atletaId") ?? "");
+  if (!id || !atletaId) return;
+
+  const supabase = createClient();
+  await supabase.from("atleta_contrato_evolucao_salarial").delete().eq("id", id);
+
+  revalidatePath(`/atletas/${atletaId}`);
+  revalidatePath(`/atletas/${atletaId}/ver`);
 }

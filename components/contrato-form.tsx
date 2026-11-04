@@ -22,20 +22,31 @@ export interface ContratoFormState {
  * mudança. Ao salvar, a action (`criarContrato`/`criarContratoBase`) encerra o contrato vigente
  * atual (se existir) e insere este como o novo vigente, numa operação atômica só — ver a função de
  * banco `criar_contrato_atleta`/`criar_contrato_atleta_base`.
+ *
+ * `valoresIniciais`/`modoAditivo` (ver docs/superpowers/specs/2026-11-04-contrato-atleta-
+ * extensoes-design.md) — "Aditivo" reaproveita este mesmo formulário, só que pré-preenchido com o
+ * contrato vigente atual (`valoresIniciais`, lido pela página) e com Tipo de contrato travado em
+ * "Definitivo" (um aditivo sempre resulta num contrato definitivo, não importa o que o anterior
+ * era). `state.values` (depois de uma tentativa de envio com erro) sempre tem prioridade sobre
+ * `valoresIniciais` — é o que a pessoa realmente digitou por último.
  */
 export function ContratoForm({
   action,
   tipoContratoOptions,
   camposExtras,
+  valoresIniciais,
+  modoAditivo,
 }: {
   action: (prevState: ContratoFormState, formData: FormData) => Promise<ContratoFormState>;
   tipoContratoOptions: readonly { value: string; label: string }[];
   camposExtras: Record<string, string>;
+  valoresIniciais?: Record<string, string | undefined>;
+  modoAditivo?: boolean;
 }) {
   const [state, formAction] = useFormState(action, {});
-  const values = state.values ?? {};
+  const values = state.values ?? valoresIniciais ?? {};
   const errors = state.fieldErrors ?? {};
-  const [tipoContrato, setTipoContrato] = useState(values.tipoContrato ?? "");
+  const [tipoContrato, setTipoContrato] = useState(modoAditivo ? "definitivo" : values.tipoContrato ?? "");
 
   return (
     <form action={formAction} className="space-y-6">
@@ -45,21 +56,29 @@ export function ContratoForm({
 
       <FormSection title="Contrato">
         <FieldGroup>
-          <SelectField
-            label="Tipo de contrato"
-            name="tipoContrato"
-            required
-            defaultValue={values.tipoContrato}
-            error={errors.tipoContrato}
-            onChange={setTipoContrato}
-          >
-            <option value="">Selecione</option>
-            {tipoContratoOptions.map((opcao) => (
-              <option key={opcao.value} value={opcao.value}>
-                {opcao.label}
-              </option>
-            ))}
-          </SelectField>
+          {modoAditivo ? (
+            <div>
+              <label className="field-label">Tipo de contrato</label>
+              <p className="field-input flex items-center bg-neutral-50 text-neutral-500">Definitivo</p>
+              <input type="hidden" name="tipoContrato" value="definitivo" />
+            </div>
+          ) : (
+            <SelectField
+              label="Tipo de contrato"
+              name="tipoContrato"
+              required
+              defaultValue={values.tipoContrato}
+              error={errors.tipoContrato}
+              onChange={setTipoContrato}
+            >
+              <option value="">Selecione</option>
+              {tipoContratoOptions.map((opcao) => (
+                <option key={opcao.value} value={opcao.value}>
+                  {opcao.label}
+                </option>
+              ))}
+            </SelectField>
+          )}
           {tipoContrato === "emprestimo" ? (
             <TextField
               label="Clube de origem"
@@ -116,6 +135,52 @@ export function ContratoForm({
         </FieldGroup>
         <p className="mt-3 text-sm text-neutral-500">
           O percentual de cada rubrica sobre o valor total aparece na tela de Contrato depois de salvar.
+        </p>
+      </FormSection>
+
+      <FormSection title="Direitos econômicos">
+        <FieldGroup>
+          <TextField
+            label="Juventus (%)"
+            name="direitoEconomicoJuventusPct"
+            type="number"
+            min={0}
+            max={100}
+            step="0.1"
+            defaultValue={values.direitoEconomicoJuventusPct}
+            error={errors.direitoEconomicoJuventusPct}
+          />
+          <TextField
+            label="Atleta (%)"
+            name="direitoEconomicoAtletaPct"
+            type="number"
+            min={0}
+            max={100}
+            step="0.1"
+            defaultValue={values.direitoEconomicoAtletaPct}
+            error={errors.direitoEconomicoAtletaPct}
+          />
+          <TextField
+            label="Outro clube"
+            name="direitoEconomicoTerceiroNome"
+            placeholder="ex: Botafogo-SP"
+            defaultValue={values.direitoEconomicoTerceiroNome}
+            error={errors.direitoEconomicoTerceiroNome}
+          />
+          <TextField
+            label="Outro clube (%)"
+            name="direitoEconomicoTerceiroPct"
+            type="number"
+            min={0}
+            max={100}
+            step="0.1"
+            defaultValue={values.direitoEconomicoTerceiroPct}
+            error={errors.direitoEconomicoTerceiroPct}
+          />
+        </FieldGroup>
+        <p className="mt-3 text-sm text-neutral-500">
+          Todos opcionais — preencha só o que já estiver negociado. A soma das 3 partes não pode
+          passar de 100%.
         </p>
       </FormSection>
 

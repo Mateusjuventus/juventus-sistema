@@ -9,7 +9,12 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import type { AtletaContatoEmergenciaRow, AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
+import type {
+  AtletaContatoEmergenciaRow,
+  AtletaContratoEvolucaoSalarialRow,
+  AtletaContratoRow,
+  AtletaRow,
+} from "@/lib/supabase/types";
 import { AtletaForm } from "../atleta-form";
 import { updateAtleta, deleteAtleta, adicionarContatoEmergencia, removerContatoEmergencia } from "../actions";
 
@@ -44,6 +49,15 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
   const atleta = data as AtletaRow;
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
   const contratos = (contratosData ?? []) as AtletaContratoRow[];
+
+  // Evolução salarial é presa a `contrato_id`, não a `atleta_id` (ver docs/superpowers/specs/
+  // 2026-11-04-contrato-atleta-extensoes-design.md) — mesma lógica de `[id]/ver/page.tsx`.
+  const contratoIds = contratos.map((c) => c.id);
+  const { data: evolucoesData } = contratoIds.length
+    ? await supabase.from("atleta_contrato_evolucao_salarial").select("*").in("contrato_id", contratoIds)
+    : { data: [] };
+  const evolucoesSalariais = (evolucoesData ?? []) as AtletaContratoEvolucaoSalarialRow[];
+
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const isBase = atleta.categoria !== "profissional";
   // Atleta criado pela inclusão rápida do Campograma chega aqui com RG/CPF "placeholder" (ver
@@ -154,7 +168,9 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
         <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">Contrato</h2>
         <div className="mt-3">
           <ContratoSecao
+            atletaId={atleta.id}
             contratos={contratos}
+            evolucoes={evolucoesSalariais}
             tipoContratoLabel={TIPO_CONTRATO_LABEL}
             novoContratoHref={`/atletas/${atleta.id}/contrato/novo?origem=editar`}
           />
