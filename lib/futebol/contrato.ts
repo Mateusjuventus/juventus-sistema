@@ -46,6 +46,17 @@ export function statusContrato(
   return { status: "ativo", label: "Contrato Ativo" };
 }
 
+/** Só os tipos de contrato com remuneração formal (CLT/empréstimo) mostram as rubricas (Salário
+ * CTPS/Direito de imagem/Bonificação/Auxílio moradia/Outros) e o Valor total — "Amador",
+ * "Iniciação" e "Formação" são vínculos sem contrato de trabalho formal, então essas rubricas
+ * sempre aparecem zeradas pra eles e só poluem a tela (pedido do Mateus em 04/11/2026, ao ver um
+ * card de "Amador" cheio de "R$ 0,00": "não precisa aparecer essas informações, isso só aparecer
+ * ao selecionar definitivo ou empréstimo"). Ajuda de custo da Base continua em
+ * `atletas.valor_ajuda_custo`, fora do Contrato — não é afetada por esta função. */
+export function contratoTemRemuneracaoFormal(tipoContrato: string): boolean {
+  return tipoContrato === "definitivo" || tipoContrato === "emprestimo";
+}
+
 /** Valor efetivo de uma rubrica na data de hoje: a evolução salarial mais recente já aplicável
  * (data <= hoje) pra essa rubrica, ou o valor gravado no próprio contrato quando não há nenhuma —
  * mesmo princípio do Valor Total do contrato (calculado na hora de exibir, nunca gravado). Usado

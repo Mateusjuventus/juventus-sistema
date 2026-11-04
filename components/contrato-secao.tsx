@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { AtletaContratoRow, AtletaContratoEvolucaoSalarialRow, AtletaContratoGatilhoRow } from "@/lib/supabase/types";
 import {
+  contratoTemRemuneracaoFormal,
   contratoVazio,
   diasRestantesContrato,
   direitosEconomicos,
@@ -272,6 +273,7 @@ function ContratoCard({
   }));
   const total = rubricas.reduce((soma, r) => soma + r.valor, 0);
   const percentual = (valor: number) => (total > 0 ? `${((valor / total) * 100).toFixed(1)}%` : "—");
+  const temRemuneracaoFormal = contratoTemRemuneracaoFormal(contrato.tipo_contrato);
   const restantes = destaque ? diasRestantesContrato(contrato.vigencia_fim, hojeStr) : null;
   // Sem nenhuma das duas datas, deixa o campo em branco em vez de escrever algo no lugar (pedido do
   // Mateus em 04/11/2026: "se não tem data, deixa em branco, não faz sentido"). Um contrato chega
@@ -300,20 +302,24 @@ function ContratoCard({
               : ""}
         </span>
       </div>
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {rubricas.map((r) => (
-          <div key={r.label} className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
-            <span className="text-neutral-600">{r.label}</span>
-            <span className="font-medium text-neutral-800">
-              {formatMoeda(r.valor)} <span className="text-xs text-neutral-400">({percentual(r.valor)})</span>
-            </span>
+      {temRemuneracaoFormal ? (
+        <>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {rubricas.map((r) => (
+              <div key={r.label} className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
+                <span className="text-neutral-600">{r.label}</span>
+                <span className="font-medium text-neutral-800">
+                  {formatMoeda(r.valor)} <span className="text-xs text-neutral-400">({percentual(r.valor)})</span>
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="mt-3 flex items-center justify-between border-t border-linha pt-3">
-        <span className="text-sm font-semibold text-neutral-700">Valor total</span>
-        <span className="text-base font-bold text-grena-escuro">{formatMoeda(total)}</span>
-      </div>
+          <div className="mt-3 flex items-center justify-between border-t border-linha pt-3">
+            <span className="text-sm font-semibold text-neutral-700">Valor total</span>
+            <span className="text-base font-bold text-grena-escuro">{formatMoeda(total)}</span>
+          </div>
+        </>
+      ) : null}
       <DireitosEconomicos contrato={contrato} />
       <EvolucaoSalarialSecao atletaId={atletaId} contrato={contrato} evolucoes={evolucoes} editavel={Boolean(destaque)} />
       <GatilhosSecao

@@ -20,6 +20,7 @@ import {
   textoFiltroCompeticaoAtleta,
 } from "@/lib/futebol/ficha-atleta";
 import {
+  contratoTemRemuneracaoFormal,
   contratoVazio,
   diasRestantesContrato,
   direitosEconomicos,
@@ -179,6 +180,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const percentual = (valor: number) =>
     valorTotalContrato > 0 ? ` (${((valor / valorTotalContrato) * 100).toFixed(1)}%)` : "";
 
+  // Rubricas (e o Valor total, que é a soma delas) só fazem sentido pra tipo de contrato com
+  // remuneração formal (Definitivo/Empréstimo) — Amador/Iniciação/Formação sempre aparecem
+  // zeradas, então ficam de fora da Ficha também (mesmo pedido do Mateus que tirou essas rubricas
+  // da tela "Ver atleta": "não precisa aparecer essas informações, isso só aparecer ao selecionar
+  // definitivo ou empréstimo").
+  const mostrarRubricas = vigente ? contratoTemRemuneracaoFormal(vigente.tipo_contrato) : false;
   const statusContratoAtleta = statusContrato(vigente ?? undefined, hojeStr);
   const diasRestantesAtleta = vigente ? diasRestantesContrato(vigente.vigencia_fim, hojeStr) : null;
   const direitosEconomicosAtleta = vigente ? direitosEconomicos(vigente) : [];
@@ -251,16 +258,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 : ""
           }`
         : null,
-    contrato_salario_ctps: vigente ? `${formatMoeda(salarioCtpsEfetivo)}${percentual(salarioCtpsEfetivo)}` : null,
-    contrato_direito_imagem: vigente
+    contrato_salario_ctps: mostrarRubricas ? `${formatMoeda(salarioCtpsEfetivo)}${percentual(salarioCtpsEfetivo)}` : null,
+    contrato_direito_imagem: mostrarRubricas
       ? `${formatMoeda(direitoImagemEfetivo)}${percentual(direitoImagemEfetivo)}`
       : null,
-    contrato_bonificacao: vigente ? `${formatMoeda(bonificacaoEfetiva)}${percentual(bonificacaoEfetiva)}` : null,
-    contrato_auxilio_moradia: vigente
+    contrato_bonificacao: mostrarRubricas ? `${formatMoeda(bonificacaoEfetiva)}${percentual(bonificacaoEfetiva)}` : null,
+    contrato_auxilio_moradia: mostrarRubricas
       ? `${formatMoeda(auxilioMoradiaEfetivo)}${percentual(auxilioMoradiaEfetivo)}`
       : null,
-    contrato_outros: vigente ? `${formatMoeda(outrosEfetivo)}${percentual(outrosEfetivo)}` : null,
-    contrato_valor_total: vigente ? formatMoeda(valorTotalContrato) : null,
+    contrato_outros: mostrarRubricas ? `${formatMoeda(outrosEfetivo)}${percentual(outrosEfetivo)}` : null,
+    contrato_valor_total: mostrarRubricas ? formatMoeda(valorTotalContrato) : null,
     contrato_status: statusContratoAtleta.label,
     contrato_direitos_economicos:
       direitosEconomicosAtleta.length > 0

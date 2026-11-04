@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AtletaContratoEvolucaoSalarialRow } from "@/lib/supabase/types";
 import {
+  contratoTemRemuneracaoFormal,
   contratoVazio,
   diasRestantesContrato,
   direitosEconomicos,
@@ -171,5 +172,18 @@ describe("evolucoesProximas", () => {
 
   it("vazio quando não há nenhuma evolução futura", () => {
     expect(evolucoesProximas([evolucao({ data_vigencia: "2026-10-01" })], "2026-11-04")).toEqual([]);
+  });
+});
+
+describe("contratoTemRemuneracaoFormal", () => {
+  it("true pra Definitivo e Empréstimo", () => {
+    expect(contratoTemRemuneracaoFormal("definitivo")).toBe(true);
+    expect(contratoTemRemuneracaoFormal("emprestimo")).toBe(true);
+  });
+
+  it("false pra Amador, Iniciação e Formação", () => {
+    expect(contratoTemRemuneracaoFormal("amador")).toBe(false);
+    expect(contratoTemRemuneracaoFormal("iniciacao")).toBe(false);
+    expect(contratoTemRemuneracaoFormal("formacao")).toBe(false);
   });
 });
