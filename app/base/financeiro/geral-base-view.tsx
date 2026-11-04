@@ -10,6 +10,9 @@ import {
   tipoPagamentoAtletaBase,
   valorDespesaBase,
 } from "@/lib/futebol/financeiro-base";
+import { bonusGatilhosDoMes, type GatilhoCumpridoAtleta } from "@/lib/futebol/gatilho-contrato";
+import { buscarGatilhosCumpridos } from "@/lib/futebol/gatilho-contrato-query";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import { DonutComposicao, type FatiaComposicao } from "@/components/charts/donut-composicao";
 import { BarrasCategoria } from "@/components/charts/barras-categoria";
 import type {
@@ -51,18 +54,25 @@ function StatCard({ label, valor, ajuda }: { label: string; valor: string; ajuda
 export async function GeralBaseView() {
   const supabase = createClient();
 
-  const [{ data: comissaoData }, { data: atletasData }, { data: despesasData }, { data: contratosData }, podeVerSalario] =
-    await Promise.all([
-      supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
-      supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
-      supabase
-        .from("despesas_avulsas_base")
-        .select("*, categoria_gasto:categorias_gasto(nome)")
-        .order("data", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-      supabase.from("atleta_contratos").select("*").eq("vigente", true),
-      podeVerCampoSensivel(supabase, "salario"),
-    ]);
+  const [
+    { data: comissaoData },
+    { data: atletasData },
+    { data: despesasData },
+    { data: contratosData },
+    podeVerSalario,
+    gatilhosCumpridosBrutos,
+  ] = await Promise.all([
+    supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
+    supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
+    supabase
+      .from("despesas_avulsas_base")
+      .select("*, categoria_gasto:categorias_gasto(nome)")
+      .order("data", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false }),
+    supabase.from("atleta_contratos").select("*").eq("vigente", true),
+    podeVerCampoSensivel(supabase, "salario"),
+    buscarGatilhosCumpridos(supabase),
+  ]);
 
   // Comissão Técnica já é unificada (Profissional + Base — ver docs/superpowers/specs/2026-10-28-
   // unificacao-comissao-tecnica-design.md); aqui só entra quem tem pelo menos uma categoria da
@@ -85,6 +95,22 @@ export async function GeralBaseView() {
 
   const { custoComissao, custoAtletas, custoMensalFixo, despesasTotal, totalGeral, linhasCategoria } =
     calcularGeralBase(comissao, atletas, despesas, contratosVigentes);
+
+  // Bônus de gatilhos confirmados este mês — linha separada do custo recorrente acima, nunca
+  // somada em `custoAtletas`/`custoMensalFixo`/`totalGeral` (ver docs/superpowers/specs/2026-11-04-
+  // contrato-atleta-gatilhos-design.md, seção Financeiro). Só entram atletas da Base (`atletas` já
+  // está filtrado por categoria acima — quem é só "profissional" não entra aqui).
+  const atletaNomePorId = new Map(atletas.map((a) => [a.id, a.nome_completo]));
+  const gatilhosCumpridosComNome: GatilhoCumpridoAtleta[] = gatilhosCumpridosBrutos
+    .filter((g) => atletaNomePorId.has(g.atletaId))
+    .map((g) => ({
+      atletaId: g.atletaId,
+      atletaNome: atletaNomePorId.get(g.atletaId)!,
+      metrica: g.metrica,
+      valorBonus: g.valorBonus,
+      cumpridaEm: g.cumpridaEm,
+    }));
+  const bonusGatilhos = bonusGatilhosDoMes(gatilhosCumpridosComNome, hojeBrasilia());
 
   // Todo atleta cadastrado, agrupado por categoria de idade (mesma ordem de CATEGORIAS_BASE) — o
   // pedido do Mateus foi listar todo mundo (não só quem recebe), com o tipo de pagamento
@@ -134,6 +160,30 @@ export async function GeralBaseView() {
         />
         {podeVerSalario ? <StatCard label="Total geral da Base" valor={formatMoeda(totalGeral)} /> : null}
       </div>
+
+      {/* Bônus de gatilhos confirmados este mês — linha separada de propósito, fora do "Total
+          geral da Base" acima (que é um custo mensal recorrente; o bônus é pontual). Mesma
+          visibilidade de quem pode ver salário (é informação financeira de atleta) e só aparece
+          quando há algum confirmado no mês. */}
+      {podeVerSalario && bonusGatilhos.itens.length > 0 ? (
+        <div className="card mt-3 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-neutral-700">
+              Bônus de gatilhos confirmados este mês{" "}
+              <span className="font-normal text-neutral-400">(não entra no Total geral da Base acima)</span>
+            </p>
+            <p className="text-base font-bold text-grena-escuro">{formatMoeda(bonusGatilhos.total)}</p>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {bonusGatilhos.itens.map((item, i) => (
+              <li key={i} className="flex items-center justify-between text-sm text-neutral-600">
+                <span>{item.atletaNome}</span>
+                <span className="font-medium text-neutral-800">{formatMoeda(item.valorBonus)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {podeVerSalario ? (
         <>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AtletaContratoRow, AtletaContratoEvolucaoSalarialRow } from "@/lib/supabase/types";
+import type { AtletaContratoRow, AtletaContratoEvolucaoSalarialRow, AtletaContratoGatilhoRow } from "@/lib/supabase/types";
 import {
   contratoVazio,
   diasRestantesContrato,
@@ -8,10 +8,19 @@ import {
   statusContrato,
   valorEfetivoRubrica,
 } from "@/lib/futebol/contrato";
+import type { ProgressoGatilho } from "@/lib/futebol/gatilho-contrato";
 import { hojeBrasilia } from "@/lib/data-brasil";
-import { RUBRICA_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { RUBRICA_CONTRATO_OPTIONS, METRICA_GATILHO_OPTIONS } from "@/lib/validation/schemas";
+import type { CompeticaoDisponivelAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { EvolucaoSalarialForm } from "@/components/evolucao-salarial-form";
-import { removerEvolucaoSalarial, salvarEvolucaoSalarial } from "@/app/atletas/[id]/contrato/actions";
+import { GatilhoContratoForm } from "@/components/gatilho-contrato-form";
+import {
+  removerEvolucaoSalarial,
+  salvarEvolucaoSalarial,
+  criarGatilhoContrato,
+  confirmarGatilhoContrato,
+  removerGatilhoContrato,
+} from "@/app/atletas/[id]/contrato/actions";
 
 // Até 28/10/2026 este tipo era `AtletaContratoRow | AtletaBaseContratoRow` (Profissional e Base
 // tinham tabelas/tipos próprios) — a unificação de Atletas mesclou os dois em `atleta_contratos`/
@@ -125,10 +134,114 @@ function EvolucaoSalarialSecao({
   );
 }
 
+/** Lista de Gatilhos (bônus por meta de desempenho) de um contrato + (só no vigente) o
+ * mini-formulário de adicionar — ver docs/superpowers/specs/2026-11-04-contrato-atleta-gatilhos-
+ * design.md. Mesmo padrão de `EvolucaoSalarialSecao`: `editavel` decide se aparecem os controles
+ * (adicionar/confirmar/remover); contratos do histórico mostram só a lista, sem poder mexer.
+ *
+ * `progressoPorGatilho` vem calculado pela página (precisa de `buscarEstatisticasAtleta` filtrado
+ * pelas Competições de cada gatilho — não é um cálculo puro que caiba aqui dentro) — chave é o
+ * `id` do gatilho. Um gatilho sem entrada no mapa (ex.: contrato do histórico, onde não vale a
+ * pena calcular progresso de algo que não pode mais ser confirmado) só mostra os dados estáticos. */
+function GatilhosSecao({
+  atletaId,
+  contrato,
+  gatilhos,
+  progressoPorGatilho,
+  competicoesDisponiveis,
+  temJogosSemCompeticao,
+  editavel,
+}: {
+  atletaId: string;
+  contrato: ContratoRow;
+  gatilhos: AtletaContratoGatilhoRow[];
+  progressoPorGatilho: Record<string, ProgressoGatilho>;
+  competicoesDisponiveis: CompeticaoDisponivelAtleta[];
+  temJogosSemCompeticao: boolean;
+  editavel: boolean;
+}) {
+  if (gatilhos.length === 0 && !editavel) return null;
+
+  return (
+    <div className="mt-3 border-t border-linha pt-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Gatilhos (bônus por meta)</p>
+      {gatilhos.length > 0 ? (
+        <ul className="mt-1.5 space-y-2">
+          {gatilhos.map((g) => {
+            const progresso = progressoPorGatilho[g.id];
+            const metricaInfo = METRICA_GATILHO_OPTIONS.find((m) => m.value === g.metrica);
+            const unidade = metricaInfo?.tipo === "contagem" ? "" : "%";
+            return (
+              <li key={g.id} className="rounded-md bg-white px-3 py-2 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-neutral-600">
+                    <span className="font-medium text-neutral-800">{metricaInfo?.label ?? g.metrica}</span> ≥{" "}
+                    {g.limiar}
+                    {unidade} → {formatMoeda(g.valor_bonus)}
+                  </span>
+                  {g.cumprida_em ? (
+                    <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-600/20">
+                      Confirmado em {formatData(g.cumprida_em)}
+                    </span>
+                  ) : progresso ? (
+                    <span className="text-xs text-neutral-500">
+                      Progresso: {progresso.atual.toFixed(1)}
+                      {unidade} de {g.limiar}
+                      {unidade}
+                    </span>
+                  ) : null}
+                </div>
+                {editavel && !g.cumprida_em ? (
+                  <div className="mt-1.5 flex items-center gap-3">
+                    {progresso?.atingida ? (
+                      <form action={confirmarGatilhoContrato}>
+                        <input type="hidden" name="id" value={g.id} />
+                        <input type="hidden" name="atletaId" value={atletaId} />
+                        <button type="submit" className="text-xs font-medium text-green-700 hover:underline">
+                          Confirmar bônus
+                        </button>
+                      </form>
+                    ) : null}
+                    <form action={removerGatilhoContrato}>
+                      <input type="hidden" name="id" value={g.id} />
+                      <input type="hidden" name="atletaId" value={atletaId} />
+                      <button type="submit" className="text-xs text-neutral-400 hover:text-red-700">
+                        Remover
+                      </button>
+                    </form>
+                  </div>
+                ) : null}
+                {g.cumprida_em && g.confirmada_por_nome ? (
+                  <p className="mt-1 text-xs text-neutral-400">Confirmado por {g.confirmada_por_nome}</p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+      {editavel ? (
+        <div className="mt-2">
+          <GatilhoContratoForm
+            action={criarGatilhoContrato}
+            contratoId={contrato.id}
+            atletaId={atletaId}
+            competicoesDisponiveis={competicoesDisponiveis}
+            temJogosSemCompeticao={temJogosSemCompeticao}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ContratoCard({
   atletaId,
   contrato,
   evolucoes,
+  gatilhos,
+  progressoPorGatilho,
+  competicoesDisponiveis,
+  temJogosSemCompeticao,
   tipoContratoLabel,
   hojeStr,
   destaque,
@@ -136,6 +249,10 @@ function ContratoCard({
   atletaId: string;
   contrato: ContratoRow;
   evolucoes: AtletaContratoEvolucaoSalarialRow[];
+  gatilhos: AtletaContratoGatilhoRow[];
+  progressoPorGatilho: Record<string, ProgressoGatilho>;
+  competicoesDisponiveis: CompeticaoDisponivelAtleta[];
+  temJogosSemCompeticao: boolean;
   tipoContratoLabel: Record<string, string>;
   hojeStr: string;
   destaque?: boolean;
@@ -199,6 +316,15 @@ function ContratoCard({
       </div>
       <DireitosEconomicos contrato={contrato} />
       <EvolucaoSalarialSecao atletaId={atletaId} contrato={contrato} evolucoes={evolucoes} editavel={Boolean(destaque)} />
+      <GatilhosSecao
+        atletaId={atletaId}
+        contrato={contrato}
+        gatilhos={gatilhos}
+        progressoPorGatilho={progressoPorGatilho}
+        competicoesDisponiveis={competicoesDisponiveis}
+        temJogosSemCompeticao={temJogosSemCompeticao}
+        editavel={Boolean(destaque)}
+      />
       {contrato.criado_por_nome ? (
         <p className="mt-3 text-xs text-neutral-400">Lançado por {contrato.criado_por_nome}</p>
       ) : null}
@@ -225,12 +351,22 @@ export function ContratoSecao({
   atletaId,
   contratos,
   evolucoes,
+  gatilhos,
+  progressoPorGatilho,
+  competicoesDisponiveis,
+  temJogosSemCompeticao,
   tipoContratoLabel,
   novoContratoHref,
 }: {
   atletaId: string;
   contratos: ContratoRow[];
   evolucoes: AtletaContratoEvolucaoSalarialRow[];
+  gatilhos: AtletaContratoGatilhoRow[];
+  /** Progresso já calculado (ver `calcularProgressoGatilho`) pra cada gatilho do contrato vigente —
+   * chave é o `id` do gatilho. Contratos do histórico não entram aqui (ver `GatilhosSecao`). */
+  progressoPorGatilho: Record<string, ProgressoGatilho>;
+  competicoesDisponiveis: CompeticaoDisponivelAtleta[];
+  temJogosSemCompeticao: boolean;
   tipoContratoLabel: Record<string, string>;
   novoContratoHref: string;
 }) {
@@ -283,6 +419,10 @@ export function ContratoSecao({
             atletaId={atletaId}
             contrato={vigente}
             evolucoes={evolucoesDoVigente}
+            gatilhos={gatilhos.filter((g) => g.contrato_id === vigente.id)}
+            progressoPorGatilho={progressoPorGatilho}
+            competicoesDisponiveis={competicoesDisponiveis}
+            temJogosSemCompeticao={temJogosSemCompeticao}
             tipoContratoLabel={tipoContratoLabel}
             hojeStr={hojeStr}
             destaque
@@ -303,6 +443,10 @@ export function ContratoSecao({
                 atletaId={atletaId}
                 contrato={contrato}
                 evolucoes={evolucoes.filter((e) => e.contrato_id === contrato.id)}
+                gatilhos={gatilhos.filter((g) => g.contrato_id === contrato.id)}
+                progressoPorGatilho={{}}
+                competicoesDisponiveis={[]}
+                temJogosSemCompeticao={false}
                 tipoContratoLabel={tipoContratoLabel}
                 hojeStr={hojeStr}
               />

@@ -8,6 +8,7 @@ import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
 import { GerarFichaAtletaButton } from "@/components/atletas/gerar-ficha-atleta-button";
 import { CAMPOS_FICHA_ATLETA_PROFISSIONAL, CAMPOS_FICHA_ATLETA_BASE } from "@/lib/futebol/ficha-atleta";
 import { buscarCompeticoesDisponiveisAtleta } from "@/lib/futebol/estatisticas-atleta-query";
+import { calcularProgressoPorGatilho } from "@/lib/futebol/gatilho-contrato-query";
 import { FieldGroup, FormSection } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { createClient } from "@/lib/supabase/server";
@@ -26,6 +27,7 @@ import { alternarAtletaAtivo } from "../../actions";
 import type {
   AtletaContatoEmergenciaRow,
   AtletaContratoEvolucaoSalarialRow,
+  AtletaContratoGatilhoRow,
   AtletaContratoRow,
   AtletaRow,
   AtletaStatus,
@@ -178,6 +180,21 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
     ? await supabase.from("atleta_contrato_evolucao_salarial").select("*").in("contrato_id", contratoIds)
     : { data: [] };
   const evolucoesSalariais = (evolucoesData ?? []) as AtletaContratoEvolucaoSalarialRow[];
+
+  // Gatilhos (bônus por meta de desempenho — ver docs/superpowers/specs/2026-11-04-contrato-
+  // atleta-gatilhos-design.md) também são presos a `contrato_id`, mesma lógica da evolução
+  // salarial acima. `progressoPorGatilho` calcula o progresso ao vivo de cada gatilho ainda não
+  // confirmado, pra mostrar junto do card do contrato vigente.
+  const { data: gatilhosData } = contratoIds.length
+    ? await supabase.from("atleta_contrato_gatilhos").select("*").in("contrato_id", contratoIds)
+    : { data: [] };
+  const gatilhosContrato = (gatilhosData ?? []) as AtletaContratoGatilhoRow[];
+  const progressoPorGatilho = await calcularProgressoPorGatilho(
+    supabase,
+    params.id,
+    isBase ? TABELAS_JOGO_BASE : TABELAS_JOGO_PROFISSIONAL,
+    gatilhosContrato,
+  );
 
   // Mesmo selo da seção de Contrato (ver `statusContrato`/`contratoVazio` em
   // lib/futebol/contrato.ts), repetido aqui no cabeçalho — pedido do Mateus pra não precisar rolar
@@ -397,6 +414,10 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             atletaId={atleta.id}
             contratos={contratos}
             evolucoes={evolucoesSalariais}
+            gatilhos={gatilhosContrato}
+            progressoPorGatilho={progressoPorGatilho}
+            competicoesDisponiveis={competicoesDisponiveisAtleta.competicoes}
+            temJogosSemCompeticao={competicoesDisponiveisAtleta.temJogosSemCompeticao}
             tipoContratoLabel={TIPO_CONTRATO_LABEL}
             novoContratoHref={`/atletas/${atleta.id}/contrato/novo?origem=ver`}
           />

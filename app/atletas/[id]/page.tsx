@@ -9,9 +9,13 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { buscarCompeticoesDisponiveisAtleta } from "@/lib/futebol/estatisticas-atleta-query";
+import { calcularProgressoPorGatilho } from "@/lib/futebol/gatilho-contrato-query";
+import { TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type {
   AtletaContatoEmergenciaRow,
   AtletaContratoEvolucaoSalarialRow,
+  AtletaContratoGatilhoRow,
   AtletaContratoRow,
   AtletaRow,
 } from "@/lib/supabase/types";
@@ -21,6 +25,32 @@ import { updateAtleta, deleteAtleta, adicionarContatoEmergencia, removerContatoE
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
   ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
 );
+
+// Mesmas tabelas de Jogos/Convocação de `[id]/ver/page.tsx` — ver o comentário lá pra detalhes da
+// unificação de 30/10/2026. Precisa aqui também porque o checklist de Competições do formulário de
+// "+ Adicionar gatilho" usa o mesmo universo de jogos das Estatísticas do Atleta.
+const TABELAS_JOGO_PROFISSIONAL = {
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
+  competicaoJogos: "competicao_jogos",
+  competicoes: "competicoes",
+  temporadas: "temporadas",
+  categoriaJogos: ["profissional"],
+};
+const TABELAS_JOGO_BASE = {
+  jogos: "jogos",
+  convocacoes: "convocacoes",
+  convocacaoAtletas: "convocacao_atletas",
+  sumulas: "sumulas",
+  sumulaEventos: "sumula_eventos",
+  competicaoJogos: "competicao_jogos_base",
+  competicoes: "competicoes_base",
+  temporadas: "temporadas_base",
+  categoriaJogos: TODAS_CATEGORIAS_BASE,
+};
 
 /** Editar atleta — único pro Futebol Profissional e pro Futebol de Base desde a unificação de
  * 28/10/2026 (ver docs/superpowers/specs/2026-10-28-unificacao-atletas-design.md). Antes existiam
@@ -60,6 +90,20 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const isBase = atleta.categoria !== "profissional";
+
+  // Gatilhos (bônus por meta de desempenho — ver docs/superpowers/specs/2026-11-04-contrato-
+  // atleta-gatilhos-design.md), mesma lógica de `[id]/ver/page.tsx`: presos a `contrato_id`,
+  // progresso calculado ao vivo pra cada um ainda não confirmado, e as Competições disponíveis pro
+  // checklist do formulário de "+ Adicionar gatilho" (universo igual ao das Estatísticas do Atleta).
+  const { data: gatilhosData } = contratoIds.length
+    ? await supabase.from("atleta_contrato_gatilhos").select("*").in("contrato_id", contratoIds)
+    : { data: [] };
+  const gatilhosContrato = (gatilhosData ?? []) as AtletaContratoGatilhoRow[];
+  const tabelasJogo = isBase ? TABELAS_JOGO_BASE : TABELAS_JOGO_PROFISSIONAL;
+  const [progressoPorGatilho, competicoesDisponiveisAtleta] = await Promise.all([
+    calcularProgressoPorGatilho(supabase, atleta.id, tabelasJogo, gatilhosContrato),
+    buscarCompeticoesDisponiveisAtleta(supabase, tabelasJogo),
+  ]);
   // Atleta criado pela inclusão rápida do Campograma chega aqui com RG/CPF "placeholder" (ver
   // `cadastroIncompletoRapido` em lib/futebol/campograma.ts) — o formulário começa com esses dois
   // campos vazios, nunca com o id/dígitos sintéticos internos, pra forçar o preenchimento de verdade
@@ -171,6 +215,10 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
             atletaId={atleta.id}
             contratos={contratos}
             evolucoes={evolucoesSalariais}
+            gatilhos={gatilhosContrato}
+            progressoPorGatilho={progressoPorGatilho}
+            competicoesDisponiveis={competicoesDisponiveisAtleta.competicoes}
+            temJogosSemCompeticao={competicoesDisponiveisAtleta.temJogosSemCompeticao}
             tipoContratoLabel={TIPO_CONTRATO_LABEL}
             novoContratoHref={`/atletas/${atleta.id}/contrato/novo?origem=editar`}
           />

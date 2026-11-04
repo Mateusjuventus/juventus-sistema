@@ -13,6 +13,9 @@ import {
   mapaContratoVigentePorAtleta,
   tipoPagamentoAtletaProfissional,
 } from "@/lib/futebol/financeiro";
+import { bonusGatilhosDoMes, type GatilhoCumpridoAtleta } from "@/lib/futebol/gatilho-contrato";
+import { buscarGatilhosCumpridos } from "@/lib/futebol/gatilho-contrato-query";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import {
   RelatorioGeralProfissionalDocument,
   type RelatorioGeralProfissionalAtleta,
@@ -34,12 +37,14 @@ export async function GET() {
     { data: contratosData },
     { assinatura1, assinatura2 },
     podeVerSalario,
+    gatilhosCumpridosBrutos,
   ] = await Promise.all([
     supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
     supabase.from("atletas").select("*").eq("categoria", "profissional").order("nome_completo", { ascending: true }),
     supabase.from("atleta_contratos").select("*").eq("vigente", true),
     getAssinaturasFinanceiro(supabase),
     podeVerCampoSensivel(supabase, "salario"),
+    buscarGatilhosCumpridos(supabase),
   ]);
 
   if (!podeVerSalario) {
@@ -79,6 +84,21 @@ export async function GET() {
     valor: custoAtletaProfissional(a, contratoPorAtleta) || null,
   }));
 
+  // Bônus de gatilhos confirmados este mês — mesmo cálculo de `geral-view.tsx` (linha separada,
+  // não entra em `totalGeral` acima).
+  const atletaNomePorId = new Map(atletas.map((a) => [a.id, a.nome_completo]));
+  const gatilhosCumpridosComNome: GatilhoCumpridoAtleta[] = gatilhosCumpridosBrutos
+    .filter((g) => atletaNomePorId.has(g.atletaId))
+    .map((g) => ({
+      atletaId: g.atletaId,
+      atletaNome: atletaNomePorId.get(g.atletaId)!,
+      metrica: g.metrica,
+      valorBonus: g.valorBonus,
+      cumpridaEm: g.cumpridaEm,
+    }));
+  const bonusGatilhos = bonusGatilhosDoMes(gatilhosCumpridosComNome, hojeBrasilia());
+  const bonusGatilhosPdf = bonusGatilhos.itens.map((item) => ({ nome: item.atletaNome, valor: item.valorBonus }));
+
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
 
@@ -92,6 +112,8 @@ export async function GET() {
       composicao={composicaoPdf}
       comissao={comissaoPdf}
       atletas={atletasPdf}
+      bonusGatilhos={bonusGatilhosPdf}
+      bonusGatilhosTotal={bonusGatilhos.total}
       assinatura1={assinatura1}
       assinatura2={assinatura2}
     />,

@@ -115,6 +115,11 @@ export interface RelatorioGeralProfissionalAtleta {
   valor: number | null;
 }
 
+export interface RelatorioGeralProfissionalBonusGatilho {
+  nome: string;
+  valor: number;
+}
+
 /**
  * Relatório da aba "Geral" de `/financeiro` (Profissional) — espelha
  * `relatorio-geral-base-document.tsx`, mas mais simples: sem quebra "por categoria" (o Profissional
@@ -131,6 +136,8 @@ export function RelatorioGeralProfissionalDocument({
   composicao,
   comissao,
   atletas,
+  bonusGatilhos,
+  bonusGatilhosTotal,
   assinatura1,
   assinatura2,
 }: {
@@ -142,6 +149,11 @@ export function RelatorioGeralProfissionalDocument({
   composicao: RelatorioGeralProfissionalFatia[];
   comissao: RelatorioGeralProfissionalComissao[];
   atletas: RelatorioGeralProfissionalAtleta[];
+  /** Bônus de gatilhos confirmados este mês — linha separada de `totalGeral` (ver
+   * docs/superpowers/specs/2026-11-04-contrato-atleta-gatilhos-design.md, seção Financeiro). Vazio
+   * quando não há nenhum confirmado no mês. */
+  bonusGatilhos: RelatorioGeralProfissionalBonusGatilho[];
+  bonusGatilhosTotal: number;
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
 }) {
@@ -183,6 +195,29 @@ export function RelatorioGeralProfissionalDocument({
             <Text style={styles.statValor}>{formatMoeda(totalGeral)}</Text>
           </View>
         </View>
+
+        {bonusGatilhos.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitulo}>Bônus de Gatilhos Confirmados Este Mês</Text>
+            <Text style={styles.legenda}>Linha separada — não entra no Total geral acima.</Text>
+            <View style={sharedStyles.table}>
+              <View style={sharedStyles.tableHeaderRow}>
+                <Text style={[styles.colNome, sharedStyles.headerCell]}>Atleta</Text>
+                <Text style={[styles.colValor, sharedStyles.headerCell]}>Valor</Text>
+              </View>
+              {bonusGatilhos.map((b, i) => (
+                <View style={sharedStyles.tableRow} key={i} wrap={false}>
+                  <Text style={styles.colNome}>{b.nome}</Text>
+                  <Text style={styles.colValor}>{formatMoeda(b.valor)}</Text>
+                </View>
+              ))}
+              <View style={sharedStyles.tableRow} wrap={false}>
+                <Text style={[styles.colNome, { fontWeight: 700 }]}>Total</Text>
+                <Text style={[styles.colValor, { fontWeight: 700 }]}>{formatMoeda(bonusGatilhosTotal)}</Text>
+              </View>
+            </View>
+          </>
+        ) : null}
 
         <Text style={styles.sectionTitulo}>Composição do Gasto</Text>
         <View style={styles.donutLinha} wrap={false}>

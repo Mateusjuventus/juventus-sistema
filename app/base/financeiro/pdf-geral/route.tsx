@@ -15,6 +15,9 @@ import {
   tipoPagamentoAtletaBase,
   valorDespesaBase,
 } from "@/lib/futebol/financeiro-base";
+import { bonusGatilhosDoMes, type GatilhoCumpridoAtleta } from "@/lib/futebol/gatilho-contrato";
+import { buscarGatilhosCumpridos } from "@/lib/futebol/gatilho-contrato-query";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import {
   RelatorioGeralBaseDocument,
   type RelatorioGeralBaseAtletasCategoria,
@@ -42,6 +45,7 @@ export async function GET() {
     { data: contratosData },
     { assinatura1, assinatura2 },
     podeVerSalario,
+    gatilhosCumpridosBrutos,
   ] = await Promise.all([
     supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
     supabase.from("atletas").select("*").order("nome_completo", { ascending: true }),
@@ -53,6 +57,7 @@ export async function GET() {
     supabase.from("atleta_contratos").select("*").eq("vigente", true),
     getAssinaturasFinanceiroBase(supabase),
     podeVerCampoSensivel(supabase, "salario"),
+    buscarGatilhosCumpridos(supabase),
   ]);
 
   // Comissão Técnica já é unificada (Profissional + Base) — só entra quem tem pelo menos uma
@@ -109,6 +114,24 @@ export async function GET() {
     };
   });
 
+  // Bônus de gatilhos confirmados este mês — mesmo cálculo de `geral-base-view.tsx` (linha
+  // separada, não entra em `totalGeral` acima). Lista vazia quando `podeVerSalario` é falso, pra
+  // nunca mandar valor financeiro de atleta pra quem não tem permissão de ver salário.
+  const atletaNomePorId = new Map(atletas.map((a) => [a.id, a.nome_completo]));
+  const gatilhosCumpridosComNome: GatilhoCumpridoAtleta[] = podeVerSalario
+    ? gatilhosCumpridosBrutos
+        .filter((g) => atletaNomePorId.has(g.atletaId))
+        .map((g) => ({
+          atletaId: g.atletaId,
+          atletaNome: atletaNomePorId.get(g.atletaId)!,
+          metrica: g.metrica,
+          valorBonus: g.valorBonus,
+          cumpridaEm: g.cumpridaEm,
+        }))
+    : [];
+  const bonusGatilhos = bonusGatilhosDoMes(gatilhosCumpridosComNome, hojeBrasilia());
+  const bonusGatilhosPdf = bonusGatilhos.itens.map((item) => ({ nome: item.atletaNome, valor: item.valorBonus }));
+
   const despesasPdf: RelatorioGeralBaseDespesa[] = despesas.map((d) => ({
     categoria: d.categoria ? categoriaBaseLabel(d.categoria) : "Geral",
     tipo: d.categoria_gasto?.nome ?? "—",
@@ -133,6 +156,8 @@ export async function GET() {
       comissao={comissaoPdf}
       atletasPorCategoria={atletasPorCategoria}
       despesas={despesasPdf}
+      bonusGatilhos={bonusGatilhosPdf}
+      bonusGatilhosTotal={bonusGatilhos.total}
       assinatura1={assinatura1}
       assinatura2={assinatura2}
       podeVerSalario={podeVerSalario}

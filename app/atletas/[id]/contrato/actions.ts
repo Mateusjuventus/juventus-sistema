@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
-import { atletaContratoEvolucaoSalarialSchema, atletaContratoSchema } from "@/lib/validation/schemas";
+import { atletaContratoEvolucaoSalarialSchema, atletaContratoGatilhoSchema, atletaContratoSchema } from "@/lib/validation/schemas";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import type { ContratoFormState } from "@/components/contrato-form";
 import type { EvolucaoSalarialFormState } from "@/components/evolucao-salarial-form";
+import type { GatilhoContratoFormState } from "@/components/gatilho-contrato-form";
 
 function parseForm(formData: FormData) {
   const raw = {
@@ -145,6 +147,101 @@ export async function removerEvolucaoSalarial(formData: FormData): Promise<void>
 
   const supabase = createClient();
   await supabase.from("atleta_contrato_evolucao_salarial").delete().eq("id", id);
+
+  revalidatePath(`/atletas/${atletaId}`);
+  revalidatePath(`/atletas/${atletaId}/ver`);
+}
+
+/**
+ * "+ Adicionar gatilho" (dentro do contrato vigente, em `ContratoSecao`) — ver docs/superpowers/
+ * specs/2026-11-04-contrato-atleta-gatilhos-design.md. Chama a função de banco
+ * `criar_gatilho_contrato` (grava a linha principal + as Competições marcadas numa operação
+ * atômica só, mesmo motivo de `criar_contrato_atleta`). Sem redirect, só revalida — mesmo padrão
+ * de `salvarEvolucaoSalarial`.
+ */
+export async function criarGatilhoContrato(
+  _prevState: GatilhoContratoFormState,
+  formData: FormData,
+): Promise<GatilhoContratoFormState> {
+  const contratoId = String(formData.get("contratoId") ?? "");
+  const atletaId = String(formData.get("atletaId") ?? "");
+  if (!contratoId || !atletaId) return { error: "Contrato não identificado. Recarregue a página e tente novamente." };
+
+  const raw = {
+    metrica: String(formData.get("metrica") ?? ""),
+    limiar: String(formData.get("limiar") ?? ""),
+    valorBonus: String(formData.get("valorBonus") ?? ""),
+    competicaoIds: formData.getAll("competicaoIds").map(String),
+    incluirSemCompeticao: formData.get("incluirSemCompeticao") === "on",
+  };
+  const result = atletaContratoGatilhoSchema.safeParse(raw);
+  if (!result.success) return { error: result.error.issues[0]?.message ?? "Dados inválidos." };
+
+  const supabase = createClient();
+  const nomeAtual = await nomeDaContaAtual(supabase);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase.rpc("criar_gatilho_contrato", {
+    p_contrato_id: contratoId,
+    p_metrica: result.data.metrica,
+    p_limiar: result.data.limiar,
+    p_valor_bonus: result.data.valorBonus,
+    p_competicao_ids: result.data.competicaoIds,
+    p_incluir_sem_competicao: result.data.incluirSemCompeticao,
+    p_criado_por_perfil_id: user?.id ?? null,
+    p_criado_por_nome: nomeAtual,
+  });
+
+  if (error) return { error: "Não foi possível salvar o gatilho. Tente novamente." };
+
+  revalidatePath(`/atletas/${atletaId}`);
+  revalidatePath(`/atletas/${atletaId}/ver`);
+  return { success: true };
+}
+
+/**
+ * "Confirmar bônus" — grava a data em que a meta foi batida (`cumprida_em`) e quem confirmou.
+ * Única escrita do fluxo de Gatilhos que não é um simples cálculo (ver "Cálculo automático x
+ * confirmação manual" na spec) — por isso o `.is("cumprida_em", null)` na condição: impede
+ * confirmar duas vezes (ex. duplo clique) e sobrescrever a data já gravada.
+ */
+export async function confirmarGatilhoContrato(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const atletaId = String(formData.get("atletaId") ?? "");
+  if (!id || !atletaId) return;
+
+  const supabase = createClient();
+  const nomeAtual = await nomeDaContaAtual(supabase);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  await supabase
+    .from("atleta_contrato_gatilhos")
+    .update({
+      cumprida_em: hojeBrasilia(),
+      confirmada_por_perfil_id: user?.id ?? null,
+      confirmada_por_nome: nomeAtual,
+    })
+    .eq("id", id)
+    .is("cumprida_em", null);
+
+  revalidatePath(`/atletas/${atletaId}`);
+  revalidatePath(`/atletas/${atletaId}/ver`);
+}
+
+/** Remove um gatilho — só permitido (pela UI, ver `ContratoSecao`) enquanto ainda não foi
+ * confirmado; o `.is("cumprida_em", null)` repete essa regra também no servidor, pra não depender
+ * só do botão estar escondido na tela. */
+export async function removerGatilhoContrato(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const atletaId = String(formData.get("atletaId") ?? "");
+  if (!id || !atletaId) return;
+
+  const supabase = createClient();
+  await supabase.from("atleta_contrato_gatilhos").delete().eq("id", id).is("cumprida_em", null);
 
   revalidatePath(`/atletas/${atletaId}`);
   revalidatePath(`/atletas/${atletaId}/ver`);

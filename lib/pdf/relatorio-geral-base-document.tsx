@@ -171,6 +171,11 @@ export interface RelatorioGeralBaseDespesa {
   efetuado: boolean;
 }
 
+export interface RelatorioGeralBaseBonusGatilho {
+  nome: string;
+  valor: number;
+}
+
 /**
  * Relatório do Gasto Geral da Base (aba "Geral da Base" de `/base/financeiro`) — totalmente
  * separado do Relatório de Prestação de Contas de jogos (`relatorio-financeiro-document.tsx`), por
@@ -190,6 +195,8 @@ export function RelatorioGeralBaseDocument({
   comissao,
   atletasPorCategoria,
   despesas,
+  bonusGatilhos,
+  bonusGatilhosTotal,
   assinatura1,
   assinatura2,
   podeVerSalario = true,
@@ -204,6 +211,12 @@ export function RelatorioGeralBaseDocument({
   comissao: RelatorioGeralBaseComissao[];
   atletasPorCategoria: RelatorioGeralBaseAtletasCategoria[];
   despesas: RelatorioGeralBaseDespesa[];
+  /** Bônus de gatilhos confirmados este mês — linha separada de `totalGeral` (ver
+   * docs/superpowers/specs/2026-11-04-contrato-atleta-gatilhos-design.md, seção Financeiro). Vazio
+   * quando não há nenhum confirmado no mês. Mesma visibilidade de `podeVerSalario` (é informação
+   * financeira de atleta). */
+  bonusGatilhos: RelatorioGeralBaseBonusGatilho[];
+  bonusGatilhosTotal: number;
   assinatura1: AssinaturaInfo;
   assinatura2: AssinaturaInfo;
   /** `false` pra quem tem "Salário" marcado como campo escondido — ver docs/superpowers/specs/
@@ -256,6 +269,29 @@ export function RelatorioGeralBaseDocument({
             </View>
           ) : null}
         </View>
+
+        {podeVerSalario && bonusGatilhos.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitulo}>Bônus de Gatilhos Confirmados Este Mês</Text>
+            <Text style={styles.legenda}>Linha separada — não entra no Total geral da Base acima.</Text>
+            <View style={sharedStyles.table}>
+              <View style={sharedStyles.tableHeaderRow}>
+                <Text style={[styles.colNome, sharedStyles.headerCell]}>Atleta</Text>
+                <Text style={[styles.colValor, sharedStyles.headerCell]}>Valor</Text>
+              </View>
+              {bonusGatilhos.map((b, i) => (
+                <View style={sharedStyles.tableRow} key={i} wrap={false}>
+                  <Text style={styles.colNome}>{b.nome}</Text>
+                  <Text style={styles.colValor}>{formatMoeda(b.valor)}</Text>
+                </View>
+              ))}
+              <View style={sharedStyles.tableRow} wrap={false}>
+                <Text style={[styles.colNome, { fontWeight: 700 }]}>Total</Text>
+                <Text style={[styles.colValor, { fontWeight: 700 }]}>{formatMoeda(bonusGatilhosTotal)}</Text>
+              </View>
+            </View>
+          </>
+        ) : null}
 
         {podeVerSalario ? (
           <>

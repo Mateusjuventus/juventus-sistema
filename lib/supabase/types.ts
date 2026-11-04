@@ -283,6 +283,48 @@ export interface AtletaContratoEvolucaoSalarialRow {
   created_at: string;
 }
 
+/** Métrica de um Gatilho (bônus por meta de desempenho) — ver `AtletaContratoGatilhoRow` abaixo.
+ * As 4 primeiras (`pct_*`) são percentuais sobre o total de jogos do universo filtrado; as 2
+ * últimas (`total_*`) são contagem absoluta. */
+export type MetricaGatilhoContrato =
+  | "pct_convocado"
+  | "pct_titular"
+  | "pct_mais_um_tempo"
+  | "pct_jogo_completo"
+  | "total_gols"
+  | "total_assistencias";
+
+/** Gatilho (bônus por meta de desempenho) dentro de um contrato — ver 0159_atleta_contrato_
+ * gatilhos.sql e docs/superpowers/specs/2026-11-04-contrato-atleta-gatilhos-design.md. `limiar` é
+ * percentual (0-100) pras métricas `pct_*`, contagem absoluta pras `total_*`. `cumprida_em` é
+ * `null` enquanto o bônus não foi confirmado (o progresso é sempre calculado ao vivo, nunca lido
+ * daqui) — setado uma única vez, pelo botão "Confirmar bônus", e nunca desfeito automaticamente.
+ * Preso ao `contrato_id`, mesmo princípio de `AtletaContratoEvolucaoSalarialRow`: só editável
+ * enquanto esse contrato é o vigente. As Competições que entram no universo de jogos deste gatilho
+ * ficam em `atleta_contrato_gatilho_competicoes` (tabela de junção, buscada à parte). */
+export interface AtletaContratoGatilhoRow {
+  id: string;
+  contrato_id: string;
+  metrica: MetricaGatilhoContrato;
+  limiar: number;
+  valor_bonus: number;
+  incluir_sem_competicao: boolean;
+  cumprida_em: string | null;
+  confirmada_por_perfil_id: string | null;
+  confirmada_por_nome: string | null;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+}
+
+/** Linha de junção `atleta_contrato_gatilho_competicoes` — sem FK pra `competicoes`/
+ * `competicoes_base` de propósito (ver a migração); `competicao_id` aponta pra uma ou outra
+ * dependendo do departamento do atleta. */
+export interface AtletaContratoGatilhoCompeticaoRow {
+  gatilho_id: string;
+  competicao_id: string;
+}
+
 /** Espelha `AtletaContratoRow`, mas pra `atletas_base` (`tipo_contrato` aceita também
  * "iniciacao"). */
 export interface AtletaBaseContratoRow {

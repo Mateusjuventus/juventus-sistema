@@ -6,6 +6,9 @@ import {
   mapaContratoVigentePorAtleta,
   tipoPagamentoAtletaProfissional,
 } from "@/lib/futebol/financeiro";
+import { bonusGatilhosDoMes, type GatilhoCumpridoAtleta } from "@/lib/futebol/gatilho-contrato";
+import { buscarGatilhosCumpridos } from "@/lib/futebol/gatilho-contrato-query";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import { DonutComposicao, type FatiaComposicao } from "@/components/charts/donut-composicao";
 import type { AtletaContratoRow, AtletaRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
 
@@ -33,12 +36,13 @@ function StatCard({ label, valor }: { label: string; valor: string }) {
 export async function GeralProfissionalView() {
   const supabase = createClient();
 
-  const [{ data: comissaoData }, { data: atletasData }, { data: contratosData }, podeVerSalario] =
+  const [{ data: comissaoData }, { data: atletasData }, { data: contratosData }, podeVerSalario, gatilhosCumpridosBrutos] =
     await Promise.all([
       supabase.from("comissao_tecnica").select("*").order("nome_completo", { ascending: true }),
       supabase.from("atletas").select("*").eq("categoria", "profissional").order("nome_completo", { ascending: true }),
       supabase.from("atleta_contratos").select("*").eq("vigente", true),
       podeVerCampoSensivel(supabase, "salario"),
+      buscarGatilhosCumpridos(supabase),
     ]);
 
   const comissao = (comissaoData ?? []) as ComissaoTecnicaRow[];
@@ -51,6 +55,22 @@ export async function GeralProfissionalView() {
     atletas,
     contratosVigentes,
   );
+
+  // Bônus de gatilhos (bônus por meta de desempenho) confirmados este mês — linha separada do
+  // custo recorrente acima, nunca somada em `custoAtletas`/`totalGeral` (ver docs/superpowers/
+  // specs/2026-11-04-contrato-atleta-gatilhos-design.md, seção Financeiro). Só entram atletas do
+  // Profissional (o `atletaNomePorId` só conhece quem está em `atletas`, já filtrado por categoria).
+  const atletaNomePorId = new Map(atletas.map((a) => [a.id, a.nome_completo]));
+  const gatilhosCumpridosComNome: GatilhoCumpridoAtleta[] = gatilhosCumpridosBrutos
+    .filter((g) => atletaNomePorId.has(g.atletaId))
+    .map((g) => ({
+      atletaId: g.atletaId,
+      atletaNome: atletaNomePorId.get(g.atletaId)!,
+      metrica: g.metrica,
+      valorBonus: g.valorBonus,
+      cumpridaEm: g.cumpridaEm,
+    }));
+  const bonusGatilhos = bonusGatilhosDoMes(gatilhosCumpridosComNome, hojeBrasilia());
 
   // As mesmas 2 cores da marca usadas na Base pra Comissão/Atletas (ver geral-base-view.tsx) — sem
   // a 3ª fatia de despesas avulsas, que não entra aqui.
@@ -85,6 +105,29 @@ export async function GeralProfissionalView() {
         <StatCard label="Custo com Atletas" valor={formatMoeda(custoAtletas)} />
         <StatCard label="Total geral" valor={formatMoeda(totalGeral)} />
       </div>
+
+      {/* Bônus de gatilhos confirmados este mês — linha separada de propósito, fora do "Total
+          geral" acima (que é um custo mensal recorrente; o bônus é pontual). Só aparece quando há
+          algum confirmado no mês, pra não poluir a tela nos meses sem nenhum. */}
+      {bonusGatilhos.itens.length > 0 ? (
+        <div className="card mt-4 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-neutral-700">
+              Bônus de gatilhos confirmados este mês{" "}
+              <span className="font-normal text-neutral-400">(não entra no Total geral acima)</span>
+            </p>
+            <p className="text-base font-bold text-grena-escuro">{formatMoeda(bonusGatilhos.total)}</p>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {bonusGatilhos.itens.map((item, i) => (
+              <li key={i} className="flex items-center justify-between text-sm text-neutral-600">
+                <span>{item.atletaNome}</span>
+                <span className="font-medium text-neutral-800">{formatMoeda(item.valorBonus)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <h2 className="mt-8 text-lg font-bold text-grena-escuro">Composição do gasto</h2>
       <p className="mt-1 text-sm text-neutral-500">

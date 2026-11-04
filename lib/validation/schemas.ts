@@ -316,6 +316,52 @@ export const atletaContratoEvolucaoSalarialSchema = z.object({
 });
 export type AtletaContratoEvolucaoSalarialInput = z.infer<typeof atletaContratoEvolucaoSalarialSchema>;
 
+/** As 6 métricas de meta de um Gatilho (ver docs/superpowers/specs/2026-11-04-contrato-atleta-
+ * gatilhos-design.md) — `tipo: "percentual"` são sobre o total de jogos do universo filtrado
+ * (Competições marcadas no gatilho), `tipo: "contagem"` são números absolutos. Usada tanto no
+ * seletor do formulário quanto pra decidir o sufixo/rótulo certo do campo "limiar" (% ou não). */
+export const METRICA_GATILHO_OPTIONS = [
+  { value: "pct_convocado", label: "% de jogos convocado", tipo: "percentual" },
+  { value: "pct_titular", label: "% de jogos como titular", tipo: "percentual" },
+  { value: "pct_mais_um_tempo", label: "% de jogos com mais de um tempo", tipo: "percentual" },
+  { value: "pct_jogo_completo", label: "% de jogos completos", tipo: "percentual" },
+  { value: "total_gols", label: "Total de gols", tipo: "contagem" },
+  { value: "total_assistencias", label: "Total de assistências", tipo: "contagem" },
+] as const satisfies readonly { value: string; label: string; tipo: "percentual" | "contagem" }[];
+
+export const METRICA_GATILHO_LABEL: Record<string, string> = Object.fromEntries(
+  METRICA_GATILHO_OPTIONS.map((m) => [m.value, m.label]),
+);
+
+const METRICAS_PERCENTUAL_GATILHO = new Set<string>(
+  METRICA_GATILHO_OPTIONS.filter((m) => m.tipo === "percentual").map((m) => m.value),
+);
+
+/** "+ Adicionar gatilho" (dentro do contrato vigente) — `limiar` é percentual (0-100) pras
+ * métricas `pct_*`, contagem absoluta (sem limite superior) pras `total_*`. Precisa de pelo menos
+ * uma Competição marcada OU "incluir sem competição" ligado — senão o universo de jogos fica vazio
+ * e o progresso nunca bate 100%. */
+export const atletaContratoGatilhoSchema = z
+  .object({
+    metrica: z.enum(
+      ["pct_convocado", "pct_titular", "pct_mais_um_tempo", "pct_jogo_completo", "total_gols", "total_assistencias"],
+      { errorMap: () => ({ message: "Selecione a métrica" }) },
+    ),
+    limiar: z.coerce.number().nonnegative({ message: "Valor inválido" }),
+    valorBonus: z.coerce.number().nonnegative({ message: "Valor inválido" }),
+    competicaoIds: z.array(z.string()).default([]),
+    incluirSemCompeticao: z.boolean().default(false),
+  })
+  .refine((data) => !METRICAS_PERCENTUAL_GATILHO.has(data.metrica) || data.limiar <= 100, {
+    message: "Percentual não pode passar de 100",
+    path: ["limiar"],
+  })
+  .refine((data) => data.competicaoIds.length > 0 || data.incluirSemCompeticao, {
+    message: "Marque pelo menos uma Competição (ou inclua os jogos sem competição)",
+    path: ["competicaoIds"],
+  });
+export type AtletaContratoGatilhoInput = z.infer<typeof atletaContratoGatilhoSchema>;
+
 /**
  * Inclusão rápida de atleta pelo Campograma (ver docs/superpowers/specs/
  * 2026-09-02-campograma-edicao-rapida-design.md, seção 4) — Nome + Posição + Data de nascimento;
