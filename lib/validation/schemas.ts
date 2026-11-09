@@ -214,8 +214,23 @@ export const atletaSchema = z
     paiNome: z.string().optional().or(z.literal("")),
     paiTelefone: telefoneFieldValidado,
     escola: z.string().optional().or(z.literal("")),
+    // Dados de Pagamento (PF/PJ + Empresa de Imagem) — ver docs/superpowers/specs/
+    // 2026-11-04-atletas-desativacao-transicao-pagamento-design.md. A seção só aparece no
+    // formulário quando `atletaTemDadosPagamento(tipoContratoVigente)` é true, mas o schema aceita
+    // os 3 campos sempre (mesmo princípio dos campos "Base-only" acima).
+    tipoPagamento: z.enum(["pf", "pj"]).optional().or(z.literal("")),
+    empresaImagemNome: z.string().optional().or(z.literal("")),
+    empresaImagemCnpj: z.string().optional().or(z.literal("")),
   })
-  .refine(refinoAlergia.check, refinoAlergia.options);
+  .refine(refinoAlergia.check, refinoAlergia.options)
+  .refine(
+    (data) => data.tipoPagamento !== "pj" || Boolean(data.empresaImagemNome?.trim()),
+    { message: "Informe o nome da Empresa de Imagem", path: ["empresaImagemNome"] },
+  )
+  .refine(
+    (data) => data.tipoPagamento !== "pj" || Boolean(data.empresaImagemCnpj?.trim()),
+    { message: "Informe o CNPJ da Empresa de Imagem", path: ["empresaImagemCnpj"] },
+  );
 export type AtletaInput = z.infer<typeof atletaSchema>;
 
 /** Um contato de emergência do atleta (Dados pessoais, lista "+ Adicionar contato") — mesmo schema
@@ -634,6 +649,33 @@ export type ParecerCaptacaoInput = z.infer<typeof parecerCaptacaoSchema>;
  * dispensa`) — mesmas 4 notas e escala 3-9 do Parecer Final, mais o motivo e a data da dispensa
  * (fim do período no clube).
  */
+/** Desativar/reativar atleta com motivo (ver docs/superpowers/specs/2026-11-04-atletas-
+ * desativacao-transicao-pagamento-design.md) — `ativo` vem do hidden input do formulário (o NOVO
+ * valor, "true"/"false", mesmo padrão de `alternarAtletaAtivo`). Ao desativar (`ativo = "false"`),
+ * `motivo` é obrigatório (um dos 5 valores fixos); se for "outro", `motivoOutro` também é
+ * obrigatório. Ao reativar (`ativo = "true"`), `observacao` é obrigatória (motivo da volta) e
+ * `motivo`/`motivoOutro` não se aplicam. */
+export const ativarDesativarAtletaSchema = z
+  .object({
+    ativo: z.enum(["true", "false"]),
+    motivo: z.enum(["rescisao_contrato", "fim_contrato", "transferencia_venda", "emprestimo", "outro"]).optional(),
+    motivoOutro: z.string().optional().or(z.literal("")),
+    observacao: z.string().optional().or(z.literal("")),
+  })
+  .refine((data) => data.ativo === "true" || Boolean(data.motivo), {
+    message: "Escolha o motivo da desativação",
+    path: ["motivo"],
+  })
+  .refine((data) => data.ativo === "true" || data.motivo !== "outro" || Boolean(data.motivoOutro?.trim()), {
+    message: "Informe qual é o motivo",
+    path: ["motivoOutro"],
+  })
+  .refine((data) => data.ativo === "false" || Boolean(data.observacao?.trim()), {
+    message: "Informe o motivo da reativação",
+    path: ["observacao"],
+  });
+export type AtivarDesativarAtletaInput = z.infer<typeof ativarDesativarAtletaSchema>;
+
 export const relatorioDispensaSchema = z.object({
   dispensaData: z.string().min(1, { message: "Data da dispensa é obrigatória" }),
   motivo: z.string().min(1, { message: "Motivo da dispensa é obrigatório" }),

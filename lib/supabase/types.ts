@@ -166,8 +166,16 @@ export interface AtletaRow {
    * Suspenso/Departamento Médico). Mesmo padrão de Staff Operacional/Veículos/Hotéis: em vez de
    * excluir o cadastro, ele fica marcado como inativo e some das listas/exportações por padrão
    * (`ativo` sempre `true` até alguém desativar manualmente pelo botão "Desativar" na página do
-   * atleta). */
+   * atleta). Desde 05/11/2026 essa troca pede motivo/observação e fica registrada em
+   * `atletas_ativo_historico` (ver `AtletaAtivoHistoricoRow` abaixo e `lib/futebol/ativo-
+   * historico.ts`) — este campo continua sendo o denormalizado que o resto do sistema lê. */
   ativo: boolean;
+  /** Dados de Pagamento (ver docs/superpowers/specs/2026-11-04-atletas-desativacao-transicao-
+   * pagamento-design.md) — campo do cadastro, sem vínculo direto com `atleta_contratos`.
+   * `empresa_imagem_nome`/`empresa_imagem_cnpj` só fazem sentido quando `tipo_pagamento` é "pj". */
+  tipo_pagamento: "pf" | "pj" | null;
+  empresa_imagem_nome: string | null;
+  empresa_imagem_cnpj: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1748,6 +1756,12 @@ export interface PerfilRow {
    * design.md, Parte 2. `false` por padrão: a tela `/minhas-demandas` continua funcionando pra
    * qualquer um independente disto, só não aparece sozinha na sidebar/tela inicial. */
   demandas_acompanhado: boolean;
+  /** Pode usar a ação "Transitar atleta" (ver docs/superpowers/specs/2026-11-04-atletas-
+   * desativacao-transicao-pagamento-design.md) pra trocar a categoria de qualquer atleta (Base ou
+   * Profissional) — dá acesso "emprestado" a categorias fora de `categorias_base_permitidas`/
+   * `departamentos_permitidos`, só pra essa ação. "Master" sempre pode, independente desta coluna
+   * (mesma regra geral de `fisioterapia_pode_editar`). `false` por padrão. */
+  pode_transitar_categoria_atleta: boolean;
   created_at: string;
 }
 
@@ -2642,6 +2656,23 @@ export interface AtletaStatusHistoricoRow {
   id: string;
   atleta_id: string;
   status: AtletaStatus;
+  data: string;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+}
+
+/** Linha do tempo de ativo/inativo do atleta (ver docs/superpowers/specs/2026-11-04-atletas-
+ * desativacao-transicao-pagamento-design.md) — eixo independente de `AtletaStatusHistoricoRow`
+ * (aquele é liberado/departamento médico/transição/dispensado; este é só ativo/inativo). `motivo`
+ * só é preenchido ao desativar (null na reativação); `observacao` é opcional na desativação e
+ * obrigatória na reativação. */
+export interface AtletaAtivoHistoricoRow {
+  id: string;
+  atleta_id: string;
+  ativo: boolean;
+  motivo: string | null;
+  observacao: string | null;
   data: string;
   criado_por_perfil_id: string | null;
   criado_por_nome: string | null;

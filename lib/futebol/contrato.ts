@@ -57,6 +57,16 @@ export function contratoTemRemuneracaoFormal(tipoContrato: string): boolean {
   return tipoContrato === "definitivo" || tipoContrato === "emprestimo";
 }
 
+/** Conjunto DIFERENTE do de `contratoTemRemuneracaoFormal` (inclui "formacao") — decide se a
+ * seção "Dados de Pagamento" (PF/PJ + Empresa de Imagem/CNPJ, campos do cadastro do atleta, sem
+ * vínculo com o Contrato em si) aparece no formulário. Pedido do Mateus em 05/11/2026, ao definir
+ * o escopo da nova seção — ver docs/superpowers/specs/2026-11-04-atletas-desativacao-transicao-
+ * pagamento-design.md. Aceita `null`/`undefined` (atleta sem nenhum contrato ainda, ex. recém
+ * cadastrado) como "não mostra". */
+export function atletaTemDadosPagamento(tipoContrato: string | null | undefined): boolean {
+  return tipoContrato === "definitivo" || tipoContrato === "formacao" || tipoContrato === "emprestimo";
+}
+
 /** Valor efetivo de uma rubrica na data de hoje: a evolução salarial mais recente já aplicável
  * (data <= hoje) pra essa rubrica, ou o valor gravado no próprio contrato quando não há nenhuma —
  * mesmo princípio do Valor Total do contrato (calculado na hora de exibir, nunca gravado). Usado

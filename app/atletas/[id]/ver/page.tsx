@@ -5,6 +5,9 @@ import { AppShell } from "@/components/app-shell";
 import { AtletaTabs } from "@/components/atleta-tabs";
 import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
+import { HistoricoAtivoButton } from "@/components/historico-ativo-modal";
+import { TransitarCategoriaForm } from "@/components/transitar-categoria-form";
+import { getPodeTransitarCategoriaAtleta } from "@/lib/auth/role";
 import { GerarFichaAtletaButton } from "@/components/atletas/gerar-ficha-atleta-button";
 import { CAMPOS_FICHA_ATLETA_PROFISSIONAL, CAMPOS_FICHA_ATLETA_BASE } from "@/lib/futebol/ficha-atleta";
 import { buscarCompeticoesDisponiveisAtleta } from "@/lib/futebol/estatisticas-atleta-query";
@@ -23,7 +26,7 @@ import { contratoVazio, statusContrato } from "@/lib/futebol/contrato";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { ContratoSecao } from "@/components/contrato-secao";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
-import { alternarAtletaAtivo } from "../../actions";
+import { alternarAtletaAtivoComMotivo } from "../../actions";
 import type {
   AtletaContatoEmergenciaRow,
   AtletaContratoEvolucaoSalarialRow,
@@ -153,6 +156,7 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
   if (!data) notFound();
   const atleta = data as AtletaRow;
   const isBase = ehCategoriaBaseValida(atleta.categoria);
+  const podeTransitarCategoria = await getPodeTransitarCategoriaAtleta(supabase);
 
   const [{ data: contatosData }, { data: contratosData }, competicoesDisponiveisAtleta] = await Promise.all([
     supabase
@@ -235,7 +239,11 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
               competicoesDisponiveis={competicoesDisponiveisAtleta.competicoes}
               temJogosSemCompeticao={competicoesDisponiveisAtleta.temJogosSemCompeticao}
             />
-            <AtletaAtivoButton action={alternarAtletaAtivo} id={atleta.id} ativo={atleta.ativo} />
+            <AtletaAtivoButton action={alternarAtletaAtivoComMotivo} id={atleta.id} ativo={atleta.ativo} />
+            <HistoricoAtivoButton atletaId={atleta.id} nome={atleta.nome_completo} />
+            {podeTransitarCategoria ? (
+              <TransitarCategoriaForm atletaId={atleta.id} categoriaAtual={atleta.categoria} />
+            ) : null}
           </>
         }
       />

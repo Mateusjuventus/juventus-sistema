@@ -8,9 +8,15 @@ import { TelefoneField } from "@/components/telefone-field";
 import { EnderecoFields, type EnderecoValues } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
-import { CATEGORIAS_ATLETA, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import {
+  CATEGORIAS_ATLETA,
+  categoriaAtletaLabel,
+  ehCategoriaBaseValida,
+  type CategoriaAtleta,
+} from "@/lib/auth/categorias-base";
 import { ATLETA_POSICAO_OPTIONS, TAMANHO_UNIFORME_OPTIONS } from "@/lib/validation/schemas";
 import { ATLETA_CLASSIFICACAO_OPTIONS } from "@/lib/futebol/classificacao-atleta";
+import { atletaTemDadosPagamento } from "@/lib/futebol/contrato";
 import type { AtletaFormState } from "./actions";
 
 const initialState: AtletaFormState = {};
@@ -33,12 +39,18 @@ export function AtletaForm({
   defaultValues,
   fotoUrl,
   submitLabel,
+  tipoContratoVigente,
 }: {
   action: (prevState: AtletaFormState, formData: FormData) => Promise<AtletaFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
   fotoUrl?: string | null;
   submitLabel: string;
+  /** Tipo do contrato vigente (ver `lib/futebol/contrato.ts`) — só decide se a seção "Dados de
+   * Pagamento" aparece (`atletaTemDadosPagamento`); `null`/`undefined` quando o atleta ainda não
+   * tem nenhum contrato (ex. recém cadastrado). Ver docs/superpowers/specs/2026-11-04-atletas-
+   * desativacao-transicao-pagamento-design.md. */
+  tipoContratoVigente?: string | null;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
@@ -46,6 +58,7 @@ export function AtletaForm({
   const [possuiAlergia, setPossuiAlergia] = useState(values.possuiAlergiaMedicamento === "on");
   const [categoria, setCategoria] = useState(values.categoria ?? "");
   const isBase = ehCategoriaBaseValida(categoria);
+  const [tipoPagamento, setTipoPagamento] = useState(values.tipoPagamento ?? "");
   // Ver comentário equivalente nos formulários antigos — mesmo mecanismo do checkbox "Mesmo
   // endereço de origem".
   const [origemEndereco, setOrigemEndereco] = useState<EnderecoValues>({
@@ -80,21 +93,36 @@ export function AtletaForm({
 
       <FormSection title="Categoria">
         <FieldGroup>
-          <SelectField
-            label="Categoria"
-            name="categoria"
-            required
-            defaultValue={categoria}
-            onChange={setCategoria}
-            error={errors.categoria}
-          >
-            <option value="">Selecione</option>
-            {CATEGORIAS_ATLETA.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </SelectField>
+          {entityId ? (
+            // Travado desde 05/11/2026 (ver docs/superpowers/specs/2026-11-04-atletas-
+            // desativacao-transicao-pagamento-design.md) — a única forma de mudar a categoria de
+            // um atleta já cadastrado passa a ser a ação "Transitar atleta" (quem tiver a
+            // permissão), nunca este formulário. Um <select disabled> não posta valor nenhum, por
+            // isso o hidden input ao lado garante que a categoria atual continue sendo enviada.
+            <div>
+              <span className="field-label">Categoria</span>
+              <p className="rounded-md border border-linha bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
+                {categoria ? categoriaAtletaLabel(categoria as CategoriaAtleta) : "—"}
+              </p>
+              <input type="hidden" name="categoria" value={categoria} />
+            </div>
+          ) : (
+            <SelectField
+              label="Categoria"
+              name="categoria"
+              required
+              defaultValue={categoria}
+              onChange={setCategoria}
+              error={errors.categoria}
+            >
+              <option value="">Selecione</option>
+              {CATEGORIAS_ATLETA.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </SelectField>
+          )}
         </FieldGroup>
       </FormSection>
 
@@ -291,6 +319,22 @@ export function AtletaForm({
             defaultValue={values.numeroCamisa}
             error={errors.numeroCamisa}
           />
+          {/* Pedido do Mateus em 05/11/2026: movido pro topo da seção, perto de Posição/Número da
+              camisa (era o último campo) — ver docs/superpowers/specs/2026-11-04-atletas-
+              desativacao-transicao-pagamento-design.md. */}
+          <SelectField
+            label="Tamanho do uniforme"
+            name="tamanhoUniforme"
+            defaultValue={values.tamanhoUniforme}
+            error={errors.tamanhoUniforme}
+          >
+            <option value="">Não informado</option>
+            {TAMANHO_UNIFORME_OPTIONS.map((tamanho) => (
+              <option key={tamanho} value={tamanho}>
+                {tamanho}
+              </option>
+            ))}
+          </SelectField>
           <TextField
             label="Número CBF"
             name="numeroCbf"
@@ -367,21 +411,43 @@ export function AtletaForm({
           {isBase ? (
             <TextField label="Agência" name="agencia" defaultValue={values.agencia} error={errors.agencia} />
           ) : null}
-          <SelectField
-            label="Tamanho do uniforme"
-            name="tamanhoUniforme"
-            defaultValue={values.tamanhoUniforme}
-            error={errors.tamanhoUniforme}
-          >
-            <option value="">Não informado</option>
-            {TAMANHO_UNIFORME_OPTIONS.map((tamanho) => (
-              <option key={tamanho} value={tamanho}>
-                {tamanho}
-              </option>
-            ))}
-          </SelectField>
         </FieldGroup>
       </FormSection>
+
+      {atletaTemDadosPagamento(tipoContratoVigente) ? (
+        <FormSection title="Dados de Pagamento">
+          <FieldGroup>
+            <SelectField
+              label="Tipo de pagamento"
+              name="tipoPagamento"
+              defaultValue={values.tipoPagamento}
+              onChange={setTipoPagamento}
+              error={errors.tipoPagamento}
+            >
+              <option value="">Não informado</option>
+              <option value="pf">Pessoa física</option>
+              <option value="pj">Pessoa jurídica</option>
+            </SelectField>
+            {tipoPagamento === "pj" ? (
+              <>
+                <TextField
+                  label="Nome da Empresa de Imagem"
+                  name="empresaImagemNome"
+                  defaultValue={values.empresaImagemNome}
+                  error={errors.empresaImagemNome}
+                />
+                <TextField
+                  label="CNPJ"
+                  name="empresaImagemCnpj"
+                  placeholder="00.000.000/0000-00"
+                  defaultValue={values.empresaImagemCnpj}
+                  error={errors.empresaImagemCnpj}
+                />
+              </>
+            ) : null}
+          </FieldGroup>
+        </FormSection>
+      ) : null}
 
       {isBase ? (
         <FormSection title="Alojamento e ajuda de custo">

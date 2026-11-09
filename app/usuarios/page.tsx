@@ -23,6 +23,7 @@ import {
   atualizarModulos,
   atualizarModulosBase,
   atualizarPapel,
+  atualizarPodeTransitarCategoriaAtleta,
   atualizarVinculoComissaoTecnica,
   atualizarVinculoTreinador,
   redefinirSenha,
@@ -350,6 +351,20 @@ export default async function UsuariosPage() {
                       opcoes={[{ value: "sim", label: "Acompanhar no painel de Demandas" }]}
                       valoresIniciais={perfil.demandas_acompanhado ? ["sim"] : []}
                       action={atualizarDemandasAcompanhado}
+                      submitLabel="Salvar"
+                      className="border-t border-neutral-100 pt-3"
+                    />
+                  )}
+
+                  {perfil.role === "treinador" || perfil.role === "financeiro" ? null : (
+                    <PermissaoCheckboxesForm
+                      id={perfil.id}
+                      fieldName="podeTransitarCategoriaAtleta"
+                      titulo="Transição de categoria dos Atletas"
+                      ajuda="Com isso marcado, essa pessoa vê o botão 'Transitar atleta' (promover/rebaixar entre categorias, Base e Profissional) na ficha de qualquer atleta — mesmo fora dos departamentos/categorias liberados pra ela."
+                      opcoes={[{ value: "sim", label: "Pode transitar atletas entre categorias" }]}
+                      valoresIniciais={perfil.pode_transitar_categoria_atleta ? ["sim"] : []}
+                      action={atualizarPodeTransitarCategoriaAtleta}
                       submitLabel="Salvar"
                       className="border-t border-neutral-100 pt-3"
                     />

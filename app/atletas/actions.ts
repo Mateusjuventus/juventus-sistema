@@ -5,13 +5,20 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
-import { atletaAnotacaoSchema, atletaContatoEmergenciaSchema, atletaSchema } from "@/lib/validation/schemas";
+import {
+  ativarDesativarAtletaSchema,
+  atletaAnotacaoSchema,
+  atletaContatoEmergenciaSchema,
+  atletaSchema,
+} from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { registrarStatusAtleta } from "@/lib/futebol/status-historico";
+import { registrarAtivoAtleta } from "@/lib/futebol/ativo-historico";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
-import { isMaster } from "@/lib/auth/role";
-import type { AtletaStatus } from "@/lib/supabase/types";
+import { getPodeTransitarCategoriaAtleta, isMaster } from "@/lib/auth/role";
+import { CATEGORIAS_ATLETA, ehCategoriaAtletaValida } from "@/lib/auth/categorias-base";
+import type { AtletaAtivoHistoricoRow, AtletaStatus } from "@/lib/supabase/types";
 
 /**
  * Cadastro de Atleta — ações únicas pro Futebol Profissional e pro Futebol de Base desde a
@@ -82,6 +89,9 @@ function parseForm(formData: FormData) {
     paiNome: String(formData.get("paiNome") ?? ""),
     paiTelefone: String(formData.get("paiTelefone") ?? ""),
     escola: String(formData.get("escola") ?? ""),
+    tipoPagamento: String(formData.get("tipoPagamento") ?? "") || undefined,
+    empresaImagemNome: String(formData.get("empresaImagemNome") ?? ""),
+    empresaImagemCnpj: String(formData.get("empresaImagemCnpj") ?? ""),
   };
 
   const result = atletaSchema.safeParse(raw);
@@ -190,6 +200,9 @@ export async function createAtleta(
     pai_nome: data.paiNome || null,
     pai_telefone: data.paiTelefone || null,
     escola: data.escola || null,
+    tipo_pagamento: data.tipoPagamento || null,
+    empresa_imagem_nome: data.empresaImagemNome || null,
+    empresa_imagem_cnpj: data.empresaImagemCnpj || null,
   });
 
   if (error) {
@@ -283,6 +296,9 @@ export async function updateAtleta(
     pai_nome: data.paiNome || null,
     pai_telefone: data.paiTelefone || null,
     escola: data.escola || null,
+    tipo_pagamento: data.tipoPagamento || null,
+    empresa_imagem_nome: data.empresaImagemNome || null,
+    empresa_imagem_cnpj: data.empresaImagemCnpj || null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 
@@ -335,21 +351,104 @@ export async function deleteAtleta(
   redirect(categoria ? `/atletas?categoria=${categoria}` : "/atletas");
 }
 
-/** Ativa/desativa um atleta (ver 0098_atleta_ativo.sql) — independente do status esportivo
- * (Liberado/Depto. Médico/Transição/Dispensado). Mesmo padrão de `alternarStaffAtivo`
+export interface AtivarDesativarAtletaFormState {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+}
+
+/** Ativa/desativa um atleta (ver 0098_atleta_ativo.sql e docs/superpowers/specs/2026-11-04-
+ * atletas-desativacao-transicao-pagamento-design.md) — independente do status esportivo (Liberado/
+ * Depto. Médico/Transição/Dispensado). Mesmo padrão de `alternarStaffAtivo`
  * (app/staff-operacional/actions.ts): em vez de excluir, o cadastro fica marcado como inativo e
- * some da listagem por padrão (checkbox "Mostrar inativos"). Botão fica na página "Ver atleta"
- * (`AtletaPerfilHeader`/`AtletaAtivoButton`). */
-export async function alternarAtletaAtivo(formData: FormData): Promise<void> {
+ * some da listagem por padrão (checkbox "Mostrar inativos"). Desde 05/11/2026 pede motivo
+ * (desativar) ou observação (reativar) e fica registrado em `atletas_ativo_historico` — ver
+ * `registrarAtivoAtleta`. Vale pra qualquer atleta, Profissional ou Base (mesmo botão na página
+ * "Ver atleta" pras duas categorias). */
+export async function alternarAtletaAtivoComMotivo(
+  _prevState: AtivarDesativarAtletaFormState,
+  formData: FormData,
+): Promise<AtivarDesativarAtletaFormState> {
   const id = String(formData.get("id") ?? "");
-  const novoValor = String(formData.get("novoValor") ?? "") === "true";
-  if (!id) return;
+  if (!id) return { error: "Atleta inválido." };
+
+  const raw = {
+    ativo: String(formData.get("ativo") ?? ""),
+    motivo: String(formData.get("motivo") ?? "") || undefined,
+    motivoOutro: String(formData.get("motivoOutro") ?? ""),
+    observacao: String(formData.get("observacao") ?? ""),
+  };
+  const result = ativarDesativarAtletaSchema.safeParse(raw);
+  if (!result.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
+    return { fieldErrors };
+  }
+
+  const data = result.data;
+  const novoValor = data.ativo === "true";
+  // Motivo final gravado no histórico: o rótulo "outro" vira o texto digitado; os demais gravam o
+  // próprio valor fixo (a tela de histórico resolve o rótulo pra exibir). Na reativação não há
+  // motivo (`null`) — só a observação.
+  const motivoGravado = novoValor ? null : data.motivo === "outro" ? (data.motivoOutro ?? "").trim() : data.motivo ?? null;
+  const observacaoGravada = data.observacao?.trim() || null;
 
   const supabase = createClient();
-  await supabase.from("atletas").update({ ativo: novoValor }).eq("id", id);
+  const { error } = await registrarAtivoAtleta(supabase, id, novoValor, motivoGravado, observacaoGravada, hojeBrasilia());
+  if (error) return { error };
 
   revalidatePath("/atletas");
   revalidatePath(`/atletas/${id}/ver`);
+  return {};
+}
+
+/** Linha do tempo de ativo/inativo completa de um atleta — mesmo padrão de `buscarHistoricoStatus`
+ * (app/departamento-medico/fisioterapia/[atletaId]/actions.ts): busca sob demanda, não vem
+ * pré-carregada na página. */
+export async function buscarHistoricoAtivo(atletaId: string): Promise<AtletaAtivoHistoricoRow[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("atletas_ativo_historico")
+    .select("*")
+    .eq("atleta_id", atletaId)
+    .order("data", { ascending: false });
+  return (data ?? []) as AtletaAtivoHistoricoRow[];
+}
+
+export interface TransitarCategoriaFormState {
+  error?: string;
+}
+
+/** "Transitar atleta" — troca a categoria de QUALQUER atleta (Base ou Profissional), inclusive
+ * promovendo/rebaixando pro Profissional (ver docs/superpowers/specs/2026-11-04-atletas-
+ * desativacao-transicao-pagamento-design.md). Só quem tem `pode_transitar_categoria_atleta` (ou é
+ * master) pode chamar — checagem sempre no servidor, nunca só escondendo o botão no client (mesmo
+ * princípio de `salvarParecerCaptacao`/`salvarRelatorioDispensaTreinador`). Sem motivo, sem
+ * histórico — é uma troca direta (decisão do Mateus em 05/11/2026). */
+export async function transitarCategoriaAtleta(
+  _prevState: TransitarCategoriaFormState,
+  formData: FormData,
+): Promise<TransitarCategoriaFormState> {
+  const supabase = createClient();
+  if (!(await getPodeTransitarCategoriaAtleta(supabase))) {
+    return { error: "Você não tem permissão para fazer isso." };
+  }
+
+  const atletaId = String(formData.get("atletaId") ?? "");
+  const novaCategoria = String(formData.get("novaCategoria") ?? "");
+  if (!atletaId) return { error: "Atleta inválido." };
+  if (!ehCategoriaAtletaValida(novaCategoria)) return { error: "Escolha uma categoria válida." };
+
+  const { data: atletaAtual } = await supabase.from("atletas").select("categoria").eq("id", atletaId).maybeSingle();
+  if (!atletaAtual) return { error: "Atleta não encontrado." };
+  if (atletaAtual.categoria === novaCategoria) return { error: "O atleta já está nessa categoria." };
+
+  const { error } = await supabase.from("atletas").update({ categoria: novaCategoria }).eq("id", atletaId);
+  if (error) return { error: `Não foi possível trocar a categoria. Tente novamente. (${error.message})` };
+
+  revalidatePath("/atletas");
+  revalidatePath(`/atletas/${atletaId}/ver`);
+  revalidatePath(`/atletas/${atletaId}`);
+  return {};
 }
 
 /** Liga/desliga a Ficha de Cadastro pública (`/cadastro-atleta-base`) — recurso só da Base (desde

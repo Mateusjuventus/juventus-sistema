@@ -58,6 +58,10 @@ export interface PerfilPermissoes {
    * docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md, Parte 2, e
    * `getDemandasAcompanhado` abaixo. */
   demandas_acompanhado: boolean | null;
+  /** Pode usar a ação "Transitar atleta" pra trocar a categoria de qualquer atleta (Base ou
+   * Profissional) — ver docs/superpowers/specs/2026-11-04-atletas-desativacao-transicao-pagamento-
+   * design.md e `getPodeTransitarCategoriaAtleta` abaixo. */
+  pode_transitar_categoria_atleta: boolean | null;
 }
 
 /** Uma única leitura de `perfis` com tudo que as funções abaixo precisam — evita repetir a mesma
@@ -98,7 +102,8 @@ const buscarPerfilPermissoes = cache(async (): Promise<PerfilPermissoes | null> 
         "tarefas_categorias_visiveis, estoque_categorias_permitidas, categorias_treinador, " +
         "comissao_tecnica_id, categorias_base_permitidas, " +
         "fisioterapia_pode_editar, fisioterapia_pode_editar_base, campos_sensiveis_bloqueados, " +
-        "demandas_acompanhado, comissao_tecnica:comissao_tecnica_id(categorias, funcao)",
+        "demandas_acompanhado, pode_transitar_categoria_atleta, " +
+        "comissao_tecnica:comissao_tecnica_id(categorias, funcao)",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -320,6 +325,23 @@ export async function getFisioterapiaPodeEditarBase(
   if (!perfil) return false;
   if (perfil.role === "master") return true;
   return perfil.fisioterapia_pode_editar_base ?? false;
+}
+
+/**
+ * Pode usar a ação "Transitar atleta" (ver docs/superpowers/specs/2026-11-04-atletas-
+ * desativacao-transicao-pagamento-design.md) — muda a categoria de QUALQUER atleta (Base ou
+ * Profissional), inclusive fora de `categorias_base_permitidas`/`departamentos_permitidos` dessa
+ * pessoa (acesso "emprestado" deliberado, só pra esta ação). "Master" sempre pode, mesmo padrão de
+ * `getFisioterapiaPodeEditar`. Checar sempre no servidor (nunca confiar só em esconder o botão no
+ * client) — mesmo princípio de `salvarParecerCaptacao`/`salvarRelatorioDispensaTreinador`.
+ */
+export async function getPodeTransitarCategoriaAtleta(
+  supabase: ReturnType<typeof createClient>,
+): Promise<boolean> {
+  const perfil = await getPerfilPermissoes(supabase);
+  if (!perfil) return false;
+  if (perfil.role === "master") return true;
+  return perfil.pode_transitar_categoria_atleta ?? false;
 }
 
 /**

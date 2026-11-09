@@ -23,6 +23,7 @@ function perfil(overrides: Partial<PerfilPermissoes>): PerfilPermissoes {
     fisioterapia_pode_editar_base: null,
     campos_sensiveis_bloqueados: null,
     demandas_acompanhado: null,
+    pode_transitar_categoria_atleta: null,
     ...overrides,
   };
 }
