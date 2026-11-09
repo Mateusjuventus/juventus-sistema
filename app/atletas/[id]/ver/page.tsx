@@ -240,13 +240,18 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
               temJogosSemCompeticao={competicoesDisponiveisAtleta.temJogosSemCompeticao}
             />
             <AtletaAtivoButton action={alternarAtletaAtivoComMotivo} id={atleta.id} ativo={atleta.ativo} />
-            <HistoricoAtivoButton atletaId={atleta.id} nome={atleta.nome_completo} />
             {podeTransitarCategoria ? (
               <TransitarCategoriaForm atletaId={atleta.id} categoriaAtual={atleta.categoria} />
             ) : null}
           </>
         }
       />
+
+      {/* "Ver histórico de desativações" fora da fileira de botões principal (pedido do Mateus em
+          09/11/2026 — estava "tomando conta" ali, misturado com os botões de ação de verdade). */}
+      <div className="mt-1.5">
+        <HistoricoAtivoButton atletaId={atleta.id} nome={atleta.nome_completo} />
+      </div>
 
       {/* Classificação (G1/G2/G3), aviso de cadastro incompleto e o link do Relatório de Dispensa
           — só existem pra categorias da Base (dispensa formal continua restrita à Base, ver
