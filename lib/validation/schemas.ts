@@ -211,8 +211,13 @@ export const atletaSchema = z
     agencia: z.string().optional().or(z.literal("")),
     maeNome: z.string().optional().or(z.literal("")),
     maeTelefone: telefoneFieldValidado,
+    // CPF dos responsáveis — pedido pelo Contrato de Formação (ver docs/superpowers/specs/
+    // 2026-11-09-contrato-formacao-design.md). Preenchimento manual, sem máscara/validação
+    // adicional (mesmo princípio do resto dos campos "Base-only" deste schema).
+    maeCpf: z.string().optional().or(z.literal("")),
     paiNome: z.string().optional().or(z.literal("")),
     paiTelefone: telefoneFieldValidado,
+    paiCpf: z.string().optional().or(z.literal("")),
     escola: z.string().optional().or(z.literal("")),
     // Dados de Pagamento (PF/PJ + Empresa de Imagem) — ver docs/superpowers/specs/
     // 2026-11-04-atletas-desativacao-transicao-pagamento-design.md. A seção só aparece no
@@ -286,6 +291,11 @@ export const atletaContratoSchema = z
     direitoEconomicoAtletaPct: percentualDireitoEconomicoField,
     direitoEconomicoTerceiroNome: z.string().optional().or(z.literal("")),
     direitoEconomicoTerceiroPct: percentualDireitoEconomicoField,
+    // Bolsa de aprendizagem (R$/mês) — só aparece no formulário quando Tipo de contrato é
+    // "Formação" (ver docs/superpowers/specs/2026-11-09-contrato-formacao-design.md), mas o schema
+    // aceita sempre (mesmo princípio das 5 rubricas acima, que não se aplicam a "Formação" mas
+    // continuam no schema). Preenchido manualmente pelo Mateus ao lançar o contrato.
+    bolsaAprendizagem: z.coerce.number().nonnegative().default(0),
   })
   .refine(
     (data) => data.tipoContrato !== "emprestimo" || Boolean(data.clubeOrigem?.trim()),

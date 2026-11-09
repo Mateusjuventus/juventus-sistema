@@ -5,6 +5,7 @@ import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CurrencyField } from "@/components/currency-field";
 import { SubmitButton } from "@/components/submit-button";
+import { dataFimFormacao } from "@/lib/futebol/contrato";
 
 export interface ContratoFormState {
   error?: string;
@@ -29,6 +30,11 @@ export interface ContratoFormState {
  * "Definitivo" (um aditivo sempre resulta num contrato definitivo, não importa o que o anterior
  * era). `state.values` (depois de uma tentativa de envio com erro) sempre tem prioridade sobre
  * `valoresIniciais` — é o que a pessoa realmente digitou por último.
+ *
+ * `dataNascimentoAtleta` (ver docs/superpowers/specs/2026-11-09-contrato-formacao-design.md) — só
+ * usada pra sugerir a vigência fim quando Tipo de contrato = "Formação" (nascimento + 20 anos,
+ * menos 1 dia, mesma regra do próprio texto do contrato). O campo de "Bolsa de aprendizagem"
+ * aparece no mesmo gatilho, dentro de "Remuneração".
  */
 export function ContratoForm({
   action,
@@ -36,17 +42,26 @@ export function ContratoForm({
   camposExtras,
   valoresIniciais,
   modoAditivo,
+  dataNascimentoAtleta,
 }: {
   action: (prevState: ContratoFormState, formData: FormData) => Promise<ContratoFormState>;
   tipoContratoOptions: readonly { value: string; label: string }[];
   camposExtras: Record<string, string>;
   valoresIniciais?: Record<string, string | undefined>;
   modoAditivo?: boolean;
+  dataNascimentoAtleta?: string | null;
 }) {
   const [state, formAction] = useFormState(action, {});
   const values = state.values ?? valoresIniciais ?? {};
   const errors = state.fieldErrors ?? {};
   const [tipoContrato, setTipoContrato] = useState(modoAditivo ? "definitivo" : values.tipoContrato ?? "");
+
+  // Vigência fim sugerida (ver comentário acima) — só recalcula o `defaultValue` do campo quando
+  // ENTRA ou SAI de "Formação" (chave do TextField abaixo), não a cada digitação; trocar entre os
+  // outros tipos (Definitivo/Empréstimo/Amador/Iniciação) nunca remonta o campo, preservando o que
+  // a pessoa já tiver digitado.
+  const vigenciaFimSugerida =
+    tipoContrato === "formacao" && dataNascimentoAtleta ? dataFimFormacao(dataNascimentoAtleta) : undefined;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -96,10 +111,11 @@ export function ContratoForm({
             error={errors.vigenciaInicio}
           />
           <TextField
+            key={tipoContrato === "formacao" ? `formacao-${dataNascimentoAtleta ?? ""}` : "padrao"}
             label="Vigência — término"
             name="vigenciaFim"
             type="date"
-            defaultValue={values.vigenciaFim}
+            defaultValue={vigenciaFimSugerida ?? values.vigenciaFim}
             error={errors.vigenciaFim}
           />
         </FieldGroup>
@@ -132,6 +148,14 @@ export function ContratoForm({
             error={errors.auxilioMoradia}
           />
           <CurrencyField label="Outros" name="outros" defaultValue={values.outros} error={errors.outros} />
+          {tipoContrato === "formacao" ? (
+            <CurrencyField
+              label="Bolsa de aprendizagem"
+              name="bolsaAprendizagem"
+              defaultValue={values.bolsaAprendizagem}
+              error={errors.bolsaAprendizagem}
+            />
+          ) : null}
         </FieldGroup>
         <p className="mt-3 text-sm text-neutral-500">
           O percentual de cada rubrica sobre o valor total aparece na tela de Contrato depois de salvar.

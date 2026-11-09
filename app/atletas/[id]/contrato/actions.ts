@@ -25,6 +25,10 @@ function parseForm(formData: FormData) {
     direitoEconomicoAtletaPct: String(formData.get("direitoEconomicoAtletaPct") ?? ""),
     direitoEconomicoTerceiroNome: String(formData.get("direitoEconomicoTerceiroNome") ?? ""),
     direitoEconomicoTerceiroPct: String(formData.get("direitoEconomicoTerceiroPct") ?? ""),
+    // Bolsa de aprendizagem (R$/mês) — só aparece em `ContratoForm` pra Tipo de contrato
+    // "Formação" (ver docs/superpowers/specs/2026-11-09-contrato-formacao-design.md), mas o campo
+    // não vem no FormData pros outros tipos — `"0"` cobre esse caso, mesmo padrão das 5 rubricas.
+    bolsaAprendizagem: String(formData.get("bolsaAprendizagem") ?? "0"),
   };
 
   const result = atletaContratoSchema.safeParse(raw);
@@ -79,6 +83,7 @@ export async function criarContrato(
     p_direito_economico_atleta_pct: data.direitoEconomicoAtletaPct ?? null,
     p_direito_economico_terceiro_nome: data.direitoEconomicoTerceiroNome || null,
     p_direito_economico_terceiro_pct: data.direitoEconomicoTerceiroPct ?? null,
+    p_bolsa_aprendizagem: data.bolsaAprendizagem,
   });
 
   if (error) return { error: "Não foi possível salvar o contrato. Tente novamente.", values: raw };

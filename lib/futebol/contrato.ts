@@ -25,6 +25,23 @@ export function diasRestantesContrato(vigenciaFim: string | null, hojeStr: strin
   return { dias, meses: Math.round(dias / 30) };
 }
 
+/** Sugestão de vigência fim pro contrato de "Formação" — a data imediatamente anterior àquela em
+ * que o atleta completa 20 (vinte) anos de idade, mesma regra escrita no texto do próprio modelo
+ * padrão do Contrato de Formação (Cláusula 1.1). Pedido do Mateus em 09/11/2026 (ver
+ * docs/superpowers/specs/2026-11-09-contrato-formacao-design.md) — só pré-preenche o campo de
+ * vigência fim em `ContratoForm` quando "Formação" é selecionado; continua editável normalmente
+ * (não é recalculada nem imposta de volta no banco depois de salva). Aritmética em UTC (em vez de
+ * `Date` local) pra não sofrer o mesmo bug de fuso já visto em `formatCarimbo`. */
+export function dataFimFormacao(dataNascimento: string): string {
+  const [anoStr, mesStr, diaStr] = dataNascimento.split("-");
+  const data = new Date(Date.UTC(Number(anoStr) + 20, Number(mesStr) - 1, Number(diaStr)));
+  data.setUTCDate(data.getUTCDate() - 1);
+  const yyyy = data.getUTCFullYear();
+  const mm = String(data.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(data.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export type StatusContrato = "ativo" | "vencido" | "sem_contrato";
 
 export interface StatusContratoInfo {

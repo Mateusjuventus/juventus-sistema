@@ -276,6 +276,10 @@ export function AtletaForm({
                 defaultValue={values.emailMae}
                 error={errors.emailMae}
               />
+              {/* CPF dos responsáveis — pedido pelo Contrato de Formação (ver docs/superpowers/
+                  specs/2026-11-09-contrato-formacao-design.md): o modelo padrão do contrato exige
+                  o CPF da mãe e do pai, que não existia neste formulário até então. */}
+              <CpfField label="CPF da mãe" name="maeCpf" defaultValue={values.maeCpf} error={errors.maeCpf} />
               <TextField label="Nome do pai" name="paiNome" defaultValue={values.paiNome} error={errors.paiNome} />
               <TelefoneField
                 label="Telefone do pai"
@@ -290,6 +294,7 @@ export function AtletaForm({
                 defaultValue={values.emailPai}
                 error={errors.emailPai}
               />
+              <CpfField label="CPF do pai" name="paiCpf" defaultValue={values.paiCpf} error={errors.paiCpf} />
             </FieldGroup>
           </div>
         ) : null}

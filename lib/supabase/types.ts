@@ -154,8 +154,14 @@ export interface AtletaRow {
   agencia: string | null;
   mae_nome: string | null;
   mae_telefone: string | null;
+  /** CPF da mãe/pai — pedido pelo Contrato de Formação (ver docs/superpowers/specs/
+   * 2026-11-09-contrato-formacao-design.md): o modelo padrão do contrato exige o CPF dos
+   * responsáveis, que não existia no cadastro até então. Preenchimento manual, sem
+   * máscara/validação adicional (mesmo padrão do CPF do próprio atleta no formulário). */
+  mae_cpf: string | null;
   pai_nome: string | null;
   pai_telefone: string | null;
+  pai_cpf: string | null;
   escola: string | null;
   /** Pedido de 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md):
    * "Possui alergia a algum medicamento? Se sim, qual". `alergia_medicamento_qual` só é preenchido
@@ -264,6 +270,11 @@ export interface AtletaContratoRow {
   /** Nome do clube co-detentor — só faz sentido junto de `direito_economico_terceiro_pct`. */
   direito_economico_terceiro_nome: string | null;
   direito_economico_terceiro_pct: number | null;
+  /** Valor mensal da bolsa de aprendizagem (R$) — só preenchido quando `tipo_contrato` é
+   * "formacao" (ver docs/superpowers/specs/2026-11-09-contrato-formacao-design.md); as 5 rubricas
+   * acima não se aplicam a esse tipo (ver `contratoTemRemuneracaoFormal`). Preenchido manualmente
+   * ao lançar o contrato — alimenta o PDF do Contrato de Formação. */
+  bolsa_aprendizagem: number;
   criado_por_perfil_id: string | null;
   criado_por_nome: string | null;
   created_at: string;

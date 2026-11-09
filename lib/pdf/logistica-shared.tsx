@@ -110,6 +110,30 @@ export function formatDataBr(iso: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+const MESES_EXTENSO = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+/** Data por extenso no formato usado nas assinaturas de contrato ("03 de Novembro de 2026") — ver
+ * lib/pdf/contrato-formacao-document.tsx. `""` (não `null`/`undefined`, pra sempre haver uma data
+ * de assinatura no contrato) quando `iso` vier vazio. */
+export function formatDataExtenso(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const [ano, mes, dia] = iso.split("-");
+  return `${dia} de ${MESES_EXTENSO[Number(mes) - 1]} de ${ano}`;
+}
+
 /** Opção de ordenação dos quartos de Atletas na Rooming List, pelo número do apartamento — ver
  * `ordenarQuartosPorApartamento` abaixo. Comissão Técnica nunca usa isso: fica sempre na ordem
  * livre em que os quartos foram criados/organizados. */

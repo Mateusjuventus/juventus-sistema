@@ -40,9 +40,14 @@ export default async function NovoContratoAtletaPage({
   searchParams: { origem?: string; modo?: string };
 }) {
   const supabase = createClient();
-  const { data } = await supabase.from("atletas").select("categoria").eq("id", params.id).maybeSingle();
+  const { data } = await supabase
+    .from("atletas")
+    .select("categoria, data_nascimento")
+    .eq("id", params.id)
+    .maybeSingle();
   if (!data) notFound();
-  const isBase = ehCategoriaBaseValida((data as { categoria: string }).categoria);
+  const atletaInfo = data as { categoria: string; data_nascimento: string | null };
+  const isBase = ehCategoriaBaseValida(atletaInfo.categoria);
 
   const origem = searchParams.origem === "editar" ? "editar" : "ver";
   const voltarHref = origem === "editar" ? `/atletas/${params.id}` : `/atletas/${params.id}/ver`;
@@ -73,6 +78,7 @@ export default async function NovoContratoAtletaPage({
         direitoEconomicoAtletaPct: paraString(vigente.direito_economico_atleta_pct),
         direitoEconomicoTerceiroNome: vigente.direito_economico_terceiro_nome ?? undefined,
         direitoEconomicoTerceiroPct: paraString(vigente.direito_economico_terceiro_pct),
+        bolsaAprendizagem: paraString(vigente.bolsa_aprendizagem),
       }
     : undefined;
 
@@ -96,6 +102,7 @@ export default async function NovoContratoAtletaPage({
           camposExtras={{ atletaId: params.id, origem }}
           valoresIniciais={valoresIniciais}
           modoAditivo={modoAditivo}
+          dataNascimentoAtleta={atletaInfo.data_nascimento}
         />
       </div>
     </AppShell>
