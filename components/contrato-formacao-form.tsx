@@ -89,7 +89,7 @@ export function ContratoFormacaoForm({
         </div>
         <p className="mt-3 text-sm text-neutral-500">
           Esses dados ficam gravados direto no cadastro do atleta — aparecem/atualizam também em
-          "Editar atleta".
+          &quot;Editar atleta&quot;.
         </p>
       </FormSection>
 
