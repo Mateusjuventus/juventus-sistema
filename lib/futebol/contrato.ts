@@ -42,6 +42,20 @@ export function dataFimFormacao(dataNascimento: string): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Atleta já é maior de idade HOJE (18 anos completos ou mais) — usada na hora de GERAR o PDF do
+ * Contrato de Formação pra decidir qual dos dois modelos usar (ver docs/superpowers/specs/
+ * 2026-11-11-contrato-formacao-fase2-design.md): calculada pela idade atual, não pela idade no
+ * momento em que o contrato foi criado — se o atleta completar 18 anos durante a vigência do
+ * mesmo contrato, o PDF passa a usar o modelo de maior automaticamente, sem precisar editar nada.
+ * Aritmética em UTC (mesmo motivo de `dataFimFormacao`, acima). */
+export function atletaMaiorIdade(dataNascimento: string, hojeStr: string): boolean {
+  const [anoNasc, mesNasc, diaNasc] = dataNascimento.split("-").map(Number);
+  const [anoHoje, mesHoje, diaHoje] = hojeStr.split("-").map(Number);
+  let idade = anoHoje - anoNasc;
+  if (mesHoje < mesNasc || (mesHoje === mesNasc && diaHoje < diaNasc)) idade -= 1;
+  return idade >= 18;
+}
+
 export type StatusContrato = "ativo" | "vencido" | "sem_contrato";
 
 export interface StatusContratoInfo {

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { DeleteButton } from "@/components/delete-button";
 import { ContatoEmergenciaForm } from "@/components/contato-emergencia-form";
 import { ContratoSecao } from "@/components/contrato-secao";
+import { ContratoFormacaoSecao } from "@/components/contrato-formacao-secao";
 import { contratoVazio } from "@/lib/futebol/contrato";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
@@ -234,6 +235,28 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
             temJogosSemCompeticao={competicoesDisponiveisAtleta.temJogosSemCompeticao}
             tipoContratoLabel={TIPO_CONTRATO_LABEL}
             novoContratoHref={`/atletas/${atleta.id}/contrato/novo?origem=editar`}
+          />
+        </div>
+      </section>
+
+      {/* Tela própria de "Contrato de Formação" (ver docs/superpowers/specs/2026-11-11-contrato-
+          formacao-fase2-design.md) — sempre aparece, independente do tipo de contrato vigente
+          acima. */}
+      <section className="card mt-6 p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-grena">Contrato de Formação</h2>
+        <div className="mt-3">
+          <ContratoFormacaoSecao
+            atletaId={atleta.id}
+            atleta={{
+              maeNome: atleta.mae_nome,
+              maeTelefone: atleta.mae_telefone,
+              paiNome: atleta.pai_nome,
+              paiTelefone: atleta.pai_telefone,
+              vigenciaBidInicio: atleta.vigencia_bid_inicio,
+              vigenciaBidFim: atleta.vigencia_bid_fim,
+            }}
+            contratoFormacao={contratos.find((c) => c.vigente && c.tipo_contrato === "formacao") ?? null}
+            origem="editar"
           />
         </div>
       </section>

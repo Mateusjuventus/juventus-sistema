@@ -181,12 +181,17 @@ export function construirSecoesFichaAtleta(
 export interface FichaAtletaExtras {
   dadosDeJogo: boolean;
   anotacoes: boolean;
+  /** Histórico de ativação/desativação do atleta (ver lib/futebol/ativo-historico.ts) — terceira
+   * seção "rica" da Ficha mestre, pedido do Mateus em 09/11/2026 ("esse histórico de desativações
+   * é pra entrar tbm na ficha"). Mesmo tratamento de `anotacoes`: um único checkbox (a seção
+   * inteira), nunca campo a campo. */
+  historicoAtivo: boolean;
 }
 
-/** Estado inicial do modal pras duas seções extras — também começam marcadas, mesmo espírito de
+/** Estado inicial do modal pras três seções extras — também começam marcadas, mesmo espírito de
  * `todosCamposFichaAtleta` (quem só clica "Gerar PDF" direto continua recebendo a ficha completa). */
 export function todosExtrasFichaAtleta(): FichaAtletaExtras {
-  return { dadosDeJogo: true, anotacoes: true };
+  return { dadosDeJogo: true, anotacoes: true, historicoAtivo: true };
 }
 
 /** Seleção de Competições pro filtro de "Dados de Jogo" — substituiu o filtro por período (`de`/
@@ -213,6 +218,7 @@ export function extrasFichaAtletaParaQueryString(
   const partes: string[] = [];
   if (!extras.dadosDeJogo) partes.push("incluirDadosDeJogo=nao");
   if (!extras.anotacoes) partes.push("incluirAnotacoes=nao");
+  if (!extras.historicoAtivo) partes.push("incluirHistoricoAtivo=nao");
   if (extras.dadosDeJogo && filtroCompeticao.competicaoIds !== undefined) {
     partes.push(`competicaoIds=${filtroCompeticao.competicaoIds.map(encodeURIComponent).join(",")}`);
     if (filtroCompeticao.incluirSemCompeticao) partes.push("semCompeticao=sim");
@@ -230,6 +236,7 @@ export function extrasFichaAtletaDaQueryString(
   return {
     dadosDeJogo: searchParams.get("incluirDadosDeJogo") !== "nao",
     anotacoes: searchParams.get("incluirAnotacoes") !== "nao",
+    historicoAtivo: searchParams.get("incluirHistoricoAtivo") !== "nao",
     competicaoIds: competicaoIdsRaw !== null ? competicaoIdsRaw.split(",").filter(Boolean) : undefined,
     incluirSemCompeticao: searchParams.get("semCompeticao") === "sim",
   };

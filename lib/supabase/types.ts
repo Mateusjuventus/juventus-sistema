@@ -162,6 +162,11 @@ export interface AtletaRow {
   pai_nome: string | null;
   pai_telefone: string | null;
   pai_cpf: string | null;
+  /** Vigência do registro do atleta na CBF/FPF (BID) — dado do atleta, independente de qual
+   * contrato está vigente ou arquivado (ver docs/superpowers/specs/2026-11-11-contrato-formacao-
+   * fase2-design.md). Editável na tela de Contrato de Formação; não entra no texto do PDF. */
+  vigencia_bid_inicio: string | null;
+  vigencia_bid_fim: string | null;
   escola: string | null;
   /** Pedido de 25/08 (ver docs/superpowers/specs/2026-08-25-atleta-telefone-alergia-foto-design.md):
    * "Possui alergia a algum medicamento? Se sim, qual". `alergia_medicamento_qual` só é preenchido

@@ -31,15 +31,26 @@ import {
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { montarHistoricoAtleta } from "@/lib/futebol/anotacoes-atleta";
-import { FichaAtletaDocument, type FichaAtletaAnotacaoItem, type FichaAtletaDadosDeJogo } from "@/lib/pdf/ficha-atleta-document";
+import { calcularLinhaDoTempoAtivo, MOTIVO_DESATIVACAO_ATLETA_OPTIONS } from "@/lib/futebol/ativo-historico";
+import {
+  FichaAtletaDocument,
+  type FichaAtletaAnotacaoItem,
+  type FichaAtletaDadosDeJogo,
+  type FichaAtletaHistoricoAtivoItem,
+} from "@/lib/pdf/ficha-atleta-document";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaAnotacaoRow,
+  AtletaAtivoHistoricoRow,
   AtletaContatoEmergenciaRow,
   AtletaContratoEvolucaoSalarialRow,
   AtletaContratoRow,
   AtletaRow,
 } from "@/lib/supabase/types";
+
+const MOTIVO_DESATIVACAO_LABEL: Record<string, string> = Object.fromEntries(
+  MOTIVO_DESATIVACAO_ATLETA_OPTIONS.map((o) => [o.value, o.label]),
+);
 
 const TABELAS_JOGO = {
   jogos: "jogos",
@@ -95,31 +106,38 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const extras = extrasFichaAtletaDaQueryString(url.searchParams);
 
   const supabase = createClient();
-  const [{ data: atletaData }, { data: contatosData }, { data: contratosData }, { data: anotacoesData }] =
-    await Promise.all([
-      supabase.from("atletas").select("*").eq("id", params.id).single(),
-      supabase
-        .from("atleta_contatos_emergencia")
-        .select("*")
-        .eq("atleta_id", params.id)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("atleta_contratos")
-        .select("*")
-        .eq("atleta_id", params.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("atleta_anotacoes")
-        .select("*")
-        .eq("atleta_id", params.id)
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: atletaData },
+    { data: contatosData },
+    { data: contratosData },
+    { data: anotacoesData },
+    { data: ativoHistoricoData },
+  ] = await Promise.all([
+    supabase.from("atletas").select("*").eq("id", params.id).single(),
+    supabase
+      .from("atleta_contatos_emergencia")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("atleta_contratos")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("atleta_anotacoes")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: false }),
+    supabase.from("atletas_ativo_historico").select("*").eq("atleta_id", params.id),
+  ]);
   if (!atletaData) return new NextResponse("Atleta não encontrado.", { status: 404 });
 
   const atleta = atletaData as AtletaRow;
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
   const contratos = (contratosData ?? []) as AtletaContratoRow[];
   const anotacoes = (anotacoesData ?? []) as AtletaAnotacaoRow[];
+  const ativoHistorico = (ativoHistoricoData ?? []) as AtletaAtivoHistoricoRow[];
   // Contrato "vazio" (sem data nem valor nenhum, sobra de migração antiga — ver `contratoVazio`)
   // não entra como vigente na ficha: mostra o aviso "Nenhum contrato vigente cadastrado" como se
   // não houvesse nenhum, em vez de uma seção cheia de "—" (pedido do Mateus em 04/11/2026).
@@ -158,6 +176,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
         texto: item.texto,
         autor: item.autor ?? "—",
         dataTexto: formatDataHora(item.data),
+      }))
+    : null;
+
+  const historicoAtivoPdf: FichaAtletaHistoricoAtivoItem[] | null = extras.historicoAtivo
+    ? calcularLinhaDoTempoAtivo(ativoHistorico, hojeStr).map((item) => ({
+        ativo: item.ativo,
+        motivoLabel: item.motivo ? MOTIVO_DESATIVACAO_LABEL[item.motivo] ?? item.motivo : null,
+        observacao: item.observacao,
+        autor: item.criado_por_nome ?? "—",
+        dataTexto: formatDataBr(item.data),
       }))
     : null;
 
@@ -292,6 +320,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       secoes={secoes}
       dadosDeJogo={dadosDeJogo}
       anotacoes={anotacoesPdf}
+      historicoAtivo={historicoAtivoPdf}
     />,
   );
 

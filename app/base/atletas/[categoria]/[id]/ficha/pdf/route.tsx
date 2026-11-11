@@ -33,16 +33,27 @@ import {
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { buscarEstatisticasAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { montarHistoricoAtletaBase } from "@/lib/futebol/anotacoes-atleta";
-import { FichaAtletaDocument, type FichaAtletaAnotacaoItem, type FichaAtletaDadosDeJogo } from "@/lib/pdf/ficha-atleta-document";
+import { calcularLinhaDoTempoAtivo, MOTIVO_DESATIVACAO_ATLETA_OPTIONS } from "@/lib/futebol/ativo-historico";
+import {
+  FichaAtletaDocument,
+  type FichaAtletaAnotacaoItem,
+  type FichaAtletaDadosDeJogo,
+  type FichaAtletaHistoricoAtivoItem,
+} from "@/lib/pdf/ficha-atleta-document";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type {
   AtletaAnotacaoRow,
+  AtletaAtivoHistoricoRow,
   AtletaContatoEmergenciaRow,
   AtletaContratoEvolucaoSalarialRow,
   AtletaContratoRow,
   AtletaRow,
   AtletaStatus,
 } from "@/lib/supabase/types";
+
+const MOTIVO_DESATIVACAO_LABEL: Record<string, string> = Object.fromEntries(
+  MOTIVO_DESATIVACAO_ATLETA_OPTIONS.map((o) => [o.value, o.label]),
+);
 
 const TABELAS_JOGO = {
   jogos: "jogos",
@@ -107,31 +118,38 @@ export async function GET(request: Request, { params }: { params: { categoria: s
   const extras = extrasFichaAtletaDaQueryString(url.searchParams);
 
   const supabase = createClient();
-  const [{ data: atletaData }, { data: contatosData }, { data: contratosData }, { data: anotacoesData }] =
-    await Promise.all([
-      supabase.from("atletas").select("*").eq("id", params.id).single(),
-      supabase
-        .from("atleta_contatos_emergencia")
-        .select("*")
-        .eq("atleta_id", params.id)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("atleta_contratos")
-        .select("*")
-        .eq("atleta_id", params.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("atleta_anotacoes")
-        .select("*")
-        .eq("atleta_id", params.id)
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: atletaData },
+    { data: contatosData },
+    { data: contratosData },
+    { data: anotacoesData },
+    { data: ativoHistoricoData },
+  ] = await Promise.all([
+    supabase.from("atletas").select("*").eq("id", params.id).single(),
+    supabase
+      .from("atleta_contatos_emergencia")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("atleta_contratos")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("atleta_anotacoes")
+      .select("*")
+      .eq("atleta_id", params.id)
+      .order("created_at", { ascending: false }),
+    supabase.from("atletas_ativo_historico").select("*").eq("atleta_id", params.id),
+  ]);
   if (!atletaData) return new NextResponse("Atleta não encontrado.", { status: 404 });
 
   const atleta = atletaData as AtletaRow;
   const contatos = (contatosData ?? []) as AtletaContatoEmergenciaRow[];
   const contratos = (contratosData ?? []) as AtletaContratoRow[];
   const anotacoes = (anotacoesData ?? []) as AtletaAnotacaoRow[];
+  const ativoHistorico = (ativoHistoricoData ?? []) as AtletaAtivoHistoricoRow[];
   // Contrato "vazio" (sem data nem valor nenhum, sobra de migração antiga — ver `contratoVazio`)
   // não entra como vigente na ficha — espelha `app/atletas/[id]/ficha/pdf/route.tsx` (Profissional).
   const vigenteBruto = contratos.find((c) => c.vigente) ?? null;
@@ -190,6 +208,16 @@ export async function GET(request: Request, { params }: { params: { categoria: s
       dataTexto: formatDataHora(item.data),
     }));
   }
+
+  const historicoAtivoPdf: FichaAtletaHistoricoAtivoItem[] | null = extras.historicoAtivo
+    ? calcularLinhaDoTempoAtivo(ativoHistorico, hojeStr).map((item) => ({
+        ativo: item.ativo,
+        motivoLabel: item.motivo ? MOTIVO_DESATIVACAO_LABEL[item.motivo] ?? item.motivo : null,
+        observacao: item.observacao,
+        autor: item.criado_por_nome ?? "—",
+        dataTexto: formatDataBr(item.data),
+      }))
+    : null;
 
   const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
   const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
@@ -336,6 +364,7 @@ export async function GET(request: Request, { params }: { params: { categoria: s
       secoes={secoes}
       dadosDeJogo={dadosDeJogo}
       anotacoes={anotacoesPdf}
+      historicoAtivo={historicoAtivoPdf}
     />,
   );
 

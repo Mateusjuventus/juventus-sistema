@@ -10,7 +10,10 @@ import { formatCEP } from "@/lib/validation/cep";
 import { enderecoFichaAtleta } from "@/lib/futebol/ficha-atleta";
 import { valorPorExtenso } from "@/lib/pdf/valor-extenso";
 import { formatDataBr, formatDataExtenso } from "@/lib/pdf/logistica-shared";
+import { atletaMaiorIdade } from "@/lib/futebol/contrato";
+import { hojeBrasilia } from "@/lib/data-brasil";
 import { ContratoFormacaoDocument, type ContratoFormacaoCampos } from "@/lib/pdf/contrato-formacao-document";
+import { ContratoFormacaoMaiorDocument, type ContratoFormacaoMaiorCampos } from "@/lib/pdf/contrato-formacao-maior-document";
 import type { AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
 
 function naturalidade(cidade: string | null, uf: string | null): string {
@@ -28,10 +31,14 @@ function capitalizar(texto: string): string {
 
 /**
  * Gera o Contrato de Formação Desportiva em PDF, já preenchido com os dados do atleta e do
- * contrato vigente — ver docs/superpowers/specs/2026-11-09-contrato-formacao-design.md. Só
- * funciona quando o contrato vigente do atleta é do tipo "Formação" (confirmado com o Mateus: não
- * é um fluxo que deveria acontecer fora disso, por isso 404 simples, sem mensagem especial — mesmo
- * espírito de `app/atletas/[id]/ficha/pdf/route.tsx`).
+ * contrato vigente — ver docs/superpowers/specs/2026-11-11-contrato-formacao-fase2-design.md. Só
+ * funciona quando o contrato vigente do atleta é do tipo "Formação" (mesmo espírito de
+ * `app/atletas/[id]/ficha/pdf/route.tsx`).
+ *
+ * Qual dos dois modelos usar (menor/maior de idade) é decidido AQUI, pela idade ATUAL do atleta
+ * (`atletaMaiorIdade`, calculada na hora de gerar — não uma escolha fixada na criação do
+ * contrato): se o atleta completar 18 anos durante a vigência do mesmo Contrato de Formação, o
+ * PDF passa a usar o modelo de maior automaticamente, sem precisar editar nada.
  */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -58,36 +65,61 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       cepFormatado: atleta.cep ? formatCEP(atleta.cep) : null,
     }) ?? "";
 
-  const campos: ContratoFormacaoCampos = {
-    nomeCompleto: atleta.nome_completo,
-    dataNascimento: formatDataBr(atleta.data_nascimento),
-    naturalidade: naturalidade(atleta.cidade_natal, atleta.uf_natal),
-    rg: atleta.rg,
-    cpf: atleta.cpf ? formatCPF(atleta.cpf) : "",
-    maeNome: atleta.mae_nome ?? "",
-    maeCpf: atleta.mae_cpf ? formatCPF(atleta.mae_cpf) : "",
-    paiNome: atleta.pai_nome ?? "",
-    paiCpf: atleta.pai_cpf ? formatCPF(atleta.pai_cpf) : "",
-    endereco,
-    vigenciaInicio: formatDataBr(contrato.vigencia_inicio),
-    vigenciaFim: formatDataBr(contrato.vigencia_fim),
-    bolsaValor:
-      contrato.bolsa_aprendizagem > 0
-        ? `${formatMoeda(contrato.bolsa_aprendizagem)} (${capitalizar(valorPorExtenso(contrato.bolsa_aprendizagem))})`
-        : "",
-    dataAssinaturaExtenso: formatDataExtenso(contrato.vigencia_inicio),
-  };
+  const bolsaValor =
+    contrato.bolsa_aprendizagem > 0
+      ? `${formatMoeda(contrato.bolsa_aprendizagem)} (${capitalizar(valorPorExtenso(contrato.bolsa_aprendizagem))})`
+      : "";
+  const dataAssinaturaExtenso = formatDataExtenso(contrato.vigencia_inicio);
 
-  const cabecalhoPath = path.join(process.cwd(), "public/brand/contrato-formacao-cabecalho.png");
-  const rodapePath = path.join(process.cwd(), "public/brand/contrato-formacao-rodape.png");
-  const cabecalhoSrc = { data: readFileSync(cabecalhoPath), format: "png" as const };
-  const rodapeSrc = { data: readFileSync(rodapePath), format: "png" as const };
-
-  const buffer = await renderToBuffer(
-    <ContratoFormacaoDocument cabecalhoSrc={cabecalhoSrc} rodapeSrc={rodapeSrc} campos={campos} />,
-  );
-
+  const maiorDeIdade = atletaMaiorIdade(atleta.data_nascimento, hojeBrasilia());
   const nomeArquivo = `contrato-formacao-${atleta.nome_completo.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`;
+
+  let buffer: Buffer;
+  if (maiorDeIdade) {
+    const campos: ContratoFormacaoMaiorCampos = {
+      nomeCompleto: atleta.nome_completo,
+      dataNascimento: formatDataBr(atleta.data_nascimento),
+      rg: atleta.rg,
+      cpf: atleta.cpf ? formatCPF(atleta.cpf) : "",
+      email: atleta.email ?? "",
+      endereco,
+      vigenciaInicio: formatDataBr(contrato.vigencia_inicio),
+      vigenciaFim: formatDataBr(contrato.vigencia_fim),
+      bolsaValor,
+      dataAssinaturaExtenso,
+    };
+    const cabecalhoPath = path.join(process.cwd(), "public/brand/contrato-formacao-maior-cabecalho.png");
+    const rodapePath = path.join(process.cwd(), "public/brand/contrato-formacao-maior-rodape.png");
+    const cabecalhoSrc = { data: readFileSync(cabecalhoPath), format: "png" as const };
+    const rodapeSrc = { data: readFileSync(rodapePath), format: "png" as const };
+    buffer = await renderToBuffer(
+      <ContratoFormacaoMaiorDocument cabecalhoSrc={cabecalhoSrc} rodapeSrc={rodapeSrc} campos={campos} />,
+    );
+  } else {
+    const campos: ContratoFormacaoCampos = {
+      nomeCompleto: atleta.nome_completo,
+      dataNascimento: formatDataBr(atleta.data_nascimento),
+      naturalidade: naturalidade(atleta.cidade_natal, atleta.uf_natal),
+      rg: atleta.rg,
+      cpf: atleta.cpf ? formatCPF(atleta.cpf) : "",
+      maeNome: atleta.mae_nome ?? "",
+      maeCpf: atleta.mae_cpf ? formatCPF(atleta.mae_cpf) : "",
+      paiNome: atleta.pai_nome ?? "",
+      paiCpf: atleta.pai_cpf ? formatCPF(atleta.pai_cpf) : "",
+      endereco,
+      vigenciaInicio: formatDataBr(contrato.vigencia_inicio),
+      vigenciaFim: formatDataBr(contrato.vigencia_fim),
+      bolsaValor,
+      dataAssinaturaExtenso,
+    };
+    const cabecalhoPath = path.join(process.cwd(), "public/brand/contrato-formacao-cabecalho.png");
+    const rodapePath = path.join(process.cwd(), "public/brand/contrato-formacao-rodape.png");
+    const cabecalhoSrc = { data: readFileSync(cabecalhoPath), format: "png" as const };
+    const rodapeSrc = { data: readFileSync(rodapePath), format: "png" as const };
+    buffer = await renderToBuffer(
+      <ContratoFormacaoDocument cabecalhoSrc={cabecalhoSrc} rodapeSrc={rodapeSrc} campos={campos} />,
+    );
+  }
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

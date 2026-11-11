@@ -223,6 +223,20 @@ export interface FichaAtletaAnotacaoItem {
   dataTexto: string;
 }
 
+/** Um item do Histórico de Desativações (ver lib/futebol/ativo-historico.ts) — terceira seção
+ * "rica" da Ficha mestre, pedido do Mateus em 09/11/2026. */
+export interface FichaAtletaHistoricoAtivoItem {
+  ativo: boolean;
+  /** Rótulo já resolvido pela rota (`MOTIVO_DESATIVACAO_ATLETA_OPTIONS`) — `null` numa reativação
+   * (não tem motivo, só observação). */
+  motivoLabel: string | null;
+  observacao: string | null;
+  /** Já com o fallback "—" aplicado pela rota quando não houver autor registrado. */
+  autor: string;
+  /** Já formatada pela rota (ver `formatDataBr`). */
+  dataTexto: string;
+}
+
 export interface FichaAtletaSecao {
   titulo: string;
   /** `null` quando a seção tem campos marcados mas nenhum dado pra mostrar (ex.: nenhum contrato
@@ -240,6 +254,7 @@ export function FichaAtletaDocument({
   secoes,
   dadosDeJogo,
   anotacoes,
+  historicoAtivo,
 }: {
   juventusLogoSrc: LogoSrc;
   fotoSrc: LogoSrc;
@@ -251,9 +266,12 @@ export function FichaAtletaDocument({
   /** `undefined`/`null` = seção "Anotações" não foi marcada no modal, não aparece no PDF. Array
    * vazio = marcada, mas sem nenhuma anotação ainda (mostra aviso). */
   anotacoes?: FichaAtletaAnotacaoItem[] | null;
+  /** `undefined`/`null` = seção "Histórico de Desativações" não foi marcada no modal, não aparece
+   * no PDF. Array vazio = marcada, mas sem nenhum lançamento ainda (mostra aviso). */
+  historicoAtivo?: FichaAtletaHistoricoAtivoItem[] | null;
 }) {
   const algumaSecaoComConteudo =
-    secoes.some((s) => s.dados === null || s.dados.length > 0) || !!dadosDeJogo || !!anotacoes;
+    secoes.some((s) => s.dados === null || s.dados.length > 0) || !!dadosDeJogo || !!anotacoes || !!historicoAtivo;
 
   return (
     <Document>
@@ -366,6 +384,29 @@ export function FichaAtletaDocument({
                 >
                   {item.tipo === "dispensa" ? <Text style={styles.anotacaoTag}>Relatório de Dispensa</Text> : null}
                   <Text style={styles.anotacaoTexto}>{item.texto}</Text>
+                  <Text style={styles.anotacaoAutor}>
+                    {item.autor} · {item.dataTexto}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+        ) : null}
+
+        {historicoAtivo ? (
+          <View>
+            <Text style={styles.secaoTitulo}>Histórico de Desativações</Text>
+            {historicoAtivo.length === 0 ? (
+              <Text style={styles.avisoSecao}>Nenhuma desativação/reativação registrada.</Text>
+            ) : (
+              historicoAtivo.map((item, i) => (
+                <View key={i} style={styles.anotacaoItem} wrap={false}>
+                  <Text style={styles.anotacaoTag}>{item.ativo ? "Reativado" : "Desativado"}</Text>
+                  <Text style={styles.anotacaoTexto}>
+                    {item.ativo
+                      ? (item.observacao ?? "—")
+                      : `Motivo: ${item.motivoLabel ?? "—"}${item.observacao ? ` — ${item.observacao}` : ""}`}
+                  </Text>
                   <Text style={styles.anotacaoAutor}>
                     {item.autor} · {item.dataTexto}
                   </Text>

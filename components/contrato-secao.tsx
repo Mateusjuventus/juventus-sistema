@@ -405,14 +405,6 @@ export function ContratoSecao({
               Aditivo
             </Link>
           ) : null}
-          {/* Contrato de Formação (ver docs/superpowers/specs/2026-11-09-contrato-formacao-
-              design.md) — só aparece quando o contrato vigente é desse tipo; sem mensagem/aviso
-              quando não é (confirmado com o Mateus, não é um fluxo que deveria acontecer). */}
-          {vigente?.tipo_contrato === "formacao" ? (
-            <Link href={`/atletas/${atletaId}/contrato/formacao/pdf`} className="btn-secondary" target="_blank">
-              Baixar Contrato de Formação
-            </Link>
-          ) : null}
         </div>
       </div>
 

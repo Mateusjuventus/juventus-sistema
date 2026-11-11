@@ -315,6 +315,31 @@ export const atletaContratoSchema = z
   );
 export type AtletaContratoInput = z.infer<typeof atletaContratoSchema>;
 
+/**
+ * Tela própria de "Contrato de Formação" (ver docs/superpowers/specs/2026-11-11-contrato-
+ * formacao-fase2-design.md) — um schema só pros dois modos (criar/editar), já que o formato
+ * enviado é o mesmo; a diferença entre os modos está na action (`criarContratoFormacao`/
+ * `atualizarContratoFormacao`), não aqui. Responsáveis e Vigência do BID gravam em `atletas`
+ * (mesmas colunas usadas pelo cadastro normal — nunca uma cópia separada); Vigência/Bolsa do
+ * Contrato de Formação gravam em `atleta_contratos`.
+ */
+export const contratoFormacaoSchema = z.object({
+  maeNome: z.string().optional().or(z.literal("")),
+  maeTelefone: telefoneFieldValidado,
+  emailMae: emailField,
+  maeCpf: z.string().optional().or(z.literal("")),
+  paiNome: z.string().optional().or(z.literal("")),
+  paiTelefone: telefoneFieldValidado,
+  emailPai: emailField,
+  paiCpf: z.string().optional().or(z.literal("")),
+  vigenciaBidInicio: z.string().optional().or(z.literal("")),
+  vigenciaBidFim: z.string().optional().or(z.literal("")),
+  vigenciaInicio: z.string().optional().or(z.literal("")),
+  vigenciaFim: z.string().optional().or(z.literal("")),
+  bolsaAprendizagem: z.coerce.number().nonnegative().default(0),
+});
+export type ContratoFormacaoInput = z.infer<typeof contratoFormacaoSchema>;
+
 /** As 5 rubricas de remuneração do contrato — mesma lista usada no formulário de contrato
  * (`CurrencyField` por rubrica) e, agora, no seletor de "Evolução salarial" (qual rubrica muda).
  * Centralizada aqui pra não ter duas listas podendo divergir. */
