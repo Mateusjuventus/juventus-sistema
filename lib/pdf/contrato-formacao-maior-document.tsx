@@ -695,7 +695,12 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 13, fontWeight: 700, color: CORES.grenaEscuro, textAlign: "center", marginBottom: 10 },
   clausula: { fontSize: 10, fontWeight: 700, color: CORES.grenaEscuro, marginTop: 12, marginBottom: 4 },
   paragrafo: { textAlign: "justify", marginBottom: 6 },
-  item: { textAlign: "justify", marginBottom: 6, marginLeft: 14 },
+  // Sem `marginLeft` (tinha 14pt) — pedido do Mateus em 12/11/2026, ao ver os itens com letra/
+  // número/bullet (a), b), i), •...) puxados pra dentro em relação à margem esquerda normal do
+  // parágrafo/cláusula: "tipo a), b) sempre ficam pra frente". Agora os itens começam na mesma
+  // margem de tudo o resto do contrato, sem recuo — mesma mudança em
+  // `contrato-formacao-document.tsx` (modelo do atleta menor).
+  item: { textAlign: "justify", marginBottom: 6 },
   centro: { textAlign: "center", marginTop: 10, marginBottom: 2 },
   centroBold: { textAlign: "center", marginTop: 10, marginBottom: 2, fontWeight: 700 },
   linha: { textAlign: "center", marginTop: 26, marginBottom: 2 },
