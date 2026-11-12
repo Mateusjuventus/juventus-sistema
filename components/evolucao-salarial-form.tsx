@@ -28,6 +28,12 @@ function AdicionarButton() {
  *
  * `contratoId`/`atletaId` vão como campos escondidos — a tabela só guarda `contrato_id`, mas a
  * action precisa do `atletaId` pra revalidar a página certa.
+ *
+ * Em 12/11/2026 (pedido do Mateus: "essas opção devem somente aparecer para incluir se eu
+ * selecionar e não abrir os campos assim de cara"), os campos do formulário ficaram escondidos até
+ * clicar em "+ Adicionar evolução" — antes apareciam direto, sempre que o contrato era editável.
+ * `mostrar` controla isso; fecha de volta sozinho depois de um envio com sucesso (mesmo momento em
+ * que `formKey` muda, pra já começar limpo na próxima vez que abrir).
  */
 export function EvolucaoSalarialForm({
   action,
@@ -40,13 +46,29 @@ export function EvolucaoSalarialForm({
 }) {
   const [state, formAction] = useFormState(action, {});
   const [formKey, setFormKey] = useState(0);
+  const [mostrar, setMostrar] = useState(false);
 
   useEffect(() => {
-    if (state.success) setFormKey((k) => k + 1);
+    if (state.success) {
+      setFormKey((k) => k + 1);
+      setMostrar(false);
+    }
   }, [state]);
+
+  if (!mostrar) {
+    return (
+      <button type="button" onClick={() => setMostrar(true)} className="text-sm font-medium text-grena hover:underline">
+        + Adicionar evolução
+      </button>
+    );
+  }
 
   return (
     <div>
+      <p className="mb-2 text-xs text-neutral-400">
+        Já sabe que um valor do contrato vai mudar numa data futura (reajuste, fim de carência etc.)? Registre
+        aqui pra não esquecer — o valor novo passa a valer automaticamente a partir da data marcada.
+      </p>
       <form
         key={formKey}
         action={formAction}
@@ -72,6 +94,9 @@ export function EvolucaoSalarialForm({
           <CurrencyField label="Novo valor" name="novoValor" required />
         </div>
 
+        <button type="button" onClick={() => setMostrar(false)} className="btn-secondary">
+          Cancelar
+        </button>
         <AdicionarButton />
       </form>
       {state.error ? <p className="field-error">{state.error}</p> : null}

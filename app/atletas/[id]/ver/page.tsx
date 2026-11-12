@@ -25,7 +25,6 @@ import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
 import { contratoVazio, statusContrato } from "@/lib/futebol/contrato";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { ContratoSecao } from "@/components/contrato-secao";
-import { ContratoFormacaoSecao } from "@/components/contrato-formacao-secao";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { alternarAtletaAtivoComMotivo } from "../../actions";
 import type {
@@ -434,25 +433,19 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             temJogosSemCompeticao={competicoesDisponiveisAtleta.temJogosSemCompeticao}
             tipoContratoLabel={TIPO_CONTRATO_LABEL}
             novoContratoHref={`/atletas/${atleta.id}/contrato/novo?origem=ver`}
-          />
-        </FormSection>
-
-        {/* Tela própria de "Contrato de Formação" (ver docs/superpowers/specs/2026-11-11-contrato-
-            formacao-fase2-design.md) — sempre aparece, independente do tipo de contrato vigente
-            acima. */}
-        <FormSection title="Contrato de Formação">
-          <ContratoFormacaoSecao
-            atletaId={atleta.id}
-            atleta={{
+            atletaCampos={{
               maeNome: atleta.mae_nome,
               maeTelefone: atleta.mae_telefone,
+              emailMae: atleta.email_mae,
+              maeCpf: atleta.mae_cpf,
               paiNome: atleta.pai_nome,
               paiTelefone: atleta.pai_telefone,
+              emailPai: atleta.email_pai,
+              paiCpf: atleta.pai_cpf,
               vigenciaBidInicio: atleta.vigencia_bid_inicio,
               vigenciaBidFim: atleta.vigencia_bid_fim,
+              dataNascimento: atleta.data_nascimento,
             }}
-            contratoFormacao={contratos.find((c) => c.vigente && c.tipo_contrato === "formacao") ?? null}
-            origem="ver"
           />
         </FormSection>
 

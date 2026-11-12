@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
 import { contratoFormacaoSchema } from "@/lib/validation/schemas";
@@ -53,25 +52,22 @@ async function salvarDadosAtleta(
     .eq("id", atletaId);
 }
 
-function destinoVolta(formData: FormData, atletaId: string): string {
-  const origem = String(formData.get("origem") ?? "") === "editar" ? "editar" : "ver";
-  return origem === "editar" ? `/atletas/${atletaId}` : `/atletas/${atletaId}/ver`;
-}
-
 function revalidarTudo(atletaId: string) {
   revalidatePath(`/atletas/${atletaId}`);
   revalidatePath(`/atletas/${atletaId}/ver`);
-  revalidatePath(`/atletas/${atletaId}/contrato/formacao`);
   revalidatePath("/atletas");
 }
 
 /**
- * Cria o Contrato de Formação pela tela própria — ver docs/superpowers/specs/2026-11-11-
- * contrato-formacao-fase2-design.md. Encerra o contrato vigente atual do atleta (seja ele qual
- * for — Amador, Definitivo, Empréstimo, ou nenhum) e sobe este como o novo vigente, com
- * `tipo_contrato = 'formacao'`, usando a mesma RPC `criar_contrato_atleta` já existente (as 5
- * rubricas de remuneração formal não se aplicam a este tipo — ver `contratoTemRemuneracaoFormal`
- * — então vão zeradas).
+ * Cria o Contrato de Formação — chamada pelo modal do botão "Contrato de Formação" dentro de
+ * `ContratoSecao` (`components/contrato-formacao-button.tsx`; ver docs/superpowers/specs/2026-11-
+ * 11-contrato-formacao-fase2-design.md pro desenho original, feito quando isso ainda era uma tela
+ * própria). Encerra o contrato vigente atual do atleta (seja ele qual for — Amador, Definitivo,
+ * Empréstimo, ou nenhum) e sobe este como o novo vigente, com `tipo_contrato = 'formacao'`, usando
+ * a mesma RPC `criar_contrato_atleta` já existente (as 5 rubricas de remuneração formal não se
+ * aplicam a este tipo — ver `contratoTemRemuneracaoFormal` — então vão zeradas). Em 12/11/2026,
+ * trocado de `redirect()` pra devolver `{ success: true }` — o formulário agora roda dentro de um
+ * modal (`ContratoFormacaoForm`'s `onSuccessClose`) em vez de navegar pra outra página.
  */
 export async function criarContratoFormacao(
   _prevState: ContratoFormacaoFormState,
@@ -121,7 +117,7 @@ export async function criarContratoFormacao(
   if (error) return { error: "Não foi possível criar o contrato de Formação. Tente novamente.", values: raw };
 
   revalidarTudo(atletaId);
-  redirect(destinoVolta(formData, atletaId));
+  return { success: true };
 }
 
 /**
@@ -129,7 +125,8 @@ export async function criarContratoFormacao(
  * novo (ver docs/superpowers/specs/2026-11-11-contrato-formacao-fase2-design.md). Usa a função de
  * banco `atualizar_contrato_formacao_vigente` (ver supabase/migrations/0162_atleta_contrato_
  * formacao_tela_propria.sql), que só atualiza vigência/bolsa — diferente de `criar_contrato_
- * atleta`, nunca encerra o vigente nem insere linha nova.
+ * atleta`, nunca encerra o vigente nem insere linha nova. Mesma troca de `redirect()` por
+ * `{ success: true }` de `criarContratoFormacao` acima (ver seu comentário).
  */
 export async function atualizarContratoFormacao(
   _prevState: ContratoFormacaoFormState,
@@ -161,5 +158,5 @@ export async function atualizarContratoFormacao(
   if (error) return { error: "Não foi possível salvar as alterações. Tente novamente.", values: raw };
 
   revalidarTudo(atletaId);
-  redirect(destinoVolta(formData, atletaId));
+  return { success: true };
 }

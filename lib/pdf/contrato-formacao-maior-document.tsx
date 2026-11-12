@@ -673,9 +673,16 @@ function preencher(texto: string, campos: ContratoFormacaoMaiorCampos): string {
 // Word corta) aparecia espremida dentro da altura calculada, deixando um vão enorme em branco
 // antes do texto começar (reportado pelo Mateus ao ver o PDF em 12/11/2026). Altura abaixo já
 // recalculada em cima do PNG recortado (2421×743px, proporção 0,30690 × 595,28pt).
+//
+// `width` em pontos fixos (595.28 = largura de uma página A4), não "100%": a versão de
+// @react-pdf/renderer realmente usada no projeto (3.4.4 — testei direto com ela, não com a mais
+// nova) não resolve bem `width: "100%"` num `<Image>` quando a altura também é fixa e a imagem não
+// tem DPI embutido no PNG — ela estourava a largura da página inteira e cortava a borda direita do
+// cabeçalho (reportado pelo Mateus em 12/11/2026, junto com o vão em branco acima). Largura fixa
+// em pt evita esse caminho de resolução de porcentagem por completo.
 const styles = StyleSheet.create({
-  cabecalho: { position: "absolute", top: 0, left: 0, width: "100%", height: 182.7 },
-  rodape: { position: "absolute", bottom: 0, left: 0, width: "100%", height: 154.8 },
+  cabecalho: { position: "absolute", top: 0, left: 0, width: 595.28, height: 182.7 },
+  rodape: { position: "absolute", bottom: 0, left: 0, width: 595.28, height: 154.8 },
   pagina: {
     paddingTop: 201.9,
     paddingBottom: 172,

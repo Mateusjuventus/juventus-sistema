@@ -15,6 +15,7 @@ import { RUBRICA_CONTRATO_OPTIONS, METRICA_GATILHO_OPTIONS } from "@/lib/validat
 import type { CompeticaoDisponivelAtleta } from "@/lib/futebol/estatisticas-atleta-query";
 import { EvolucaoSalarialForm } from "@/components/evolucao-salarial-form";
 import { GatilhoContratoForm } from "@/components/gatilho-contrato-form";
+import { ContratoFormacaoButton, type ContratoFormacaoAtletaCampos } from "@/components/contrato-formacao-button";
 import {
   removerEvolucaoSalarial,
   salvarEvolucaoSalarial,
@@ -93,15 +94,6 @@ function EvolucaoSalarialSecao({
   return (
     <div className="mt-3 border-t border-linha pt-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Evolução salarial</p>
-      {/* Explica o que a seção faz antes do mini-formulário — "Rubrica" sozinho (o nome técnico do
-          campo no banco) confundiu o Mateus na primeira vez que viu a tela ("o que seria essa
-          rubrica?"). Só aparece quando os controles de adicionar aparecem (contrato vigente). */}
-      {editavel ? (
-        <p className="mt-0.5 text-xs text-neutral-400">
-          Já sabe que um valor do contrato vai mudar numa data futura (reajuste, fim de carência etc.)? Registre
-          aqui pra não esquecer — o valor novo passa a valer automaticamente a partir da data marcada.
-        </p>
-      ) : null}
       {evolucoes.length > 0 ? (
         <ul className="mt-1.5 space-y-1">
           {evolucoes.map((e) => (
@@ -352,6 +344,13 @@ function ContratoCard({
  * `novoContratoHref` já inclui `?origem=ver` ou `?origem=editar` — é assim que a página de criar
  * contrato sabe pra qual tela voltar depois de salvar (ver `app/atletas/[id]/contrato/novo/page.tsx`).
  * `aditivoHref` é o mesmo link com `&modo=aditivo` — só aparece o botão quando existe vigente.
+ *
+ * `atletaCampos` alimenta o botão "Contrato de Formação" (ver `ContratoFormacaoButton`, abaixo) —
+ * até 12/11/2026 essa parte era uma seção própria (`ContratoFormacaoSecao`) renderizada fora daqui,
+ * nas duas páginas que usam `ContratoSecao`; virou um botão igual "Novo contrato"/"Aditivo", que
+ * abre um modal (pedido do Mateus: "igual acontece quando vamos desativar um atleta"). O contrato
+ * de Formação vigente (se houver) é achado aqui mesmo, a partir de `contratos` — não precisa vir
+ * como prop separada.
  */
 export function ContratoSecao({
   atletaId,
@@ -363,6 +362,7 @@ export function ContratoSecao({
   temJogosSemCompeticao,
   tipoContratoLabel,
   novoContratoHref,
+  atletaCampos,
 }: {
   atletaId: string;
   contratos: ContratoRow[];
@@ -375,6 +375,7 @@ export function ContratoSecao({
   temJogosSemCompeticao: boolean;
   tipoContratoLabel: Record<string, string>;
   novoContratoHref: string;
+  atletaCampos: ContratoFormacaoAtletaCampos;
 }) {
   const hojeStr = hojeBrasilia();
   // Contrato "vazio" (sem data nem valor nenhum, sobra da migração — ver `contratoVazio`) não conta
@@ -405,6 +406,11 @@ export function ContratoSecao({
               Aditivo
             </Link>
           ) : null}
+          <ContratoFormacaoButton
+            atletaId={atletaId}
+            atleta={atletaCampos}
+            contratoFormacao={contratos.find((c) => c.vigente && c.tipo_contrato === "formacao") ?? null}
+          />
         </div>
       </div>
 

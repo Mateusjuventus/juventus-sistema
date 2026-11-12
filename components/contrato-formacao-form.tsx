@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
@@ -12,14 +13,19 @@ export interface ContratoFormacaoFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string | undefined>;
+  success?: boolean;
 }
 
 /**
- * Tela própria de "Contrato de Formação" — ver docs/superpowers/specs/2026-11-11-contrato-
- * formacao-fase2-design.md. Substitui, pra este tipo de contrato, o fluxo genérico de "Novo
- * contrato"/"Aditivo" (`components/contrato-form.tsx`, que continua existindo pros outros tipos e
- * também continua oferecendo "Formação" como opção — ver a spec, "a Formação continua no
- * dropdown"). Um formulário só pros dois modos:
+ * Formulário de "Contrato de Formação" — ver docs/superpowers/specs/2026-11-11-contrato-formacao-
+ * fase2-design.md. Até 12/11/2026 vivia numa tela própria (`/atletas/[id]/contrato/formacao`);
+ * virou um botão + modal dentro de `ContratoSecao` (ver `components/contrato-formacao-button.tsx`),
+ * pedido do Mateus pra não precisar de "outra aba" — esta é a única mudança deste componente:
+ * `onSuccessClose` (chamado quando a action retorna `success: true`, pra quem renderiza dentro de
+ * um modal poder fechá-lo) substitui o antigo `redirect()` que as actions faziam. Substitui, pra
+ * este tipo de contrato, o fluxo genérico de "Novo contrato"/"Aditivo" (`components/contrato-
+ * form.tsx`, que continua existindo pros outros tipos e também continua oferecendo "Formação" como
+ * opção — ver a spec, "a Formação continua no dropdown"). Um formulário só pros dois modos:
  *
  * - Criar (`modoEdicao=false`): action `criarContratoFormacao` — grava Responsáveis/Vigência do
  *   BID em `atletas` e encerra o contrato vigente atual (seja ele qual for) criando este como o
@@ -40,20 +46,30 @@ export function ContratoFormacaoForm({
   valoresIniciais,
   modoEdicao,
   dataNascimentoAtleta,
+  onSuccessClose,
 }: {
   action: (prevState: ContratoFormacaoFormState, formData: FormData) => Promise<ContratoFormacaoFormState>;
   atletaId: string;
-  /** Campos extras pra devolver no FormData (ex.: `origem`, pra action saber pra onde voltar
-   * depois de salvar) — mesmo padrão de `ContratoForm`. */
+  /** Campos extras pra devolver no FormData — mesmo padrão de `ContratoForm`. */
   camposExtras?: Record<string, string>;
   valoresIniciais?: Record<string, string | undefined>;
   modoEdicao: boolean;
   dataNascimentoAtleta?: string | null;
+  /** Chamado quando a action salva com sucesso — quem usa este formulário dentro de um modal
+   * (`ContratoFormacaoButton`) passa aqui o fechamento do próprio modal. Sem essa prop (ex.: se
+   * algum dia este formulário voltar a aparecer fora de um modal), mostra uma mensagem de "Salvo
+   * com sucesso." no lugar. */
+  onSuccessClose?: () => void;
 }) {
   const [state, formAction] = useFormState(action, {});
   const values = state.values ?? valoresIniciais ?? {};
   const errors = state.fieldErrors ?? {};
   const vigenciaFimSugerida = dataNascimentoAtleta ? dataFimFormacao(dataNascimentoAtleta) : undefined;
+
+  useEffect(() => {
+    if (state.success && onSuccessClose) onSuccessClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -151,6 +167,9 @@ export function ContratoFormacaoForm({
         </FieldGroup>
       </FormSection>
 
+      {state.success && !onSuccessClose ? (
+        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">Salvo com sucesso.</p>
+      ) : null}
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}

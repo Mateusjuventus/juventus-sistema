@@ -30,6 +30,11 @@ function AdicionarButton() {
  * markup/estilo de `FichaAtletaModal` (components/atletas/ficha-atleta-modal.tsx) — é o mesmo
  * "universo de jogos" usado em `buscarEstatisticasAtleta`. `limiar` troca de rótulo (%/contagem)
  * conforme a métrica escolhida, por isso o `useState` pra acompanhar a métrica selecionada.
+ *
+ * Em 12/11/2026 (mesmo pedido do Mateus de `EvolucaoSalarialForm`: "essas opção devem somente
+ * aparecer para incluir se eu selecionar e não abrir os campos assim de cara"), os campos ficaram
+ * escondidos até clicar em "+ Adicionar gatilho" — `mostrar` controla isso, e fecha de volta
+ * sozinho depois de um envio com sucesso.
  */
 export function GatilhoContratoForm({
   action,
@@ -51,6 +56,7 @@ export function GatilhoContratoForm({
   const [metrica, setMetrica] = useState("");
   const [competicaoIdsSelecionados, setCompeticaoIdsSelecionados] = useState<Set<string>>(new Set());
   const [semCompeticaoSelecionado, setSemCompeticaoSelecionado] = useState(false);
+  const [mostrar, setMostrar] = useState(false);
 
   useEffect(() => {
     if (state.success) {
@@ -58,6 +64,7 @@ export function GatilhoContratoForm({
       setMetrica("");
       setCompeticaoIdsSelecionados(new Set());
       setSemCompeticaoSelecionado(false);
+      setMostrar(false);
     }
   }, [state]);
 
@@ -79,6 +86,14 @@ export function GatilhoContratoForm({
     const ultimo = grupos[grupos.length - 1];
     if (ultimo && ultimo.temporadaId === c.temporadaId) ultimo.itens.push(c);
     else grupos.push({ temporadaId: c.temporadaId, temporadaNome: c.temporadaNome, itens: [c] });
+  }
+
+  if (!mostrar) {
+    return (
+      <button type="button" onClick={() => setMostrar(true)} className="text-sm font-medium text-grena hover:underline">
+        + Adicionar gatilho
+      </button>
+    );
   }
 
   return (
@@ -112,6 +127,9 @@ export function GatilhoContratoForm({
           <div className="min-w-[150px]">
             <CurrencyField label="Valor do bônus" name="valorBonus" required />
           </div>
+          <button type="button" onClick={() => setMostrar(false)} className="btn-secondary">
+            Cancelar
+          </button>
           <AdicionarButton />
         </div>
 
