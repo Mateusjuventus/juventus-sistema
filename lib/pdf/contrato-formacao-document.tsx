@@ -631,8 +631,19 @@ function preencher(texto: string, campos: ContratoFormacaoCampos): string {
 }
 
 const styles = StyleSheet.create({
-  cabecalho: { position: "absolute", top: 0, left: 0, width: "100%", height: 130.8 },
-  rodape: { position: "absolute", bottom: 0, left: 0, width: "100%", height: 125 },
+  // `width` em pontos fixos (595.28 = largura de uma página A4), não "100%": no @react-pdf/
+  // renderer 3.4.4 (versão realmente usada no projeto), uma `<Image>` com `width: "100%"` resolve a
+  // porcentagem contra a largura do CONTEÚDO da página medido até ali, não contra a página inteira
+  // — numa página cheia de parágrafos (que já esticam borda a borda) isso coincide com a largura
+  // real e passa despercebido, mas numa página quase vazia (só os campos de assinatura dos
+  // responsáveis, ou o anexo "Cláusulas Adicionais" quando a assinatura dele cai sozinha numa
+  // página) o conteúdo medido é estreito, e o cabeçalho/rodapé encolhe junto — exatamente o mesmo
+  // bug já corrigido em `contrato-formacao-maior-document.tsx` (reportado pelo Mateus em 12/11/2026,
+  // ao enviar um PDF de contrato de Formação de um atleta MENOR com a página de assinatura cortada à
+  // direita). Largura fixa em pt evita esse caminho de resolução de porcentagem por completo, em
+  // qualquer página.
+  cabecalho: { position: "absolute", top: 0, left: 0, width: 595.28, height: 130.8 },
+  rodape: { position: "absolute", bottom: 0, left: 0, width: 595.28, height: 125 },
   pagina: {
     paddingTop: 150,
     paddingBottom: 142,

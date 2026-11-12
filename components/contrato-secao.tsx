@@ -287,11 +287,11 @@ function ContratoCard({
   // ver o card do contrato vigente sem essas duas informações — antes só apareciam no card/modal
   // próprio de "Contrato de Formação", que não existe mais como card separado — ver
   // `components/contrato-formacao-button.tsx`). BID só no vigente (ver o comentário da prop acima);
-  // Bolsa de aprendizagem vem do próprio contrato, então aparece também no histórico.
-  const bidTexto =
-    destaque && (vigenciaBidInicio || vigenciaBidFim)
-      ? `${formatData(vigenciaBidInicio ?? null)} – ${formatData(vigenciaBidFim ?? null)}`
-      : "";
+  // Bolsa de aprendizagem vem do próprio contrato, então aparece também no histórico. Em
+  // 12/11/2026, SEMPRE mostra a caixa de BID (com "—" quando ainda não preenchido) em vez de
+  // esconder — mesmo padrão de "Bolsa de aprendizagem" ao lado, que mostra R$ 0,00 em vez de
+  // sumir: escondido de vez, o Mateus achou que o dado "tinha sumido" da tela.
+  const bidTexto = `${formatData(vigenciaBidInicio ?? null)} – ${formatData(vigenciaBidFim ?? null)}`;
 
   return (
     <div className={`rounded-lg border p-4 ${destaque ? "border-grena bg-grena/5" : "border-linha bg-neutral-50"}`}>
