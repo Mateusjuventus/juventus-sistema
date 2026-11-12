@@ -30,6 +30,12 @@ import { CORES } from "./logistica-shared";
  * mesmas inconsistências do documento original preservadas de propósito (a Cláusula 14.1 salta de
  * "c)" pra "e)" sem "d)", e a 3.4 salta de "a)" pra "c)" sem "b)" — exatamente como no arquivo
  * assinado).
+ *
+ * Correção feita em 12/11/2026 (comparação com o contrato de Miguel Bispo, enviado pelo Mateus como
+ * referência): o parágrafo 12.4 estava numerado corretamente como "12.4" mas citava a si mesmo como
+ * "nesta Cláusula 13" — deveria ser "Cláusula 12" (é o parágrafo final da própria Cláusula Décima
+ * Segunda, Anticorrupção; a Cláusula 13 é a seguinte, "Do Foro Eleito"). Mesmo erro já corrigido no
+ * contrato de maior em 11/11/2026 — portado aqui.
  */
 
 export interface ContratoFormacaoCampos {
@@ -81,17 +87,17 @@ const BLOCOS: Bloco[] = [
   {
     tipo: "item",
     texto:
-      "a) O CLUBE é entidade de prática desportiva filiada à Federação Paulista de Futebol (“FPF”) e à Confederação Brasileira de Futebol (“CBF”), tendo como foco principal o desenvolvimento e treinamento de atletas amadores e profissionais de futebol pertencentes às categorias de base e profissional;",
+      "a)    O CLUBE é entidade de prática desportiva filiada à Federação Paulista de Futebol (“FPF”) e à Confederação Brasileira de Futebol (“CBF”), tendo como foco principal o desenvolvimento e treinamento de atletas amadores e profissionais de futebol pertencentes às categorias de base e profissional;",
   },
   {
     tipo: "item",
     texto:
-      "b) O CLUBE dispõe de completa infraestrutura para treinamento e acompanhamento médico, psicológico e educacional de atletas profissionais e amadores de futebol, com foco na formação e desenvolvimento profissional de seus atletas, tornando-os aptos a integrarem o elenco de quaisquer clubes de expressão, seja do Brasil ou do exterior; e",
+      "b)    O CLUBE dispõe de completa infraestrutura para treinamento e acompanhamento médico, psicológico e educacional de atletas profissionais e amadores de futebol, com foco na formação e desenvolvimento profissional de seus atletas, tornando-os aptos a integrarem o elenco de quaisquer clubes de expressão, seja do Brasil ou do exterior; e",
   },
   {
     tipo: "item",
     texto:
-      "c) O ATLETA demonstrou potencial esportivo, tendo sido selecionado pela equipe técnica do CLUBE para desenvolver programa de treinamento desportivo, além de se encontrar livre de qualquer vínculo desportivo ou outro qualquer com terceiras entidades de prática desportiva.",
+      "c)    O ATLETA demonstrou potencial esportivo, tendo sido selecionado pela equipe técnica do CLUBE para desenvolver programa de treinamento desportivo, além de se encontrar livre de qualquer vínculo desportivo ou outro qualquer com terceiras entidades de prática desportiva.",
   },
   {
     tipo: "paragrafo",
@@ -125,32 +131,32 @@ const BLOCOS: Bloco[] = [
   {
     tipo: "item",
     texto:
-      "• ministração gratuita de ensinamentos para capacitação técnica-educacional específica para a modalidade desportiva do futebol, por formação coletiva ou individual;",
+      "a)    ministração gratuita de ensinamentos para capacitação técnica-educacional específica para a modalidade desportiva do futebol, por formação coletiva ou individual;",
   },
   {
     tipo: "item",
     texto:
-      "• transmissão de conhecimentos teóricos e práticos de educação física, condicionamento e motricidade;",
+      "b)    transmissão de conhecimentos teóricos e práticos de educação física, condicionamento e motricidade;",
   },
   {
     tipo: "item",
     texto:
-      "• transmissão de conhecimentos específicos de regras, legislação, fundamentos e comportamento do atleta de futebol;",
+      "c)    transmissão de conhecimentos específicos de regras, legislação, fundamentos e comportamento do atleta de futebol;",
   },
   {
     tipo: "item",
     texto:
-      "• fazê-lo adquirir conhecimentos sobre ética, cidadania, comportamento e demais informações necessárias à futura formação de atleta desportivo profissional de futebol;",
+      "d)    fazê-lo adquirir conhecimentos sobre ética, cidadania, comportamento e demais informações necessárias à futura formação de atleta desportivo profissional de futebol;",
   },
   {
     tipo: "item",
     texto:
-      "• fazê-lo aprender conhecimentos teóricos e práticos sobre competições desportivas, observados o tempo de duração e a idade dos competidores; e",
+      "e)    fazê-lo aprender conhecimentos teóricos e práticos sobre competições desportivas, observados o tempo de duração e a idade dos competidores; e",
   },
   {
     tipo: "item",
     texto:
-      "• ser preparado para firmar o primeiro Contrato Especial de Trabalho Desportivo, norteado pelo programa de formação técnico-profissional metódica, compatível com os desenvolvimentos físicos, morais e psicológicos do atleta nos termos da Lei n. 14.597/2023.",
+      "f)    ser preparado para firmar o primeiro Contrato Especial de Trabalho Desportivo, norteado pelo programa de formação técnico-profissional metódica, compatível com os desenvolvimentos físicos, morais e psicológicos do atleta nos termos da Lei n. 14.597/2023.",
   },
 
   { tipo: "clausula", texto: "Cláusula Terceira – Das Obrigações Do Clube" },
@@ -158,49 +164,49 @@ const BLOCOS: Bloco[] = [
   {
     tipo: "item",
     texto:
-      "a) propiciar ao ATLETA programas de treinamento nas categorias de base e complementação educacional exigível e adequada, enquadrando o ATLETA na equipe do escalão correspondente a sua idade ou idade superior, em razão de seu desempenho técnico e desde que haja parecer favorável de médico;",
+      "a)    propiciar ao ATLETA programas de treinamento nas categorias de base e complementação educacional exigível e adequada, enquadrando o ATLETA na equipe do escalão correspondente a sua idade ou idade superior, em razão de seu desempenho técnico e desde que haja parecer favorável de médico;",
   },
   {
     tipo: "item",
     texto:
-      "b) assegurar ao ATLETA, por meio de incentivos materiais e bolsa de aprendizagem, alojamento e instalações desportivas apropriados à sua capacitação técnica na modalidade desportiva do futebol, sobretudo em matéria de alimentação, higiene, segurança e salubridade;",
+      "b)    assegurar ao ATLETA, por meio de incentivos materiais e bolsa de aprendizagem, alojamento e instalações desportivas apropriados à sua capacitação técnica na modalidade desportiva do futebol, sobretudo em matéria de alimentação, higiene, segurança e salubridade;",
   },
   {
     tipo: "item",
     texto:
-      "c) ministrar e assegurar ao ATLETA, por meio de um corpo de profissionais habilitados e especializados em formação técnico-desportiva, conhecimentos teóricos e práticos de educação física, condicionamento e motricidade norteado por programa de formação técnico desportiva metódica, compatível com o desenvolvimento físico, moral e psicológico do atleta;",
+      "c)    ministrar e assegurar ao ATLETA, por meio de um corpo de profissionais habilitados e especializados em formação técnico-desportiva, conhecimentos teóricos e práticos de educação física, condicionamento e motricidade norteado por programa de formação técnico desportiva metódica, compatível com o desenvolvimento físico, moral e psicológico do atleta;",
   },
   {
     tipo: "item",
     texto:
-      "d) propiciar a matrícula escolar, assegurando ao ATLETA a presença às aulas do curso básico ou de formação técnica em que estiver matriculado, ajustando o tempo destinado à efetiva atividade de formação do atleta, não superior a quatro (4) horas diárias, aos horários do currículo escolar de cursos livres ou profissionalizantes, exigindo do ATLETA frequência e satisfatório aproveitamento escolar;",
+      "d)    propiciar a matrícula escolar, assegurando ao ATLETA a presença às aulas do curso básico ou de formação técnica em que estiver matriculado, ajustando o tempo destinado à efetiva atividade de formação do atleta, não superior a quatro (4) horas diárias, aos horários do currículo escolar de cursos livres ou profissionalizantes, exigindo do ATLETA frequência e satisfatório aproveitamento escolar;",
   },
   {
     tipo: "item",
     texto:
-      "e) garantir ao ATLETA, por meio de incentivos materiais e bolsa de aprendizagem, assistência educacional, psicológica, médica e odontológica;",
+      "e)    garantir ao ATLETA, por meio de incentivos materiais e bolsa de aprendizagem, assistência educacional, psicológica, médica e odontológica;",
   },
   {
     tipo: "item",
     texto:
-      "f) garantir ao ATLETA, ainda por meio de incentivos materiais e bolsa de aprendizagem, transporte, alimentação com acompanhamento de nutricionista, assistência de fisioterapeuta e demais profissionais qualificados na formação física e motora, além da convivência familiar adequada;",
+      "f)    garantir ao ATLETA, ainda por meio de incentivos materiais e bolsa de aprendizagem, transporte, alimentação com acompanhamento de nutricionista, assistência de fisioterapeuta e demais profissionais qualificados na formação física e motora, além da convivência familiar adequada;",
   },
   {
     tipo: "item",
     texto:
-      "g) ministrar, gratuitamente e às suas expensas, a formação desportiva do ATLETA, garantindo o pagamento da bolsa de aprendizagem até o décimo dia útil do mês subsequente ao vencido;",
+      "g)    ministrar, gratuitamente e às suas expensas, a formação desportiva do ATLETA, garantindo o pagamento da bolsa de aprendizagem até o décimo dia útil do mês subsequente ao vencido;",
   },
   {
     tipo: "item",
     texto:
-      "h) contratar apólice de seguro de acidentes pessoais para cobrir as atividades de formação desportiva do ATLETA durante toda a vigência do presente instrumento contratual, incluindo como beneficiários da apólice a(s) pessoa(s) definida(s) pelo ATLETA dentre seus dependentes, ascendentes ou familiares;",
+      "h)    contratar apólice de seguro de acidentes pessoais para cobrir as atividades de formação desportiva do ATLETA durante toda a vigência do presente instrumento contratual, incluindo como beneficiários da apólice a(s) pessoa(s) definida(s) pelo ATLETA dentre seus dependentes, ascendentes ou familiares;",
   },
   {
     tipo: "item",
     texto:
-      "i) registrar o ATLETA na entidade de administração do desporto competente, e também inscrevê-lo nas competições oficiais da respectiva faixa etária, promovidas pela referida entidade, ou de faixa etária superior, havendo permissão no regulamento da competição;",
+      "i)    registrar o ATLETA na entidade de administração do desporto competente, e também inscrevê-lo nas competições oficiais da respectiva faixa etária, promovidas pela referida entidade, ou de faixa etária superior, havendo permissão no regulamento da competição;",
   },
-  { tipo: "item", texto: "j) cumprir e respeitar todas as cláusulas deste contrato." },
+  { tipo: "item", texto: "j)    cumprir e respeitar todas as cláusulas deste contrato." },
   {
     tipo: "paragrafo",
     texto:
@@ -210,109 +216,109 @@ const BLOCOS: Bloco[] = [
   {
     tipo: "item",
     texto:
-      "a) assinar todos os documentos necessários para a formalização do vínculo não profissional entre o ATLETA e CLUBE perante a CBF e FPF, inclusive eventuais renovações;",
+      "a)    assinar todos os documentos necessários para a formalização do vínculo não profissional entre o ATLETA e CLUBE perante a CBF e FPF, inclusive eventuais renovações;",
   },
   {
     tipo: "item",
-    texto: "b) cumprir regularmente o programa de treinamento e o horário de capacitação determinados pelo CLUBE;",
-  },
-  {
-    tipo: "item",
-    texto:
-      "c) assistir às aulas teóricas e práticas de educação física, condicionamento, motricidade, fundamentos e outras programadas pelo CLUBE, bem como delas participar com satisfatório aproveitamento;",
+    texto: "b)    cumprir regularmente o programa de treinamento e o horário de capacitação determinados pelo CLUBE;",
   },
   {
     tipo: "item",
     texto:
-      "d) apresentar-se nas competições desportivas preparatórias e oficiais, nas condições horários e locais estabelecidos pelo CLUBE;",
-  },
-  {
-    tipo: "item",
-    texto: "e) permanecer, sempre que necessário, em regime de concentração, observando o limite máximo semanal permitido em lei;",
-  },
-  {
-    tipo: "item",
-    texto: "f) assistir as aulas do curso escolar em que estiver matriculado e apresentar frequência e aproveitamento satisfatórios;",
+      "c)    assistir às aulas teóricas e práticas de educação física, condicionamento, motricidade, fundamentos e outras programadas pelo CLUBE, bem como delas participar com satisfatório aproveitamento;",
   },
   {
     tipo: "item",
     texto:
-      "g) manter conduta moral e disciplinada durante e após as partidas, obedecendo aos dirigentes, médicos, técnicos e auxiliares especializados do CLUBE, acatando as decisões dos árbitros, as regras do jogo, os regulamentos e disposições em vigor e respeitando o público, os torcedores em geral, os companheiros e jogadores adversários;",
+      "d)    apresentar-se nas competições desportivas preparatórias e oficiais, nas condições horários e locais estabelecidos pelo CLUBE;",
+  },
+  {
+    tipo: "item",
+    texto: "e)    permanecer, sempre que necessário, em regime de concentração, observando o limite máximo semanal permitido em lei;",
+  },
+  {
+    tipo: "item",
+    texto: "f)    assistir as aulas do curso escolar em que estiver matriculado e apresentar frequência e aproveitamento satisfatórios;",
   },
   {
     tipo: "item",
     texto:
-      "h) manter uma boa conduta tanto em sua vida pública como privada, e se esforçar ao máximo para não prejudicar o prestígio e a imagem do CLUBE, comprometendo-se, especialmente, a não cometer atos que ofendam uma pessoa ou uma coletividade de pessoas, tais como injúria racial, racismo, homofobia, xenofobia, sexismo ou qualquer outra ofensa relacionada ao aspecto sexual, racial, religioso, ideologia de gênero, condição social, dentre outras, além de envolvimento em casos de violência doméstica ou maus tratos a animais;",
+      "g)    manter conduta moral e disciplinada durante e após as partidas, obedecendo aos dirigentes, médicos, técnicos e auxiliares especializados do CLUBE, acatando as decisões dos árbitros, as regras do jogo, os regulamentos e disposições em vigor e respeitando o público, os torcedores em geral, os companheiros e jogadores adversários;",
   },
   {
     tipo: "item",
     texto:
-      "i) não divulgar pela imprensa ou qualquer outro meio de comunicação informações confidenciais ou críticas ao CLUBE, seus dirigentes associados, funcionários ou torcedores e seus parceiros comerciais; bem como envidar os maiores esforços para que seus familiares e amigos também se abstenham de fazê-lo;",
-  },
-  {
-    tipo: "item",
-    texto: "j) não participar durante todo o prazo deste contrato, de qualquer atividade desportiva, salvo prévia e expressa autorização do CLUBE;",
+      "h)    manter uma boa conduta tanto em sua vida pública como privada, e se esforçar ao máximo para não prejudicar o prestígio e a imagem do CLUBE, comprometendo-se, especialmente, a não cometer atos que ofendam uma pessoa ou uma coletividade de pessoas, tais como injúria racial, racismo, homofobia, xenofobia, sexismo ou qualquer outra ofensa relacionada ao aspecto sexual, racial, religioso, ideologia de gênero, condição social, dentre outras, além de envolvimento em casos de violência doméstica ou maus tratos a animais;",
   },
   {
     tipo: "item",
     texto:
-      "k) não se ausentar da cidade de São Paulo ou do Brasil sem expressa autorização do CLUBE e, caso seja obrigado a fazê-lo, comunicar antecipadamente, por escrito e com justificação;",
+      "i)    não divulgar pela imprensa ou qualquer outro meio de comunicação informações confidenciais ou críticas ao CLUBE, seus dirigentes associados, funcionários ou torcedores e seus parceiros comerciais; bem como envidar os maiores esforços para que seus familiares e amigos também se abstenham de fazê-lo;",
+  },
+  {
+    tipo: "item",
+    texto: "j)    não participar durante todo o prazo deste contrato, de qualquer atividade desportiva, salvo prévia e expressa autorização do CLUBE;",
   },
   {
     tipo: "item",
     texto:
-      "l) não ingerir medicamentos quaisquer sem conhecimento prévio do Departamento Médico do CLUBE, não realizar consultas, avaliações, procedimentos ou tratamentos médicos, terapêuticos, cirúrgicos, nutricionais, fisioterapêuticos ou qualquer outra especialidade médica ou medicina alternativa sem autorização do CLUBE, não consumir alimentos e/ou substâncias que sejam proibidas e/ou detectadas em exame antidoping e se submeter, sempre que necessário, aos exames e testes antidoping;",
+      "k)    não se ausentar da cidade de São Paulo ou do Brasil sem expressa autorização do CLUBE e, caso seja obrigado a fazê-lo, comunicar antecipadamente, por escrito e com justificação;",
   },
   {
     tipo: "item",
     texto:
-      "m) acatar zelosamente com todos os protocolos médicos e sanitários determinados pelo CLUBE, pelas entidades de administração de administração do futebol ou pelo Poder Público e informar o CLUBE imediatamente em caso de lesões e/ou enfermidades;",
+      "l)    não ingerir medicamentos quaisquer sem conhecimento prévio do Departamento Médico do CLUBE, não realizar consultas, avaliações, procedimentos ou tratamentos médicos, terapêuticos, cirúrgicos, nutricionais, fisioterapêuticos ou qualquer outra especialidade médica ou medicina alternativa sem autorização do CLUBE, não consumir alimentos e/ou substâncias que sejam proibidas e/ou detectadas em exame antidoping e se submeter, sempre que necessário, aos exames e testes antidoping;",
   },
   {
     tipo: "item",
     texto:
-      "n) celebrar com o CLUBE o primeiro Contrato Especial de Trabalho Desportivo nos termos do Art. 99, da Lei n. 14.597/2023 (conforme condições negociais estipuladas pelo ATLETA, seu responsável legal e o CLUBE, descritas no Instrumento de Cláusulas Adicionais anexo ao presente contrato), sujeitando-se, em caso de oposição, ou se o ATLETA vincular-se, sob qualquer forma, a outra entidade de prática desportiva, sem autorização expressa do CLUBE, ao pagamento do valor indenizatório correspondente a 200 (duzentas) vezes os gastos efetiva e comprovadamente efetuados pelo CLUBE na formação do ATLETA;",
+      "m)    acatar zelosamente com todos os protocolos médicos e sanitários determinados pelo CLUBE, pelas entidades de administração de administração do futebol ou pelo Poder Público e informar o CLUBE imediatamente em caso de lesões e/ou enfermidades;",
   },
   {
     tipo: "item",
     texto:
-      "o) em caso de resilição imotivada desde Contrato, informar eventual nova entidade de prática desportiva a que se vincule do presente instrumento e das penalidades nele previstas, nos termos da Lei n. 14.597/2023;",
+      "n)    celebrar com o CLUBE o primeiro Contrato Especial de Trabalho Desportivo nos termos do Art. 99, da Lei n. 14.597/2023 (conforme condições negociais estipuladas pelo ATLETA, seu responsável legal e o CLUBE, descritas no Instrumento de Cláusulas Adicionais anexo ao presente contrato), sujeitando-se, em caso de oposição, ou se o ATLETA vincular-se, sob qualquer forma, a outra entidade de prática desportiva, sem autorização expressa do CLUBE, ao pagamento do valor indenizatório correspondente a 200 (duzentas) vezes os gastos efetiva e comprovadamente efetuados pelo CLUBE na formação do ATLETA;",
   },
   {
     tipo: "item",
     texto:
-      "p) pagar o valor indenizatório referido na letra “n” e devido ao CLUBE que será, obrigatoriamente, de responsabilidade da nova entidade de prática desportiva interessada no vínculo do ATLETA; enquanto não for concretizado esse pagamento, é vedado novo registro do ATLETA em entidade de administração do desporto, nos expressos termos do Art. 99, § 5º, inciso III da Lei n. 14.597/2023;",
+      "o)    em caso de resilição imotivada desde Contrato, informar eventual nova entidade de prática desportiva a que se vincule do presente instrumento e das penalidades nele previstas, nos termos da Lei n. 14.597/2023;",
   },
   {
     tipo: "item",
     texto:
-      "q) zelar por todas as instalações e materiais de trabalho do CLUBE, devendo devolver ao CLUBE, em até 5 (cinco) dias do término deste Contrato todo e qualquer material ou propriedade da agremiação;",
-  },
-  { tipo: "item", texto: "r) não autorizar ou facilitar o acesso de terceiros em quaisquer dependências do CLUBE;" },
-  {
-    tipo: "item",
-    texto:
-      "s) abster-se de realizar ou se envolver, de qualquer forma, com apostas esportivas com o objetivo de lucro, seja para si ou para terceiros;",
+      "p)    pagar o valor indenizatório referido na letra “n” e devido ao CLUBE que será, obrigatoriamente, de responsabilidade da nova entidade de prática desportiva interessada no vínculo do ATLETA; enquanto não for concretizado esse pagamento, é vedado novo registro do ATLETA em entidade de administração do desporto, nos expressos termos do Art. 99, § 5º, inciso III da Lei n. 14.597/2023;",
   },
   {
     tipo: "item",
     texto:
-      "t) prestar total colaboração com o clube e com seus defensores em caso de processo perante a Justiça Desportiva contra o ATLETA e/ou contra o CLUBE, seus funcionários, seus dirigentes e/ou seus atletas;",
+      "q)    zelar por todas as instalações e materiais de trabalho do CLUBE, devendo devolver ao CLUBE, em até 5 (cinco) dias do término deste Contrato todo e qualquer material ou propriedade da agremiação;",
+  },
+  { tipo: "item", texto: "r)    não autorizar ou facilitar o acesso de terceiros em quaisquer dependências do CLUBE;" },
+  {
+    tipo: "item",
+    texto:
+      "s)    abster-se de realizar ou se envolver, de qualquer forma, com apostas esportivas com o objetivo de lucro, seja para si ou para terceiros;",
   },
   {
     tipo: "item",
     texto:
-      "u) não celebrar nenhum tipo de acordo que, de qualquer forma, interfira no cumprimento deste Contrato, devendo comunicar ao CLUBE em até 24 (vinte e quatro horas), o recebimento, por si ou por seu agente, de qualquer proposta oriunda de outra entidade de prática desportiva; e",
+      "t)    prestar total colaboração com o clube e com seus defensores em caso de processo perante a Justiça Desportiva contra o ATLETA e/ou contra o CLUBE, seus funcionários, seus dirigentes e/ou seus atletas;",
   },
   {
     tipo: "item",
     texto:
-      "v) cumprir incondicionalmente e integralmente as cláusulas deste Contrato, bem como com as regras disciplinares determinadas pelo CLUBE e/ou pelas entidades de administração do desporto;",
+      "u)    não celebrar nenhum tipo de acordo que, de qualquer forma, interfira no cumprimento deste Contrato, devendo comunicar ao CLUBE em até 24 (vinte e quatro horas), o recebimento, por si ou por seu agente, de qualquer proposta oriunda de outra entidade de prática desportiva; e",
   },
   {
     tipo: "item",
     texto:
-      "w) Respeitar integralmente os regulamentos dos campeonatos que disputar, o Código Brasileiro de Justiça Desportiva (CBJD), o Código de Ética do Futebol Brasileiro e demais regras desportivas aplicáveis aos atletas profissionais, comprometendo-se a prestar total colaboração com o CLUBE e com seus defensores em caso de processo perante a Justiça Desportiva contra o ATLETA e/ou contra o CLUBE, seus funcionários, seus dirigentes e/ou seus atletas.",
+      "v)    cumprir incondicionalmente e integralmente as cláusulas deste Contrato, bem como com as regras disciplinares determinadas pelo CLUBE e/ou pelas entidades de administração do desporto;",
+  },
+  {
+    tipo: "item",
+    texto:
+      "w)    Respeitar integralmente os regulamentos dos campeonatos que disputar, o Código Brasileiro de Justiça Desportiva (CBJD), o Código de Ética do Futebol Brasileiro e demais regras desportivas aplicáveis aos atletas profissionais, comprometendo-se a prestar total colaboração com o CLUBE e com seus defensores em caso de processo perante a Justiça Desportiva contra o ATLETA e/ou contra o CLUBE, seus funcionários, seus dirigentes e/ou seus atletas.",
   },
   {
     tipo: "paragrafo",
@@ -324,8 +330,8 @@ const BLOCOS: Bloco[] = [
     texto:
       "3.4. O ATLETA concorda que os documentos abaixo serão de apresentação, sob pena de desligamento temporário ou definitivo, todos devidamente rubricados e assinados por ele:",
   },
-  { tipo: "item", texto: "a) Comprovante de matrícula do ensino regular, se ainda não finalizado, a cada ano, até 30 de janeiro; e" },
-  { tipo: "item", texto: "c) Comprovante de frequência e desempenho escolares, relativo ao ano anterior, até 30 de janeiro." },
+  { tipo: "item", texto: "a)    Comprovante de matrícula do ensino regular, se ainda não finalizado, a cada ano, até 30 de janeiro; e" },
+  { tipo: "item", texto: "c)    Comprovante de frequência e desempenho escolares, relativo ao ano anterior, até 30 de janeiro." },
   {
     tipo: "paragrafo",
     texto:
@@ -542,7 +548,7 @@ const BLOCOS: Bloco[] = [
   {
     tipo: "paragrafo",
     texto:
-      "12.4. As Partes reconhecem que eventuais violações às obrigações ajustadas nesta Cláusula 13, seja por ação ou por omissão, poderão ensejar, além das sanções estabelecidas neste Contrato, responsabilidade civil e criminal.",
+      "12.4. As Partes reconhecem que eventuais violações às obrigações ajustadas nesta Cláusula 12, seja por ação ou por omissão, poderão ensejar, além das sanções estabelecidas neste Contrato, responsabilidade civil e criminal.",
   },
 
   { tipo: "clausula", texto: "Cláusula Décima Terceira – Do Foro Eleito" },
@@ -581,21 +587,21 @@ const BLOCOS: Bloco[] = [
     texto:
       "14.1. Ficam desde logo fixadas as condições mínimas do primeiro Contrato Especial de Trabalho Desportivo a ser celebrado entre ATLETA e CLUBE caso este venha a exercer o direito previsto no artigo 99, caput, da Lei 14.597/2023:",
   },
-  { tipo: "item", texto: "a) Prazo: um ano" },
-  { tipo: "item", texto: "b) Salário inicial: salário-mínimo vigente à época da celebração do contrato;" },
+  { tipo: "item", texto: "a)    Prazo: um ano" },
+  { tipo: "item", texto: "b)    Salário inicial: salário-mínimo vigente à época da celebração do contrato;" },
   {
     tipo: "item",
-    texto: "c) Cláusula Indenizatória Desportiva Nacional: valor equivalente a 2.000 vezes o valor médio do salário contratual então vigente do ATLETA ou o máximo permitido por lei;",
+    texto: "c)    Cláusula Indenizatória Desportiva Nacional: valor equivalente a 2.000 vezes o valor médio do salário contratual então vigente do ATLETA ou o máximo permitido por lei;",
   },
-  { tipo: "item", texto: "e) Cláusula Indenizatória Desportiva Internacional: EUR 1.000.000,00 (um milhão de euros)" },
+  { tipo: "item", texto: "e)    Cláusula Indenizatória Desportiva Internacional: EUR 1.000.000,00 (um milhão de euros)" },
   {
     tipo: "item",
-    texto: "f) Cláusula Compensatória Desportiva: valor total de salários mensais a que teria direito o ATLETA desde a data da rescisão contratual até a data de término do contrato.",
+    texto: "f)    Cláusula Compensatória Desportiva: valor total de salários mensais a que teria direito o ATLETA desde a data da rescisão contratual até a data de término do contrato.",
   },
   {
     tipo: "item",
     texto:
-      "g) Compartilhamento de Direitos Econômicos: as partes compartilharão os direitos econômicos do ATLETA, na proporção de 90% (noventa por cento) ao CLUBE e 10% (dez por cento) ao ATLETA, na seguinte proporção:",
+      "g)    Compartilhamento de Direitos Econômicos: as partes compartilharão os direitos econômicos do ATLETA, na proporção de 90% (noventa por cento) ao CLUBE e 10% (dez por cento) ao ATLETA, na seguinte proporção:",
   },
   {
     tipo: "item",
@@ -656,7 +662,12 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 13, fontWeight: 700, color: CORES.grenaEscuro, textAlign: "center", marginBottom: 10 },
   clausula: { fontSize: 10, fontWeight: 700, color: CORES.grenaEscuro, marginTop: 12, marginBottom: 4 },
   paragrafo: { textAlign: "justify", marginBottom: 6 },
-  item: { textAlign: "justify", marginBottom: 6, marginLeft: 14 },
+  // Sem `marginLeft` (tinha 14pt) — pedido do Mateus em 12/11/2026, ao ver os itens com letra/
+  // número/bullet (a), b), i), •...) puxados pra dentro em relação à margem esquerda normal do
+  // parágrafo/cláusula: "tipo a), b) sempre ficam pra frente". Agora os itens começam na mesma
+  // margem de tudo o resto do contrato, sem recuo — mesma mudança em
+  // `contrato-formacao-maior-document.tsx`.
+  item: { textAlign: "justify", marginBottom: 6 },
   centro: { textAlign: "center", marginTop: 10, marginBottom: 2 },
   centroBold: { textAlign: "center", marginTop: 10, marginBottom: 2, fontWeight: 700 },
   linha: { textAlign: "center", marginTop: 26, marginBottom: 2 },
