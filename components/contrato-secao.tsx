@@ -238,6 +238,8 @@ function ContratoCard({
   tipoContratoLabel,
   hojeStr,
   destaque,
+  vigenciaBidInicio,
+  vigenciaBidFim,
 }: {
   atletaId: string;
   contrato: ContratoRow;
@@ -249,6 +251,12 @@ function ContratoCard({
   tipoContratoLabel: Record<string, string>;
   hojeStr: string;
   destaque?: boolean;
+  /** Vigência do BID (registro na CBF/FPF) — dado do ATLETA, não do contrato (ver `ContratoSecao`,
+   * que repassa de `atletaCampos`); só faz sentido mostrar no card vigente (`destaque`), nunca num
+   * card do histórico — é o período atual, não necessariamente o que valia quando aquele contrato
+   * antigo estava ativo. Só usado quando `contrato.tipo_contrato === "formacao"` (ver abaixo). */
+  vigenciaBidInicio?: string | null;
+  vigenciaBidFim?: string | null;
 }) {
   const rubricasBase = [
     { chave: "salario_ctps" as const, label: "Salário CTPS", valor: contrato.salario_ctps },
@@ -274,6 +282,15 @@ function ContratoCard({
   const vigenciaTexto =
     contrato.vigencia_inicio || contrato.vigencia_fim
       ? `${formatData(contrato.vigencia_inicio)} – ${formatData(contrato.vigencia_fim)}`
+      : "";
+  // Vigência do BID + Bolsa de aprendizagem, só pra Formação (pedido do Mateus em 12/11/2026, ao
+  // ver o card do contrato vigente sem essas duas informações — antes só apareciam no card/modal
+  // próprio de "Contrato de Formação", que não existe mais como card separado — ver
+  // `components/contrato-formacao-button.tsx`). BID só no vigente (ver o comentário da prop acima);
+  // Bolsa de aprendizagem vem do próprio contrato, então aparece também no histórico.
+  const bidTexto =
+    destaque && (vigenciaBidInicio || vigenciaBidFim)
+      ? `${formatData(vigenciaBidInicio ?? null)} – ${formatData(vigenciaBidFim ?? null)}`
       : "";
 
   return (
@@ -311,6 +328,20 @@ function ContratoCard({
             <span className="text-base font-bold text-grena-escuro">{formatMoeda(total)}</span>
           </div>
         </>
+      ) : null}
+      {contrato.tipo_contrato === "formacao" ? (
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {bidTexto ? (
+            <div className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
+              <span className="text-neutral-600">Vigência do BID</span>
+              <span className="font-medium text-neutral-800">{bidTexto}</span>
+            </div>
+          ) : null}
+          <div className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
+            <span className="text-neutral-600">Bolsa de aprendizagem</span>
+            <span className="font-medium text-neutral-800">{formatMoeda(contrato.bolsa_aprendizagem)}</span>
+          </div>
+        </div>
       ) : null}
       <DireitosEconomicos contrato={contrato} />
       <EvolucaoSalarialSecao atletaId={atletaId} contrato={contrato} evolucoes={evolucoes} editavel={Boolean(destaque)} />
@@ -438,6 +469,8 @@ export function ContratoSecao({
             tipoContratoLabel={tipoContratoLabel}
             hojeStr={hojeStr}
             destaque
+            vigenciaBidInicio={atletaCampos.vigenciaBidInicio}
+            vigenciaBidFim={atletaCampos.vigenciaBidFim}
           />
         ) : (
           <p className="text-sm text-neutral-400">Nenhum contrato cadastrado ainda.</p>
