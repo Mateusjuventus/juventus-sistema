@@ -666,11 +666,18 @@ function preencher(texto: string, campos: ContratoFormacaoMaiorCampos): string {
 // comentário do arquivo) — altura calculada a partir do próprio `wp:extent` do `.docx` original
 // (header cx=8018780 cy=2448000 EMU, footer cx=7600950 cy=1976120 EMU; 1pt = 12700 EMU), escalado
 // pra largura cheia de A4 (595.28pt), mesmo método já usado no contrato de menor.
+//
+// O PNG do cabeçalho (`contrato-formacao-maior-cabecalho.png`) é recortado (`a:srcRect r="2390"
+// b="37082"` no `header1.xml` do .docx original — Word corta 37,082% de baixo e 2,39% da direita
+// antes de exibir) — sem aplicar esse corte, a imagem extraída inteira (com a área em branco que o
+// Word corta) aparecia espremida dentro da altura calculada, deixando um vão enorme em branco
+// antes do texto começar (reportado pelo Mateus ao ver o PDF em 12/11/2026). Altura abaixo já
+// recalculada em cima do PNG recortado (2421×743px, proporção 0,30690 × 595,28pt).
 const styles = StyleSheet.create({
-  cabecalho: { position: "absolute", top: 0, left: 0, width: "100%", height: 181.8 },
+  cabecalho: { position: "absolute", top: 0, left: 0, width: "100%", height: 182.7 },
   rodape: { position: "absolute", bottom: 0, left: 0, width: "100%", height: 154.8 },
   pagina: {
-    paddingTop: 201,
+    paddingTop: 201.9,
     paddingBottom: 172,
     paddingHorizontal: 48,
     fontFamily: "Helvetica",
