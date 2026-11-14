@@ -141,17 +141,25 @@ export async function AppShell({
 
   const homeHref = departamento === "futebol_base" ? "/base" : "/profissional";
   // O Início do Profissional virou a Programação Semanal em 05/10 (ver docs/superpowers/specs/
-  // 2026-10-05-programacao-profissional-design.md) — o item da sidebar passa a se chamar
-  // "Programação" (não mais "Início"), com um ícone próprio e um item extra "Calendário" logo
-  // abaixo (o antigo painel de calendário/mural/próximo jogo/contratos, que só mostra o
-  // calendário agora). A Base ganhou o mesmo nome em 06/10 (ver docs/superpowers/specs/
-  // 2026-10-06-reorganizacao-sidebar-design.md) — a home dela (`app/base/page.tsx`) já era a
-  // grade de programação desde 30/08, só o rótulo da sidebar que ainda dizia "Início"; o item
-  // extra "Calendário" continua só do Profissional (a Base não tem essa tela separada).
-  const homeTitle = departamento === "futebol_base" ? "Programação do Futebol de Base" : "Programação do Futebol Profissional";
-  const homeLabel = "Programação";
-  const itemExtra =
-    departamento === "futebol_base" ? undefined : { href: "/profissional/calendario", label: "Calendário" };
+  // 2026-10-05-programacao-profissional-design.md) e a Base ganhou o mesmo nome em 06/10 (ver
+  // docs/superpowers/specs/2026-10-06-reorganizacao-sidebar-design.md). Em 14/11/2026 (ver
+  // docs/superpowers/specs/2026-11-14-dashboard-principal-design.md, pedido do Mateus) a Home dos
+  // dois departamentos passou a ser o Dashboard/Painel principal — a Programação Semanal se mudou
+  // pra uma rota própria (`/profissional/programacao`, `/base/programacao`) e volta a ser só mais
+  // um item fixo da sidebar, não a Home. Por isso o item de Início volta a se chamar "Início" (era
+  // "Programação" só porque a Programação ERA a Home; o padrão documentado em `AppSidebar` sempre
+  // foi "Início", só nunca tinha chamador) e usa de novo o ícone de casa padrão (sem
+  // `homeIconeProgramacao`, que existia só pra marcar visualmente que o Início ERA a Programação).
+  // "Programação" entra como item fixo extra pros dois departamentos (ela deixou de ser a Home,
+  // mas continua tão usada quanto antes); "Calendário" continua só do Profissional, como já era.
+  const homeTitle = departamento === "futebol_base" ? "Início do Futebol de Base" : "Início do Futebol Profissional";
+  const itensExtras: Array<{ href: string; label: string; icone: "programacao" | "calendario" }> =
+    departamento === "futebol_base"
+      ? [{ href: "/base/programacao", label: "Programação", icone: "programacao" }]
+      : [
+          { href: "/profissional/programacao", label: "Programação", icone: "programacao" },
+          { href: "/profissional/calendario", label: "Calendário", icone: "calendario" },
+        ];
   const departamentoLabel = departamento === "futebol_base" ? "Futebol de Base" : "Futebol Profissional";
 
   if (nav === "none") {
@@ -175,9 +183,7 @@ export async function AppShell({
       <AppSidebar
         homeHref={homeHref}
         homeTitle={homeTitle}
-        homeLabel={homeLabel}
-        homeIconeProgramacao
-        itemExtra={itemExtra}
+        itensExtras={itensExtras}
         departamentoLabel={departamentoLabel}
         departamentoAtual={departamento}
         outroDepartamento={outroDepartamento}

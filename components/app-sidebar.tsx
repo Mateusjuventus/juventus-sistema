@@ -81,6 +81,14 @@ const ICONES: Record<SidebarIconKey, (props: { className?: string }) => JSX.Elem
   assistencia_social: IconAssistenciaSocial,
 };
 
+/** Ícones dos itens fixos extras (`itensExtras` — ver `AppSidebar`) — catálogo pequeno à parte de
+ * `ICONES` porque esses dois itens (Programação/Calendário) não são módulos com permissão
+ * (`SidebarIconKey`), são sempre fixos quando o departamento os lista. */
+const ICONES_EXTRA: Record<"programacao" | "calendario", (props: { className?: string }) => JSX.Element> = {
+  programacao: IconProgramacao,
+  calendario: IconCalendario,
+};
+
 /** Rótulos da sidebar são escritos por extenso (ex.: "Relatório Avulso") e não cabem embaixo
  * de um ícone de 22px. Aqui eles viram a versão curta — só na barra inferior; a gaveta e o desktop
  * continuam com o nome completo. */
@@ -284,7 +292,7 @@ export function AppSidebar({
   homeTitle,
   homeLabel,
   homeIconeProgramacao,
-  itemExtra,
+  itensExtras,
   departamentoLabel,
   departamentoAtual,
   outroDepartamento,
@@ -298,16 +306,25 @@ export function AppSidebar({
 }: {
   homeHref: string;
   homeTitle: string;
-  /** Rótulo do primeiro item da sidebar — "Início" por padrão, não usado hoje: os dois
-   * departamentos passam "Programação" (ver docs/superpowers/specs/2026-10-05-programacao-
-   * profissional-design.md e 2026-10-06-reorganizacao-sidebar-design.md). Continua opcional pra
-   * `AppShell` poder escolher, mas o padrão "Início" não tem mais nenhum chamador hoje. */
+  /** Rótulo do primeiro item da sidebar — "Início" por padrão. Entre 05/10/2026 e 14/11/2026 os
+   * dois departamentos passavam "Programação" aqui (quando a Programação Semanal ERA a Home — ver
+   * docs/superpowers/specs/2026-10-05-programacao-profissional-design.md e 2026-10-06-
+   * reorganizacao-sidebar-design.md); desde o Dashboard/Painel principal (14/11/2026, ver
+   * docs/superpowers/specs/2026-11-14-dashboard-principal-design.md) a Home voltou a ser mesmo
+   * "Início", e nenhum chamador passa esta prop hoje — continua opcional pra `AppShell` poder
+   * escolher de novo no futuro, sem mexer aqui. */
   homeLabel?: string;
-  /** Troca o ícone do item de Início/Programação por `IconProgramacao` — os dois departamentos
-   * usam desde 06/10 (antes só o Profissional). */
+  /** Troca o ícone do item de Início por `IconProgramacao` — usado entre 06/10 e 14/11/2026,
+   * enquanto o Início ERA a Programação (ver `homeLabel` acima). Nenhum chamador passa esta prop
+   * hoje (a Home virou o Dashboard, que não tem ícone de Programação) — continua existindo pelo
+   * mesmo motivo de `homeLabel`. */
   homeIconeProgramacao?: boolean;
-  /** Item fixo extra, logo abaixo do Início/Programação — hoje só "Calendário" do Profissional. */
-  itemExtra?: { href: string; label: string };
+  /** Itens fixos extras, logo abaixo de Início, na ordem dada — generalização de `itemExtra`
+   * (singular, só "Calendário" do Profissional) pedida junto do Dashboard novo (14/11/2026): o
+   * Profissional ganhou um segundo item fixo ("Programação", que deixou de ser a Home) e a Base
+   * ganhou o primeiro dela (idem). Cada item escolhe seu ícone (`icone`) em vez de vir
+   * hard-coded — antes só existia um item possível (Calendário), então o ícone único bastava. */
+  itensExtras?: Array<{ href: string; label: string; icone: "programacao" | "calendario" }>;
   departamentoLabel: string;
   /** Departamento de onde a sidebar está sendo renderizada agora — só usado pra "Demandas" carregar
    * de volta no mesmo departamento (ver `app/demandas/page.tsx`): sem isso, clicar em "Demandas" a
@@ -435,16 +452,20 @@ export function AppSidebar({
             )}
             {!compacto ? (homeLabel ?? "Início") : null}
           </Link>
-          {itemExtra ? (
-            <Link
-              href={itemExtra.href}
-              title={itemExtra.label}
-              className={linkClasse(itemAtivo(itemExtra.href), compacto)}
-            >
-              <IconCalendario className="h-[18px] w-[18px] shrink-0" />
-              {!compacto ? itemExtra.label : null}
-            </Link>
-          ) : null}
+          {(itensExtras ?? []).map((item) => {
+            const IconeExtra = ICONES_EXTRA[item.icone];
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={item.label}
+                className={linkClasse(itemAtivo(item.href), compacto)}
+              >
+                <IconeExtra className="h-[18px] w-[18px] shrink-0" />
+                {!compacto ? item.label : null}
+              </Link>
+            );
+          })}
           {soltos.map((item) =>
             item.subItens && item.subItens.length > 0 ? (
               <ItemComSubitens
