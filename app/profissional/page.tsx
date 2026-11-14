@@ -1,21 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasProgramacaoProfissional } from "@/lib/programacao/permissoes";
-import type { CategoriaProgramacao } from "@/lib/programacao/categoria-programacao";
-import { getModulosPermitidos, isMaster } from "@/lib/auth/role";
-import { hojeBrasilia } from "@/lib/data-brasil";
-import {
-  buscarProximosJogos,
-  buscarContratosAVencer,
-  buscarAniversariantesDoMes,
-  buscarAlertasCalendario,
-  buscarAlertasCompeticao,
-  buscarAlertasDocumentos,
-  buscarAtletasEmDm,
-  buscarSolicitacoesPendentes,
-  buscarProgramacaoDeHoje,
-} from "@/lib/dashboard/queries";
-import { DashboardView, type DashboardViewProps } from "@/components/dashboard/dashboard-view";
+import { getDepartamentosPermitidos } from "@/lib/auth/role";
+import { montarDashboard } from "@/lib/dashboard/montar-dashboard";
+import { DashboardView } from "@/components/dashboard/dashboard-view";
 
 /**
  * Início do Futebol Profissional — Dashboard/Painel principal desde 14/11/2026 (ver
@@ -24,9 +12,15 @@ import { DashboardView, type DashboardViewProps } from "@/components/dashboard/d
  * page.tsx`, pra onde ela se mudou) — o item da sidebar "Programação" continua existindo, só
  * deixou de ser a Home.
  *
- * 7 blocos (ver `components/dashboard/dashboard-view.tsx`), cada um já filtrado por módulo
- * liberado (`getModulosPermitidos`, NUNCA checagem só no client) e pela categoria "profissional" —
- * mesma régua que `app/atletas/page.tsx`/`app/jogos/page.tsx` já usam, nenhuma nova.
+ * Revisão de 14/11/2026 (mesmo dia): o Mateus apontou que o painel tinha ficado "separado" de
+ * novo, contrariando a unificação em andamento no resto do sistema — quem tem os dois
+ * departamentos liberados (`getDepartamentosPermitidos`) agora vê o conteúdo COMBINADO de
+ * Profissional + Base aqui (e em `app/base/page.tsx`, que monta exatamente o mesmo conteúdo —
+ * só o cabeçalho continua diferente, crachá/brasão). Toda a lógica de busca+mescla por
+ * departamento vive em `lib/dashboard/montar-dashboard.ts`, chamada pelas duas páginas; o que
+ * muda de uma pra outra aqui é só o guard de acesso (`getCategoriasProgramacaoProfissional`) e o
+ * cabeçalho — o `departamento` do `AppShell`/sidebar não muda, continua controlando o resto da
+ * navegação (Atletas, Jogos etc.), departamentalizada como sempre foi.
  */
 export default async function ProfissionalPage() {
   const supabase = createClient();
@@ -43,72 +37,8 @@ export default async function ProfissionalPage() {
     );
   }
 
-  const categorias: CategoriaProgramacao[] = ["profissional"];
-  const hojeStr = hojeBrasilia();
-
-  const [modulosPermitidos, master, { data: userData }] = await Promise.all([
-    getModulosPermitidos(supabase),
-    isMaster(supabase),
-    supabase.auth.getUser(),
-  ]);
-  const userId = userData.user?.id ?? null;
-
-  const podeJogos = modulosPermitidos.includes("jogos");
-  const podeAtletas = modulosPermitidos.includes("atletas");
-  const podeComissao = modulosPermitidos.includes("comissao_tecnica");
-  const podeAniversariantes = podeAtletas || podeComissao;
-  const podeCompeticoes = modulosPermitidos.includes("competicoes");
-  const podeTermos = modulosPermitidos.includes("termos_retirada");
-  const podeDm = modulosPermitidos.includes("departamento_medico");
-  const podeSolicitacoes = modulosPermitidos.includes("solicitacoes");
-
-  const [
-    jogos,
-    contratos,
-    aniversariantesTodos,
-    alertasCalendario,
-    alertasCompeticao,
-    alertasDocumentos,
-    atletasDm,
-    solicitacoes,
-    programacaoHoje,
-  ] = await Promise.all([
-    podeJogos ? buscarProximosJogos(supabase, categorias, hojeStr) : Promise.resolve(null),
-    podeAtletas ? buscarContratosAVencer(supabase, categorias, hojeStr) : Promise.resolve(null),
-    // Uma chamada só, mesmo quando só uma das duas fontes (atleta/comissão técnica) está liberada —
-    // ela sempre busca as duas juntas (ver `buscarAniversariantesDoMes`); o resultado é filtrado por
-    // `origem` embaixo, conforme cada módulo liberado. Evita reimplementar a consulta em duas
-    // versões só pra separar as fontes.
-    podeAniversariantes ? buscarAniversariantesDoMes(supabase, categorias, hojeStr) : Promise.resolve(null),
-    buscarAlertasCalendario(supabase, hojeStr),
-    podeCompeticoes ? buscarAlertasCompeticao(supabase, "profissional", categorias, hojeStr) : Promise.resolve([]),
-    podeTermos ? buscarAlertasDocumentos(supabase, hojeStr) : Promise.resolve([]),
-    podeDm ? buscarAtletasEmDm(supabase, categorias) : Promise.resolve(null),
-    podeSolicitacoes ? buscarSolicitacoesPendentes(supabase, "solicitacoes", master, userId) : Promise.resolve(null),
-    buscarProgramacaoDeHoje(supabase, categorias, hojeStr),
-  ]);
-
-  const aniversariantes = podeAniversariantes
-    ? {
-        itens: (aniversariantesTodos ?? []).filter(
-          (a) => (a.origem === "atleta" && podeAtletas) || (a.origem === "comissao_tecnica" && podeComissao),
-        ),
-      }
-    : null;
-
-  const dashboardProps: DashboardViewProps = {
-    jogos: jogos ? { itens: jogos, href: "/jogos" } : null,
-    contratos: contratos ? { itens: contratos } : null,
-    aniversariantes,
-    alertas: {
-      itens: [...alertasCalendario, ...alertasCompeticao, ...alertasDocumentos].sort(
-        (a, b) => a.diasRestantes - b.diasRestantes,
-      ),
-    },
-    atletasDm: atletasDm ? { itens: atletasDm, href: "/atletas" } : null,
-    solicitacoes: solicitacoes ? { itens: solicitacoes, href: "/solicitacoes" } : null,
-    programacaoHoje: { itens: programacaoHoje, href: "/profissional/programacao" },
-  };
+  const departamentosPermitidos = await getDepartamentosPermitidos(supabase);
+  const dashboardProps = await montarDashboard(supabase, departamentosPermitidos);
 
   return (
     <AppShell breadcrumb="Início">

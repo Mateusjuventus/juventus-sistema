@@ -27,7 +27,19 @@ import type {
  * Base) — a MESMA lista que as telas de Atletas/Jogos/Comissão Técnica já usam pra filtrar, nunca
  * uma checagem nova. Isoladas aqui (em vez de dentro de `app/profissional/page.tsx`/`app/base/
  * page.tsx`) só pra não duplicar a mesma query duas vezes (uma por departamento).
+ *
+ * Nenhuma função abaixo mudou de assinatura na revisão de unificação de 14/11/2026 (ver
+ * `lib/dashboard/montar-dashboard.ts`) — continuam recebendo UMA lista de categorias de UM
+ * departamento por chamada; quem passou a chamá-las duas vezes (uma por departamento, quando a
+ * conta tem os dois) e mesclar o resultado foi `montarDashboard`, não elas.
  */
+
+/** Departamento de origem de um item do Dashboard combinado — ver `lib/dashboard/montar-
+ * dashboard.ts`. Só vem preenchido (`item.departamento`) quando a conta tem os dois departamentos
+ * liberados; com um só, nenhum item dos tipos abaixo ganha este campo (comportamento inalterado,
+ * sem selo, sem ambiguidade). Fica aqui (não em `montar-dashboard.ts`) só pra evitar import
+ * circular, já que `components/dashboard/dashboard-view.tsx` também precisa do tipo. */
+export type DepartamentoDashboard = "profissional" | "base";
 
 export interface ProximoJogo
   extends Pick<

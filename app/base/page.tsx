@@ -2,20 +2,9 @@ import { AppShell } from "@/components/app-shell";
 import { JuventusCrest } from "@/components/juventus-crest";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasProgramacao } from "@/lib/programacao/permissoes";
-import { getModulosBasePermitidos, isMaster } from "@/lib/auth/role";
-import { hojeBrasilia } from "@/lib/data-brasil";
-import {
-  buscarProximosJogos,
-  buscarContratosAVencer,
-  buscarAniversariantesDoMes,
-  buscarAlertasCalendario,
-  buscarAlertasCompeticao,
-  buscarAlertasDocumentos,
-  buscarAtletasEmDm,
-  buscarSolicitacoesPendentes,
-  buscarProgramacaoDeHoje,
-} from "@/lib/dashboard/queries";
-import { DashboardView, type DashboardViewProps } from "@/components/dashboard/dashboard-view";
+import { getDepartamentosPermitidos } from "@/lib/auth/role";
+import { montarDashboard } from "@/lib/dashboard/montar-dashboard";
+import { DashboardView } from "@/components/dashboard/dashboard-view";
 
 /**
  * Início do Futebol de Base — Dashboard/Painel principal desde 14/11/2026 (ver docs/superpowers/
@@ -25,10 +14,12 @@ import { DashboardView, type DashboardViewProps } from "@/components/dashboard/d
  * deixou de ser a Home. O brasão + "Futebol de Base" (identidade visual de entrada no
  * departamento) se mudam junto, pra continuar sendo a primeira coisa que aparece.
  *
- * 7 blocos (ver `components/dashboard/dashboard-view.tsx`), cada um já filtrado por módulo
- * liberado (`getModulosBasePermitidos`, NUNCA checagem só no client) e pelas categorias que o
- * usuário pode ver (`getCategoriasProgramacao` — as 7, ou só a(s) do treinador) — mesma régua que
- * `app/atletas/page.tsx`/`app/base/jogos/page.tsx` já usam, nenhuma nova.
+ * Revisão de 14/11/2026 (mesmo dia): mesma mudança de `app/profissional/page.tsx` — quem tem os
+ * dois departamentos liberados (`getDepartamentosPermitidos`) vê aqui o MESMO conteúdo combinado
+ * que vê em `/profissional` (`lib/dashboard/montar-dashboard.ts`, chamada pelas duas páginas); só
+ * o cabeçalho continua sendo o diferencial desta rota (brasão + "Futebol de Base"). O guard de
+ * acesso (`categorias.length === 0`, via `getCategoriasProgramacao` — já trata Treinador
+ * restrito a categoria) não mudou.
  */
 export default async function BasePage() {
   const supabase = createClient();
@@ -49,67 +40,8 @@ export default async function BasePage() {
     );
   }
 
-  const hojeStr = hojeBrasilia();
-
-  const [modulosBasePermitidos, master, { data: userData }] = await Promise.all([
-    getModulosBasePermitidos(supabase),
-    isMaster(supabase),
-    supabase.auth.getUser(),
-  ]);
-  const userId = userData.user?.id ?? null;
-
-  const podeJogos = modulosBasePermitidos.includes("jogos");
-  const podeAtletas = modulosBasePermitidos.includes("atletas");
-  const podeComissao = modulosBasePermitidos.includes("comissao_tecnica");
-  const podeAniversariantes = podeAtletas || podeComissao;
-  const podeCompeticoes = modulosBasePermitidos.includes("competicoes");
-  const podeTermos = false; // Termos de Retirada não é um módulo da Base hoje (ver lib/auth/modulos-base.ts).
-  const podeDm = modulosBasePermitidos.includes("departamento_medico");
-  const podeSolicitacoes = modulosBasePermitidos.includes("solicitacoes");
-
-  const [
-    jogos,
-    contratos,
-    aniversariantesTodos,
-    alertasCalendario,
-    alertasCompeticao,
-    alertasDocumentos,
-    atletasDm,
-    solicitacoes,
-    programacaoHoje,
-  ] = await Promise.all([
-    podeJogos ? buscarProximosJogos(supabase, categorias, hojeStr) : Promise.resolve(null),
-    podeAtletas ? buscarContratosAVencer(supabase, categorias, hojeStr) : Promise.resolve(null),
-    podeAniversariantes ? buscarAniversariantesDoMes(supabase, categorias, hojeStr) : Promise.resolve(null),
-    buscarAlertasCalendario(supabase, hojeStr),
-    podeCompeticoes ? buscarAlertasCompeticao(supabase, "base", categorias, hojeStr) : Promise.resolve([]),
-    podeTermos ? buscarAlertasDocumentos(supabase, hojeStr) : Promise.resolve([]),
-    podeDm ? buscarAtletasEmDm(supabase, categorias) : Promise.resolve(null),
-    podeSolicitacoes ? buscarSolicitacoesPendentes(supabase, "solicitacoes_base", master, userId) : Promise.resolve(null),
-    buscarProgramacaoDeHoje(supabase, categorias, hojeStr),
-  ]);
-
-  const aniversariantes = podeAniversariantes
-    ? {
-        itens: (aniversariantesTodos ?? []).filter(
-          (a) => (a.origem === "atleta" && podeAtletas) || (a.origem === "comissao_tecnica" && podeComissao),
-        ),
-      }
-    : null;
-
-  const dashboardProps: DashboardViewProps = {
-    jogos: jogos ? { itens: jogos, href: "/base/jogos" } : null,
-    contratos: contratos ? { itens: contratos } : null,
-    aniversariantes,
-    alertas: {
-      itens: [...alertasCalendario, ...alertasCompeticao, ...alertasDocumentos].sort(
-        (a, b) => a.diasRestantes - b.diasRestantes,
-      ),
-    },
-    atletasDm: atletasDm ? { itens: atletasDm, href: "/atletas" } : null,
-    solicitacoes: solicitacoes ? { itens: solicitacoes, href: "/base/solicitacoes" } : null,
-    programacaoHoje: { itens: programacaoHoje, href: "/base/programacao" },
-  };
+  const departamentosPermitidos = await getDepartamentosPermitidos(supabase);
+  const dashboardProps = await montarDashboard(supabase, departamentosPermitidos);
 
   return (
     <AppShell departamento="futebol_base" breadcrumb="Início">
