@@ -7,6 +7,7 @@ import { CpfField } from "@/components/cpf-field";
 import { TelefoneField } from "@/components/telefone-field";
 import { EnderecoFields, type EnderecoValues } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
+import { ChavePixFields } from "@/components/chave-pix-field";
 import { SubmitButton } from "@/components/submit-button";
 import {
   CATEGORIAS_ATLETA,
@@ -58,7 +59,8 @@ export function AtletaForm({
   const [possuiAlergia, setPossuiAlergia] = useState(values.possuiAlergiaMedicamento === "on");
   const [categoria, setCategoria] = useState(values.categoria ?? "");
   const isBase = ehCategoriaBaseValida(categoria);
-  const [tipoPagamento, setTipoPagamento] = useState(values.tipoPagamento ?? "");
+  const [recebeComoPf, setRecebeComoPf] = useState(values.recebeComoPf === "on");
+  const [recebeComoPj, setRecebeComoPj] = useState(values.recebeComoPj === "on");
   // Ver comentário equivalente nos formulários antigos — mesmo mecanismo do checkbox "Mesmo
   // endereço de origem".
   const [origemEndereco, setOrigemEndereco] = useState<EnderecoValues>({
@@ -422,18 +424,56 @@ export function AtletaForm({
       {atletaTemDadosPagamento(tipoContratoVigente) ? (
         <FormSection title="Dados de Pagamento">
           <FieldGroup>
-            <SelectField
-              label="Tipo de pagamento"
-              name="tipoPagamento"
-              defaultValue={values.tipoPagamento}
-              onChange={setTipoPagamento}
-              error={errors.tipoPagamento}
-            >
-              <option value="">Não informado</option>
-              <option value="pf">Pessoa física</option>
-              <option value="pj">Pessoa jurídica</option>
-            </SelectField>
-            {tipoPagamento === "pj" ? (
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <input
+                id="recebeComoPf"
+                name="recebeComoPf"
+                type="checkbox"
+                checked={recebeComoPf}
+                onChange={(e) => setRecebeComoPf(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              <label htmlFor="recebeComoPf" className="text-sm font-medium text-neutral-700">
+                Recebe como Pessoa Física
+              </label>
+            </div>
+            {recebeComoPf ? (
+              <>
+                <ChavePixFields
+                  tipoDefaultValue={values.pfChavePixTipo}
+                  chaveDefaultValue={values.pfChavePix}
+                  tipoError={errors.pfChavePixTipo}
+                  chaveError={errors.pfChavePix}
+                  chaveRequired
+                  nomeTipo="pfChavePixTipo"
+                  nomeChave="pfChavePix"
+                />
+                <TextField label="Banco" name="pfBanco" defaultValue={values.pfBanco} error={errors.pfBanco} />
+                <TextField
+                  label="Agência"
+                  name="pfAgencia"
+                  defaultValue={values.pfAgencia}
+                  error={errors.pfAgencia}
+                />
+                <TextField label="Conta" name="pfConta" defaultValue={values.pfConta} error={errors.pfConta} />
+              </>
+            ) : null}
+          </FieldGroup>
+          <FieldGroup>
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <input
+                id="recebeComoPj"
+                name="recebeComoPj"
+                type="checkbox"
+                checked={recebeComoPj}
+                onChange={(e) => setRecebeComoPj(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+              />
+              <label htmlFor="recebeComoPj" className="text-sm font-medium text-neutral-700">
+                Recebe como Pessoa Jurídica
+              </label>
+            </div>
+            {recebeComoPj ? (
               <>
                 <TextField
                   label="Nome da Empresa de Imagem"
@@ -447,6 +487,15 @@ export function AtletaForm({
                   placeholder="00.000.000/0000-00"
                   defaultValue={values.empresaImagemCnpj}
                   error={errors.empresaImagemCnpj}
+                />
+                <ChavePixFields
+                  tipoDefaultValue={values.empresaImagemChavePixTipo}
+                  chaveDefaultValue={values.empresaImagemChavePix}
+                  tipoError={errors.empresaImagemChavePixTipo}
+                  chaveError={errors.empresaImagemChavePix}
+                  chaveRequired
+                  nomeTipo="empresaImagemChavePixTipo"
+                  nomeChave="empresaImagemChavePix"
                 />
               </>
             ) : null}

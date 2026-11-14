@@ -7,7 +7,7 @@ import { AtletaPerfilHeader } from "@/components/atleta-perfil-header";
 import { AtletaAtivoButton } from "@/components/atleta-ativo-button";
 import { HistoricoAtivoButton } from "@/components/historico-ativo-modal";
 import { TransitarCategoriaForm } from "@/components/transitar-categoria-form";
-import { getPodeTransitarCategoriaAtleta } from "@/lib/auth/role";
+import { getPodeTransitarCategoriaAtleta, isMaster } from "@/lib/auth/role";
 import { GerarFichaAtletaButton } from "@/components/atletas/gerar-ficha-atleta-button";
 import { CAMPOS_FICHA_ATLETA_PROFISSIONAL, CAMPOS_FICHA_ATLETA_BASE } from "@/lib/futebol/ficha-atleta";
 import { buscarCompeticoesDisponiveisAtleta } from "@/lib/futebol/estatisticas-atleta-query";
@@ -157,6 +157,7 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
   const atleta = data as AtletaRow;
   const isBase = ehCategoriaBaseValida(atleta.categoria);
   const podeTransitarCategoria = await getPodeTransitarCategoriaAtleta(supabase);
+  const usuarioEhMaster = await isMaster(supabase);
 
   const [{ data: contatosData }, { data: contratosData }, competicoesDisponiveisAtleta] = await Promise.all([
     supabase
@@ -241,7 +242,7 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             />
             <AtletaAtivoButton action={alternarAtletaAtivoComMotivo} id={atleta.id} ativo={atleta.ativo} />
             {podeTransitarCategoria ? (
-              <TransitarCategoriaForm atletaId={atleta.id} categoriaAtual={atleta.categoria} />
+              <TransitarCategoriaForm atletaId={atleta.id} categoriaAtual={atleta.categoria} isMaster={usuarioEhMaster} />
             ) : null}
           </>
         }

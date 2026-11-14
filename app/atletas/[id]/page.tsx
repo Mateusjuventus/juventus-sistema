@@ -168,9 +168,17 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
     paiTelefone: atleta.pai_telefone ?? "",
     paiCpf: atleta.pai_cpf ?? "",
     escola: atleta.escola ?? "",
-    tipoPagamento: atleta.tipo_pagamento ?? "",
+    recebeComoPf: atleta.recebe_como_pf ? "on" : "",
+    pfChavePixTipo: atleta.pf_chave_pix_tipo ?? "",
+    pfChavePix: atleta.pf_chave_pix ?? "",
+    pfBanco: atleta.pf_banco ?? "",
+    pfAgencia: atleta.pf_agencia ?? "",
+    pfConta: atleta.pf_conta ?? "",
+    recebeComoPj: atleta.recebe_como_pj ? "on" : "",
     empresaImagemNome: atleta.empresa_imagem_nome ?? "",
     empresaImagemCnpj: atleta.empresa_imagem_cnpj ?? "",
+    empresaImagemChavePixTipo: atleta.empresa_imagem_chave_pix_tipo ?? "",
+    empresaImagemChavePix: atleta.empresa_imagem_chave_pix ?? "",
   };
 
   return (

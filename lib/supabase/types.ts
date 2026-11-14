@@ -182,11 +182,22 @@ export interface AtletaRow {
    * historico.ts`) — este campo continua sendo o denormalizado que o resto do sistema lê. */
   ativo: boolean;
   /** Dados de Pagamento (ver docs/superpowers/specs/2026-11-04-atletas-desativacao-transicao-
-   * pagamento-design.md) — campo do cadastro, sem vínculo direto com `atleta_contratos`.
-   * `empresa_imagem_nome`/`empresa_imagem_cnpj` só fazem sentido quando `tipo_pagamento` é "pj". */
-  tipo_pagamento: "pf" | "pj" | null;
+   * pagamento-design.md) — campo do cadastro, sem vínculo direto com `atleta_contratos`. Desde
+   * 14/11/2026, PF e PJ são seções independentes (podem estar as duas marcadas) — substituiu o
+   * antigo `tipo_pagamento` (enum "pf"|"pj", um ou outro). `pf_*` só fazem sentido quando
+   * `recebe_como_pf` é `true`; `empresa_imagem_*` só fazem sentido quando `recebe_como_pj` é
+   * `true`. */
+  recebe_como_pf: boolean;
+  pf_chave_pix_tipo: string | null;
+  pf_chave_pix: string | null;
+  pf_banco: string | null;
+  pf_agencia: string | null;
+  pf_conta: string | null;
+  recebe_como_pj: boolean;
   empresa_imagem_nome: string | null;
   empresa_imagem_cnpj: string | null;
+  empresa_imagem_chave_pix_tipo: string | null;
+  empresa_imagem_chave_pix: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

@@ -345,6 +345,21 @@ export async function getPodeTransitarCategoriaAtleta(
 }
 
 /**
+ * Se a transição de `categoriaAtual` pra `novaCategoria` cruza a fronteira Futebol de
+ * Base/Profissional (uma das duas é "profissional" e a outra é uma das 7 categorias de Base, ou
+ * vice-versa). Decisão do Mateus em 14/11/2026: não existe (e não vai existir) um perfil "Gerente
+ * do Profissional" — cada responsável de categoria já transita atletas dentro do que enxerga
+ * normalmente (`pode_transitar_categoria_atleta`, ver acima, que inclusive empresta acesso entre
+ * categorias da própria Base ou dentro do Profissional); só cruzar a fronteira Base↔Profissional
+ * fica reservado ao "master", já que ninguém mais acessa os dois departamentos ao mesmo tempo. Ver
+ * `transitarCategoriaAtleta` em app/atletas/actions.ts, que chama isto além de
+ * `getPodeTransitarCategoriaAtleta`.
+ */
+export function cruzaFronteiraBaseProfissional(categoriaAtual: string, novaCategoria: string): boolean {
+  return ehCategoriaBaseValida(categoriaAtual) !== ehCategoriaBaseValida(novaCategoria);
+}
+
+/**
  * Se o usuário logado pode ver a Área Financeira (`/area-financeira`) — papel "financeiro" (ver
  * docs/superpowers/specs/2026-10-22-area-financeira-design.md) ou "master" (que sempre pode
  * acessar qualquer área do sistema). Qualquer outro papel recebe `false` — as páginas da Área

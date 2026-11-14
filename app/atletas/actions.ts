@@ -16,7 +16,7 @@ import { hojeBrasilia } from "@/lib/data-brasil";
 import { registrarStatusAtleta } from "@/lib/futebol/status-historico";
 import { registrarAtivoAtleta } from "@/lib/futebol/ativo-historico";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
-import { getPodeTransitarCategoriaAtleta, isMaster } from "@/lib/auth/role";
+import { cruzaFronteiraBaseProfissional, getPodeTransitarCategoriaAtleta, isMaster } from "@/lib/auth/role";
 import { CATEGORIAS_ATLETA, ehCategoriaAtletaValida } from "@/lib/auth/categorias-base";
 import type { AtletaAtivoHistoricoRow, AtletaStatus } from "@/lib/supabase/types";
 
@@ -91,9 +91,17 @@ function parseForm(formData: FormData) {
     paiTelefone: String(formData.get("paiTelefone") ?? ""),
     paiCpf: String(formData.get("paiCpf") ?? ""),
     escola: String(formData.get("escola") ?? ""),
-    tipoPagamento: String(formData.get("tipoPagamento") ?? "") || undefined,
+    recebeComoPf: formData.get("recebeComoPf") === "on",
+    pfChavePixTipo: String(formData.get("pfChavePixTipo") ?? ""),
+    pfChavePix: String(formData.get("pfChavePix") ?? ""),
+    pfBanco: String(formData.get("pfBanco") ?? ""),
+    pfAgencia: String(formData.get("pfAgencia") ?? ""),
+    pfConta: String(formData.get("pfConta") ?? ""),
+    recebeComoPj: formData.get("recebeComoPj") === "on",
     empresaImagemNome: String(formData.get("empresaImagemNome") ?? ""),
     empresaImagemCnpj: String(formData.get("empresaImagemCnpj") ?? ""),
+    empresaImagemChavePixTipo: String(formData.get("empresaImagemChavePixTipo") ?? ""),
+    empresaImagemChavePix: String(formData.get("empresaImagemChavePix") ?? ""),
   };
 
   const result = atletaSchema.safeParse(raw);
@@ -102,6 +110,8 @@ function parseForm(formData: FormData) {
       ...raw,
       possuiAlergiaMedicamento: raw.possuiAlergiaMedicamento ? "on" : "",
       alojado: raw.alojado ? "on" : "",
+      recebeComoPf: raw.recebeComoPf ? "on" : "",
+      recebeComoPj: raw.recebeComoPj ? "on" : "",
     },
     result,
   };
@@ -204,9 +214,17 @@ export async function createAtleta(
     pai_telefone: data.paiTelefone || null,
     pai_cpf: data.paiCpf || null,
     escola: data.escola || null,
-    tipo_pagamento: data.tipoPagamento || null,
+    recebe_como_pf: data.recebeComoPf,
+    pf_chave_pix_tipo: data.pfChavePixTipo || null,
+    pf_chave_pix: data.pfChavePix || null,
+    pf_banco: data.pfBanco || null,
+    pf_agencia: data.pfAgencia || null,
+    pf_conta: data.pfConta || null,
+    recebe_como_pj: data.recebeComoPj,
     empresa_imagem_nome: data.empresaImagemNome || null,
     empresa_imagem_cnpj: data.empresaImagemCnpj || null,
+    empresa_imagem_chave_pix_tipo: data.empresaImagemChavePixTipo || null,
+    empresa_imagem_chave_pix: data.empresaImagemChavePix || null,
   });
 
   if (error) {
@@ -302,9 +320,17 @@ export async function updateAtleta(
     pai_telefone: data.paiTelefone || null,
     pai_cpf: data.paiCpf || null,
     escola: data.escola || null,
-    tipo_pagamento: data.tipoPagamento || null,
+    recebe_como_pf: data.recebeComoPf,
+    pf_chave_pix_tipo: data.pfChavePixTipo || null,
+    pf_chave_pix: data.pfChavePix || null,
+    pf_banco: data.pfBanco || null,
+    pf_agencia: data.pfAgencia || null,
+    pf_conta: data.pfConta || null,
+    recebe_como_pj: data.recebeComoPj,
     empresa_imagem_nome: data.empresaImagemNome || null,
     empresa_imagem_cnpj: data.empresaImagemCnpj || null,
+    empresa_imagem_chave_pix_tipo: data.empresaImagemChavePixTipo || null,
+    empresa_imagem_chave_pix: data.empresaImagemChavePix || null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
 
@@ -429,7 +455,12 @@ export interface TransitarCategoriaFormState {
  * desativacao-transicao-pagamento-design.md). Só quem tem `pode_transitar_categoria_atleta` (ou é
  * master) pode chamar — checagem sempre no servidor, nunca só escondendo o botão no client (mesmo
  * princípio de `salvarParecerCaptacao`/`salvarRelatorioDispensaTreinador`). Sem motivo, sem
- * histórico — é uma troca direta (decisão do Mateus em 05/11/2026). */
+ * histórico — é uma troca direta (decisão do Mateus em 05/11/2026).
+ *
+ * Desde 14/11/2026, cruzar a fronteira Base↔Profissional é reservado ao "master" mesmo que a
+ * pessoa tenha `pode_transitar_categoria_atleta` — ver `cruzaFronteiraBaseProfissional` em
+ * lib/auth/role.ts. Não existe (nem vai existir) um perfil "Gerente do Profissional": dentro do
+ * mesmo lado da fronteira, a permissão normal continua valendo igual. */
 export async function transitarCategoriaAtleta(
   _prevState: TransitarCategoriaFormState,
   formData: FormData,
@@ -447,6 +478,10 @@ export async function transitarCategoriaAtleta(
   const { data: atletaAtual } = await supabase.from("atletas").select("categoria").eq("id", atletaId).maybeSingle();
   if (!atletaAtual) return { error: "Atleta não encontrado." };
   if (atletaAtual.categoria === novaCategoria) return { error: "O atleta já está nessa categoria." };
+
+  if (cruzaFronteiraBaseProfissional(atletaAtual.categoria, novaCategoria) && !(await isMaster(supabase))) {
+    return { error: "Só o Master pode transitar um atleta entre o Futebol de Base e o Profissional." };
+  }
 
   const { error } = await supabase.from("atletas").update({ categoria: novaCategoria }).eq("id", atletaId);
   if (error) return { error: `Não foi possível trocar a categoria. Tente novamente. (${error.message})` };

@@ -219,22 +219,60 @@ export const atletaSchema = z
     paiTelefone: telefoneFieldValidado,
     paiCpf: z.string().optional().or(z.literal("")),
     escola: z.string().optional().or(z.literal("")),
-    // Dados de Pagamento (PF/PJ + Empresa de Imagem) — ver docs/superpowers/specs/
-    // 2026-11-04-atletas-desativacao-transicao-pagamento-design.md. A seção só aparece no
-    // formulário quando `atletaTemDadosPagamento(tipoContratoVigente)` é true, mas o schema aceita
-    // os 3 campos sempre (mesmo princípio dos campos "Base-only" acima).
-    tipoPagamento: z.enum(["pf", "pj"]).optional().or(z.literal("")),
+    // Dados de Pagamento (PF e/ou PJ juntos, desde 14/11/2026 — ver docs/superpowers/specs/
+    // 2026-11-04-atletas-desativacao-transicao-pagamento-design.md). Cada seção é independente
+    // (checkbox "Recebe como Pessoa Física"/"Recebe como Pessoa Jurídica", podem estar as duas
+    // marcadas ao mesmo tempo) — substitui o antigo `tipoPagamento` (enum "pf"|"pj", um ou outro).
+    // A seção só aparece no formulário quando `atletaTemDadosPagamento(tipoContratoVigente)` é
+    // true, mas o schema aceita os campos sempre (mesmo princípio dos campos "Base-only" acima).
+    recebeComoPf: z.boolean().default(false),
+    pfChavePixTipo: chavePixTipoField,
+    pfChavePix: z.string().optional().or(z.literal("")),
+    pfBanco: z.string().optional().or(z.literal("")),
+    pfAgencia: z.string().optional().or(z.literal("")),
+    pfConta: z.string().optional().or(z.literal("")),
+    recebeComoPj: z.boolean().default(false),
     empresaImagemNome: z.string().optional().or(z.literal("")),
     empresaImagemCnpj: z.string().optional().or(z.literal("")),
+    empresaImagemChavePixTipo: chavePixTipoField,
+    empresaImagemChavePix: z.string().optional().or(z.literal("")),
   })
   .refine(refinoAlergia.check, refinoAlergia.options)
   .refine(
-    (data) => data.tipoPagamento !== "pj" || Boolean(data.empresaImagemNome?.trim()),
+    (data) => data.recebeComoPj !== true || Boolean(data.empresaImagemNome?.trim()),
     { message: "Informe o nome da Empresa de Imagem", path: ["empresaImagemNome"] },
   )
   .refine(
-    (data) => data.tipoPagamento !== "pj" || Boolean(data.empresaImagemCnpj?.trim()),
+    (data) => data.recebeComoPj !== true || Boolean(data.empresaImagemCnpj?.trim()),
     { message: "Informe o CNPJ da Empresa de Imagem", path: ["empresaImagemCnpj"] },
+  )
+  .refine(
+    (data) => data.recebeComoPj !== true || Boolean(data.empresaImagemChavePix?.trim()),
+    { message: "Informe a Chave PIX da empresa", path: ["empresaImagemChavePix"] },
+  )
+  .refine((data) => chavePixValida(data.empresaImagemChavePix, data.empresaImagemChavePixTipo), {
+    message: "Chave PIX incompleta para o tipo selecionado",
+    path: ["empresaImagemChavePix"],
+  })
+  .refine(
+    (data) => data.recebeComoPf !== true || Boolean(data.pfChavePix?.trim()),
+    { message: "Informe a Chave PIX", path: ["pfChavePix"] },
+  )
+  .refine((data) => chavePixValida(data.pfChavePix, data.pfChavePixTipo), {
+    message: "Chave PIX incompleta para o tipo selecionado",
+    path: ["pfChavePix"],
+  })
+  .refine(
+    (data) => data.recebeComoPf !== true || Boolean(data.pfBanco?.trim()),
+    { message: "Informe o banco", path: ["pfBanco"] },
+  )
+  .refine(
+    (data) => data.recebeComoPf !== true || Boolean(data.pfAgencia?.trim()),
+    { message: "Informe a agência", path: ["pfAgencia"] },
+  )
+  .refine(
+    (data) => data.recebeComoPf !== true || Boolean(data.pfConta?.trim()),
+    { message: "Informe a conta", path: ["pfConta"] },
   );
 export type AtletaInput = z.infer<typeof atletaSchema>;
 
