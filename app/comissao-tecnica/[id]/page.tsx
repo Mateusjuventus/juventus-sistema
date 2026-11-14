@@ -44,6 +44,23 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
     // do cliente mesmo com o campo escondido no formulário.
     valorSalario: podeVerSalario ? pessoa.valor_salario?.toString() ?? "" : "",
     dataInicio: pessoa.data_inicio ?? "",
+    cep: pessoa.cep ?? "",
+    logradouro: pessoa.logradouro ?? "",
+    numero: pessoa.numero ?? "",
+    complemento: pessoa.complemento ?? "",
+    bairro: pessoa.bairro ?? "",
+    cidade: pessoa.cidade ?? "",
+    uf: pessoa.uf ?? "",
+    setor: pessoa.setor ?? "",
+    chavePixTipo: pessoa.chave_pix_tipo ?? "",
+    chavePix: pessoa.chave_pix ?? "",
+    banco: pessoa.banco ?? "",
+    agencia: pessoa.agencia ?? "",
+    conta: pessoa.conta ?? "",
+    empresaNome: pessoa.empresa_nome ?? "",
+    empresaCnpj: pessoa.empresa_cnpj ?? "",
+    empresaChavePixTipo: pessoa.empresa_chave_pix_tipo ?? "",
+    empresaChavePix: pessoa.empresa_chave_pix ?? "",
   };
 
   return (

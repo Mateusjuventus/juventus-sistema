@@ -34,6 +34,26 @@ function parseForm(formData: FormData) {
     tipoContrato: String(formData.get("tipoContrato") ?? ""),
     valorSalario: String(formData.get("valorSalario") ?? "") || undefined,
     dataInicio: String(formData.get("dataInicio") ?? ""),
+    // Endereço estruturado único, Setor e Dados de empresa/pagamento — pedido de 14/11/2026 (ver
+    // docs/superpowers/specs/2026-11-04-atletas-desativacao-transicao-pagamento-design.md, item 8,
+    // e o comentário de `comissaoTecnicaSchema` em lib/validation/schemas.ts).
+    cep: String(formData.get("cep") ?? ""),
+    logradouro: String(formData.get("logradouro") ?? ""),
+    numero: String(formData.get("numero") ?? ""),
+    complemento: String(formData.get("complemento") ?? ""),
+    bairro: String(formData.get("bairro") ?? ""),
+    cidade: String(formData.get("cidade") ?? ""),
+    uf: String(formData.get("uf") ?? ""),
+    setor: String(formData.get("setor") ?? "") || undefined,
+    chavePixTipo: String(formData.get("chavePixTipo") ?? ""),
+    chavePix: String(formData.get("chavePix") ?? ""),
+    banco: String(formData.get("banco") ?? ""),
+    agencia: String(formData.get("agencia") ?? ""),
+    conta: String(formData.get("conta") ?? ""),
+    empresaNome: String(formData.get("empresaNome") ?? ""),
+    empresaCnpj: String(formData.get("empresaCnpj") ?? ""),
+    empresaChavePixTipo: String(formData.get("empresaChavePixTipo") ?? ""),
+    empresaChavePix: String(formData.get("empresaChavePix") ?? ""),
   };
 
   const result = comissaoTecnicaUnificadaSchema.safeParse({ ...raw, categorias });
@@ -97,6 +117,23 @@ export async function createComissao(
     tipo_contrato: data.tipoContrato || null,
     valor_salario: data.valorSalario ?? null,
     data_inicio: data.dataInicio || null,
+    cep: data.cep || null,
+    logradouro: data.logradouro || null,
+    numero: data.numero || null,
+    complemento: data.complemento || null,
+    bairro: data.bairro || null,
+    cidade: data.cidade || null,
+    uf: data.uf || null,
+    setor: data.setor || null,
+    chave_pix_tipo: data.tipoContrato === "clt" ? data.chavePixTipo || null : null,
+    chave_pix: data.tipoContrato === "clt" ? data.chavePix || null : null,
+    banco: data.tipoContrato === "clt" ? data.banco || null : null,
+    agencia: data.tipoContrato === "clt" ? data.agencia || null : null,
+    conta: data.tipoContrato === "clt" ? data.conta || null : null,
+    empresa_nome: data.tipoContrato === "pj" ? data.empresaNome || null : null,
+    empresa_cnpj: data.tipoContrato === "pj" ? data.empresaCnpj || null : null,
+    empresa_chave_pix_tipo: data.tipoContrato === "pj" ? data.empresaChavePixTipo || null : null,
+    empresa_chave_pix: data.tipoContrato === "pj" ? data.empresaChavePix || null : null,
   });
 
   if (error) return { error: friendlyDbError(error), values: raw, categoriasSelecionadas: categorias };
@@ -136,6 +173,23 @@ export async function updateComissao(
     email: data.email || null,
     tipo_contrato: data.tipoContrato || null,
     data_inicio: data.dataInicio || null,
+    cep: data.cep || null,
+    logradouro: data.logradouro || null,
+    numero: data.numero || null,
+    complemento: data.complemento || null,
+    bairro: data.bairro || null,
+    cidade: data.cidade || null,
+    uf: data.uf || null,
+    setor: data.setor || null,
+    chave_pix_tipo: data.tipoContrato === "clt" ? data.chavePixTipo || null : null,
+    chave_pix: data.tipoContrato === "clt" ? data.chavePix || null : null,
+    banco: data.tipoContrato === "clt" ? data.banco || null : null,
+    agencia: data.tipoContrato === "clt" ? data.agencia || null : null,
+    conta: data.tipoContrato === "clt" ? data.conta || null : null,
+    empresa_nome: data.tipoContrato === "pj" ? data.empresaNome || null : null,
+    empresa_cnpj: data.tipoContrato === "pj" ? data.empresaCnpj || null : null,
+    empresa_chave_pix_tipo: data.tipoContrato === "pj" ? data.empresaChavePixTipo || null : null,
+    empresa_chave_pix: data.tipoContrato === "pj" ? data.empresaChavePix || null : null,
   };
   if (fotoPath) updatePayload.foto_path = fotoPath;
   // O campo "Salário mensal" some do formulário pra quem tem isso marcado como campo escondido
@@ -156,5 +210,21 @@ export async function deleteComissao(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const supabase = createClient();
   await supabase.from("comissao_tecnica").delete().eq("id", id);
+  revalidatePath("/comissao-tecnica");
+}
+
+/**
+ * Marca um cadastro como ativo/inativo (em vez de excluir) — mesmo padrão de `alternarStaffAtivo`
+ * (app/staff-operacional/actions.ts). Pedido do Mateus em 14/11/2026: SEM motivo nem histórico
+ * (diferente do que já existe pros atletas, `alternarAtletaAtivoComMotivo`/
+ * `atletas_ativo_historico`) — ele recusou explicitamente esse padrão mais elaborado aqui.
+ */
+export async function alternarComissaoAtivo(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const novoValor = String(formData.get("novoValor") ?? "") === "true";
+  if (!id) return;
+
+  const supabase = createClient();
+  await supabase.from("comissao_tecnica").update({ ativo: novoValor }).eq("id", id);
   revalidatePath("/comissao-tecnica");
 }

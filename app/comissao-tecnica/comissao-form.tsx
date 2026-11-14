@@ -1,13 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, TextField, SuggestionField, SelectField } from "@/components/fields";
 import { PhotoField } from "@/components/photo-field";
 import { CpfField } from "@/components/cpf-field";
 import { TelefoneField } from "@/components/telefone-field";
 import { CurrencyField } from "@/components/currency-field";
+import { EnderecoFields } from "@/components/endereco-fields";
+import { ChavePixFields } from "@/components/chave-pix-field";
 import { SubmitButton } from "@/components/submit-button";
-import { COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS, SUGESTOES_FUNCAO_COMISSAO } from "@/lib/validation/schemas";
+import {
+  COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS,
+  SETOR_COMISSAO_TECNICA_OPTIONS,
+  SUGESTOES_FUNCAO_COMISSAO,
+} from "@/lib/validation/schemas";
 import { CATEGORIAS_COMISSAO_TECNICA } from "@/lib/auth/categorias-base";
 import type { ComissaoFormState } from "./actions";
 
@@ -43,6 +50,9 @@ export function ComissaoForm({
   const values = state.values ?? defaultValues ?? {};
   const errors = state.fieldErrors ?? {};
   const categoriasSelecionadas = state.categoriasSelecionadas ?? categoriasIniciais ?? [];
+  // Decide se mostra os campos de pagamento de CLT (Chave PIX + Banco/Agência/Conta) ou de PJ
+  // (Nome da Empresa/CNPJ + Chave PIX da empresa) — pedido do Mateus em 14/11/2026.
+  const [tipoContrato, setTipoContrato] = useState(values.tipoContrato ?? "");
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -87,6 +97,29 @@ export function ComissaoForm({
         </FieldGroup>
       </FormSection>
 
+      <FormSection title="Endereço">
+        <EnderecoFields
+          defaultValues={{
+            cep: values.cep,
+            logradouro: values.logradouro,
+            numero: values.numero,
+            complemento: values.complemento,
+            bairro: values.bairro,
+            cidade: values.cidade,
+            uf: values.uf,
+          }}
+          errors={{
+            cep: errors.cep,
+            logradouro: errors.logradouro,
+            numero: errors.numero,
+            complemento: errors.complemento,
+            bairro: errors.bairro,
+            cidade: errors.cidade,
+            uf: errors.uf,
+          }}
+        />
+      </FormSection>
+
       <FormSection title="Função">
         <FieldGroup>
           <div className="sm:col-span-2">
@@ -127,6 +160,7 @@ export function ComissaoForm({
             label="Tipo de contrato"
             name="tipoContrato"
             defaultValue={values.tipoContrato}
+            onChange={setTipoContrato}
             error={errors.tipoContrato}
           >
             <option value="">Não definido</option>
@@ -151,8 +185,62 @@ export function ComissaoForm({
             defaultValue={values.dataInicio}
             error={errors.dataInicio}
           />
+          <SelectField label="Setor" name="setor" defaultValue={values.setor} error={errors.setor}>
+            <option value="">Não definido</option>
+            {SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </SelectField>
         </FieldGroup>
       </FormSection>
+
+      {tipoContrato === "clt" ? (
+        <FormSection title="Dados de pagamento (CLT)">
+          <FieldGroup>
+            <ChavePixFields
+              tipoDefaultValue={values.chavePixTipo}
+              chaveDefaultValue={values.chavePix}
+              tipoError={errors.chavePixTipo}
+              chaveError={errors.chavePix}
+              chaveRequired
+            />
+            <TextField label="Banco" name="banco" defaultValue={values.banco} error={errors.banco} />
+            <TextField label="Agência" name="agencia" defaultValue={values.agencia} error={errors.agencia} />
+            <TextField label="Conta" name="conta" defaultValue={values.conta} error={errors.conta} />
+          </FieldGroup>
+        </FormSection>
+      ) : null}
+
+      {tipoContrato === "pj" ? (
+        <FormSection title="Dados de pagamento (PJ)">
+          <FieldGroup>
+            <TextField
+              label="Nome da Empresa"
+              name="empresaNome"
+              defaultValue={values.empresaNome}
+              error={errors.empresaNome}
+            />
+            <TextField
+              label="CNPJ"
+              name="empresaCnpj"
+              placeholder="00.000.000/0000-00"
+              defaultValue={values.empresaCnpj}
+              error={errors.empresaCnpj}
+            />
+            <ChavePixFields
+              tipoDefaultValue={values.empresaChavePixTipo}
+              chaveDefaultValue={values.empresaChavePix}
+              tipoError={errors.empresaChavePixTipo}
+              chaveError={errors.empresaChavePix}
+              chaveRequired
+              nomeTipo="empresaChavePixTipo"
+              nomeChave="empresaChavePix"
+            />
+          </FieldGroup>
+        </FormSection>
+      ) : null}
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>

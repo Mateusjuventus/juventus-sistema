@@ -518,6 +518,16 @@ export interface AtletaDocumentoBaseRow {
  * `COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS` em `lib/validation/schemas.ts`. */
 export type ComissaoTecnicaTipoContrato = "clt" | "pj" | "sem_contrato";
 
+/** Setor da pessoa — ver `SETOR_COMISSAO_TECNICA_OPTIONS` em `lib/validation/schemas.ts`. Opcional
+ * (desde 14/11/2026, ver 0164_comissao_tecnica_ativo_endereco_pagamento_setor.sql) — sub-agrupa a
+ * listagem dentro dos blocos Profissional/Base (ver `app/comissao-tecnica/page.tsx`). */
+export type SetorComissaoTecnica =
+  | "departamento_medico"
+  | "departamento_tecnico"
+  | "administrativo"
+  | "diretoria"
+  | "operacional";
+
 export interface ComissaoTecnicaRow {
   id: string;
   /** Unificação da Comissão Técnica (Profissional + Base), 28/10/2026 — ver docs/superpowers/specs/
@@ -543,6 +553,33 @@ export interface ComissaoTecnicaRow {
   /** Salário mensal — mesmo campo que já existia em `ComissaoTecnicaBaseRow` (ver
    * docs/superpowers/specs/2026-08-19-financeiro-base-design.md), agora também no Profissional. */
   valor_salario: number | null;
+  /** Ativar/desativar (desde 14/11/2026, ver 0164_...sql) — pedido explícito do Mateus pra NÃO
+   * pedir motivo nem guardar histórico (diferente de `AtletaRow.ativo`/`atletas_ativo_historico`):
+   * é só um botão simples de ligar/desligar, mesmo padrão de `StaffOperacionalRow.ativo`. */
+  ativo: boolean;
+  /** Endereço estruturado único (Profissional e Base juntos, sem distinção origem/local — diferente
+   * do atleta, que tem dois blocos). Mesmos campos de `StaffOperacionalRow`. */
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  setor: SetorComissaoTecnica | null;
+  /** CLT: Chave PIX + dados bancários completos, pro salário. Só fazem sentido quando
+   * `tipo_contrato` é "clt" (ver os `.refine` de `comissaoTecnicaSchema`). */
+  chave_pix_tipo: string | null;
+  chave_pix: string | null;
+  banco: string | null;
+  agencia: string | null;
+  conta: string | null;
+  /** PJ: Nome da Empresa/CNPJ + Chave PIX da empresa. Só fazem sentido quando `tipo_contrato` é
+   * "pj". */
+  empresa_nome: string | null;
+  empresa_cnpj: string | null;
+  empresa_chave_pix_tipo: string | null;
+  empresa_chave_pix: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

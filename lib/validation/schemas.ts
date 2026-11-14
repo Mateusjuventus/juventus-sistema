@@ -867,6 +867,18 @@ export const COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS = [
   { value: "sem_contrato", label: "Sem contrato" },
 ] as const;
 
+/** Setor da pessoa (Comissão Técnica/Diretoria) — pedido do Mateus em 14/11/2026, pra sub-agrupar
+ * a listagem dentro dos blocos Profissional/Base que já existem (ver `app/comissao-tecnica/
+ * page.tsx`). Opcional — nem toda pessoa precisa ter (quem já estava cadastrado antes desse campo
+ * existir fica sem setor, agrupado à parte). */
+export const SETOR_COMISSAO_TECNICA_OPTIONS = [
+  { value: "departamento_medico", label: "Departamento Médico" },
+  { value: "departamento_tecnico", label: "Departamento Técnico" },
+  { value: "administrativo", label: "Administrativo" },
+  { value: "diretoria", label: "Diretoria" },
+  { value: "operacional", label: "Operacional" },
+] as const;
+
 export const comissaoTecnicaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
   apelido: z.string().optional().or(z.literal("")),
@@ -879,11 +891,38 @@ export const comissaoTecnicaSchema = z.object({
   tipoContrato: z.enum(["clt", "pj", "sem_contrato"]).optional().nullable().or(z.literal("")),
   valorSalario: z.coerce.number().nonnegative().optional().nullable(),
   dataInicio: z.string().optional().or(z.literal("")),
+  // Endereço estruturado único (pedido de 14/11/2026) — Profissional e Base juntos, sem a
+  // distinção origem/local que o atleta tem (ver `components/endereco-fields.tsx`).
+  ...enderecoFields,
+  setor: z
+    .enum(["departamento_medico", "departamento_tecnico", "administrativo", "diretoria", "operacional"])
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  // Dados de empresa e pagamento (pedido de 14/11/2026) — condicionados por `tipoContrato`, que já
+  // existia: "clt" pede Chave PIX + dados bancários completos (pro salário, mesmo conceito da seção
+  // PF do atleta — ver 0163); "pj" pede Nome da Empresa/CNPJ (já existiam antes só como texto
+  // livre) + Chave PIX da empresa (mesmo conceito da seção PJ do atleta). "sem_contrato" não pede
+  // nenhum desses campos. As `.refine` condicionais vivem em `comissaoTecnicaUnificadaSchema`
+  // abaixo (não aqui): `.refine` devolve um `ZodEffects`, que não tem `.extend()` — e tanto
+  // `comissaoTecnicaBaseSchema` quanto `comissaoTecnicaUnificadaSchema`, logo abaixo, precisam
+  // estender este schema com `categorias`.
+  chavePixTipo: chavePixTipoField,
+  chavePix: z.string().optional().or(z.literal("")),
+  banco: z.string().optional().or(z.literal("")),
+  agencia: z.string().optional().or(z.literal("")),
+  conta: z.string().optional().or(z.literal("")),
+  empresaNome: z.string().optional().or(z.literal("")),
+  empresaCnpj: z.string().optional().or(z.literal("")),
+  empresaChavePixTipo: chavePixTipoField,
+  empresaChavePix: z.string().optional().or(z.literal("")),
 });
 export type ComissaoTecnicaInput = z.infer<typeof comissaoTecnicaSchema>;
 
 /** Mesmo formulário de `comissaoTecnicaSchema`, mais a categoria de idade do Futebol de Base
- * (obrigatória — ver `lib/auth/categorias-base.ts`). */
+ * (obrigatória — ver `lib/auth/categorias-base.ts`). Legado/referência (ver comentário de
+ * `comissaoTecnicaUnificadaSchema` abaixo) — por isso não ganha os `.refine` de pagamento
+ * condicional; se algum dia voltar a ser usado, replique os `.refine` de lá. */
 export const comissaoTecnicaBaseSchema = comissaoTecnicaSchema.extend({
   // Uma pessoa pode atuar em mais de uma categoria (ex.: mesmo treinador no Sub-11 e no Sub-12) —
   // ver docs/superpowers/specs/2026-08-19-comissao-tecnica-multi-categoria-design.md.
@@ -898,12 +937,53 @@ export type ComissaoTecnicaBaseInput = z.infer<typeof comissaoTecnicaBaseSchema>
  * unificacao-comissao-tecnica-design.md), a tabela e o formulário são um só pros dois
  * departamentos, com "Profissional" tratado como mais uma categoria ao lado das 7 da Base (mesmo
  * padrão já usado em `copiarDiaProgramacaoSchema`, mais abaixo). Substitui `comissaoTecnicaSchema`/
- * `comissaoTecnicaBaseSchema` no cadastro interno — os dois ficam só pelo histórico/referência. */
-export const comissaoTecnicaUnificadaSchema = comissaoTecnicaSchema.extend({
-  categorias: z
-    .array(z.enum(["profissional", "sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"]))
-    .min(1, { message: "Selecione ao menos uma categoria" }),
-});
+ * `comissaoTecnicaBaseSchema` no cadastro interno — os dois ficam só pelo histórico/referência.
+ *
+ * Os `.refine` de pagamento condicional (14/11/2026) ficam aqui, depois do `.extend()` — `.refine`
+ * devolve um `ZodEffects`, que não tem `.extend()`, então eles não podem viver em
+ * `comissaoTecnicaSchema` (que `comissaoTecnicaBaseSchema`, acima, ainda precisa estender). */
+export const comissaoTecnicaUnificadaSchema = comissaoTecnicaSchema
+  .extend({
+    categorias: z
+      .array(z.enum(["profissional", "sub20", "sub17", "sub15", "sub14", "sub13", "sub12", "sub11"]))
+      .min(1, { message: "Selecione ao menos uma categoria" }),
+  })
+  .refine((data) => data.tipoContrato !== "clt" || Boolean(data.chavePix?.trim()), {
+    message: "Informe a Chave PIX",
+    path: ["chavePix"],
+  })
+  .refine((data) => chavePixValida(data.chavePix, data.chavePixTipo), {
+    message: "Chave PIX incompleta para o tipo selecionado",
+    path: ["chavePix"],
+  })
+  .refine((data) => data.tipoContrato !== "clt" || Boolean(data.banco?.trim()), {
+    message: "Informe o banco",
+    path: ["banco"],
+  })
+  .refine((data) => data.tipoContrato !== "clt" || Boolean(data.agencia?.trim()), {
+    message: "Informe a agência",
+    path: ["agencia"],
+  })
+  .refine((data) => data.tipoContrato !== "clt" || Boolean(data.conta?.trim()), {
+    message: "Informe a conta",
+    path: ["conta"],
+  })
+  .refine((data) => data.tipoContrato !== "pj" || Boolean(data.empresaNome?.trim()), {
+    message: "Informe o nome da empresa",
+    path: ["empresaNome"],
+  })
+  .refine((data) => data.tipoContrato !== "pj" || Boolean(data.empresaCnpj?.trim()), {
+    message: "Informe o CNPJ da empresa",
+    path: ["empresaCnpj"],
+  })
+  .refine((data) => data.tipoContrato !== "pj" || Boolean(data.empresaChavePix?.trim()), {
+    message: "Informe a Chave PIX da empresa",
+    path: ["empresaChavePix"],
+  })
+  .refine((data) => chavePixValida(data.empresaChavePix, data.empresaChavePixTipo), {
+    message: "Chave PIX incompleta para o tipo selecionado",
+    path: ["empresaChavePix"],
+  });
 export type ComissaoTecnicaUnificadaInput = z.infer<typeof comissaoTecnicaUnificadaSchema>;
 
 /** Campo obrigatório do formulário público de Comissão Técnica — TODOS os campos são obrigatórios

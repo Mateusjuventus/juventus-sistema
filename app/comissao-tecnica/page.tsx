@@ -1,17 +1,31 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { SearchBar } from "@/components/search-bar";
-import { DeleteButton } from "@/components/delete-button";
 import { CadastroPublicoToggle } from "@/components/cadastro-publico-toggle";
+import { ComissaoCard } from "@/components/comissao-card";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
-import { formatCPF } from "@/lib/validation/cpf";
-import { formatTelefone } from "@/lib/validation/telefone";
 import { getCategoriasBasePermitidas, getDepartamentosPermitidos } from "@/lib/auth/role";
 import { CATEGORIAS_COMISSAO_TECNICA, ehCategoriaComissaoTecnicaValida } from "@/lib/auth/categorias-base";
+import { SETOR_COMISSAO_TECNICA_OPTIONS } from "@/lib/validation/schemas";
 import type { ComissaoTecnicaRow, ConfiguracaoCadastroComissaoTecnicaRow } from "@/lib/supabase/types";
-import { deleteComissao } from "./actions";
 import { alternarCadastroPublicoComissaoTecnica } from "./cadastro-publico-actions";
+
+const SETOR_LABEL: Record<string, string> = Object.fromEntries(
+  SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => [o.value, o.label]),
+);
+
+/** Agrupa a lista de pessoas de um bloco (Profissional/Base) pelo Setor — pedido do Mateus em
+ * 14/11/2026 (item 8, ponto 4). Segue a ordem de `SETOR_COMISSAO_TECNICA_OPTIONS`; quem não tem
+ * setor cadastrado vai pro grupo "Sem setor", sempre por último. Grupos sem ninguém não aparecem. */
+function agruparPorSetor(pessoas: ComissaoTecnicaRow[]): { label: string; pessoas: ComissaoTecnicaRow[] }[] {
+  const grupos = SETOR_COMISSAO_TECNICA_OPTIONS.map((opcao) => ({
+    label: opcao.label,
+    pessoas: pessoas.filter((p) => p.setor === opcao.value),
+  }));
+  const semSetor = pessoas.filter((p) => !p.setor);
+  return [...grupos, { label: "Sem setor", pessoas: semSetor }].filter((grupo) => grupo.pessoas.length > 0);
+}
 
 /**
  * Lista única da Comissão Técnica/Diretoria — Profissional e Base unificados num só cadastro, com
@@ -161,61 +175,37 @@ export default async function ComissaoTecnicaPage({
                 </span>
               </span>
             </summary>
-            <div className="border-t border-neutral-100 tabela-rolavel">
-              <table className="w-full min-w-[820px] text-left text-sm">
-                <thead className="bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-4 py-3">Foto</th>
-                    <th className="px-4 py-3">Nome</th>
-                    <th className="px-4 py-3">Função</th>
-                    <th className="px-4 py-3">Categoria(s)</th>
-                    <th className="px-4 py-3">CPF</th>
-                    <th className="px-4 py-3">Telefone</th>
-                    <th className="px-4 py-3">E-mail</th>
-                    <th className="px-4 py-3 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {bloco.pessoas.map((p) => {
-                    const fotoUrl = fotoUrlPorId.get(p.id) ?? null;
-                    return (
-                      <tr key={p.id}>
-                        <td className="px-4 py-3">
-                          {fotoUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={fotoUrl} alt={p.nome_completo} className="h-10 w-10 rounded-full object-cover" />
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-neutral-100" />
-                          )}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-neutral-800">{p.nome_completo}</td>
-                        <td className="px-4 py-3">{p.funcao}</td>
-                        <td className="px-4 py-3">
-                          {p.categorias.map((c) => CATEGORIAS_COMISSAO_TECNICA.find((o) => o.value === c)?.label ?? c).join(" · ")}
-                        </td>
-                        <td className="px-4 py-3">{formatCPF(p.cpf)}</td>
-                        <td className="px-4 py-3">{p.telefone ? formatTelefone(p.telefone) : "—"}</td>
-                        <td className="px-4 py-3">{p.email ?? "—"}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            <Link href={`/comissao-tecnica/${p.id}`} className="btn-secondary">
-                              Editar
-                            </Link>
-                            <DeleteButton action={deleteComissao} id={p.id} entityLabel="registro" />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {bloco.pessoas.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-6 text-center text-neutral-400">
-                        Nenhum registro nessa categoria.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+            <div className="border-t border-neutral-100 p-4">
+              {bloco.pessoas.length === 0 ? (
+                <p className="py-6 text-center text-sm text-neutral-400">Nenhum registro nessa categoria.</p>
+              ) : (
+                <div className="space-y-5">
+                  {agruparPorSetor(bloco.pessoas).map((grupo) => (
+                    <div key={grupo.label}>
+                      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                        {grupo.label}{" "}
+                        <span className="font-normal text-neutral-300">
+                          ({grupo.pessoas.length} pessoa{grupo.pessoas.length === 1 ? "" : "s"})
+                        </span>
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                        {grupo.pessoas.map((p) => (
+                          <ComissaoCard
+                            key={p.id}
+                            id={p.id}
+                            nome={p.nome_completo}
+                            apelido={p.apelido}
+                            fotoUrl={fotoUrlPorId.get(p.id) ?? null}
+                            funcao={p.funcao}
+                            setorLabel={p.setor ? SETOR_LABEL[p.setor] ?? p.setor : null}
+                            ativo={p.ativo}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </details>
         ))}
