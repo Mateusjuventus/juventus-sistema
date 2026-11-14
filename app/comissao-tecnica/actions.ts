@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFotoRedimensionada } from "@/lib/supabase/storage";
-import { comissaoTecnicaUnificadaSchema } from "@/lib/validation/schemas";
+import { comissaoTecnicaUnificadaSchema, normalizarSetorComissaoTecnica } from "@/lib/validation/schemas";
 import { normalizeCPF } from "@/lib/validation/cpf";
 import { normalizeTelefone } from "@/lib/validation/telefone";
 
@@ -44,7 +44,10 @@ function parseForm(formData: FormData) {
     bairro: String(formData.get("bairro") ?? ""),
     cidade: String(formData.get("cidade") ?? ""),
     uf: String(formData.get("uf") ?? ""),
-    setor: String(formData.get("setor") ?? "") || undefined,
+    // Texto livre desde 14/11/2026 — normaliza pra um dos 5 slugs fixos quando bate com um dos
+    // rótulos de sempre (ver `normalizarSetorComissaoTecnica`), ou mantém como um Setor novo
+    // "criado na hora" quando não bate com nenhum.
+    setor: normalizarSetorComissaoTecnica(String(formData.get("setor") ?? "")),
     chavePixTipo: String(formData.get("chavePixTipo") ?? ""),
     chavePix: String(formData.get("chavePix") ?? ""),
     banco: String(formData.get("banco") ?? ""),

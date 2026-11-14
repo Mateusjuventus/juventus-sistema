@@ -879,6 +879,23 @@ export const SETOR_COMISSAO_TECNICA_OPTIONS = [
   { value: "operacional", label: "Operacional" },
 ] as const;
 
+/** Normaliza o texto digitado no campo Setor (`SuggestionField` em `comissao-form.tsx` — virou
+ * texto livre em 14/11/2026, pedido do Mateus: "na própria lista, colocar Criar Novo setor" em vez
+ * de uma tela de administração separada). Se o que foi digitado bater (sem diferenciar
+ * maiúscula/acento) com um dos 5 rótulos fixos de `SETOR_COMISSAO_TECNICA_OPTIONS`, devolve o MESMO
+ * slug de sempre — assim continua agrupando junto de quem já tinha esse Setor antes da mudança.
+ * Qualquer outro texto é um Setor novo "criado na hora": devolve exatamente como foi digitado (sem
+ * slug), que é como esses vão ficar salvos e reaparecer como sugestão da próxima vez (ver
+ * `lib/futebol/setores-comissao-tecnica.ts`). */
+export function normalizarSetorComissaoTecnica(valor: string): string | undefined {
+  const texto = valor.trim();
+  if (!texto) return undefined;
+  const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const chave = semAcento(texto);
+  const conhecido = SETOR_COMISSAO_TECNICA_OPTIONS.find((o) => semAcento(o.label) === chave || o.value === chave);
+  return conhecido ? conhecido.value : texto;
+}
+
 export const comissaoTecnicaSchema = z.object({
   nomeCompleto: z.string().min(1, { message: "Nome completo é obrigatório" }),
   apelido: z.string().optional().or(z.literal("")),
@@ -894,11 +911,10 @@ export const comissaoTecnicaSchema = z.object({
   // Endereço estruturado único (pedido de 14/11/2026) — Profissional e Base juntos, sem a
   // distinção origem/local que o atleta tem (ver `components/endereco-fields.tsx`).
   ...enderecoFields,
-  setor: z
-    .enum(["departamento_medico", "departamento_tecnico", "administrativo", "diretoria", "operacional"])
-    .optional()
-    .nullable()
-    .or(z.literal("")),
+  // Texto livre desde 14/11/2026 (era um `z.enum` fechado nos 5 valores fixos) — o valor que chega
+  // aqui já vem normalizado por `normalizarSetorComissaoTecnica` (ver `actions.ts`), então só
+  // precisa aceitar qualquer string.
+  setor: z.string().trim().optional().nullable().or(z.literal("")),
   // Dados de empresa e pagamento (pedido de 14/11/2026) — condicionados por `tipoContrato`, que já
   // existia: "clt" pede Chave PIX + dados bancários completos (pro salário, mesmo conceito da seção
   // PF do atleta — ver 0163); "pj" pede Nome da Empresa/CNPJ (já existiam antes só como texto

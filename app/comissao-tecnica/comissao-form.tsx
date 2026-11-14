@@ -33,6 +33,7 @@ export function ComissaoForm({
   fotoUrl,
   submitLabel,
   podeVerSalario = true,
+  setoresExistentes,
 }: {
   action: (prevState: ComissaoFormState, formData: FormData) => Promise<ComissaoFormState>;
   entityId?: string;
@@ -45,6 +46,11 @@ export function ComissaoForm({
    * formulário (nem o valor atual é passado em `defaultValues` por quem chama) e, por não ser
    * enviado no `formData`, o salário salvo no banco não é alterado ao gravar o resto do cadastro. */
   podeVerSalario?: boolean;
+  /** Sugestões do campo Setor (ver `SuggestionField` abaixo) — os 5 rótulos fixos de sempre mais
+   * qualquer Setor "criado na hora" que já exista em outro cadastro (`lib/futebol/
+   * setores-comissao-tecnica.ts`, buscado por quem chama). Opcional pra não quebrar quem ainda não
+   * passa (cai só nos 5 fixos). */
+  setoresExistentes?: string[];
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
@@ -53,6 +59,12 @@ export function ComissaoForm({
   // Decide se mostra os campos de pagamento de CLT (Chave PIX + Banco/Agência/Conta) ou de PJ
   // (Nome da Empresa/CNPJ + Chave PIX da empresa) — pedido do Mateus em 14/11/2026.
   const [tipoContrato, setTipoContrato] = useState(values.tipoContrato ?? "");
+  // `values.setor` guarda o slug de sempre pra quem já tinha um dos 5 Setores fixos (ex.:
+  // "departamento_medico") — convertido aqui pro rótulo (ex.: "Departamento Médico") só pra exibir
+  // no campo, já que agora é texto livre (ver `SuggestionField` abaixo). Um Setor "criado na hora"
+  // não tem slug (é o próprio texto digitado), então passa direto.
+  const setorExibido =
+    SETOR_COMISSAO_TECNICA_OPTIONS.find((o) => o.value === values.setor)?.label ?? values.setor ?? "";
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -185,14 +197,14 @@ export function ComissaoForm({
             defaultValue={values.dataInicio}
             error={errors.dataInicio}
           />
-          <SelectField label="Setor" name="setor" defaultValue={values.setor} error={errors.setor}>
-            <option value="">Não definido</option>
-            {SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </SelectField>
+          <SuggestionField
+            label="Setor"
+            name="setor"
+            defaultValue={setorExibido}
+            error={errors.setor}
+            placeholder="Selecione ou digite um Setor novo"
+            suggestions={setoresExistentes ?? SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => o.label)}
+          />
         </FieldGroup>
       </FormSection>
 

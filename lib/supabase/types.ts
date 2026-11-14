@@ -520,13 +520,9 @@ export type ComissaoTecnicaTipoContrato = "clt" | "pj" | "sem_contrato";
 
 /** Setor da pessoa — ver `SETOR_COMISSAO_TECNICA_OPTIONS` em `lib/validation/schemas.ts`. Opcional
  * (desde 14/11/2026, ver 0164_comissao_tecnica_ativo_endereco_pagamento_setor.sql) — sub-agrupa a
- * listagem dentro dos blocos Profissional/Base (ver `app/comissao-tecnica/page.tsx`). */
-export type SetorComissaoTecnica =
-  | "departamento_medico"
-  | "departamento_tecnico"
-  | "administrativo"
-  | "diretoria"
-  | "operacional";
+ * listagem dentro dos blocos Profissional/Base (ver `app/comissao-tecnica/page.tsx`). Texto livre
+ * desde a mesma data (ver 0165_comissao_tecnica_setor_livre.sql) — além dos 5 slugs fixos de
+ * sempre ("departamento_medico" etc.), pode ser qualquer Setor "criado na hora" pelo usuário. */
 
 export interface ComissaoTecnicaRow {
   id: string;
@@ -566,7 +562,7 @@ export interface ComissaoTecnicaRow {
   bairro: string | null;
   cidade: string | null;
   uf: string | null;
-  setor: SetorComissaoTecnica | null;
+  setor: string | null;
   /** CLT: Chave PIX + dados bancários completos, pro salário. Só fazem sentido quando
    * `tipo_contrato` é "clt" (ver os `.refine` de `comissaoTecnicaSchema`). */
   chave_pix_tipo: string | null;

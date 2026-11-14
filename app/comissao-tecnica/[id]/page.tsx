@@ -5,16 +5,18 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
 import { podeVerCampoSensivel, getDepartamentosPermitidos } from "@/lib/auth/role";
+import { buscarSugestoesSetor } from "@/lib/futebol/setores-comissao-tecnica";
 import type { ComissaoTecnicaRow } from "@/lib/supabase/types";
 import { ComissaoForm } from "../comissao-form";
 import { updateComissao } from "../actions";
 
 export default async function EditarComissaoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const [{ data }, podeVerSalario, departamentosPermitidos] = await Promise.all([
+  const [{ data }, podeVerSalario, departamentosPermitidos, setoresExistentes] = await Promise.all([
     supabase.from("comissao_tecnica").select("*").eq("id", params.id).single(),
     podeVerCampoSensivel(supabase, "salario"),
     getDepartamentosPermitidos(supabase),
+    buscarSugestoesSetor(supabase),
   ]);
   // Tela única, aberta a partir da sidebar dos dois departamentos (ver docs/superpowers/specs/
   // 2026-10-28-unificacao-comissao-tecnica-design.md) — mostra a sidebar de quem só tem a Base
@@ -78,6 +80,7 @@ export default async function EditarComissaoPage({ params }: { params: { id: str
           fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"
           podeVerSalario={podeVerSalario}
+          setoresExistentes={setoresExistentes}
         />
       </div>
     </AppShell>

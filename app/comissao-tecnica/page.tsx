@@ -16,15 +16,32 @@ const SETOR_LABEL: Record<string, string> = Object.fromEntries(
 );
 
 /** Agrupa a lista de pessoas de um bloco (Profissional/Base) pelo Setor — pedido do Mateus em
- * 14/11/2026 (item 8, ponto 4). Segue a ordem de `SETOR_COMISSAO_TECNICA_OPTIONS`; quem não tem
- * setor cadastrado vai pro grupo "Sem setor", sempre por último. Grupos sem ninguém não aparecem. */
+ * 14/11/2026 (item 8, ponto 4). Segue a ordem de `SETOR_COMISSAO_TECNICA_OPTIONS` primeiro, depois
+ * qualquer Setor "criado na hora" (texto livre, mesmo dia — ver `normalizarSetorComissaoTecnica`)
+ * em ordem alfabética, e por último quem não tem setor cadastrado ("Sem setor"). Grupos sem
+ * ninguém não aparecem.
+ *
+ * Antes desta revisão, um Setor fora dos 5 fixos não caía em NENHUM grupo (nem nos 5, nem em "Sem
+ * setor", que só pega `null`) e a pessoa simplesmente sumia da listagem — inofensivo enquanto o
+ * campo era um `<select>` fechado (não dava pra digitar um valor assim), mas virava bug real assim
+ * que o campo passou a aceitar texto livre. */
 function agruparPorSetor(pessoas: ComissaoTecnicaRow[]): { label: string; pessoas: ComissaoTecnicaRow[] }[] {
-  const grupos = SETOR_COMISSAO_TECNICA_OPTIONS.map((opcao) => ({
+  const slugsConhecidos = new Set(SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => o.value));
+  const gruposConhecidos = SETOR_COMISSAO_TECNICA_OPTIONS.map((opcao) => ({
     label: opcao.label,
     pessoas: pessoas.filter((p) => p.setor === opcao.value),
   }));
+  const setoresCustom = Array.from(
+    new Set(pessoas.map((p) => p.setor).filter((s): s is string => !!s && !slugsConhecidos.has(s))),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const gruposCustom = setoresCustom.map((label) => ({
+    label,
+    pessoas: pessoas.filter((p) => p.setor === label),
+  }));
   const semSetor = pessoas.filter((p) => !p.setor);
-  return [...grupos, { label: "Sem setor", pessoas: semSetor }].filter((grupo) => grupo.pessoas.length > 0);
+  return [...gruposConhecidos, ...gruposCustom, { label: "Sem setor", pessoas: semSetor }].filter(
+    (grupo) => grupo.pessoas.length > 0,
+  );
 }
 
 /**
@@ -188,7 +205,12 @@ export default async function ComissaoTecnicaPage({
                           ({grupo.pessoas.length} pessoa{grupo.pessoas.length === 1 ? "" : "s"})
                         </span>
                       </h3>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                      {/* Mesma grade "auto-fill" do card de Atleta (ver `atletas-resumo-filtros.tsx`)
+                          — pedido do Mateus em 14/11/2026 de deixar os cards "no padrão dos
+                          atletas": com o card mais estreito (3:4 em vez de quadrado), cabem mais
+                          colunas por linha nesse mesmo espaço, e o número de colunas se ajusta
+                          sozinho à largura disponível em vez de pontos de quebra fixos. */}
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-3">
                         {grupo.pessoas.map((p) => (
                           <ComissaoCard
                             key={p.id}

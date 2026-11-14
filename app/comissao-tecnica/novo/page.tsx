@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { getDepartamentosPermitidos } from "@/lib/auth/role";
 import { createClient } from "@/lib/supabase/server";
 import { ehCategoriaComissaoTecnicaValida } from "@/lib/auth/categorias-base";
+import { buscarSugestoesSetor } from "@/lib/futebol/setores-comissao-tecnica";
 import { ComissaoForm } from "../comissao-form";
 import { createComissao } from "../actions";
 
@@ -16,7 +17,10 @@ export default async function NovaComissaoPage({
   searchParams: { categoria?: string };
 }) {
   const supabase = createClient();
-  const departamentosPermitidos = await getDepartamentosPermitidos(supabase);
+  const [departamentosPermitidos, setoresExistentes] = await Promise.all([
+    getDepartamentosPermitidos(supabase),
+    buscarSugestoesSetor(supabase),
+  ]);
   const departamento =
     !departamentosPermitidos.includes("futebol_profissional") && departamentosPermitidos.includes("futebol_base")
       ? "futebol_base"
@@ -30,7 +34,12 @@ export default async function NovaComissaoPage({
       </Link>
       <h1 className="mt-2 text-2xl font-bold text-grena-escuro">Nova pessoa — Comissão Técnica/Diretoria</h1>
       <div className="mt-4">
-        <ComissaoForm action={createComissao} categoriasIniciais={categoria} submitLabel="Cadastrar" />
+        <ComissaoForm
+          action={createComissao}
+          categoriasIniciais={categoria}
+          submitLabel="Cadastrar"
+          setoresExistentes={setoresExistentes}
+        />
       </div>
     </AppShell>
   );
