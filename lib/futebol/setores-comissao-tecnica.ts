@@ -9,7 +9,10 @@ import { SETOR_COMISSAO_TECNICA_OPTIONS } from "@/lib/validation/schemas";
  * zero. Chamada por `app/comissao-tecnica/novo/page.tsx` e `app/comissao-tecnica/[id]/page.tsx`.
  */
 export async function buscarSugestoesSetor(supabase: ReturnType<typeof createClient>): Promise<string[]> {
-  const slugsConhecidos = new Set(SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => o.value));
+  // `Set<string>` explícito: sem isso o TS infere o tipo literal dos 5 slugs (por causa do `as
+  // const` de `SETOR_COMISSAO_TECNICA_OPTIONS`) e `.has(s)` com um `string` qualquer (o Setor
+  // "criado na hora") não compila — quebrou o build de produção (ver erro do Vercel, 16/11/2026).
+  const slugsConhecidos = new Set<string>(SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => o.value));
   const { data } = await supabase.from("comissao_tecnica").select("setor").not("setor", "is", null);
   const setoresCustom = Array.from(
     new Set(

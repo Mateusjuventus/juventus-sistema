@@ -26,7 +26,10 @@ const SETOR_LABEL: Record<string, string> = Object.fromEntries(
  * campo era um `<select>` fechado (não dava pra digitar um valor assim), mas virava bug real assim
  * que o campo passou a aceitar texto livre. */
 function agruparPorSetor(pessoas: ComissaoTecnicaRow[]): { label: string; pessoas: ComissaoTecnicaRow[] }[] {
-  const slugsConhecidos = new Set(SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => o.value));
+  // `Set<string>` explícito: sem isso o TS infere o tipo literal dos 5 slugs (por causa do `as
+  // const` de `SETOR_COMISSAO_TECNICA_OPTIONS`) e `.has(s)` com um `string` qualquer (o Setor
+  // "criado na hora") não compila — quebrou o build de produção (ver erro do Vercel, 16/11/2026).
+  const slugsConhecidos = new Set<string>(SETOR_COMISSAO_TECNICA_OPTIONS.map((o) => o.value));
   const gruposConhecidos = SETOR_COMISSAO_TECNICA_OPTIONS.map((opcao) => ({
     label: opcao.label,
     pessoas: pessoas.filter((p) => p.setor === opcao.value),
