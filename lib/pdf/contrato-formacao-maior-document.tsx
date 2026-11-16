@@ -46,6 +46,16 @@ import { CORES } from "./logistica-shared";
  * Cabeçalho/rodapé usam imagens PRÓPRIAS deste modelo (extraídas do mesmo `.docx`, dimensões
  * diferentes das do contrato de menor) — ver `public/brand/contrato-formacao-maior-cabecalho.png`/
  * `contrato-formacao-maior-rodape.png`.
+ *
+ * Bug relatado pelo Mateus em 16/11/2026 (print do PDF gerado): a assinatura do ATLETA aparecia
+ * duplicada (duas linhas "______/ATLETA" seguidas) nos dois blocos de assinatura (fim do contrato
+ * principal e fim das Cláusulas Adicionais). Causa: cada bloco tinha um `{ tipo: "linha" }` +
+ * `{ tipo: "centro", texto: "ATLETA", bold: true }` redundantes LOGO ANTES do `{ tipo:
+ * "assinaturaAtleta" }` — que já desenha sua própria linha + "ATLETA" (ver o `case
+ * "assinaturaAtleta"` abaixo). Esse combo fazia sentido no contrato de MENOR (`contrato-formacao-
+ * document.tsx`), onde o "ATLETA" em negrito é o título da seção, seguido de PAI/MÃE — aqui não,
+ * porque o ATLETA assina sozinho. Removidos os dois pares redundantes; cada bloco agora desenha só
+ * uma linha de assinatura.
  */
 
 export interface ContratoFormacaoMaiorCampos {
@@ -595,8 +605,6 @@ const BLOCOS: Bloco[] = [
     esquerda: "JUVENTUS SAF\nLucas Soler Petarello de Oliveira\nPresidente do Conselho de Administração",
     direita: "JUVENTUS SAF\nJoão da Costa Minsoni\nMembro do Conselho Fiscal",
   },
-  { tipo: "linha" },
-  { tipo: "centro", texto: "ATLETA", bold: true },
   { tipo: "assinaturaAtleta" },
   { tipo: "testemunhas" },
 
@@ -650,8 +658,6 @@ const BLOCOS: Bloco[] = [
     esquerda: "JUVENTUS SAF\nLucas Soler Petarello de Oliveira\nPresidente do Conselho de Administração",
     direita: "JUVENTUS SAF\nJoão da Costa Minsoni\nMembro do Conselho Fiscal",
   },
-  { tipo: "linha" },
-  { tipo: "centro", texto: "ATLETA", bold: true },
   { tipo: "assinaturaAtleta" },
 ];
 
