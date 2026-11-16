@@ -34,6 +34,9 @@ function parseForm(formData: FormData) {
     tipoContrato: String(formData.get("tipoContrato") ?? ""),
     valorSalario: String(formData.get("valorSalario") ?? "") || undefined,
     dataInicio: String(formData.get("dataInicio") ?? ""),
+    // Vigência: Término — só existe no formulário (e só é salvo) quando o Tipo de contrato é "pj"
+    // (pedido do Mateus em 14/11/2026). Ver os dois `tipoContrato === "pj" ? ... : null` abaixo.
+    dataFim: String(formData.get("dataFim") ?? ""),
     // Endereço estruturado único, Setor e Dados de empresa/pagamento — pedido de 14/11/2026 (ver
     // docs/superpowers/specs/2026-11-04-atletas-desativacao-transicao-pagamento-design.md, item 8,
     // e o comentário de `comissaoTecnicaSchema` em lib/validation/schemas.ts).
@@ -120,6 +123,9 @@ export async function createComissao(
     tipo_contrato: data.tipoContrato || null,
     valor_salario: data.valorSalario ?? null,
     data_inicio: data.dataInicio || null,
+    // Vigência: Término só faz sentido pra PJ — zera no banco pros demais tipos de contrato, mesmo
+    // padrão já usado abaixo pros outros campos condicionados por `tipoContrato`.
+    data_fim: data.tipoContrato === "pj" ? data.dataFim || null : null,
     cep: data.cep || null,
     logradouro: data.logradouro || null,
     numero: data.numero || null,
@@ -176,6 +182,7 @@ export async function updateComissao(
     email: data.email || null,
     tipo_contrato: data.tipoContrato || null,
     data_inicio: data.dataInicio || null,
+    data_fim: data.tipoContrato === "pj" ? data.dataFim || null : null,
     cep: data.cep || null,
     logradouro: data.logradouro || null,
     numero: data.numero || null,

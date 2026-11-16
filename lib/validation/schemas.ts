@@ -908,6 +908,9 @@ export const comissaoTecnicaSchema = z.object({
   tipoContrato: z.enum(["clt", "pj", "sem_contrato"]).optional().nullable().or(z.literal("")),
   valorSalario: z.coerce.number().nonnegative().optional().nullable(),
   dataInicio: z.string().optional().or(z.literal("")),
+  // Vigência: Término — só faz sentido (e só aparece no formulário) quando `tipoContrato` é "pj";
+  // ver `comissao-form.tsx` e `actions.ts`, que zera no banco quando não é PJ.
+  dataFim: z.string().optional().or(z.literal("")),
   // Endereço estruturado único (pedido de 14/11/2026) — Profissional e Base juntos, sem a
   // distinção origem/local que o atleta tem (ver `components/endereco-fields.tsx`).
   ...enderecoFields,

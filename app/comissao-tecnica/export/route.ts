@@ -75,6 +75,9 @@ export async function GET(request: NextRequest) {
     "Tipo de contrato": tipoContratoLabel(p.tipo_contrato),
     ...(podeVerSalario ? { "Salário mensal": formatMoeda(p.valor_salario) } : {}),
     "Quando iniciou": formatData(p.data_inicio),
+    // Vigência: Término — só existe pra PJ (pedido do Mateus em 14/11/2026); em branco pros demais
+    // tipos de contrato, já que `p.data_fim` já vem `null` pra eles (ver `actions.ts`).
+    "Vigência: Término": formatData(p.data_fim),
   }));
 
   return buildXlsxResponse("comissao-tecnica.xlsx", [{ nome: "Comissão Técnica", linhas }]);

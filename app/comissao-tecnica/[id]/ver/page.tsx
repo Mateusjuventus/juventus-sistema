@@ -5,6 +5,7 @@ import { FormSection, FieldGroup } from "@/components/fields";
 import { DetailField } from "@/components/detail-field";
 import { ComissaoAtivoButton } from "@/components/comissao-ativo-button";
 import { GerarFichaComissaoButton } from "@/components/gerar-ficha-comissao-button";
+import { camposFichaComissao } from "@/lib/futebol/ficha-comissao";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
@@ -97,7 +98,10 @@ export default async function VerComissaoPage({ params }: { params: { id: string
 
         <div className="flex flex-wrap gap-2">
           <ComissaoAtivoButton action={alternarComissaoAtivo} id={pessoa.id} ativo={pessoa.ativo} />
-          <GerarFichaComissaoButton id={pessoa.id} />
+          <GerarFichaComissaoButton
+            pdfHrefBase={`/comissao-tecnica/${pessoa.id}/ficha/pdf`}
+            campos={camposFichaComissao(pessoa.tipo_contrato)}
+          />
           <Link href={`/comissao-tecnica/${pessoa.id}`} className="btn-primary">
             Editar
           </Link>
@@ -133,7 +137,13 @@ export default async function VerComissaoPage({ params }: { params: { id: string
               value={pessoa.tipo_contrato ? TIPO_CONTRATO_LABEL[pessoa.tipo_contrato] ?? pessoa.tipo_contrato : null}
             />
             <DetailField label="Setor" value={pessoa.setor ? SETOR_LABEL[pessoa.setor] ?? pessoa.setor : null} />
-            <DetailField label="Quando iniciou" value={pessoa.data_inicio ? formatData(pessoa.data_inicio) : null} />
+            <DetailField
+              label={pessoa.tipo_contrato === "pj" ? "Vigência: Início" : "Quando iniciou"}
+              value={pessoa.data_inicio ? formatData(pessoa.data_inicio) : null}
+            />
+            {pessoa.tipo_contrato === "pj" ? (
+              <DetailField label="Vigência: Término" value={pessoa.data_fim ? formatData(pessoa.data_fim) : null} />
+            ) : null}
             {podeVerSalario ? (
               <DetailField
                 label="Salário mensal"

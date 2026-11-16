@@ -191,12 +191,24 @@ export function ComissaoForm({
             />
           ) : null}
           <TextField
-            label="Quando iniciou"
+            // Pra PJ, este campo vira o "Início" do par de Vigência (pedido do Mateus em
+            // 14/11/2026) — o "Término" aparece logo abaixo, só nesse caso. Pros demais tipos de
+            // contrato continua sendo só "Quando iniciou", sem par de vigência.
+            label={tipoContrato === "pj" ? "Vigência: Início" : "Quando iniciou"}
             name="dataInicio"
             type="date"
             defaultValue={values.dataInicio}
             error={errors.dataInicio}
           />
+          {tipoContrato === "pj" ? (
+            <TextField
+              label="Vigência: Término"
+              name="dataFim"
+              type="date"
+              defaultValue={values.dataFim}
+              error={errors.dataFim}
+            />
+          ) : null}
           <SuggestionField
             label="Setor"
             name="setor"

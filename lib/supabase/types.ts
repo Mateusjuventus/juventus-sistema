@@ -546,6 +546,10 @@ export interface ComissaoTecnicaRow {
   apelido: string | null;
   tipo_contrato: ComissaoTecnicaTipoContrato | null;
   data_inicio: string | null;
+  /** Vigência: Término — só preenchido/mostrado quando `tipo_contrato` é "pj" (pedido do Mateus em
+   * 14/11/2026, ver 0166_comissao_tecnica_vigencia_pj.sql). Pra CLT/sem contrato, `data_inicio`
+   * continua sendo só "Quando iniciou", sem par de vigência. */
+  data_fim: string | null;
   /** Salário mensal — mesmo campo que já existia em `ComissaoTecnicaBaseRow` (ver
    * docs/superpowers/specs/2026-08-19-financeiro-base-design.md), agora também no Profissional. */
   valor_salario: number | null;
