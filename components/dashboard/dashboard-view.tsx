@@ -9,6 +9,7 @@ import {
   IconProgramacao,
   IconSolicitacoes,
 } from "@/components/module-icons";
+import { AtletaAvatarCirculo } from "@/components/atleta-avatar";
 import { diasEntre, type Urgencia } from "@/lib/futebol/calendario";
 import type {
   Aniversariante,
@@ -44,20 +45,18 @@ import type {
  * barra/linha) nos 7 blocos — são listas de itens de ação, não métricas contínuas, e forçar um
  * gráfico aqui seria exatamente o anti-padrão que a própria skill adverte contra.
  *
- * Cada prop de bloco é `null` quando o módulo correspondente não está liberado pro usuário em
- * NENHUM dos departamentos que ele tem (o bloco inteiro não aparece) ou um objeto com `itens`
- * (lista vazia = mostra o card com o estado vazio, igual ao resto do sistema — "Nenhum registro
- * nessa categoria." em `app/atletas/page.tsx`, por exemplo). "Programação de hoje" é a única
- * exceção: a Programação não tem módulo com checkbox próprio (ver `lib/programacao/
- * permissoes.ts`), então é sempre visível pra quem chega até aqui.
- *
- * "Clicável" (pedido do Mateus) é resolvido de dois jeitos, dependendo se o bloco tem uma tela
- * cheia correspondente de verdade: Próximos Jogos, Atletas no DM, Solicitações Pendentes e
- * Programação de Hoje linkam o CARD inteiro pra sua listagem (jogos/atletas/solicitações/
- * programação); Contratos a Vencer, Aniversariantes e Alertas de Prazo não têm uma "tela cheia"
- * própria no sistema (não existe relatório de "contratos vencendo" nem "aniversariantes do mês"),
- * então cada LINHA vira o link, direto pro perfil/tela de origem daquele item específico — mais
- * útil do que inventar uma tela de destino que não existe.
+ * Revisão de 16/11/2026 (pedido do Mateus: "está muito grande e fica muita informação solta...
+ * Mais dinâmico... melhor layout" — validado com um mockup antes de tocar aqui, ver o Artifact
+ * linkado na conversa): três mudanças estruturais, sem abrir mão de nada do parágrafo acima.
+ * (1) Os 7 `KpiTile` grandes (que duplicavam o número que cada card já mostra) viraram `KpiPill`,
+ * uma fileira só de pílulas pequenas — clicar numa realça o grupo correspondente (`focusedGroup`,
+ * client-only, não filtra nada, só chama atenção visualmente). (2) Os 7 cards, que ficavam soltos
+ * lado a lado numa grade só, agora vêm agrupados em 3 blocos com rótulo (`GrupoDashboard`):
+ * Agenda (Jogos + Programação), Prazos & pendências (Contratos + Alertas + Solicitações) e
+ * Pessoas (Aniversariantes + DM) — mesmos cards de sempre, só reorganizados. (3) O card de
+ * Solicitações (até 5 itens, mais que os outros) ganhou "Mostrar mais" — só os 3 primeiros
+ * aparecem de cara (`expandedSolic`). Cada `CardDashboard` ganhou uma barra colorida fina no topo
+ * (cor do próprio módulo, mesma var `cor` de sempre) só pra identificar o bloco mais rápido.
  */
 
 const COR_JOGOS = "#5C0A35";
@@ -129,9 +128,10 @@ function BadgeUrgencia({ urgencia, texto }: { urgencia: Urgencia; texto: string 
 }
 
 /** Casca comum dos 7 cards — ícone + título + contagem, com ou sem link no cabeçalho (ver doc
- * comment do arquivo: só os blocos com uma tela cheia de verdade linkam o card inteiro). Sombra
- * reage ao hover quando o card é clicável — reforço visual do "interativo" pedido pelo Mateus,
- * sem introduzir nenhuma cor nova. */
+ * comment do arquivo: só os blocos com uma tela cheia de verdade linkam o card inteiro). A barra
+ * colorida no topo (cor do próprio módulo) e a sombra no hover (sempre, não só quando clicável)
+ * entraram na revisão de 16/11/2026 — reforço visual pra identificar/"sentir" cada bloco mais
+ * rápido numa tela com vários cards juntos, sem introduzir nenhuma cor nova. */
 function CardDashboard({
   titulo,
   icone,
@@ -165,7 +165,7 @@ function CardDashboard({
   );
 
   return (
-    <div className={`card flex flex-col gap-3 p-5 transition-shadow ${href ? "hover:shadow-md" : ""}`}>
+    <div className="card flex flex-col gap-3 p-5 transition-shadow hover:shadow-md" style={{ borderTop: `3px solid ${cor}` }}>
       {href ? (
         <Link href={href} className="group -m-1 rounded-md p-1 transition-colors hover:bg-neutral-50">
           {cabecalho}
@@ -211,36 +211,64 @@ function filtrarPorDepartamento<T extends { departamento?: DepartamentoDashboard
   return itens.filter((item) => item.departamento === filtro);
 }
 
-/** Um "ladrilho" do resumo numérico do topo — número grande + rótulo + ícone (mesmo ícone do card
- * do bloco, pra ligar visualmente os dois). `urgente` só é `true` pra blocos com noção real de
- * prazo (Jogos iminentes, Contratos/Solicitações perto do fim, Alertas) — Aniversariantes,
- * Acompanhamento no DM e Programação não têm prazo, então nunca emprestam a paleta de urgência
- * (ela é reservada pra isso, ver comentário da paleta acima). */
-function KpiTile({
+/** Pílula compacta do resumo numérico do topo — substituiu o `KpiTile` grande (card inteiro por
+ * bloco) na revisão de 16/11/2026: mesma informação (ícone + número + rótulo + urgência), só numa
+ * fileira só em vez de uma grade de 7 cards grandes, que era boa parte do "painel grande/
+ * informação solta" que o Mateus reclamou. Clicar realça o grupo correspondente (`ativo`) — ver
+ * `GrupoDashboard` — sem filtrar nada, só pra guiar o olho. */
+function KpiPill({
   label,
   valor,
   icone,
   cor,
   urgente,
+  ativo,
+  onClick,
 }: {
   label: string;
   valor: number;
   icone: ReactNode;
   cor: string;
-  urgente?: boolean;
+  urgente: boolean;
+  ativo: boolean;
+  onClick: () => void;
 }) {
   return (
-    <div className={`card flex items-center gap-3 p-4 ${urgente ? "ring-1 ring-[#C62828]/50" : ""}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded-full border bg-white py-1.5 pl-1.5 pr-3.5 text-left shadow-sm transition-all hover:shadow-md ${
+        ativo ? "border-grena bg-grena/5" : "border-linha"
+      }`}
+    >
       <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
         style={{ backgroundColor: `${cor}1A`, color: cor }}
       >
         {icone}
       </span>
-      <div className="flex min-w-0 flex-col">
-        <span className="text-2xl font-bold leading-none tabular-nums text-neutral-800">{valor}</span>
-        <span className="truncate text-xs text-neutral-500">{label}</span>
+      <span className="flex flex-col items-start leading-tight">
+        <span className="flex items-center gap-1.5">
+          <span className="text-[15px] font-bold tabular-nums text-neutral-800">{valor}</span>
+          {urgente ? <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#C62828]" aria-hidden="true" /> : null}
+        </span>
+        <span className="text-[11px] text-neutral-500">{label}</span>
+      </span>
+    </button>
+  );
+}
+
+/** Agrupador visual dos cards — Agenda / Prazos & pendências / Pessoas, ver doc comment do
+ * arquivo. `focado` (quando a `KpiPill` de um card deste grupo foi clicada) só acrescenta um fundo
+ * grená bem clarinho (`bg-grena/5`), nunca reordena nem esconde nada por dentro. */
+function GrupoDashboard({ titulo, focado, children }: { titulo: string; focado: boolean; children: ReactNode }) {
+  return (
+    <div className={`-m-2 flex flex-col gap-3 rounded-2xl p-2 transition-colors ${focado ? "bg-grena/5" : ""}`}>
+      <div className="flex items-center gap-3 px-1">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-grena-escuro/70">{titulo}</span>
+        <span className="h-px flex-1 bg-linha" />
       </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{children}</div>
     </div>
   );
 }
@@ -301,6 +329,8 @@ export function DashboardView({
   multiploDepartamento,
 }: DashboardViewProps) {
   const [filtro, setFiltro] = useState<"todos" | DepartamentoDashboard>("todos");
+  const [focusedGroup, setFocusedGroup] = useState<"agenda" | "prazos" | "pessoas" | null>(null);
+  const [expandedSolic, setExpandedSolic] = useState(false);
 
   // Reconstrói cada bloco com os itens já filtrados, preservando o mesmo formato ({ itens, href? }
   // | null) que o resto do componente já esperava antes da revisão de 14/11 — o filtro em si é só
@@ -316,7 +346,15 @@ export function DashboardView({
     ? { ...solicitacoes, itens: filtrarPorDepartamento(solicitacoes.itens, filtro) }
     : null;
 
-  const kpis: { key: string; label: string; valor: number; icone: ReactNode; cor: string; urgente: boolean }[] = [];
+  const kpis: {
+    key: string;
+    label: string;
+    valor: number;
+    icone: ReactNode;
+    cor: string;
+    urgente: boolean;
+    grupo: "agenda" | "prazos" | "pessoas";
+  }[] = [];
   if (jogosView) {
     kpis.push({
       key: "jogos",
@@ -325,6 +363,7 @@ export function DashboardView({
       icone: <IconJogos className="h-[18px] w-[18px]" />,
       cor: COR_JOGOS,
       urgente: jogosView.itens.some((j) => diasEntre(hojeStr, j.data_jogo) <= 2),
+      grupo: "agenda",
     });
   }
   if (contratosView) {
@@ -335,6 +374,7 @@ export function DashboardView({
       icone: <IconAssinaturaPendente className="h-[18px] w-[18px]" />,
       cor: COR_CONTRATOS,
       urgente: contratosView.itens.some((c) => urgenciaPorDias(diasEntre(hojeStr, c.vigenciaFim)) !== "ok"),
+      grupo: "prazos",
     });
   }
   if (aniversariantesView) {
@@ -359,6 +399,7 @@ export function DashboardView({
       ),
       cor: COR_ANIVERSARIO,
       urgente: false,
+      grupo: "pessoas",
     });
   }
   if (alertasView) {
@@ -369,6 +410,7 @@ export function DashboardView({
       icone: <IconAssinaturaPendente className="h-[18px] w-[18px]" />,
       cor: COR_ALERTAS,
       urgente: alertasView.itens.some((a) => a.urgencia === "urgente"),
+      grupo: "prazos",
     });
   }
   if (atletasDmView) {
@@ -379,6 +421,7 @@ export function DashboardView({
       icone: <IconDepartamentoMedico className="h-[18px] w-[18px]" />,
       cor: COR_DM,
       urgente: false,
+      grupo: "pessoas",
     });
   }
   if (solicitacoesView) {
@@ -391,6 +434,7 @@ export function DashboardView({
       urgente: solicitacoesView.itens.some(
         (s) => !!s.prazoSugerido && urgenciaPorDias(diasEntre(hojeStr, s.prazoSugerido)) !== "ok",
       ),
+      grupo: "prazos",
     });
   }
   kpis.push({
@@ -400,10 +444,23 @@ export function DashboardView({
     icone: <IconProgramacao className="h-[18px] w-[18px]" />,
     cor: COR_PROGRAMACAO,
     urgente: false,
+    grupo: "agenda",
   });
 
+  // Só os 3 primeiros do card de Solicitações aparecem de cara (até 5 vêm do servidor) — "Mostrar
+  // mais" (pedido do Mateus em 16/11/2026) revela o resto sem precisar ir pra tela cheia.
+  const solicitacoesVisiveis = solicitacoesView
+    ? expandedSolic
+      ? solicitacoesView.itens
+      : solicitacoesView.itens.slice(0, 3)
+    : [];
+  const solicitacoesRestantes = solicitacoesView ? Math.max(0, solicitacoesView.itens.length - 3) : 0;
+
+  const temGrupoPrazos = !!contratosView || !!alertasView || !!solicitacoesView;
+  const temGrupoPessoas = !!aniversariantesView || !!atletasDmView;
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {multiploDepartamento ? (
         <div className="flex flex-wrap gap-2">
           {CHIPS.map((chip) => (
@@ -419,13 +476,22 @@ export function DashboardView({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="flex flex-wrap gap-2">
         {kpis.map((kpi) => (
-          <KpiTile key={kpi.key} label={kpi.label} valor={kpi.valor} icone={kpi.icone} cor={kpi.cor} urgente={kpi.urgente} />
+          <KpiPill
+            key={kpi.key}
+            label={kpi.label}
+            valor={kpi.valor}
+            icone={kpi.icone}
+            cor={kpi.cor}
+            urgente={kpi.urgente}
+            ativo={focusedGroup === kpi.grupo}
+            onClick={() => setFocusedGroup((atual) => (atual === kpi.grupo ? null : kpi.grupo))}
+          />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <GrupoDashboard titulo="Agenda" focado={focusedGroup === "agenda"}>
         {jogosView ? (
           <CardDashboard
             titulo="Próximos jogos"
@@ -448,193 +514,6 @@ export function DashboardView({
                   </span>
                 </LinhaItem>
               ))
-            )}
-          </CardDashboard>
-        ) : null}
-
-        {contratosView ? (
-          <CardDashboard
-            titulo="Contratos a vencer"
-            icone={<IconAssinaturaPendente className="h-[18px] w-[18px]" />}
-            cor={COR_CONTRATOS}
-            contagem={contratosView.itens.length}
-          >
-            {contratosView.itens.length === 0 ? (
-              <Vazio
-                mensagem={mensagemVazio(
-                  "Nenhum contrato vencendo nos próximos 90 dias.",
-                  contratos!.itens.length,
-                  filtro,
-                )}
-              />
-            ) : (
-              contratosView.itens.map((c) => {
-                const dias = diasEntre(hojeStr, c.vigenciaFim);
-                const urgencia = urgenciaPorDias(dias);
-                return (
-                  <LinhaItem key={c.atletaId} href={`/atletas/${c.atletaId}`}>
-                    <span className="min-w-0 truncate text-neutral-700">{c.nomeCompleto}</span>
-                    <span className="flex shrink-0 items-center gap-1.5">
-                      <BadgeDepartamento departamento={c.departamento} />
-                      {urgencia !== "ok" ? (
-                        <BadgeUrgencia
-                          urgencia={urgencia}
-                          texto={dias === 0 ? "Hoje" : dias === 1 ? "Amanhã" : `${dias}d`}
-                        />
-                      ) : (
-                        <span className="text-xs text-neutral-400">{formatDataCurta(c.vigenciaFim)}</span>
-                      )}
-                    </span>
-                  </LinhaItem>
-                );
-              })
-            )}
-          </CardDashboard>
-        ) : null}
-
-        {aniversariantesView ? (
-          <CardDashboard
-            titulo="Aniversariantes do mês"
-            icone={
-              <svg
-                viewBox="0 0 24 24"
-                className="h-[18px] w-[18px]"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2v4M8 4v2M16 4v2" />
-                <path d="M4 10h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V10Z" />
-                <path d="M4 14c1 1 2 1 3 0s2-1 3 0 2 1 3 0 2-1 3 0 2 1 3 0" />
-              </svg>
-            }
-            cor={COR_ANIVERSARIO}
-            contagem={aniversariantesView.itens.length}
-          >
-            {aniversariantesView.itens.length === 0 ? (
-              <Vazio
-                mensagem={mensagemVazio("Nenhum aniversariante este mês.", aniversariantes!.itens.length, filtro)}
-              />
-            ) : (
-              aniversariantesView.itens.map((a) => (
-                <LinhaItem
-                  key={`${a.origem}-${a.id}`}
-                  href={a.origem === "atleta" ? `/atletas/${a.id}` : `/comissao-tecnica/${a.id}`}
-                >
-                  <span className="min-w-0 truncate text-neutral-700">{a.nomeCompleto}</span>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    <BadgeDepartamento departamento={a.departamento} />
-                    <span className="text-xs text-neutral-400">{formatDataCurta(a.dataNascimento)}</span>
-                  </span>
-                </LinhaItem>
-              ))
-            )}
-          </CardDashboard>
-        ) : null}
-
-        {alertasView ? (
-          <CardDashboard
-            titulo="Alertas de prazo"
-            icone={<IconAssinaturaPendente className="h-[18px] w-[18px]" />}
-            cor={COR_ALERTAS}
-            contagem={alertasView.itens.length}
-          >
-            {alertasView.itens.length === 0 ? (
-              <Vazio
-                mensagem={mensagemVazio("Nenhum prazo chegando nos próximos dias.", alertas!.itens.length, filtro)}
-              />
-            ) : (
-              alertasView.itens.map((a, i) => (
-                <LinhaItem key={i} href={a.href}>
-                  <div className="min-w-0">
-                    <p className="truncate text-neutral-700">{a.titulo}</p>
-                    {a.subtitulo ? <p className="truncate text-xs text-neutral-400">{a.subtitulo}</p> : null}
-                  </div>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    <BadgeDepartamento departamento={a.departamento} />
-                    <BadgeUrgencia
-                      urgencia={a.urgencia}
-                      texto={a.diasRestantes === 0 ? "Hoje" : a.diasRestantes === 1 ? "Amanhã" : `${a.diasRestantes}d`}
-                    />
-                  </span>
-                </LinhaItem>
-              ))
-            )}
-          </CardDashboard>
-        ) : null}
-
-        {atletasDmView ? (
-          <CardDashboard
-            titulo="Acompanhamento no DM"
-            icone={<IconDepartamentoMedico className="h-[18px] w-[18px]" />}
-            cor={COR_DM}
-            contagem={atletasDmView.itens.length}
-            href={atletasDmView.href}
-          >
-            {atletasDmView.itens.length === 0 ? (
-              <Vazio
-                mensagem={mensagemVazio(
-                  "Nenhum atleta em acompanhamento no DM.",
-                  atletasDm!.itens.length,
-                  filtro,
-                )}
-              />
-            ) : (
-              atletasDmView.itens.map((a) => (
-                <LinhaItem key={a.id}>
-                  <span className="min-w-0 truncate text-neutral-700">{a.nomeCompleto}</span>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    <BadgeDepartamento departamento={a.departamento} />
-                    <span className="text-xs text-neutral-400">{a.categoriaLabel}</span>
-                  </span>
-                </LinhaItem>
-              ))
-            )}
-          </CardDashboard>
-        ) : null}
-
-        {solicitacoesView ? (
-          <CardDashboard
-            titulo="Solicitações pendentes"
-            icone={<IconSolicitacoes className="h-[18px] w-[18px]" />}
-            cor={COR_SOLICITACOES}
-            contagem={solicitacoesView.itens.length}
-            href={solicitacoesView.href}
-          >
-            {solicitacoesView.itens.length === 0 ? (
-              <Vazio
-                mensagem={mensagemVazio("Nenhuma solicitação pendente.", solicitacoes!.itens.length, filtro)}
-              />
-            ) : (
-              solicitacoesView.itens.map((s) => {
-                // `prazoSugerido` é sugestão de quem abriu a solicitação — diferente de
-                // `vigenciaFim`/`data_fim` (sem garantia no banco de que fica no futuro), por
-                // isso trata `dias < 0` como "Atrasado" em vez de um rótulo negativo confuso.
-                const dias = s.prazoSugerido ? diasEntre(hojeStr, s.prazoSugerido) : null;
-                const urgencia = dias !== null ? urgenciaPorDias(Math.max(0, dias)) : null;
-                return (
-                  <LinhaItem key={s.id}>
-                    <span className="min-w-0 truncate text-neutral-700">
-                      Nº {String(s.numero).padStart(3, "0")} · {s.solicitante}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1.5">
-                      <BadgeDepartamento departamento={s.departamento} />
-                      {urgencia && urgencia !== "ok" && dias !== null ? (
-                        <BadgeUrgencia
-                          urgencia={urgencia}
-                          texto={dias < 0 ? "Atrasado" : dias === 0 ? "Hoje" : dias === 1 ? "Amanhã" : `${dias}d`}
-                        />
-                      ) : (
-                        <span className="text-xs text-neutral-400">
-                          {s.prazoSugerido ? formatDataCurta(s.prazoSugerido) : "sem prazo"}
-                        </span>
-                      )}
-                    </span>
-                  </LinhaItem>
-                );
-              })
             )}
           </CardDashboard>
         ) : null}
@@ -664,7 +543,214 @@ export function DashboardView({
             Ver semana completa
           </Link>
         </CardDashboard>
-      </div>
+      </GrupoDashboard>
+
+      {temGrupoPrazos ? (
+        <GrupoDashboard titulo="Prazos & pendências" focado={focusedGroup === "prazos"}>
+          {contratosView ? (
+            <CardDashboard
+              titulo="Contratos a vencer"
+              icone={<IconAssinaturaPendente className="h-[18px] w-[18px]" />}
+              cor={COR_CONTRATOS}
+              contagem={contratosView.itens.length}
+            >
+              {contratosView.itens.length === 0 ? (
+                <Vazio
+                  mensagem={mensagemVazio(
+                    "Nenhum contrato vencendo nos próximos 90 dias.",
+                    contratos!.itens.length,
+                    filtro,
+                  )}
+                />
+              ) : (
+                contratosView.itens.map((c) => {
+                  const dias = diasEntre(hojeStr, c.vigenciaFim);
+                  const urgencia = urgenciaPorDias(dias);
+                  return (
+                    <LinhaItem key={c.atletaId} href={`/atletas/${c.atletaId}`}>
+                      <span className="min-w-0 truncate text-neutral-700">{c.nomeCompleto}</span>
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        <BadgeDepartamento departamento={c.departamento} />
+                        {urgencia !== "ok" ? (
+                          <BadgeUrgencia
+                            urgencia={urgencia}
+                            texto={dias === 0 ? "Hoje" : dias === 1 ? "Amanhã" : `${dias}d`}
+                          />
+                        ) : (
+                          <span className="text-xs text-neutral-400">{formatDataCurta(c.vigenciaFim)}</span>
+                        )}
+                      </span>
+                    </LinhaItem>
+                  );
+                })
+              )}
+            </CardDashboard>
+          ) : null}
+
+          {alertasView ? (
+            <CardDashboard
+              titulo="Alertas de prazo"
+              icone={<IconAssinaturaPendente className="h-[18px] w-[18px]" />}
+              cor={COR_ALERTAS}
+              contagem={alertasView.itens.length}
+            >
+              {alertasView.itens.length === 0 ? (
+                <Vazio
+                  mensagem={mensagemVazio("Nenhum prazo chegando nos próximos dias.", alertas!.itens.length, filtro)}
+                />
+              ) : (
+                alertasView.itens.map((a, i) => (
+                  <LinhaItem key={i} href={a.href}>
+                    <div className="min-w-0">
+                      <p className="truncate text-neutral-700">{a.titulo}</p>
+                      {a.subtitulo ? <p className="truncate text-xs text-neutral-400">{a.subtitulo}</p> : null}
+                    </div>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <BadgeDepartamento departamento={a.departamento} />
+                      <BadgeUrgencia
+                        urgencia={a.urgencia}
+                        texto={a.diasRestantes === 0 ? "Hoje" : a.diasRestantes === 1 ? "Amanhã" : `${a.diasRestantes}d`}
+                      />
+                    </span>
+                  </LinhaItem>
+                ))
+              )}
+            </CardDashboard>
+          ) : null}
+
+          {solicitacoesView ? (
+            <CardDashboard
+              titulo="Solicitações pendentes"
+              icone={<IconSolicitacoes className="h-[18px] w-[18px]" />}
+              cor={COR_SOLICITACOES}
+              contagem={solicitacoesView.itens.length}
+              href={solicitacoesView.href}
+            >
+              {solicitacoesView.itens.length === 0 ? (
+                <Vazio
+                  mensagem={mensagemVazio("Nenhuma solicitação pendente.", solicitacoes!.itens.length, filtro)}
+                />
+              ) : (
+                solicitacoesVisiveis.map((s) => {
+                  // `prazoSugerido` é sugestão de quem abriu a solicitação — diferente de
+                  // `vigenciaFim`/`data_fim` (sem garantia no banco de que fica no futuro), por
+                  // isso trata `dias < 0` como "Atrasado" em vez de um rótulo negativo confuso.
+                  const dias = s.prazoSugerido ? diasEntre(hojeStr, s.prazoSugerido) : null;
+                  const urgencia = dias !== null ? urgenciaPorDias(Math.max(0, dias)) : null;
+                  return (
+                    <LinhaItem key={s.id}>
+                      <span className="min-w-0 truncate text-neutral-700">
+                        Nº {String(s.numero).padStart(3, "0")} · {s.solicitante}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        <BadgeDepartamento departamento={s.departamento} />
+                        {urgencia && urgencia !== "ok" && dias !== null ? (
+                          <BadgeUrgencia
+                            urgencia={urgencia}
+                            texto={dias < 0 ? "Atrasado" : dias === 0 ? "Hoje" : dias === 1 ? "Amanhã" : `${dias}d`}
+                          />
+                        ) : (
+                          <span className="text-xs text-neutral-400">
+                            {s.prazoSugerido ? formatDataCurta(s.prazoSugerido) : "sem prazo"}
+                          </span>
+                        )}
+                      </span>
+                    </LinhaItem>
+                  );
+                })
+              )}
+              {solicitacoesView.itens.length > 3 ? (
+                <button
+                  type="button"
+                  onClick={() => setExpandedSolic((atual) => !atual)}
+                  className="self-start text-sm font-semibold text-grena hover:underline"
+                >
+                  {expandedSolic ? "Mostrar menos" : `Mostrar mais (${solicitacoesRestantes})`}
+                </button>
+              ) : null}
+            </CardDashboard>
+          ) : null}
+        </GrupoDashboard>
+      ) : null}
+
+      {temGrupoPessoas ? (
+        <GrupoDashboard titulo="Pessoas" focado={focusedGroup === "pessoas"}>
+          {aniversariantesView ? (
+            <CardDashboard
+              titulo="Aniversariantes do mês"
+              icone={
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-[18px] w-[18px]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2v4M8 4v2M16 4v2" />
+                  <path d="M4 10h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V10Z" />
+                  <path d="M4 14c1 1 2 1 3 0s2-1 3 0 2 1 3 0 2-1 3 0 2 1 3 0" />
+                </svg>
+              }
+              cor={COR_ANIVERSARIO}
+              contagem={aniversariantesView.itens.length}
+            >
+              {aniversariantesView.itens.length === 0 ? (
+                <Vazio
+                  mensagem={mensagemVazio("Nenhum aniversariante este mês.", aniversariantes!.itens.length, filtro)}
+                />
+              ) : (
+                aniversariantesView.itens.map((a) => (
+                  <LinhaItem
+                    key={`${a.origem}-${a.id}`}
+                    href={a.origem === "atleta" ? `/atletas/${a.id}` : `/comissao-tecnica/${a.id}`}
+                  >
+                    <span className="min-w-0 truncate text-neutral-700">{a.nomeCompleto}</span>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <BadgeDepartamento departamento={a.departamento} />
+                      <span className="text-xs text-neutral-400">{formatDataCurta(a.dataNascimento)}</span>
+                    </span>
+                  </LinhaItem>
+                ))
+              )}
+            </CardDashboard>
+          ) : null}
+
+          {atletasDmView ? (
+            <CardDashboard
+              titulo="Acompanhamento no DM"
+              icone={<IconDepartamentoMedico className="h-[18px] w-[18px]" />}
+              cor={COR_DM}
+              contagem={atletasDmView.itens.length}
+              href={atletasDmView.href}
+            >
+              {atletasDmView.itens.length === 0 ? (
+                <Vazio
+                  mensagem={mensagemVazio(
+                    "Nenhum atleta em acompanhamento no DM.",
+                    atletasDm!.itens.length,
+                    filtro,
+                  )}
+                />
+              ) : (
+                atletasDmView.itens.map((a) => (
+                  <LinhaItem key={a.id}>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <AtletaAvatarCirculo nome={a.nomeCompleto} fotoUrl={a.fotoUrl} className="h-6 w-6" />
+                      <span className="min-w-0 truncate text-neutral-700">{a.nomeCompleto}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <BadgeDepartamento departamento={a.departamento} />
+                      <span className="text-xs text-neutral-400">{a.categoriaLabel}</span>
+                    </span>
+                  </LinhaItem>
+                ))
+              )}
+            </CardDashboard>
+          ) : null}
+        </GrupoDashboard>
+      ) : null}
     </div>
   );
 }

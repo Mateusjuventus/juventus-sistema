@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { somarDias } from "@/lib/programacao/semana";
 import { buscarDia, type AtividadeComDetalhes } from "@/lib/programacao/queries";
 import { categoriaProgramacaoLabel, type CategoriaProgramacao } from "@/lib/programacao/categoria-programacao";
@@ -320,6 +321,10 @@ export interface AtletaDm {
   id: string;
   nomeCompleto: string;
   categoriaLabel: string;
+  /** Signed URL (1h) da foto do atleta, ou `null` sem foto cadastrada — pedido do Mateus em
+   * 16/11/2026, pra identificar mais rápido quem é quem na lista do Dashboard (mesmo avatar
+   * pequeno/com iniciais de fallback que já existe em `AtletaAvatarCirculo`). */
+  fotoUrl: string | null;
 }
 
 export async function buscarAtletasEmDm(
@@ -328,16 +333,20 @@ export async function buscarAtletasEmDm(
 ): Promise<AtletaDm[]> {
   const { data } = await supabase
     .from("atletas")
-    .select("id, nome_completo, categoria")
+    .select("id, nome_completo, categoria, foto_path")
     .in("categoria", categorias)
     .eq("ativo", true)
     .eq("status", "departamento_medico")
     .order("nome_completo", { ascending: true });
-  return ((data ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "categoria">[]).map((a) => ({
-    id: a.id,
-    nomeCompleto: a.nome_completo,
-    categoriaLabel: categoriaAtletaLabel(a.categoria),
-  }));
+  const atletas = (data ?? []) as Pick<AtletaRow, "id" | "nome_completo" | "categoria" | "foto_path">[];
+  return Promise.all(
+    atletas.map(async (a): Promise<AtletaDm> => ({
+      id: a.id,
+      nomeCompleto: a.nome_completo,
+      categoriaLabel: categoriaAtletaLabel(a.categoria),
+      fotoUrl: await getSignedPhotoUrl(supabase, a.foto_path),
+    })),
+  );
 }
 
 export interface SolicitacaoPendente {
