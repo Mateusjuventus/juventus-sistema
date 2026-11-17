@@ -4,7 +4,6 @@ import { AppShell } from "@/components/app-shell";
 import { DeleteButton } from "@/components/delete-button";
 import { ContatoEmergenciaForm } from "@/components/contato-emergencia-form";
 import { ContratoSecao } from "@/components/contrato-secao";
-import { contratoVazio } from "@/lib/futebol/contrato";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { formatCPF } from "@/lib/validation/cpf";
@@ -111,12 +110,6 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
   // em vez de deixar passar sem querer.
   const rgCpfPendente = cadastroIncompletoRapido(atleta.rg);
 
-  // Mesma lógica de `ContratoSecao` pra achar o vigente (ver components/contrato-secao.tsx) — só
-  // pra decidir se a seção "Dados de Pagamento" aparece (ver `atletaTemDadosPagamento`), nada a
-  // ver com o resto do que `ContratoSecao` já renderiza a partir de `contratos`.
-  const vigenteBruto = contratos.find((c) => c.vigente);
-  const vigente = vigenteBruto && !contratoVazio(vigenteBruto) ? vigenteBruto : undefined;
-
   const defaultValues: Record<string, string> = {
     categoria: atleta.categoria,
     nomeCompleto: atleta.nome_completo,
@@ -193,7 +186,6 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
           defaultValues={defaultValues}
           fotoUrl={fotoUrl}
           submitLabel="Salvar alterações"
-          tipoContratoVigente={vigente?.tipo_contrato ?? null}
         />
       </div>
 

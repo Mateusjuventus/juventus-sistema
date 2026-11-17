@@ -222,8 +222,10 @@ export const atletaSchema = z
     // 2026-11-04-atletas-desativacao-transicao-pagamento-design.md). Cada seção é independente
     // (checkbox "Recebe como Pessoa Física"/"Recebe como Pessoa Jurídica", podem estar as duas
     // marcadas ao mesmo tempo) — substitui o antigo `tipoPagamento` (enum "pf"|"pj", um ou outro).
-    // A seção só aparece no formulário quando `atletaTemDadosPagamento(tipoContratoVigente)` é
-    // true, mas o schema aceita os campos sempre (mesmo princípio dos campos "Base-only" acima).
+    // A seção aparece sempre no formulário (até 17/11/2026 só aparecia com um Contrato Vigente
+    // Definitivo/Formação/Empréstimo — saiu a pedido do Mateus, pra não depender do contrato); o
+    // schema sempre aceitou os campos de qualquer jeito (mesmo princípio dos campos "Base-only"
+    // acima).
     recebeComoPf: z.boolean().default(false),
     pfChavePixTipo: chavePixTipoField,
     pfChavePix: z.string().optional().or(z.literal("")),

@@ -22,7 +22,7 @@ import { formatCEP } from "@/lib/validation/cep";
 import { categoriaAtletaLabel, ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
-import { atletaTemDadosPagamento, contratoVazio, statusContrato } from "@/lib/futebol/contrato";
+import { contratoVazio, statusContrato } from "@/lib/futebol/contrato";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { ContratoSecao } from "@/components/contrato-secao";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS, STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
@@ -446,11 +446,12 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
           </FieldGroup>
         </FormSection>
 
-        {/* Só aparece quando o contrato vigente é Definitivo, Empréstimo ou Formação — mesma regra
-            de visibilidade do formulário de edição (`atletaTemDadosPagamento`, ver `AtletaForm`).
-            Pedido do Mateus em 17/11/2026: até então só dava pra ver esses dados entrando no modo
-            de edição. */}
-        {atletaTemDadosPagamento(vigenteBruto?.tipo_contrato) ? (
+        {/* Até então só aparecia com um Contrato Vigente Definitivo/Formação/Empréstimo cadastrado
+            — Mateus pediu pra tirar essa dependência (17/11/2026): "Recebe como Pessoa Física"/
+            "Pessoa Jurídica" (ver `AtletaForm`) já são os interruptores de verdade, então aqui (tela
+            só de leitura) a seção aparece sempre que pelo menos um dos dois estiver marcado, sem
+            olhar o contrato. */}
+        {atleta.recebe_como_pf || atleta.recebe_como_pj ? (
           <FormSection title="Dados de Pagamento">
             <div className="space-y-4">
               <BlocoDetalhe titulo="Pessoa Física">

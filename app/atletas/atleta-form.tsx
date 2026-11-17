@@ -17,7 +17,6 @@ import {
 } from "@/lib/auth/categorias-base";
 import { ATLETA_POSICAO_OPTIONS, TAMANHO_UNIFORME_OPTIONS } from "@/lib/validation/schemas";
 import { ATLETA_CLASSIFICACAO_OPTIONS } from "@/lib/futebol/classificacao-atleta";
-import { atletaTemDadosPagamento } from "@/lib/futebol/contrato";
 import type { AtletaFormState } from "./actions";
 
 const initialState: AtletaFormState = {};
@@ -40,18 +39,12 @@ export function AtletaForm({
   defaultValues,
   fotoUrl,
   submitLabel,
-  tipoContratoVigente,
 }: {
   action: (prevState: AtletaFormState, formData: FormData) => Promise<AtletaFormState>;
   entityId?: string;
   defaultValues?: Record<string, string>;
   fotoUrl?: string | null;
   submitLabel: string;
-  /** Tipo do contrato vigente (ver `lib/futebol/contrato.ts`) — decide se a seção "Dados de
-   * Pagamento" aparece (`atletaTemDadosPagamento`); `null`/`undefined` quando o atleta ainda não
-   * tem nenhum contrato (ex. recém cadastrado). Ver docs/superpowers/specs/2026-11-04-atletas-
-   * desativacao-transicao-pagamento-design.md. */
-  tipoContratoVigente?: string | null;
 }) {
   const [state, formAction] = useFormState(action, initialState);
   const values = state.values ?? defaultValues ?? {};
@@ -447,8 +440,11 @@ export function AtletaForm({
         </FieldGroup>
       </FormSection>
 
-      {atletaTemDadosPagamento(tipoContratoVigente) ? (
-        <FormSection title="Dados de Pagamento">
+      {/* Até 17/11/2026 só aparecia com um Contrato Vigente Definitivo/Formação/Empréstimo
+          cadastrado (`atletaTemDadosPagamento`) — Mateus pediu pra não depender disso: agora
+          aparece sempre, e "Recebe como Pessoa Física"/"Pessoa Jurídica" abaixo são os próprios
+          interruptores que ativam cada bloco, pra qualquer atleta, com ou sem contrato. */}
+      <FormSection title="Dados de Pagamento">
           <FieldGroup>
             <div className="flex items-center gap-2 sm:col-span-2">
               <input
@@ -526,8 +522,7 @@ export function AtletaForm({
               </>
             ) : null}
           </FieldGroup>
-        </FormSection>
-      ) : null}
+      </FormSection>
 
       {state.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
