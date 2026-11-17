@@ -5,29 +5,10 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
-import { formatCPF } from "@/lib/validation/cpf";
-import { formatCEP } from "@/lib/validation/cep";
-import { enderecoFichaAtleta } from "@/lib/futebol/ficha-atleta";
-import { valorPorExtenso } from "@/lib/pdf/valor-extenso";
-import { formatDataBr, formatDataExtenso } from "@/lib/pdf/logistica-shared";
-import { atletaMaiorIdade } from "@/lib/futebol/contrato";
-import { hojeBrasilia } from "@/lib/data-brasil";
-import { ContratoFormacaoDocument, type ContratoFormacaoCampos } from "@/lib/pdf/contrato-formacao-document";
-import { ContratoFormacaoMaiorDocument, type ContratoFormacaoMaiorCampos } from "@/lib/pdf/contrato-formacao-maior-document";
+import { ContratoFormacaoDocument } from "@/lib/pdf/contrato-formacao-document";
+import { ContratoFormacaoMaiorDocument } from "@/lib/pdf/contrato-formacao-maior-document";
+import { construirCamposContratoFormacao } from "@/lib/pdf/contrato-formacao-campos";
 import type { AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
-
-function naturalidade(cidade: string | null, uf: string | null): string {
-  if (cidade && uf) return `${cidade}/${uf}`;
-  return cidade || uf || "";
-}
-
-function formatMoeda(valor: number): string {
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function capitalizar(texto: string): string {
-  return texto.length > 0 ? texto[0].toUpperCase() + texto.slice(1) : texto;
-}
 
 /**
  * Gera o Contrato de Formação Desportiva em PDF, já preenchido com os dados do atleta e do
@@ -35,10 +16,19 @@ function capitalizar(texto: string): string {
  * funciona quando o contrato vigente do atleta é do tipo "Formação" (mesmo espírito de
  * `app/atletas/[id]/ficha/pdf/route.tsx`).
  *
- * Qual dos dois modelos usar (menor/maior de idade) é decidido AQUI, pela idade ATUAL do atleta
- * (`atletaMaiorIdade`, calculada na hora de gerar — não uma escolha fixada na criação do
- * contrato): se o atleta completar 18 anos durante a vigência do mesmo Contrato de Formação, o
- * PDF passa a usar o modelo de maior automaticamente, sem precisar editar nada.
+ * Qual dos dois modelos usar (menor/maior de idade) e os `campos` de cada um vêm de
+ * `construirCamposContratoFormacao` (`lib/pdf/contrato-formacao-campos.ts`) — compartilhado com a
+ * busca do texto padrão do editor de "Personalizar texto do contrato" (ver
+ * docs/superpowers/specs/2026-11-16-contrato-formacao-texto-personalizado-design.md), pra nunca os
+ * dois lugares calcularem os campos de um jeito diferente. A escolha do modelo é feita AQUI, pela
+ * idade ATUAL do atleta — não uma escolha fixada na criação do contrato: se o atleta completar 18
+ * anos durante a vigência do mesmo Contrato de Formação, o PDF passa a usar o modelo de maior
+ * automaticamente, sem precisar editar nada.
+ *
+ * `texto_contrato_custom`/`texto_clausulas_adicionais_custom` (quando preenchidos nesse contrato)
+ * substituem o corpo das cláusulas gerado a partir do template — a assinatura (data, JUVENTUS SAF,
+ * ATLETA, testemunhas) continua sempre automática, nos dois casos (ver `montarBlocos` em cada um
+ * dos dois arquivos de documento).
  */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -54,70 +44,37 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return new NextResponse("Este atleta não tem um contrato de Formação vigente.", { status: 404 });
   }
 
-  const endereco =
-    enderecoFichaAtleta({
-      logradouro: atleta.logradouro,
-      numero: atleta.numero,
-      complemento: atleta.complemento,
-      bairro: atleta.bairro,
-      cidade: atleta.cidade,
-      uf: atleta.uf,
-      cepFormatado: atleta.cep ? formatCEP(atleta.cep) : null,
-    }) ?? "";
-
-  const bolsaValor =
-    contrato.bolsa_aprendizagem > 0
-      ? `${formatMoeda(contrato.bolsa_aprendizagem)} (${capitalizar(valorPorExtenso(contrato.bolsa_aprendizagem))})`
-      : "";
-  const dataAssinaturaExtenso = formatDataExtenso(contrato.vigencia_inicio);
-
-  const maiorDeIdade = atletaMaiorIdade(atleta.data_nascimento, hojeBrasilia());
+  const { maiorDeIdade, camposMenor, camposMaior } = construirCamposContratoFormacao(atleta, contrato);
   const nomeArquivo = `contrato-formacao-${atleta.nome_completo.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`;
 
   let buffer: Buffer;
   if (maiorDeIdade) {
-    const campos: ContratoFormacaoMaiorCampos = {
-      nomeCompleto: atleta.nome_completo,
-      dataNascimento: formatDataBr(atleta.data_nascimento),
-      rg: atleta.rg,
-      cpf: atleta.cpf ? formatCPF(atleta.cpf) : "",
-      email: atleta.email ?? "",
-      endereco,
-      vigenciaInicio: formatDataBr(contrato.vigencia_inicio),
-      vigenciaFim: formatDataBr(contrato.vigencia_fim),
-      bolsaValor,
-      dataAssinaturaExtenso,
-    };
     const cabecalhoPath = path.join(process.cwd(), "public/brand/contrato-formacao-maior-cabecalho.png");
     const rodapePath = path.join(process.cwd(), "public/brand/contrato-formacao-maior-rodape.png");
     const cabecalhoSrc = { data: readFileSync(cabecalhoPath), format: "png" as const };
     const rodapeSrc = { data: readFileSync(rodapePath), format: "png" as const };
     buffer = await renderToBuffer(
-      <ContratoFormacaoMaiorDocument cabecalhoSrc={cabecalhoSrc} rodapeSrc={rodapeSrc} campos={campos} />,
+      <ContratoFormacaoMaiorDocument
+        cabecalhoSrc={cabecalhoSrc}
+        rodapeSrc={rodapeSrc}
+        campos={camposMaior}
+        textoContratoCustom={contrato.texto_contrato_custom}
+        textoClausulasAdicionaisCustom={contrato.texto_clausulas_adicionais_custom}
+      />,
     );
   } else {
-    const campos: ContratoFormacaoCampos = {
-      nomeCompleto: atleta.nome_completo,
-      dataNascimento: formatDataBr(atleta.data_nascimento),
-      naturalidade: naturalidade(atleta.cidade_natal, atleta.uf_natal),
-      rg: atleta.rg,
-      cpf: atleta.cpf ? formatCPF(atleta.cpf) : "",
-      maeNome: atleta.mae_nome ?? "",
-      maeCpf: atleta.mae_cpf ? formatCPF(atleta.mae_cpf) : "",
-      paiNome: atleta.pai_nome ?? "",
-      paiCpf: atleta.pai_cpf ? formatCPF(atleta.pai_cpf) : "",
-      endereco,
-      vigenciaInicio: formatDataBr(contrato.vigencia_inicio),
-      vigenciaFim: formatDataBr(contrato.vigencia_fim),
-      bolsaValor,
-      dataAssinaturaExtenso,
-    };
     const cabecalhoPath = path.join(process.cwd(), "public/brand/contrato-formacao-cabecalho.png");
     const rodapePath = path.join(process.cwd(), "public/brand/contrato-formacao-rodape.png");
     const cabecalhoSrc = { data: readFileSync(cabecalhoPath), format: "png" as const };
     const rodapeSrc = { data: readFileSync(rodapePath), format: "png" as const };
     buffer = await renderToBuffer(
-      <ContratoFormacaoDocument cabecalhoSrc={cabecalhoSrc} rodapeSrc={rodapeSrc} campos={campos} />,
+      <ContratoFormacaoDocument
+        cabecalhoSrc={cabecalhoSrc}
+        rodapeSrc={rodapeSrc}
+        campos={camposMenor}
+        textoContratoCustom={contrato.texto_contrato_custom}
+        textoClausulasAdicionaisCustom={contrato.texto_clausulas_adicionais_custom}
+      />,
     );
   }
 

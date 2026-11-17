@@ -291,6 +291,14 @@ export interface AtletaContratoRow {
    * acima não se aplicam a esse tipo (ver `contratoTemRemuneracaoFormal`). Preenchido manualmente
    * ao lançar o contrato — alimenta o PDF do Contrato de Formação. */
   bolsa_aprendizagem: number;
+  /** Texto livre que substitui o corpo das cláusulas do Contrato de Formação PRINCIPAL (gerado por
+   * padrão a partir do template) SÓ para este contrato — `null` usa o texto padrão. A assinatura
+   * (data, JUVENTUS SAF, ATLETA, testemunhas) nunca faz parte deste texto, continua sempre
+   * automática — ver docs/superpowers/specs/2026-11-16-contrato-formacao-texto-personalizado-
+   * design.md e `montarBlocos` em `lib/pdf/contrato-formacao-document.tsx`/`-maior-document.tsx`. */
+  texto_contrato_custom: string | null;
+  /** Mesma ideia de `texto_contrato_custom`, pro corpo das Cláusulas Adicionais. */
+  texto_clausulas_adicionais_custom: string | null;
   criado_por_perfil_id: string | null;
   criado_por_nome: string | null;
   created_at: string;

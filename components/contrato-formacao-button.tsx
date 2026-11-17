@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { AtletaContratoRow } from "@/lib/supabase/types";
 import { ModalShell } from "@/components/programacao/modal";
 import { ContratoFormacaoForm } from "@/components/contrato-formacao-form";
+import { ContratoFormacaoTextoModal } from "@/components/contrato-formacao-texto-modal";
 import { criarContratoFormacao, atualizarContratoFormacao } from "@/app/atletas/[id]/contrato/formacao/actions";
 
 /** Campos do atleta usados como valores iniciais do formulário dentro do modal — antes vinham só
@@ -51,6 +52,7 @@ export function ContratoFormacaoButton({
   contratoFormacao: AtletaContratoRow | null;
 }) {
   const [aberto, setAberto] = useState(false);
+  const [abertoTexto, setAbertoTexto] = useState(false);
   const modoEdicao = contratoFormacao !== null;
 
   const valoresIniciais: Record<string, string | undefined> = {
@@ -83,10 +85,13 @@ export function ContratoFormacaoButton({
               : "Ao salvar, o contrato vigente atual (se existir) é encerrado automaticamente e este passa a ser o vigente, do tipo Formação."}
           </p>
           {modoEdicao ? (
-            <div className="mb-4">
+            <div className="mb-4 flex flex-wrap gap-2">
               <Link href={`/atletas/${atletaId}/contrato/formacao/pdf`} className="btn-secondary" target="_blank">
                 Baixar Contrato de Formação
               </Link>
+              <button type="button" className="btn-secondary" onClick={() => setAbertoTexto(true)}>
+                Personalizar texto do contrato
+              </button>
             </div>
           ) : null}
           <ContratoFormacaoForm
@@ -99,6 +104,8 @@ export function ContratoFormacaoButton({
           />
         </ModalShell>
       ) : null}
+
+      {abertoTexto ? <ContratoFormacaoTextoModal atletaId={atletaId} onClose={() => setAbertoTexto(false)} /> : null}
     </>
   );
 }

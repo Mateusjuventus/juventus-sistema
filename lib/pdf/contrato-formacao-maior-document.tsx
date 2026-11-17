@@ -668,6 +668,84 @@ function preencher(texto: string, campos: ContratoFormacaoMaiorCampos): string {
   });
 }
 
+// 16/11/2026 — funções de apoio ao "Personalizar texto do contrato" (ver docs/superpowers/specs/
+// 2026-11-16-contrato-formacao-texto-personalizado-design.md e `components/contrato-formacao-
+// button.tsx`): deixam o Mateus reescrever livremente o corpo das cláusulas de UM atleta
+// específico, sem mexer no template usado por todos os outros. A assinatura (data + JUVENTUS SAF +
+// `assinaturaAtleta` + testemunhas) nunca entra nesse texto — continua sempre gerada a partir dos
+// BLOCOS originais, em qualquer um dos dois casos (texto padrão ou personalizado). Mesma lógica de
+// `contrato-formacao-document.tsx` (modelo do atleta menor) — ver os comentários lá pra detalhes.
+
+function dividirEmPartes(blocos: Bloco[]): Bloco[][] {
+  const partes: Bloco[][] = [[]];
+  for (const bloco of blocos) {
+    if (bloco.tipo === "quebraPagina") partes.push([]);
+    else partes[partes.length - 1].push(bloco);
+  }
+  return partes;
+}
+
+function indiceInicioAssinatura(blocos: Bloco[]): number {
+  return blocos.findIndex((b) => "texto" in b && b.texto.startsWith("São Paulo, {{dataAssinaturaExtenso}}"));
+}
+
+function blocosParaTexto(blocos: Bloco[], campos: ContratoFormacaoMaiorCampos): string {
+  return blocos
+    .map((b) => ("texto" in b ? preencher(b.texto, campos) : ""))
+    .filter((t) => t.length > 0)
+    .join("\n\n");
+}
+
+/** Texto padrão (gerado a partir dos `BLOCOS`, já preenchido com os dados do atleta) do corpo do
+ * Contrato de Formação principal — ponto de partida do editor de "Personalizar texto do contrato"
+ * em `components/contrato-formacao-button.tsx`. Para antes do bloco de assinatura fixo. */
+export function textoPadraoContratoPrincipal(campos: ContratoFormacaoMaiorCampos): string {
+  const [partePrincipal] = dividirEmPartes(BLOCOS);
+  const indice = indiceInicioAssinatura(partePrincipal);
+  const corpo = indice === -1 ? partePrincipal : partePrincipal.slice(0, indice);
+  return blocosParaTexto(corpo, campos);
+}
+
+/** Mesma ideia de `textoPadraoContratoPrincipal`, mas pro corpo das Cláusulas Adicionais. */
+export function textoPadraoClausulasAdicionais(campos: ContratoFormacaoMaiorCampos): string {
+  const partes = dividirEmPartes(BLOCOS);
+  const parteAdendo = partes[1] ?? [];
+  const indice = indiceInicioAssinatura(parteAdendo);
+  const corpo = indice === -1 ? parteAdendo : parteAdendo.slice(0, indice);
+  return blocosParaTexto(corpo, campos);
+}
+
+/** Monta os Blocos finais pra renderizar o PDF: os `BLOCOS` padrão, ou — quando existe texto
+ * personalizado salvo pra aquele atleta — o texto livre no lugar do corpo gerado pelo template,
+ * mantendo a mesma assinatura fixa de sempre (incluindo `assinaturaAtleta`) nos dois casos. Cada
+ * parágrafo do texto livre (separado por linha em branco) vira um bloco `paragrafo` simples. */
+function montarBlocos(
+  campos: ContratoFormacaoMaiorCampos,
+  overrides?: { textoContratoCustom?: string | null; textoClausulasAdicionaisCustom?: string | null },
+): Bloco[] {
+  const partes = dividirEmPartes(BLOCOS);
+  const textosCustom = [overrides?.textoContratoCustom, overrides?.textoClausulasAdicionaisCustom];
+  const resultado: Bloco[] = [];
+  partes.forEach((parte, indiceParte) => {
+    const textoCustom = textosCustom[indiceParte];
+    const indiceAssinatura = indiceInicioAssinatura(parte);
+    const assinatura = indiceAssinatura === -1 ? [] : parte.slice(indiceAssinatura);
+    if (textoCustom && textoCustom.trim()) {
+      const paragrafos: Bloco[] = textoCustom
+        .split(/\n\s*\n/)
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0)
+        .map((texto) => ({ tipo: "paragrafo", texto }));
+      resultado.push(...paragrafos, ...assinatura);
+    } else {
+      const corpo = indiceAssinatura === -1 ? parte : parte.slice(0, indiceAssinatura);
+      resultado.push(...corpo, ...assinatura);
+    }
+    if (indiceParte < partes.length - 1) resultado.push({ tipo: "quebraPagina" });
+  });
+  return resultado;
+}
+
 // Cabeçalho/rodapé deste modelo são mais altos que os do contrato de menor (artes diferentes, ver
 // comentário do arquivo) — altura calculada a partir do próprio `wp:extent` do `.docx` original
 // (header cx=8018780 cy=2448000 EMU, footer cx=7600950 cy=1976120 EMU; 1pt = 12700 EMU), escalado
@@ -728,15 +806,26 @@ export function ContratoFormacaoMaiorDocument({
   cabecalhoSrc,
   rodapeSrc,
   campos,
+  textoContratoCustom,
+  textoClausulasAdicionaisCustom,
 }: {
   cabecalhoSrc: ContratoFormacaoMaiorLogoSrc;
   rodapeSrc: ContratoFormacaoMaiorLogoSrc;
   campos: ContratoFormacaoMaiorCampos;
+  /** Texto personalizado do corpo do Contrato de Formação principal, pra este atleta específico —
+   * ver `textoPadraoContratoPrincipal`/`montarBlocos`, acima, e docs/superpowers/specs/2026-11-16-
+   * contrato-formacao-texto-personalizado-design.md. `null`/`undefined`/vazio usa o texto padrão
+   * gerado pelos `BLOCOS`. A assinatura continua sempre automática, nunca faz parte deste texto. */
+  textoContratoCustom?: string | null;
+  /** Mesma ideia de `textoContratoCustom`, pro corpo das Cláusulas Adicionais. */
+  textoClausulasAdicionaisCustom?: string | null;
 }) {
-  // Separa os blocos em páginas pelo marcador `quebraPagina` — mesmo princípio do contrato de
-  // menor (ver `contrato-formacao-document.tsx`).
+  // Monta os Blocos finais (texto padrão ou personalizado — ver `montarBlocos`, acima) e só então
+  // separa em páginas pelo marcador `quebraPagina` — mesmo princípio do contrato de menor (ver
+  // `contrato-formacao-document.tsx`).
+  const blocosFinal = montarBlocos(campos, { textoContratoCustom, textoClausulasAdicionaisCustom });
   const paginas: Bloco[][] = [[]];
-  for (const bloco of BLOCOS) {
+  for (const bloco of blocosFinal) {
     if (bloco.tipo === "quebraPagina") {
       paginas.push([]);
     } else {

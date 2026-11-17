@@ -4,6 +4,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { nomeDaContaAtual } from "@/lib/auth/perfis";
 import { contratoFormacaoSchema } from "@/lib/validation/schemas";
+import { construirCamposContratoFormacao } from "@/lib/pdf/contrato-formacao-campos";
+import {
+  textoPadraoContratoPrincipal as textoPadraoContratoPrincipalMenor,
+  textoPadraoClausulasAdicionais as textoPadraoClausulasAdicionaisMenor,
+} from "@/lib/pdf/contrato-formacao-document";
+import {
+  textoPadraoContratoPrincipal as textoPadraoContratoPrincipalMaior,
+  textoPadraoClausulasAdicionais as textoPadraoClausulasAdicionaisMaior,
+} from "@/lib/pdf/contrato-formacao-maior-document";
+import type { AtletaContratoRow, AtletaRow } from "@/lib/supabase/types";
 import type { ContratoFormacaoFormState } from "@/components/contrato-formacao-form";
 
 function parseForm(formData: FormData) {
@@ -156,6 +166,116 @@ export async function atualizarContratoFormacao(
   });
 
   if (error) return { error: "Não foi possível salvar as alterações. Tente novamente.", values: raw };
+
+  revalidarTudo(atletaId);
+  return { success: true };
+}
+
+export interface TextoContratoFormacaoResultado {
+  textoContrato: string;
+  textoClausulasAdicionais: string;
+  /** true quando pelo menos um dos dois campos já tem texto personalizado salvo (não o padrão). */
+  personalizado: boolean;
+}
+
+/**
+ * Busca o texto a mostrar no editor de "Personalizar texto do contrato" (`components/contrato-
+ * formacao-texto-modal.tsx`): o texto JÁ PERSONALIZADO do contrato, quando existir
+ * (`texto_contrato_custom`/`texto_clausulas_adicionais_custom`), ou o texto padrão gerado a partir
+ * do template (mesmos `campos` e mesma escolha menor/maior de idade usados na geração do PDF — ver
+ * `construirCamposContratoFormacao`, compartilhado com `app/atletas/[id]/contrato/formacao/pdf/
+ * route.tsx` pra nunca os dois lugares calcularem diferente). Ver docs/superpowers/specs/2026-11-16-
+ * contrato-formacao-texto-personalizado-design.md.
+ */
+export async function buscarTextoContratoFormacao(
+  atletaId: string,
+): Promise<TextoContratoFormacaoResultado | { error: string }> {
+  if (!atletaId) return { error: "Atleta não identificado. Recarregue a página e tente novamente." };
+
+  const supabase = createClient();
+  const [{ data: atletaData }, { data: contratoData }] = await Promise.all([
+    supabase.from("atletas").select("*").eq("id", atletaId).maybeSingle(),
+    supabase.from("atleta_contratos").select("*").eq("atleta_id", atletaId).eq("vigente", true).maybeSingle(),
+  ]);
+
+  const atleta = atletaData as AtletaRow | null;
+  const contrato = contratoData as AtletaContratoRow | null;
+  if (!atleta || !contrato || contrato.tipo_contrato !== "formacao") {
+    return { error: "Este atleta não tem um contrato de Formação vigente." };
+  }
+
+  const { maiorDeIdade, camposMenor, camposMaior } = construirCamposContratoFormacao(atleta, contrato);
+  const textoContratoPadrao = maiorDeIdade
+    ? textoPadraoContratoPrincipalMaior(camposMaior)
+    : textoPadraoContratoPrincipalMenor(camposMenor);
+  const textoClausulasAdicionaisPadrao = maiorDeIdade
+    ? textoPadraoClausulasAdicionaisMaior(camposMaior)
+    : textoPadraoClausulasAdicionaisMenor(camposMenor);
+
+  return {
+    textoContrato: contrato.texto_contrato_custom ?? textoContratoPadrao,
+    textoClausulasAdicionais: contrato.texto_clausulas_adicionais_custom ?? textoClausulasAdicionaisPadrao,
+    personalizado: contrato.texto_contrato_custom != null || contrato.texto_clausulas_adicionais_custom != null,
+  };
+}
+
+export interface TextoContratoFormacaoFormState {
+  error?: string;
+  success?: boolean;
+}
+
+/**
+ * Salva o texto personalizado do contrato vigente do atleta (os dois campos do editor). Campo
+ * deixado em branco grava `null`, ou seja, volta a usar o texto padrão SÓ para aquele campo — a
+ * assinatura nunca faz parte deste texto, continua sempre automática (ver `montarBlocos` nos dois
+ * arquivos de documento).
+ */
+export async function atualizarTextoContratoFormacao(
+  _prevState: TextoContratoFormacaoFormState,
+  formData: FormData,
+): Promise<TextoContratoFormacaoFormState> {
+  const atletaId = String(formData.get("atletaId") ?? "");
+  if (!atletaId) return { error: "Atleta não identificado. Recarregue a página e tente novamente." };
+
+  const textoContrato = String(formData.get("textoContrato") ?? "").trim();
+  const textoClausulasAdicionais = String(formData.get("textoClausulasAdicionais") ?? "").trim();
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("atleta_contratos")
+    .update({
+      texto_contrato_custom: textoContrato.length > 0 ? textoContrato : null,
+      texto_clausulas_adicionais_custom: textoClausulasAdicionais.length > 0 ? textoClausulasAdicionais : null,
+    })
+    .eq("atleta_id", atletaId)
+    .eq("vigente", true);
+
+  if (error) return { error: "Não foi possível salvar o texto personalizado. Tente novamente." };
+
+  revalidarTudo(atletaId);
+  return { success: true };
+}
+
+/**
+ * Restaura o texto padrão do contrato vigente do atleta — limpa os dois campos de personalização
+ * (`texto_contrato_custom`/`texto_clausulas_adicionais_custom`), voltando ao texto gerado a partir
+ * do template pros dois (contrato principal e Cláusulas Adicionais).
+ */
+export async function restaurarTextoPadraoContratoFormacao(
+  _prevState: TextoContratoFormacaoFormState,
+  formData: FormData,
+): Promise<TextoContratoFormacaoFormState> {
+  const atletaId = String(formData.get("atletaId") ?? "");
+  if (!atletaId) return { error: "Atleta não identificado. Recarregue a página e tente novamente." };
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("atleta_contratos")
+    .update({ texto_contrato_custom: null, texto_clausulas_adicionais_custom: null })
+    .eq("atleta_id", atletaId)
+    .eq("vigente", true);
+
+  if (error) return { error: "Não foi possível restaurar o texto padrão. Tente novamente." };
 
   revalidarTudo(atletaId);
   return { success: true };
