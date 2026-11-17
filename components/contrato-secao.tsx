@@ -283,6 +283,13 @@ function ContratoCard({
     contrato.vigencia_inicio || contrato.vigencia_fim
       ? `${formatData(contrato.vigencia_inicio)} – ${formatData(contrato.vigencia_fim)}`
       : "";
+  const vigenciaDiasTexto = restantes
+    ? `${vigenciaTexto ? " · " : ""}faltam ${restantes.dias} dias (≈ ${restantes.meses} ${restantes.meses === 1 ? "mês" : "meses"})`
+    : destaque && !contrato.vigencia_fim
+      ? vigenciaTexto
+        ? " · sem prazo definido"
+        : "Sem prazo definido"
+      : "";
   // Vigência do BID + Bolsa de aprendizagem, só pra Formação (pedido do Mateus em 12/11/2026, ao
   // ver o card do contrato vigente sem essas duas informações — antes só apareciam no card/modal
   // próprio de "Contrato de Formação", que não existe mais como card separado — ver
@@ -300,16 +307,15 @@ function ContratoCard({
           {tipoContratoLabel[contrato.tipo_contrato] ?? contrato.tipo_contrato}
           {contrato.tipo_contrato === "emprestimo" && contrato.clube_origem ? ` — ${contrato.clube_origem}` : ""}
         </h3>
-        <span className="text-sm text-neutral-500">
-          {vigenciaTexto}
-          {restantes
-            ? `${vigenciaTexto ? " · " : ""}faltam ${restantes.dias} dias (≈ ${restantes.meses} ${restantes.meses === 1 ? "mês" : "meses"})`
-            : destaque && !contrato.vigencia_fim
-              ? vigenciaTexto
-                ? " · sem prazo definido"
-                : "Sem prazo definido"
-              : ""}
-        </span>
+        {/* Pra Formação, essa vigência já aparece na caixinha "Vigência da Formação" abaixo (pedido
+            do Mateus em 17/11/2026: deixar com a mesma aparência da caixinha de "Vigência do BID",
+            sem repetir o dado duas vezes) — só os outros tipos de contrato mostram aqui em cima. */}
+        {contrato.tipo_contrato !== "formacao" ? (
+          <span className="text-sm text-neutral-500">
+            {vigenciaTexto}
+            {vigenciaDiasTexto}
+          </span>
+        ) : null}
       </div>
       {temRemuneracaoFormal ? (
         <>
@@ -331,6 +337,15 @@ function ContratoCard({
       ) : null}
       {contrato.tipo_contrato === "formacao" ? (
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {vigenciaTexto || vigenciaDiasTexto ? (
+            <div className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
+              <span className="text-neutral-600">Vigência da Formação</span>
+              <span className="font-medium text-neutral-800">
+                {vigenciaTexto}
+                {vigenciaDiasTexto}
+              </span>
+            </div>
+          ) : null}
           {bidTexto ? (
             <div className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
               <span className="text-neutral-600">Vigência do BID</span>
