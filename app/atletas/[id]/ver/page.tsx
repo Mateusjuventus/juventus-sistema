@@ -362,16 +362,24 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
               <DetailField label="CEP" value={atleta.cep ? formatCEP(atleta.cep) : null} />
             </BlocoDetalhe>
 
-            {!enderecoVazio(atleta) &&
-            enderecosIguais(atleta, {
-              logradouro: atleta.origem_logradouro,
-              numero: atleta.origem_numero,
-              complemento: atleta.origem_complemento,
-              bairro: atleta.origem_bairro,
-              cidade: atleta.origem_cidade,
-              uf: atleta.origem_uf,
-              cep: atleta.origem_cep,
-            }) ? (
+            {(() => {
+              const origem: EnderecoEstruturado = {
+                logradouro: atleta.origem_logradouro,
+                numero: atleta.origem_numero,
+                complemento: atleta.origem_complemento,
+                bairro: atleta.origem_bairro,
+                cidade: atleta.origem_cidade,
+                uf: atleta.origem_uf,
+                cep: atleta.origem_cep,
+              };
+              // Além de "iguais campo a campo", trata origem TOTALMENTE vazio como "mesmo que
+              // atual" também — cadastros de antes do formulário de edição passar a gravar o
+              // atual nos campos de origem por padrão (17/11/2026, ver `resolverEnderecoOrigem`
+              // em app/atletas/actions.ts) ficaram com o atual preenchido e a origem em branco, o
+              // que sem este `enderecoVazio(origem)` aparecia aqui como um bloco "Origem" cheio de
+              // "—" em vez do aviso de costume.
+              return !enderecoVazio(atleta) && (enderecoVazio(origem) || enderecosIguais(atleta, origem));
+            })() ? (
               <p className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
                 O endereço de origem é o mesmo do atual.
               </p>
