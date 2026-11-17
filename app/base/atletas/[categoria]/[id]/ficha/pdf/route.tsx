@@ -310,9 +310,10 @@ export async function GET(request: Request, { params }: { params: { categoria: s
         .join(" · ") || null,
     agencia: atleta.agencia,
     tamanho_uniforme: atleta.tamanho_uniforme,
-    alojamento: `${atleta.alojado ? "Sim" : "Não"}${
-      atleta.valor_ajuda_custo != null ? ` — ajuda de custo ${formatMoeda(atleta.valor_ajuda_custo)}` : ""
-    }`,
+    // "— ajuda de custo R$ X" saiu em 17/11/2026 junto com a remoção do campo `valor_ajuda_custo`
+    // do cadastro (pedido do Mateus) — ver `app/atletas/[id]/ver/page.tsx` e `lib/futebol/
+    // financeiro-base.ts`.
+    alojamento: atleta.alojado ? "Sim" : "Não",
     escola: atleta.escola,
 
     contrato_tipo: vigente
