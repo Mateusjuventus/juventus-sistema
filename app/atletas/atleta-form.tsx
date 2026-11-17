@@ -5,7 +5,7 @@ import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
 import { TelefoneField } from "@/components/telefone-field";
-import { EnderecoFields, type EnderecoValues } from "@/components/endereco-fields";
+import { EnderecoFields } from "@/components/endereco-fields";
 import { PhotoField } from "@/components/photo-field";
 import { ChavePixFields } from "@/components/chave-pix-field";
 import { SubmitButton } from "@/components/submit-button";
@@ -20,6 +20,27 @@ import { ATLETA_CLASSIFICACAO_OPTIONS } from "@/lib/futebol/classificacao-atleta
 import type { AtletaFormState } from "./actions";
 
 const initialState: AtletaFormState = {};
+
+/** Estado inicial do checkbox "Endereço de origem é diferente do atual" — ao reabrir um atleta já
+ * cadastrado, parte de uma comparação campo a campo dos dois endereços (mesmo critério do `/ver`
+ * em `app/atletas/[id]/ver/page.tsx`): se já eram iguais, começa desmarcado (colapsado); se já
+ * tinha um endereço de origem diferente gravado, começa marcado, pra não esconder esse dado sem
+ * avisar. Num atleta novo (sem nada preenchido ainda) os dois batem (vazio = vazio), então começa
+ * desmarcado. Depois de um envio com erro de validação, `values.origemDiferente` já vem com "on"/""
+ * ecoado pela action (mesmo padrão dos outros checkboxes) e tem prioridade sobre essa comparação. */
+function enderecoOrigemDiferenteInicial(values: Record<string, string | undefined>): boolean {
+  if (values.origemDiferente === "on") return true;
+  if (values.origemDiferente === "") return false;
+  return (
+    (values.origemCep ?? "") !== (values.cep ?? "") ||
+    (values.origemLogradouro ?? "") !== (values.logradouro ?? "") ||
+    (values.origemNumero ?? "") !== (values.numero ?? "") ||
+    (values.origemComplemento ?? "") !== (values.complemento ?? "") ||
+    (values.origemBairro ?? "") !== (values.bairro ?? "") ||
+    (values.origemCidade ?? "") !== (values.cidade ?? "") ||
+    (values.origemUf ?? "") !== (values.uf ?? "")
+  );
+}
 
 /**
  * Cadastro de Atleta — formulário único pro Futebol Profissional e pro Futebol de Base desde a
@@ -54,33 +75,7 @@ export function AtletaForm({
   const isBase = ehCategoriaBaseValida(categoria);
   const [recebeComoPf, setRecebeComoPf] = useState(values.recebeComoPf === "on");
   const [recebeComoPj, setRecebeComoPj] = useState(values.recebeComoPj === "on");
-  // Ver comentário equivalente nos formulários antigos — mesmo mecanismo do checkbox "Mesmo
-  // endereço de origem".
-  const [origemEndereco, setOrigemEndereco] = useState<EnderecoValues>({
-    cep: values.origemCep,
-    logradouro: values.origemLogradouro,
-    numero: values.origemNumero,
-    complemento: values.origemComplemento,
-    bairro: values.origemBairro,
-    cidade: values.origemCidade,
-    uf: values.origemUf,
-  });
-  const [enderecoAtualValues, setEnderecoAtualValues] = useState<EnderecoValues>({
-    cep: values.cep,
-    logradouro: values.logradouro,
-    numero: values.numero,
-    complemento: values.complemento,
-    bairro: values.bairro,
-    cidade: values.cidade,
-    uf: values.uf,
-  });
-  const [enderecoAtualKey, setEnderecoAtualKey] = useState(0);
-
-  function copiarEnderecoDeOrigem(marcado: boolean) {
-    if (!marcado) return;
-    setEnderecoAtualValues(origemEndereco);
-    setEnderecoAtualKey((k) => k + 1);
-  }
+  const [origemDiferente, setOrigemDiferente] = useState(() => enderecoOrigemDiferenteInicial(values));
 
   return (
     <form action={formAction} className="space-y-6" encType="multipart/form-data">
@@ -204,40 +199,17 @@ export function AtletaForm({
           />
         </FieldGroup>
         <div className="mt-4">
-          <p className="field-label">Endereço de origem (com busca por CEP)</p>
+          <p className="field-label">Endereço atual (com busca por CEP)</p>
           <EnderecoFields
-            namePrefix="origem"
-            defaultValues={origemEndereco}
-            onChange={setOrigemEndereco}
-            errors={{
-              cep: errors.origemCep,
-              logradouro: errors.origemLogradouro,
-              numero: errors.origemNumero,
-              complemento: errors.origemComplemento,
-              bairro: errors.origemBairro,
-              cidade: errors.origemCidade,
-              uf: errors.origemUf,
+            defaultValues={{
+              cep: values.cep,
+              logradouro: values.logradouro,
+              numero: values.numero,
+              complemento: values.complemento,
+              bairro: values.bairro,
+              cidade: values.cidade,
+              uf: values.uf,
             }}
-          />
-        </div>
-        <div className="mt-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="field-label">Endereço atual (com busca por CEP)</p>
-            <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
-              <input
-                type="checkbox"
-                onChange={(e) => copiarEnderecoDeOrigem(e.target.checked)}
-                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
-              />
-              Mesmo endereço de origem
-            </label>
-          </div>
-          {/* `key` força remontar o bloco quando o checkbox acima copia o Endereço de origem pra
-              cá — é um autopreenchimento único (não fica sincronizado depois), mesmo princípio já
-              usado em `DocumentoForm` pra limpar campos de arquivo. */}
-          <EnderecoFields
-            key={enderecoAtualKey}
-            defaultValues={enderecoAtualValues}
             errors={{
               cep: errors.cep,
               logradouro: errors.logradouro,
@@ -248,6 +220,53 @@ export function AtletaForm({
               uf: errors.uf,
             }}
           />
+        </div>
+        <div className="mt-4">
+          {/* Até 17/11/2026 "Endereço de origem" ficava sempre visível, igual ao atual — Mateus
+              achou que tomava espaço à toa num caso que é raro (maioria dos atletas mora onde
+              nasceu/foi captado). Agora só aparece quando marcado aqui; desmarcado, a action grava
+              o próprio endereço atual nos campos de origem (ver `resolverEnderecoOrigem` em
+              app/atletas/actions.ts) — mesmo critério de "igual ao atual" que o `/ver` já usa pra
+              não repetir os dois blocos. */}
+          <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+            <input
+              id="origemDiferente"
+              name="origemDiferente"
+              type="checkbox"
+              checked={origemDiferente}
+              onChange={(e) => setOrigemDiferente(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+            />
+            Endereço de origem é diferente do atual
+          </label>
+          {origemDiferente ? (
+            <div className="mt-3">
+              <p className="field-label">Endereço de origem (com busca por CEP)</p>
+              <EnderecoFields
+                namePrefix="origem"
+                defaultValues={{
+                  cep: values.origemCep,
+                  logradouro: values.origemLogradouro,
+                  numero: values.origemNumero,
+                  complemento: values.origemComplemento,
+                  bairro: values.origemBairro,
+                  cidade: values.origemCidade,
+                  uf: values.origemUf,
+                }}
+                errors={{
+                  cep: errors.origemCep,
+                  logradouro: errors.origemLogradouro,
+                  numero: errors.origemNumero,
+                  complemento: errors.origemComplemento,
+                  bairro: errors.origemBairro,
+                  cidade: errors.origemCidade,
+                  uf: errors.origemUf,
+                }}
+              />
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-neutral-500">O endereço de origem será o mesmo do atual.</p>
+          )}
         </div>
 
         {/* Só faz sentido pra atleta menor de idade, então só aparece pras categorias da Base — os

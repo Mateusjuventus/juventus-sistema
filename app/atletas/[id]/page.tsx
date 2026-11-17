@@ -213,7 +213,12 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
           ) : null}
         </div>
         <div className="mt-3">
-          <ContatoEmergenciaForm action={adicionarContatoEmergencia} camposExtras={{ atletaId: atleta.id }} />
+          <ContatoEmergenciaForm
+            action={adicionarContatoEmergencia}
+            camposExtras={{ atletaId: atleta.id }}
+            contatoMae={atleta.mae_nome ? { nome: atleta.mae_nome, telefone: atleta.mae_telefone ?? "" } : null}
+            contatoPai={atleta.pai_nome ? { nome: atleta.pai_nome, telefone: atleta.pai_telefone ?? "" } : null}
+          />
         </div>
       </section>
 

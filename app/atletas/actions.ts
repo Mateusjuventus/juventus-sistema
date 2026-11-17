@@ -68,6 +68,7 @@ function parseForm(formData: FormData) {
     origemBairro: String(formData.get("origem_bairro") ?? ""),
     origemCidade: String(formData.get("origem_cidade") ?? ""),
     origemUf: String(formData.get("origem_uf") ?? ""),
+    origemDiferente: formData.get("origemDiferente") === "on",
     dataInicioClube: String(formData.get("dataInicioClube") ?? ""),
     empresarioNome: String(formData.get("empresarioNome") ?? ""),
     empresarioTelefone: String(formData.get("empresarioTelefone") ?? ""),
@@ -111,8 +112,53 @@ function parseForm(formData: FormData) {
       alojado: raw.alojado ? "on" : "",
       recebeComoPf: raw.recebeComoPf ? "on" : "",
       recebeComoPj: raw.recebeComoPj ? "on" : "",
+      origemDiferente: raw.origemDiferente ? "on" : "",
     },
     result,
+  };
+}
+
+/** Resolve os 7 campos `origem_*` gravados no banco a partir do formulário — ver comentário de
+ * `origemEnderecoFields` em lib/validation/schemas.ts. Quando `origemDiferente` não está marcado,
+ * o "Endereço de origem" nem aparece no formulário (campos vazios), então grava o endereço ATUAL
+ * nesses campos também, em vez de apagar o que já estava lá — mesmo princípio do `/ver`, que trata
+ * origem igual a atual como "sem nada de diferente pra mostrar". */
+function resolverEnderecoOrigem(data: {
+  origemDiferente: boolean;
+  origemCep?: string;
+  origemLogradouro?: string;
+  origemNumero?: string;
+  origemComplemento?: string;
+  origemBairro?: string;
+  origemCidade?: string;
+  origemUf?: string;
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+}) {
+  if (!data.origemDiferente) {
+    return {
+      origem_cep: data.cep || null,
+      origem_logradouro: data.logradouro || null,
+      origem_numero: data.numero || null,
+      origem_complemento: data.complemento || null,
+      origem_bairro: data.bairro || null,
+      origem_cidade: data.cidade || null,
+      origem_uf: data.uf ? data.uf.toUpperCase() : null,
+    };
+  }
+  return {
+    origem_cep: data.origemCep || null,
+    origem_logradouro: data.origemLogradouro || null,
+    origem_numero: data.origemNumero || null,
+    origem_complemento: data.origemComplemento || null,
+    origem_bairro: data.origemBairro || null,
+    origem_cidade: data.origemCidade || null,
+    origem_uf: data.origemUf ? data.origemUf.toUpperCase() : null,
   };
 }
 
@@ -186,13 +232,7 @@ export async function createAtleta(
     bairro: data.bairro || null,
     cidade: data.cidade || null,
     uf: data.uf ? data.uf.toUpperCase() : null,
-    origem_cep: data.origemCep || null,
-    origem_logradouro: data.origemLogradouro || null,
-    origem_numero: data.origemNumero || null,
-    origem_complemento: data.origemComplemento || null,
-    origem_bairro: data.origemBairro || null,
-    origem_cidade: data.origemCidade || null,
-    origem_uf: data.origemUf ? data.origemUf.toUpperCase() : null,
+    ...resolverEnderecoOrigem(data),
     data_inicio_clube: data.dataInicioClube || null,
     empresario_nome: data.empresarioNome || null,
     empresario_telefone: data.empresarioTelefone || null,
@@ -292,13 +332,7 @@ export async function updateAtleta(
     bairro: data.bairro || null,
     cidade: data.cidade || null,
     uf: data.uf ? data.uf.toUpperCase() : null,
-    origem_cep: data.origemCep || null,
-    origem_logradouro: data.origemLogradouro || null,
-    origem_numero: data.origemNumero || null,
-    origem_complemento: data.origemComplemento || null,
-    origem_bairro: data.origemBairro || null,
-    origem_cidade: data.origemCidade || null,
-    origem_uf: data.origemUf ? data.origemUf.toUpperCase() : null,
+    ...resolverEnderecoOrigem(data),
     data_inicio_clube: data.dataInicioClube || null,
     empresario_nome: data.empresarioNome || null,
     empresario_telefone: data.empresarioTelefone || null,

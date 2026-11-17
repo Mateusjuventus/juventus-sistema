@@ -122,7 +122,14 @@ const refinoAlergia = {
 
 /** Segundo endereço estruturado do atleta ("Endereço de origem", pedido de 2026-10-16) — mesmo
  * formato de `enderecoFields`, com prefixo "origem" pras chaves não colidirem com o endereço atual
- * no mesmo formulário. Ver docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md. */
+ * no mesmo formulário. Ver docs/superpowers/specs/2026-10-16-atleta-dados-pessoais-design.md.
+ *
+ * Desde 17/11/2026 esses campos só aparecem no formulário quando `origemDiferente` (abaixo) está
+ * marcado — Mateus achou que o bloco "Endereço de origem" sempre visível tomava espaço à toa, já
+ * que na maioria dos casos é igual ao atual (mesma observação que já tinha motivado o `/ver` a
+ * colapsar os dois quando iguais, em 2026-10-22). Quando `origemDiferente` é `false`, a action
+ * (`createAtleta`/`updateAtleta`) grava o endereço atual também nos campos de origem, em vez do que
+ * vier nesses campos — ver `resolverEnderecoOrigem` em app/atletas/actions.ts. */
 const origemEnderecoFields = {
   origemCep: z.string().optional().or(z.literal("")),
   origemLogradouro: z.string().optional().or(z.literal("")),
@@ -180,6 +187,10 @@ export const atletaSchema = z
     ...enderecoFields,
     // Segundo endereço estruturado ("Endereço de origem") — pedido de 2026-10-16.
     ...origemEnderecoFields,
+    // Liga/desliga o bloco "Endereço de origem" no formulário (ver comentário de
+    // `origemEnderecoFields` acima) — `false` por padrão (origem = atual, sem precisar digitar
+    // nada de novo), pedido de 17/11/2026.
+    origemDiferente: z.boolean().default(false),
     dataInicioClube: z.string().optional().or(z.literal("")),
     empresarioNome: z.string().optional().or(z.literal("")),
     empresarioTelefone: telefoneField,
