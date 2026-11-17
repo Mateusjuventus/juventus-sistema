@@ -208,6 +208,13 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
   const vigenteBruto = contratos.find((c) => c.vigente);
   const vigenteParaStatus = vigenteBruto && !contratoVazio(vigenteBruto) ? vigenteBruto : undefined;
   const statusContratoAtleta = statusContrato(vigenteParaStatus, hojeBrasilia());
+  // 17/11/2026 — com Contrato de Formação vigente, a Bolsa de aprendizagem (ver `ContratoSecao`,
+  // acima) já é o valor de "ajuda de custo" do atleta; o campo "Valor de ajuda de custo" do
+  // cadastro passa a ficar escondido pra não ter os dois valores ao mesmo tempo (pedido do Mateus:
+  // "essa ajuda de custo some, só deixar bolsa aprendizado mesmo" — ver também o ajuste em
+  // `lib/futebol/financeiro-base.ts`/`financeiro.ts`, que agora usam a Bolsa na conta do Gasto
+  // Geral pra esse tipo de contrato em vez de somar com este campo).
+  const temContratoFormacao = vigenteBruto?.tipo_contrato === "formacao";
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = isBase
@@ -454,10 +461,12 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
           <FormSection title="Alojamento e ajuda de custo">
             <FieldGroup>
               <DetailField label="Mora no alojamento do clube" value={atleta.alojado ? "Sim" : "Não"} />
-              <DetailField
-                label="Valor de ajuda de custo"
-                value={atleta.valor_ajuda_custo != null ? `R$ ${atleta.valor_ajuda_custo.toFixed(2)}` : null}
-              />
+              {!temContratoFormacao ? (
+                <DetailField
+                  label="Valor de ajuda de custo"
+                  value={atleta.valor_ajuda_custo != null ? `R$ ${atleta.valor_ajuda_custo.toFixed(2)}` : null}
+                />
+              ) : null}
               <DetailField label="Escola" value={atleta.escola} />
             </FieldGroup>
           </FormSection>

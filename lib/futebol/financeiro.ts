@@ -20,13 +20,16 @@ export function tipoPagamentoAtletaProfissional(tipoContrato: AtletaRow["tipo_co
 }
 
 /** Total de um contrato — soma das 5 rubricas (Salário CTPS, Direito de Imagem, Bonificação,
- * Auxílio Moradia, Outros). Mesma conta usada na Base (`lib/futebol/financeiro-base.ts`). */
+ * Auxílio Moradia, Outros). Mesma conta usada na Base (`lib/futebol/financeiro-base.ts`) — ver o
+ * comentário de lá, 17/11/2026, sobre o caso do contrato "formacao" usar a Bolsa de aprendizagem
+ * em vez das 5 rubricas (que ficam sempre zeradas nesse tipo). */
 function totalContrato(
   c: Pick<
     AtletaContratoRow,
-    "salario_ctps" | "direito_imagem" | "bonificacao" | "auxilio_moradia" | "outros"
+    "tipo_contrato" | "salario_ctps" | "direito_imagem" | "bonificacao" | "auxilio_moradia" | "outros" | "bolsa_aprendizagem"
   >,
 ): number {
+  if (c.tipo_contrato === "formacao") return c.bolsa_aprendizagem;
   return c.salario_ctps + c.direito_imagem + c.bonificacao + c.auxilio_moradia + c.outros;
 }
 

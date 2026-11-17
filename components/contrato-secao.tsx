@@ -336,7 +336,7 @@ function ContratoCard({
         </>
       ) : null}
       {contrato.tipo_contrato === "formacao" ? (
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-2">
           {vigenciaTexto || vigenciaDiasTexto ? (
             <div className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
               <span className="text-neutral-600">Vigência da Formação</span>

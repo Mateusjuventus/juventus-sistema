@@ -47,10 +47,15 @@ export function AtletaForm({
   defaultValues?: Record<string, string>;
   fotoUrl?: string | null;
   submitLabel: string;
-  /** Tipo do contrato vigente (ver `lib/futebol/contrato.ts`) — só decide se a seção "Dados de
+  /** Tipo do contrato vigente (ver `lib/futebol/contrato.ts`) — decide se a seção "Dados de
    * Pagamento" aparece (`atletaTemDadosPagamento`); `null`/`undefined` quando o atleta ainda não
    * tem nenhum contrato (ex. recém cadastrado). Ver docs/superpowers/specs/2026-11-04-atletas-
-   * desativacao-transicao-pagamento-design.md. */
+   * desativacao-transicao-pagamento-design.md.
+   *
+   * 17/11/2026 — também decide se o campo "Valor de ajuda de custo" aparece: com Contrato de
+   * Formação vigente, a Bolsa de aprendizagem (ver `ContratoSecao`) já cobre esse valor, então o
+   * campo some pra não ter os dois ao mesmo tempo (pedido do Mateus — ver também o ajuste em
+   * `lib/futebol/financeiro-base.ts`/`financeiro.ts`). */
   tipoContratoVigente?: string | null;
 }) {
   const [state, formAction] = useFormState(action, initialState);
@@ -518,15 +523,17 @@ export function AtletaForm({
                 Mora no alojamento do clube
               </label>
             </div>
-            <TextField
-              label="Valor de ajuda de custo (R$)"
-              name="valorAjudaCusto"
-              type="number"
-              min={0}
-              step="0.01"
-              defaultValue={values.valorAjudaCusto}
-              error={errors.valorAjudaCusto}
-            />
+            {tipoContratoVigente !== "formacao" ? (
+              <TextField
+                label="Valor de ajuda de custo (R$)"
+                name="valorAjudaCusto"
+                type="number"
+                min={0}
+                step="0.01"
+                defaultValue={values.valorAjudaCusto}
+                error={errors.valorAjudaCusto}
+              />
+            ) : null}
             <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
           </FieldGroup>
         </FormSection>

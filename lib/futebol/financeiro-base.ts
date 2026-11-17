@@ -24,13 +24,23 @@ export function valorDespesaBase(
 }
 
 /** Total de um contrato — soma das 5 rubricas (Salário CTPS, Direito de Imagem, Bonificação,
- * Auxílio Moradia, Outros). Mesma conta usada no Profissional (`lib/futebol/financeiro.ts`). */
+ * Auxílio Moradia, Outros). Mesma conta usada no Profissional (`lib/futebol/financeiro.ts`).
+ *
+ * 17/11/2026 — contrato tipo "formacao" sempre tem essas 5 rubricas zeradas (não se aplicam, ver
+ * `contratoTemRemuneracaoFormal`), mas isso fazia o atleta entrar como R$ 0,00 no Gasto Geral: por
+ * ter CONTRATO cadastrado (mesmo zerado), `custoAtletaBase` abaixo nunca caía no fallback de
+ * `valor_ajuda_custo`, e a Bolsa de aprendizagem (que é o valor de verdade desse tipo de contrato)
+ * não entrava em soma nenhuma. Pedido do Mateus: a Bolsa de aprendizagem passa a ser o valor do
+ * atleta nesse caso — ela substitui a Ajuda de custo do cadastro, nunca soma com ela (ver também
+ * `app/atletas/[id]/ver/page.tsx`, que esconde o campo "Valor de ajuda de custo" quando o atleta já
+ * tem Contrato de Formação). */
 function totalContrato(
   c: Pick<
     AtletaContratoRow,
-    "salario_ctps" | "direito_imagem" | "bonificacao" | "auxilio_moradia" | "outros"
+    "tipo_contrato" | "salario_ctps" | "direito_imagem" | "bonificacao" | "auxilio_moradia" | "outros" | "bolsa_aprendizagem"
   >,
 ): number {
+  if (c.tipo_contrato === "formacao") return c.bolsa_aprendizagem;
   return c.salario_ctps + c.direito_imagem + c.bonificacao + c.auxilio_moradia + c.outros;
 }
 
