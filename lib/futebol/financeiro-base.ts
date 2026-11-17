@@ -54,16 +54,21 @@ export function mapaContratoVigentePorAtleta(
 
 /**
  * Custo "mensal" de um atleta da Base pra fins do Gasto Geral — o total do contrato vigente (soma
- * das 5 rubricas) quando existe um cadastrado; `valor_ajuda_custo` só como fallback, pra quem ainda
- * não tem nenhum contrato cadastrado (ver docs/superpowers/specs/2026-10-16-financeiro-contrato-
- * design.md). Antes dessa mudança era sempre `valor_ajuda_custo`, para todo mundo — ver nota em
- * `tipoPagamentoAtletaBase` sobre o rótulo (que não muda com esta conta).
+ * das 5 rubricas, ou a Bolsa de aprendizagem pra Formação — ver `totalContrato` acima) quando
+ * existe um cadastrado; zero pra quem ainda não tem nenhum contrato cadastrado.
+ *
+ * 17/11/2026 — até então, quem não tinha contrato caía num fallback no campo `valor_ajuda_custo`
+ * do cadastro do atleta (ver docs/superpowers/specs/2026-10-16-financeiro-contrato-design.md). O
+ * campo saiu de vez da tela (pedido do Mateus: ficou redundante com a Bolsa de aprendizagem pra
+ * quem tem Contrato de Formação, e pra quem não tem contrato nenhum ele decidiu que o certo é
+ * aparecer R$ 0,00 mesmo, sinalizando que falta cadastrar o contrato, em vez de manter um valor
+ * solto fora do Contrato) — por isso o fallback saiu também desta conta.
  */
 export function custoAtletaBase(
-  atleta: Pick<AtletaRow, "id" | "valor_ajuda_custo">,
+  atleta: Pick<AtletaRow, "id">,
   contratoPorAtleta: Map<string, number>,
 ): number {
-  return contratoPorAtleta.get(atleta.id) ?? atleta.valor_ajuda_custo ?? 0;
+  return contratoPorAtleta.get(atleta.id) ?? 0;
 }
 
 /**
@@ -114,11 +119,10 @@ export interface GeralBaseResumo {
  * listagens nominais mostram todo mundo agora (com "—" pra quem não tem valor), só a soma ignora
  * quem está com o valor nulo. `contratosVigentes` são só os contratos com `vigente = true` (no
  * máximo um por atleta, já filtrado na query) — ver `custoAtletaBase`/`mapaContratoVigentePorAtleta`
- * pra como o total de cada atleta é calculado a partir disso (contrato vigente, com
- * `valor_ajuda_custo` como fallback pra quem não tem contrato — ver docs/superpowers/specs/
- * 2026-10-16-financeiro-contrato-design.md). O rótulo de cada atleta (Salário/Ajuda de
- * custo/Empréstimo/Sem contrato) continua vindo do tipo de contrato — ver `tipoPagamentoAtletaBase`
- * — e não muda com esta conta.
+ * pra como o total de cada atleta é calculado a partir disso (contrato vigente, zero pra quem não
+ * tem contrato — ver a nota em `custoAtletaBase` sobre o fallback em `valor_ajuda_custo` que existia
+ * até 17/11/2026). O rótulo de cada atleta (Salário/Ajuda de custo/Empréstimo/Sem contrato) continua
+ * vindo do tipo de contrato — ver `tipoPagamentoAtletaBase` — e não muda com esta conta.
  *
  * Quando uma pessoa da Comissão Técnica atua em mais de uma categoria, o salário dela é dividido
  * igualmente entre as categorias marcadas só nesta quebra "por categoria" — na listagem nominal

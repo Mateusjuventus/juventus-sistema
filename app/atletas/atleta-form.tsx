@@ -28,11 +28,11 @@ const initialState: AtletaFormState = {};
  * Até então existiam `AtletaForm` (Profissional) e `AtletaBaseForm` (Base, quase idêntico, com
  * Categoria/Classificação/Responsáveis/Alojamento a mais) — colapsados aqui num só, com um
  * seletor de Categoria no topo que decide (reativamente, sem precisar salvar) quais seções
- * "Base-only" aparecem: "Responsáveis" (dentro de Dados pessoais), "Agência" (Dados esportivos) e
- * "Alojamento e ajuda de custo" (seção própria) só aparecem quando a categoria escolhida é uma das
- * 7 categorias da Base. Classificação (G1/G2/G3) e RG/CPF/data de nascimento valem pras duas
- * categorias sem distinção — RG/CPF/nascimento já eram obrigatórios nos dois formulários antigos,
- * sem mudança aqui.
+ * "Base-only" aparecem: "Responsáveis" e "Alojamento e escola" (dentro de Dados pessoais) e
+ * "Agência" (Dados esportivos) só aparecem quando a categoria escolhida é uma das 7 categorias da
+ * Base. Classificação (G1/G2/G3) e RG/CPF/data de nascimento valem pras duas categorias sem
+ * distinção — RG/CPF/nascimento já eram obrigatórios nos dois formulários antigos, sem mudança
+ * aqui.
  */
 export function AtletaForm({
   action,
@@ -50,12 +50,7 @@ export function AtletaForm({
   /** Tipo do contrato vigente (ver `lib/futebol/contrato.ts`) — decide se a seção "Dados de
    * Pagamento" aparece (`atletaTemDadosPagamento`); `null`/`undefined` quando o atleta ainda não
    * tem nenhum contrato (ex. recém cadastrado). Ver docs/superpowers/specs/2026-11-04-atletas-
-   * desativacao-transicao-pagamento-design.md.
-   *
-   * 17/11/2026 — também decide se o campo "Valor de ajuda de custo" aparece: com Contrato de
-   * Formação vigente, a Bolsa de aprendizagem (ver `ContratoSecao`) já cobre esse valor, então o
-   * campo some pra não ter os dois ao mesmo tempo (pedido do Mateus — ver também o ajuste em
-   * `lib/futebol/financeiro-base.ts`/`financeiro.ts`). */
+   * desativacao-transicao-pagamento-design.md. */
   tipoContratoVigente?: string | null;
 }) {
   const [state, formAction] = useFormState(action, initialState);
@@ -305,6 +300,32 @@ export function AtletaForm({
             </FieldGroup>
           </div>
         ) : null}
+
+        {/* "Alojamento e ajuda de custo" deixou de ser uma seção própria em 17/11/2026 (pedido do
+            Mateus) — "Valor de ajuda de custo" saiu de vez (ficou redundante com a Bolsa de
+            aprendizagem, que já cobre esse valor pro Contrato de Formação), e o que sobrou
+            (alojamento/escola) virou mais uma parte separada aqui dentro de "Dados pessoais",
+            mesmo padrão visual de "Responsáveis" acima. */}
+        {isBase ? (
+          <div className="mt-4">
+            <p className="field-label">Alojamento e escola</p>
+            <FieldGroup>
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <input
+                  id="alojado"
+                  name="alojado"
+                  type="checkbox"
+                  defaultChecked={values.alojado === "on"}
+                  className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                />
+                <label htmlFor="alojado" className="text-sm font-medium text-neutral-700">
+                  Mora no alojamento do clube
+                </label>
+              </div>
+              <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
+            </FieldGroup>
+          </div>
+        ) : null}
       </FormSection>
 
       <FormSection title="Dados esportivos">
@@ -504,37 +525,6 @@ export function AtletaForm({
                 />
               </>
             ) : null}
-          </FieldGroup>
-        </FormSection>
-      ) : null}
-
-      {isBase ? (
-        <FormSection title="Alojamento e ajuda de custo">
-          <FieldGroup>
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <input
-                id="alojado"
-                name="alojado"
-                type="checkbox"
-                defaultChecked={values.alojado === "on"}
-                className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
-              />
-              <label htmlFor="alojado" className="text-sm font-medium text-neutral-700">
-                Mora no alojamento do clube
-              </label>
-            </div>
-            {tipoContratoVigente !== "formacao" ? (
-              <TextField
-                label="Valor de ajuda de custo (R$)"
-                name="valorAjudaCusto"
-                type="number"
-                min={0}
-                step="0.01"
-                defaultValue={values.valorAjudaCusto}
-                error={errors.valorAjudaCusto}
-              />
-            ) : null}
-            <TextField label="Escola" name="escola" defaultValue={values.escola} error={errors.escola} />
           </FieldGroup>
         </FormSection>
       ) : null}

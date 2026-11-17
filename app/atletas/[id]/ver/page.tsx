@@ -22,10 +22,10 @@ import { formatCEP } from "@/lib/validation/cep";
 import { categoriaAtletaLabel, ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { badgeClassificacaoAtleta, classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { cadastroIncompletoRapido } from "@/lib/futebol/campograma";
-import { contratoVazio, statusContrato } from "@/lib/futebol/contrato";
+import { atletaTemDadosPagamento, contratoVazio, statusContrato } from "@/lib/futebol/contrato";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { ContratoSecao } from "@/components/contrato-secao";
-import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS, STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import { alternarAtletaAtivoComMotivo } from "../../actions";
 import type {
   AtletaContatoEmergenciaRow,
@@ -38,6 +38,13 @@ import type {
 
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
   ATLETA_BASE_TIPO_CONTRATO_OPTIONS.map((opcao) => [opcao.value, opcao.label]),
+);
+
+/** Rótulo do tipo de chave PIX (CPF/CNPJ/E-mail/Telefone/Aleatória) pra exibir junto da chave, nas
+ * seções "Dados de Pagamento" abaixo — mesma lista usada no formulário de edição
+ * (`ChavePixFields`/`STAFF_CHAVE_PIX_TIPOS`). */
+const CHAVE_PIX_TIPO_LABEL: Record<string, string> = Object.fromEntries(
+  STAFF_CHAVE_PIX_TIPOS.map((opcao) => [opcao.value, opcao.label]),
 );
 
 // Rótulos oficiais de Status — iguais pras duas categorias desde a unificação de 28/10/2026.
@@ -214,7 +221,6 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
   // "essa ajuda de custo some, só deixar bolsa aprendizado mesmo" — ver também o ajuste em
   // `lib/futebol/financeiro-base.ts`/`financeiro.ts`, que agora usam a Bolsa na conta do Gasto
   // Geral pra esse tipo de contrato em vez de somar com este campo).
-  const temContratoFormacao = vigenteBruto?.tipo_contrato === "formacao";
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = isBase
@@ -298,29 +304,42 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
 
       <div className="mt-6 space-y-6">
         <FormSection title="Dados pessoais">
-          <FieldGroup>
-            <DetailField label="Nome completo" value={atleta.nome_completo} />
-            <DetailField label="Apelido" value={atleta.apelido} />
-            {/* Placeholder da inclusão rápida (ver `cadastroIncompleto` acima) não é um RG/CPF de
-                verdade — mostra "Pendente" em vez do valor interno (id/dígitos sintéticos). */}
-            <DetailField label="RG" value={cadastroIncompletoRapido(atleta.rg) ? "Pendente" : atleta.rg} />
-            <DetailField
-              label="CPF"
-              value={cadastroIncompletoRapido(atleta.rg) ? "Pendente" : atleta.cpf ? formatCPF(atleta.cpf) : null}
-            />
-            <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
-            <DetailField label="Naturalidade" value={atleta.cidade_natal} />
-            <DetailField label="UF natal" value={atleta.uf_natal} />
-            <DetailField label="Telefone" value={atleta.telefone ? formatTelefone(atleta.telefone) : null} />
-            <DetailField label="Email" value={atleta.email} />
-            <DetailField
-              label="Possui alergia a algum medicamento"
-              value={atleta.possui_alergia_medicamento ? "Sim" : "Não"}
-            />
-            {atleta.possui_alergia_medicamento ? (
-              <DetailField label="Qual" value={atleta.alergia_medicamento_qual} />
+          <div className="space-y-4">
+            <FieldGroup>
+              <DetailField label="Nome completo" value={atleta.nome_completo} />
+              <DetailField label="Apelido" value={atleta.apelido} />
+              {/* Placeholder da inclusão rápida (ver `cadastroIncompleto` acima) não é um RG/CPF de
+                  verdade — mostra "Pendente" em vez do valor interno (id/dígitos sintéticos). */}
+              <DetailField label="RG" value={cadastroIncompletoRapido(atleta.rg) ? "Pendente" : atleta.rg} />
+              <DetailField
+                label="CPF"
+                value={cadastroIncompletoRapido(atleta.rg) ? "Pendente" : atleta.cpf ? formatCPF(atleta.cpf) : null}
+              />
+              <DetailField label="Data de nascimento" value={formatData(atleta.data_nascimento)} />
+              <DetailField label="Naturalidade" value={atleta.cidade_natal} />
+              <DetailField label="UF natal" value={atleta.uf_natal} />
+              <DetailField label="Telefone" value={atleta.telefone ? formatTelefone(atleta.telefone) : null} />
+              <DetailField label="Email" value={atleta.email} />
+              <DetailField
+                label="Possui alergia a algum medicamento"
+                value={atleta.possui_alergia_medicamento ? "Sim" : "Não"}
+              />
+              {atleta.possui_alergia_medicamento ? (
+                <DetailField label="Qual" value={atleta.alergia_medicamento_qual} />
+              ) : null}
+            </FieldGroup>
+
+            {/* "Alojamento e ajuda de custo" deixou de ser uma seção própria em 17/11/2026 (pedido
+                do Mateus) — "Valor de ajuda de custo" saiu de vez (ficou redundante com a Bolsa de
+                aprendizagem), e o que sobrou (alojamento/escola) virou mais um `BlocoDetalhe` aqui
+                dentro de "Dados pessoais", mesmo padrão visual de "Responsáveis"/"Origem" acima. */}
+            {isBase ? (
+              <BlocoDetalhe titulo="Alojamento e escola">
+                <DetailField label="Mora no alojamento do clube" value={atleta.alojado ? "Sim" : "Não"} />
+                <DetailField label="Escola" value={atleta.escola} />
+              </BlocoDetalhe>
             ) : null}
-          </FieldGroup>
+          </div>
         </FormSection>
 
         <FormSection title="Endereço">
@@ -427,6 +446,53 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
           </FieldGroup>
         </FormSection>
 
+        {/* Só aparece quando o contrato vigente é Definitivo, Empréstimo ou Formação — mesma regra
+            de visibilidade do formulário de edição (`atletaTemDadosPagamento`, ver `AtletaForm`).
+            Pedido do Mateus em 17/11/2026: até então só dava pra ver esses dados entrando no modo
+            de edição. */}
+        {atletaTemDadosPagamento(vigenteBruto?.tipo_contrato) ? (
+          <FormSection title="Dados de Pagamento">
+            <div className="space-y-4">
+              <BlocoDetalhe titulo="Pessoa Física">
+                <DetailField label="Recebe como Pessoa Física" value={atleta.recebe_como_pf ? "Sim" : "Não"} />
+                {atleta.recebe_como_pf ? (
+                  <>
+                    <DetailField
+                      label="Chave PIX"
+                      value={
+                        atleta.pf_chave_pix
+                          ? `${atleta.pf_chave_pix_tipo ? `${CHAVE_PIX_TIPO_LABEL[atleta.pf_chave_pix_tipo] ?? atleta.pf_chave_pix_tipo} — ` : ""}${atleta.pf_chave_pix}`
+                          : null
+                      }
+                    />
+                    <DetailField label="Banco" value={atleta.pf_banco} />
+                    <DetailField label="Agência" value={atleta.pf_agencia} />
+                    <DetailField label="Conta" value={atleta.pf_conta} />
+                  </>
+                ) : null}
+              </BlocoDetalhe>
+
+              <BlocoDetalhe titulo="Pessoa Jurídica (Empresa de Imagem)">
+                <DetailField label="Recebe como Pessoa Jurídica" value={atleta.recebe_como_pj ? "Sim" : "Não"} />
+                {atleta.recebe_como_pj ? (
+                  <>
+                    <DetailField label="Nome da Empresa de Imagem" value={atleta.empresa_imagem_nome} />
+                    <DetailField label="CNPJ" value={atleta.empresa_imagem_cnpj} />
+                    <DetailField
+                      label="Chave PIX da empresa"
+                      value={
+                        atleta.empresa_imagem_chave_pix
+                          ? `${atleta.empresa_imagem_chave_pix_tipo ? `${CHAVE_PIX_TIPO_LABEL[atleta.empresa_imagem_chave_pix_tipo] ?? atleta.empresa_imagem_chave_pix_tipo} — ` : ""}${atleta.empresa_imagem_chave_pix}`
+                          : null
+                      }
+                    />
+                  </>
+                ) : null}
+              </BlocoDetalhe>
+            </div>
+          </FormSection>
+        ) : null}
+
         {/* Contrato deixou de ser uma aba própria em 2026-10-16 (pedido do Mateus: "não pode ficar
             na primeira página?") — fica visível direto aqui e também na tela de Editar, pra poder
             lançar um novo contrato sem precisar entrar em edição. */}
@@ -456,21 +522,6 @@ export default async function VerAtletaPage({ params }: { params: { id: string }
             }}
           />
         </FormSection>
-
-        {isBase ? (
-          <FormSection title="Alojamento e ajuda de custo">
-            <FieldGroup>
-              <DetailField label="Mora no alojamento do clube" value={atleta.alojado ? "Sim" : "Não"} />
-              {!temContratoFormacao ? (
-                <DetailField
-                  label="Valor de ajuda de custo"
-                  value={atleta.valor_ajuda_custo != null ? `R$ ${atleta.valor_ajuda_custo.toFixed(2)}` : null}
-                />
-              ) : null}
-              <DetailField label="Escola" value={atleta.escola} />
-            </FieldGroup>
-          </FormSection>
-        ) : null}
       </div>
     </AppShell>
   );

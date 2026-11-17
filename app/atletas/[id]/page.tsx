@@ -159,7 +159,6 @@ export default async function EditarAtletaPage({ params }: { params: { id: strin
     possuiAlergiaMedicamento: atleta.possui_alergia_medicamento ? "on" : "",
     alergiaMedicamentoQual: atleta.alergia_medicamento_qual ?? "",
     alojado: atleta.alojado ? "on" : "",
-    valorAjudaCusto: atleta.valor_ajuda_custo != null ? String(atleta.valor_ajuda_custo) : "",
     agencia: atleta.agencia ?? "",
     maeNome: atleta.mae_nome ?? "",
     maeTelefone: atleta.mae_telefone ?? "",

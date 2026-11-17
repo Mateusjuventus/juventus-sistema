@@ -207,7 +207,6 @@ export const atletaSchema = z
     // empresário. Continuam no banco pra qualquer categoria, mas o formulário só os mostra quando
     // a categoria é de Base (decisão do Mateus na unificação, 28/10/2026).
     alojado: z.boolean().default(false),
-    valorAjudaCusto: z.coerce.number().nonnegative().optional().nullable(),
     agencia: z.string().optional().or(z.literal("")),
     maeNome: z.string().optional().or(z.literal("")),
     maeTelefone: telefoneFieldValidado,
