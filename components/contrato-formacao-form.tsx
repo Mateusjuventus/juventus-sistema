@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { FieldGroup, FormSection, TextField } from "@/components/fields";
 import { CpfField } from "@/components/cpf-field";
@@ -8,6 +8,11 @@ import { TelefoneField } from "@/components/telefone-field";
 import { CurrencyField } from "@/components/currency-field";
 import { SubmitButton } from "@/components/submit-button";
 import { dataFimFormacao } from "@/lib/futebol/contrato";
+
+function formatDataBr(data: string): string {
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
 
 export interface ContratoFormacaoFormState {
   error?: string;
@@ -38,6 +43,13 @@ export interface ContratoFormacaoFormState {
  * + 20 anos, menos 1 dia — mesma regra de `ContratoForm`/Cláusula 1.1 do próprio contrato de
  * menor). A Vigência do BID não tem sugestão nenhuma (é um dado independente, do registro na CBF/
  * FPF — ver a spec).
+ *
+ * 17/11/2026 — levantamento feito pelo Mateus achou 18 atletas com o campo Término salvo além
+ * desse limite (entrada manual errada, de antes de 11/11/2026 existir essa sugestão — ver
+ * docs/superpowers/specs/2026-11-17-aviso-vigencia-formacao-design.md). Esse limite é só um teto
+ * (um contrato mais curto que ele continua normal); quando o valor digitado em Término ultrapassa
+ * `vigenciaFimSugerida`, mostra um aviso abaixo do campo — não bloqueia o salvamento (pedido
+ * explícito do Mateus: não quer caixinha de exceção na tela, só quer ser avisado).
  */
 export function ContratoFormacaoForm({
   action,
@@ -65,6 +77,8 @@ export function ContratoFormacaoForm({
   const values = state.values ?? valoresIniciais ?? {};
   const errors = state.fieldErrors ?? {};
   const vigenciaFimSugerida = dataNascimentoAtleta ? dataFimFormacao(dataNascimentoAtleta) : undefined;
+  const [vigenciaFim, setVigenciaFim] = useState(values.vigenciaFim ?? vigenciaFimSugerida ?? "");
+  const terminoAlemDoLimite = Boolean(vigenciaFimSugerida && vigenciaFim && vigenciaFim > vigenciaFimSugerida);
 
   useEffect(() => {
     if (state.success && onSuccessClose) onSuccessClose();
@@ -127,8 +141,15 @@ export function ContratoFormacaoForm({
                 type="date"
                 defaultValue={values.vigenciaFim ?? vigenciaFimSugerida}
                 error={errors.vigenciaFim}
+                onChange={setVigenciaFim}
               />
             </FieldGroup>
+            {terminoAlemDoLimite && vigenciaFimSugerida ? (
+              <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                Essa data passa de {formatDataBr(vigenciaFimSugerida)}, quando o atleta completa 20
+                anos — confira antes de salvar.
+              </p>
+            ) : null}
           </div>
           <div>
             <p className="field-label">Vigência do BID</p>

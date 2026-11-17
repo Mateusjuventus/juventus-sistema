@@ -14,6 +14,7 @@ export function TextField({
   maxLength,
   step,
   autoComplete,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -31,6 +32,11 @@ export function TextField({
   maxLength?: number;
   step?: string | number;
   autoComplete?: string;
+  /** Opcional — mesmo padrão de `SelectField`/`SuggestionField`: só é preciso quando algum outro
+   * trecho do formulário depende do valor digitado nesse campo (ex.: um aviso que aparece conforme
+   * a data escolhida). Precisa vir de um componente "use client". Não vira o valor controlado do
+   * input — `defaultValue` continua sendo quem define o valor inicial, isso só observa mudanças. */
+  onChange?: (value: string) => void;
 }) {
   const fieldId = id ?? name;
   return (
@@ -51,6 +57,7 @@ export function TextField({
         maxLength={maxLength}
         step={step}
         autoComplete={autoComplete}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         className="field-input"
       />
       {error ? <p className="field-error">{error}</p> : null}
