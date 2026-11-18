@@ -125,8 +125,15 @@ export interface RelacaoAtletaLinha {
   dataInicioClube: string | null;
   tipoContrato: string | null;
   dataFimContrato: string | null;
-  contratoFormacao: boolean | null;
   empresarioNome: string | null;
+  /** "Dados de pagamento (PF)"/"(PJ)" — já vêm combinados numa string só (banco/agência/conta/
+   * chave PIX, ou nome da empresa/CNPJ/chave PIX) a partir de `pagamentoPf`/`pagamentoPj` em
+   * app/base/atletas/relacao/pdf/route.tsx; `null` quando o atleta não tem "Recebe como Pessoa
+   * Física/Jurídica" marcado. Substituiu "Contrato de formação" (saiu em 18/11/2026 — checava um
+   * campo legado desde a migração 0097 e sempre mostrava "—"; "Tipo de contrato" já cobre essa
+   * informação). */
+  pagamentoPf: string | null;
+  pagamentoPj: string | null;
   status: string | null;
   classificacao: string | null;
 }
@@ -146,8 +153,9 @@ export interface RelacaoAtletasColunas {
   dataInicioClube: boolean;
   tipoContrato: boolean;
   dataFimContrato: boolean;
-  contratoFormacao: boolean;
   empresarioNome: boolean;
+  pagamentoPf: boolean;
+  pagamentoPj: boolean;
   status: boolean;
   classificacao: boolean;
 }
@@ -174,12 +182,9 @@ const COLUNAS_DISPONIVEIS: ColunaDef[] = [
   { chave: "dataInicioClube", label: "Início no clube", valor: (a) => formatDataBr(a.dataInicioClube) },
   { chave: "tipoContrato", label: "Tipo de contrato", valor: (a) => a.tipoContrato ?? "—" },
   { chave: "dataFimContrato", label: "Fim de contrato", valor: (a) => formatDataBr(a.dataFimContrato) },
-  {
-    chave: "contratoFormacao",
-    label: "Contrato de formação",
-    valor: (a) => (a.contratoFormacao == null ? "—" : a.contratoFormacao ? "Sim" : "Não"),
-  },
   { chave: "empresarioNome", label: "Empresário", valor: (a) => a.empresarioNome ?? "—" },
+  { chave: "pagamentoPf", label: "Dados de pagamento (PF)", valor: (a) => a.pagamentoPf ?? "—" },
+  { chave: "pagamentoPj", label: "Dados de pagamento (PJ)", valor: (a) => a.pagamentoPj ?? "—" },
   { chave: "status", label: "Situação", valor: (a) => a.status ?? "—" },
   { chave: "classificacao", label: "Classificação", valor: (a) => a.classificacao ?? "—" },
 ];

@@ -13,15 +13,58 @@ import {
 } from "@/lib/pdf/relacao-atletas-base-document";
 import {
   agruparAtletasPorCategoria,
+  atletaPassaFiltroTipoContrato,
   categoriasParaFiltro,
   composicaoEscopoCategorias,
   RELACAO_STATUS_LABEL,
   statusParaFiltro,
+  TODOS_TIPOS_CONTRATO_ATLETA_BASE_FILTRO,
+  tipoContratoParaFiltro,
 } from "@/lib/futebol/relacao-atletas-base";
 import { classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
-import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
+import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS, STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
+
+const CHAVE_PIX_TIPO_LABEL: Record<string, string> = Object.fromEntries(
+  STAFF_CHAVE_PIX_TIPOS.map((opcao) => [opcao.value, opcao.label]),
+);
+
+/** "Dados de pagamento (PF)"/"(PJ)" da Relação de Atletas — combina banco/agência/conta/chave PIX
+ * (ou nome da empresa/CNPJ/chave PIX) numa string só, pra caber numa coluna só do documento (pedido
+ * do Mateus em 18/11/2026, ver comentário em `relacao-atletas-form.tsx`). `null` quando o atleta nem
+ * tem "Recebe como Pessoa Física/Jurídica" marcado — o documento já mostra "—" nesse caso. */
+function pagamentoPf(a: Pick<AtletaRow, "recebe_como_pf" | "pf_banco" | "pf_agencia" | "pf_conta" | "pf_chave_pix" | "pf_chave_pix_tipo">): string | null {
+  if (!a.recebe_como_pf) return null;
+  const partes = [
+    a.pf_banco ? `Banco: ${a.pf_banco}` : null,
+    a.pf_agencia ? `Ag: ${a.pf_agencia}` : null,
+    a.pf_conta ? `Conta: ${a.pf_conta}` : null,
+    a.pf_chave_pix
+      ? `PIX (${a.pf_chave_pix_tipo ? CHAVE_PIX_TIPO_LABEL[a.pf_chave_pix_tipo] ?? a.pf_chave_pix_tipo : "—"}): ${a.pf_chave_pix}`
+      : null,
+  ].filter((parte): parte is string => Boolean(parte));
+  return partes.length > 0 ? partes.join(" · ") : "Sim (sem dados preenchidos)";
+}
+
+function pagamentoPj(
+  a: Pick<
+    AtletaRow,
+    "recebe_como_pj" | "empresa_imagem_nome" | "empresa_imagem_cnpj" | "empresa_imagem_chave_pix" | "empresa_imagem_chave_pix_tipo"
+  >,
+): string | null {
+  if (!a.recebe_como_pj) return null;
+  const partes = [
+    a.empresa_imagem_nome ? `Empresa: ${a.empresa_imagem_nome}` : null,
+    a.empresa_imagem_cnpj ? `CNPJ: ${a.empresa_imagem_cnpj}` : null,
+    a.empresa_imagem_chave_pix
+      ? `PIX (${
+          a.empresa_imagem_chave_pix_tipo ? CHAVE_PIX_TIPO_LABEL[a.empresa_imagem_chave_pix_tipo] ?? a.empresa_imagem_chave_pix_tipo : "—"
+        }): ${a.empresa_imagem_chave_pix}`
+      : null,
+  ].filter((parte): parte is string => Boolean(parte));
+  return partes.length > 0 ? partes.join(" · ") : "Sim (sem dados preenchidos)";
+}
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -71,6 +114,11 @@ export async function POST(request: Request) {
   const statusMarcados = TODOS_STATUS_KEYS.filter(({ key }) => formData.get(key) === "on").map((s) => s.status);
   const statusFiltro = statusParaFiltro(statusMarcados);
 
+  const tiposContratoMarcados = TODOS_TIPOS_CONTRATO_ATLETA_BASE_FILTRO.filter(
+    (tipo) => formData.get(`tipoContrato_${tipo}`) === "on",
+  );
+  const tipoContratoFiltro = tipoContratoParaFiltro(tiposContratoMarcados);
+
   const colunas: RelacaoAtletasColunas = {
     apelido: formData.get("colApelido") === "on",
     nascimento: formData.get("colNascimento") === "on",
@@ -86,8 +134,9 @@ export async function POST(request: Request) {
     dataInicioClube: formData.get("colDataInicioClube") === "on",
     tipoContrato: formData.get("colTipoContrato") === "on",
     dataFimContrato: formData.get("colDataFimContrato") === "on",
-    contratoFormacao: formData.get("colContratoFormacao") === "on",
     empresarioNome: formData.get("colEmpresarioNome") === "on",
+    pagamentoPf: formData.get("colPagamentoPf") === "on",
+    pagamentoPj: formData.get("colPagamentoPj") === "on",
     status: formData.get("colStatus") === "on",
     classificacao: formData.get("colClassificacao") === "on",
   };
@@ -99,7 +148,15 @@ export async function POST(request: Request) {
     .in("categoria", categoriasFiltro)
     .order("nome_completo", { ascending: true });
 
-  const atletas: RelacaoAtletaLinha[] = ((data ?? []) as AtletaRow[]).map((a) => ({
+  // `tipo_contrato` aceita `null` ("sem contrato") — um `.in()` do Supabase não bate linha com
+  // `null`, então esse filtro é aplicado aqui em JS (ver comentário de `atletaPassaFiltroTipoContrato`
+  // em lib/futebol/relacao-atletas-base.ts), depois dos filtros de status/categoria já resolvidos no
+  // banco.
+  const atletasFiltrados = ((data ?? []) as AtletaRow[]).filter((a) =>
+    atletaPassaFiltroTipoContrato(a.tipo_contrato, tipoContratoFiltro),
+  );
+
+  const atletas: RelacaoAtletaLinha[] = atletasFiltrados.map((a) => ({
     // A query acima já restringe `categoria` a `categoriasFiltro` (sempre categorias de Base) —
     // o cast só reflete pro TS o que o filtro já garante em runtime.
     categoria: a.categoria as CategoriaBase,
@@ -120,8 +177,9 @@ export async function POST(request: Request) {
       ? ATLETA_BASE_TIPO_CONTRATO_OPTIONS.find((o) => o.value === a.tipo_contrato)?.label ?? a.tipo_contrato
       : null,
     dataFimContrato: a.data_fim_contrato,
-    contratoFormacao: a.tipo_contrato === "amador" ? a.possui_contrato_formacao : null,
     empresarioNome: a.empresario_nome,
+    pagamentoPf: pagamentoPf(a),
+    pagamentoPj: pagamentoPj(a),
     status: RELACAO_STATUS_LABEL[a.status] ?? a.status,
     classificacao: classificacaoAtletaLabel(a.classificacao),
   }));

@@ -34,6 +34,41 @@ export function categoriasParaFiltro(categoriasMarcadas: CategoriaBase[]): Categ
   return categoriasMarcadas.length > 0 ? categoriasMarcadas : TODAS_CATEGORIAS_BASE;
 }
 
+/** Filtro "Quais tipos de contrato incluir" (pedido do Mateus em 18/11/2026, pra poder gerar uma
+ * relação só com quem tem Contrato de Formação, por exemplo) — mesmos 5 valores de
+ * `ATLETA_BASE_TIPO_CONTRATO_OPTIONS`, mais "sem_contrato" (não existe no enum do banco; representa
+ * `tipo_contrato is null`, útil pra achar quem ainda não tem contrato nenhum cadastrado). Como
+ * `tipo_contrato` aceita `null`, esse filtro é aplicado em JS depois da query (um `.in()` do
+ * Supabase não bate linha com `null`), não direto no Supabase como `statusParaFiltro`/
+ * `categoriasParaFiltro` — ver `pdf/route.tsx`. */
+export const TODOS_TIPOS_CONTRATO_ATLETA_BASE_FILTRO = [
+  "definitivo",
+  "emprestimo",
+  "amador",
+  "formacao",
+  "iniciacao",
+  "sem_contrato",
+] as const;
+export type AtletaBaseTipoContratoFiltro = (typeof TODOS_TIPOS_CONTRATO_ATLETA_BASE_FILTRO)[number];
+
+/** Nenhum tipo marcado no formulário → entende-se como "todos os tipos", mesma lógica de fallback
+ * de `statusParaFiltro`/`categoriasParaFiltro`. */
+export function tipoContratoParaFiltro(
+  tiposMarcados: AtletaBaseTipoContratoFiltro[],
+): AtletaBaseTipoContratoFiltro[] {
+  return tiposMarcados.length > 0 ? tiposMarcados : [...TODOS_TIPOS_CONTRATO_ATLETA_BASE_FILTRO];
+}
+
+/** `tipo_contrato` de um atleta (string do banco ou `null`) passa no filtro acima? `null` só passa
+ * quando "sem_contrato" está no filtro. */
+export function atletaPassaFiltroTipoContrato(
+  tipoContrato: string | null,
+  filtro: AtletaBaseTipoContratoFiltro[],
+): boolean {
+  const chave: AtletaBaseTipoContratoFiltro = tipoContrato ? (tipoContrato as AtletaBaseTipoContratoFiltro) : "sem_contrato";
+  return filtro.includes(chave);
+}
+
 /** Texto de escopo que vira o subtítulo do documento — pedido do Mateus pra sempre listar as
  * categorias de verdade que entraram (ex.: "Sub-20, Sub-17, Sub-15"), nunca um rótulo genérico. Só
  * quando as 7 estão marcadas (equivalente a "todas") é que some a lista comprida e vira o rótulo

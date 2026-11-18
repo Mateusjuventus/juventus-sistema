@@ -13,7 +13,14 @@ interface OpcaoColuna {
  * mesmos do Avulso (Nascimento, CPF, RG, Telefone, Posição) mais Nº Camisa, Situação e
  * Classificação — fazem mais sentido como "roster" padrão do que os defaults do Avulso, pensados
  * pra outro caso de uso (ver a spec).
- */
+ *
+ * "Contrato de formação" (Sim/Não) saiu em 18/11/2026 — checava um campo (`possui_contrato_
+ * formacao`) que ficou legado desde a migração 0097 ("Formação" virou um valor próprio de
+ * `tipo_contrato`, não mais um sub-flag de "Amador"), então sempre mostrava "—"; "Tipo de contrato"
+ * já cobre essa informação corretamente. No lugar entraram "Dados de pagamento (PF)"/"(PJ)" —
+ * pedido do Mateus, cada um combinando banco/agência/conta (ou nome da empresa/CNPJ) numa coluna só,
+ * pra não estourar o teto de 8 colunas simultâneas do documento (ver `relacao-atletas-base-
+ * document.tsx`). */
 const COLUNAS_MARCADAS_POR_PADRAO = new Set([
   "colNascimento",
   "colCpf",
@@ -40,8 +47,9 @@ const COLUNAS: OpcaoColuna[] = [
   { name: "colDataInicioClube", label: "Início no clube" },
   { name: "colTipoContrato", label: "Tipo de contrato" },
   { name: "colDataFimContrato", label: "Fim de contrato" },
-  { name: "colContratoFormacao", label: "Contrato de formação" },
   { name: "colEmpresarioNome", label: "Empresário" },
+  { name: "colPagamentoPf", label: "Dados de pagamento (PF)" },
+  { name: "colPagamentoPj", label: "Dados de pagamento (PJ)" },
   { name: "colStatus", label: "Situação" },
   { name: "colClassificacao", label: "Classificação" },
 ];
@@ -54,6 +62,20 @@ const STATUS_OPCOES: { name: string; label: string }[] = [
 ];
 
 const STATUS_MARCADOS_POR_PADRAO = new Set(["status_liberado"]);
+
+/** Filtro "Quais tipos de contrato incluir" (pedido do Mateus em 18/11/2026, pra poder gerar uma
+ * relação só com quem tem Contrato de Formação, por exemplo) — mesmo padrão de checkbox e mesmo
+ * fallback de "Quais status incluir" (nenhum marcado = todos). "Sem contrato" não existe no enum do
+ * banco: representa quem ainda não tem nenhum contrato cadastrado — ver `tipoContratoParaFiltro`/
+ * `atletaPassaFiltroTipoContrato` em lib/futebol/relacao-atletas-base.ts. */
+const TIPO_CONTRATO_OPCOES: { name: string; label: string }[] = [
+  { name: "tipoContrato_definitivo", label: "Definitivo" },
+  { name: "tipoContrato_emprestimo", label: "Empréstimo" },
+  { name: "tipoContrato_amador", label: "Amador" },
+  { name: "tipoContrato_formacao", label: "Formação" },
+  { name: "tipoContrato_iniciacao", label: "Iniciação" },
+  { name: "tipoContrato_sem_contrato", label: "Sem contrato" },
+];
 
 /**
  * Formulário da Relação de Atletas da Base (ver docs/superpowers/specs/2026-09-04-relacao-atletas-
@@ -107,6 +129,23 @@ export function RelacaoAtletasForm({ categoriaInicial }: { categoriaInicial: Cat
             ))}
           </div>
           <p className="mt-1 text-xs text-neutral-400">Nenhum marcado = inclui todos os status.</p>
+        </div>
+
+        <div>
+          <h3 className="field-label mb-2">Quais tipos de contrato incluir</h3>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {TIPO_CONTRATO_OPCOES.map((t) => (
+              <label key={t.name} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name={t.name}
+                  className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
+                />
+                <span className="text-neutral-700">{t.label}</span>
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-neutral-400">Nenhum marcado = inclui todos os tipos (e quem não tem contrato).</p>
         </div>
       </div>
 
