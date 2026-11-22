@@ -113,19 +113,34 @@ export async function updateSession(request: NextRequest) {
     modulos_base_permitidos?: string[];
     departamentos_permitidos?: string[];
     estoque_categorias_permitidas?: string[];
+    ativo?: boolean;
   };
   let perfil: PerfilMiddleware | null = null;
   if (user) {
     const { data } = await supabase
       .from("perfis")
       .select(
-        "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, estoque_categorias_permitidas",
+        "role, modulos_permitidos, modulos_base_permitidos, departamentos_permitidos, estoque_categorias_permitidas, ativo",
       )
       .eq("id", user.id)
       .maybeSingle();
     perfil = data as PerfilMiddleware | null;
   }
   const roleDoUsuario = perfil?.role ?? "regular";
+
+  // Acesso pausado (perfis.ativo = false) — pedido do Mateus em 22/11/2026, mesmo padrão "ativo/
+  // inativo" de comissao_tecnica/staff_operacional, só que aqui o efeito é real: barra a conta na
+  // hora, mesmo já logada (não espera a sessão expirar sozinha). Sem revelar o motivo pra pessoa —
+  // ela só cai de volta no /login, como qualquer outro bloqueio (ver app/login/actions.ts pro
+  // bloqueio na hora de entrar). `perfil.ativo === false` (não `!perfil.ativo`): nunca bloqueia por
+  // falta de dado, mesma filosofia do resto deste arquivo.
+  if (user && perfil && perfil.ativo === false) {
+    await supabase.auth.signOut();
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
+  }
 
   if (
     user &&

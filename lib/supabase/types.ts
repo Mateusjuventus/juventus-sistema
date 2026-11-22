@@ -1834,6 +1834,11 @@ export interface PerfilRow {
    * `departamentos_permitidos`, só pra essa ação. "Master" sempre pode, independente desta coluna
    * (mesma regra geral de `fisioterapia_pode_editar`). `false` por padrão. */
   pode_transitar_categoria_atleta: boolean;
+  /** Acesso ao sistema pausado sem excluir o cadastro (pedido do Mateus em 22/11/2026) — `false`
+   * barra o login (`app/login/actions.ts`) e derruba qualquer sessão já aberta no próximo request
+   * (`lib/supabase/middleware.ts`), sem revelar o motivo pra pessoa. Dá pra pausar até um "master"
+   * (menos a própria conta — `/usuarios` esconde o botão nesse caso). `true` por padrão. */
+  ativo: boolean;
   created_at: string;
 }
 

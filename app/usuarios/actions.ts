@@ -248,6 +248,33 @@ export async function criarUsuario(
   return { success: `Usuário ${email} criado com sucesso.`, values: {} };
 }
 
+/**
+ * Pausa/reativa o ACESSO (login) de um usuário sem excluir o cadastro — pedido do Mateus em
+ * 22/11/2026, mesmo padrão "ativo/inativo" de `alternarComissaoAtivo`/`alternarStaffAtivo` (sem
+ * motivo nem histórico). Diferente daqueles, aqui o efeito é imediato: o login recusa entrar
+ * (app/login/actions.ts) e qualquer sessão já aberta cai no próximo request
+ * (lib/supabase/middleware.ts) — sem revelar o motivo pra pessoa. Nunca na própria conta (a tela já
+ * esconde o botão nesse caso — `ehVocaMesmo` em page.tsx —, mas confere de novo aqui por segurança).
+ * Só master pode chamar.
+ */
+export async function alternarUsuarioAtivo(formData: FormData): Promise<void> {
+  const supabase = createClient();
+  if (!(await isMaster(supabase))) return;
+
+  const id = String(formData.get("id") ?? "");
+  const novoValor = String(formData.get("novoValor") ?? "") === "true";
+  if (!id) return;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.id === id) return;
+
+  const admin = createAdminClient();
+  await admin.from("perfis").update({ ativo: novoValor }).eq("id", id);
+  revalidatePath("/usuarios");
+}
+
 /** Troca o papel (master/regular) de um usuário já existente. Só master pode chamar. */
 export async function atualizarPapel(formData: FormData): Promise<void> {
   const supabase = createClient();

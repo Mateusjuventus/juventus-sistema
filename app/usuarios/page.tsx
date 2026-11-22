@@ -12,6 +12,7 @@ import { buscarComissaoTecnicaParaSelecao } from "@/lib/auth/perfis";
 import type { PerfilRow } from "@/lib/supabase/types";
 import {
   alterarEmail,
+  alternarUsuarioAtivo,
   atualizarCamposSensiveisBloqueados,
   atualizarCategoriasTarefas,
   atualizarCategoriasTreinador,
@@ -115,8 +116,23 @@ export default async function UsuariosPage() {
                   >
                     {roleLabel}
                   </span>
+                  {perfil.ativo ? null : (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                      Acesso pausado
+                    </span>
+                  )}
                   {ehVocaMesmo ? null : (
                     <>
+                      <form action={alternarUsuarioAtivo}>
+                        <input type="hidden" name="id" value={perfil.id} />
+                        <input type="hidden" name="novoValor" value={(!perfil.ativo).toString()} />
+                        <button
+                          type="submit"
+                          className={perfil.ativo ? "btn-secondary btn-sm" : "btn-primary btn-sm"}
+                        >
+                          {perfil.ativo ? "Pausar acesso" : "Reativar acesso"}
+                        </button>
+                      </form>
                       {perfil.role !== "master" ? (
                         <form action={atualizarPapel}>
                           <input type="hidden" name="id" value={perfil.id} />
