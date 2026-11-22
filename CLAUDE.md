@@ -4,6 +4,15 @@ Sistema de gestão do Clube Atlético Juventus SAF (Futebol Profissional + Futeb
 14 (App Router) + Supabase (Postgres/RLS/Storage) + Tailwind. Português, cliente real (Mateus,
 Supervisor de Futebol Profissional).
 
+## Mais de um clube (desde 22/11/2026)
+
+O mesmo código atende o Juventus e o Maringá FC, cada um com a sua instância (projeto Vercel +
+projeto Supabase). Quem é o clube vem de `NEXT_PUBLIC_CLUBE` (`juventus` por padrão, ou `maringa`).
+Nome, razão social, CNPJ, escudo, cores, fontes e módulos ficam em `lib/clube` — **nunca escreva
+"Juventus" ou um hex do clube direto numa tela ou PDF**: use `clube.*` e `temaClube`/`juventusTheme`.
+Os nomes dos tokens (`grena`, `dourado`) são legado: no Maringá, `grena` é o verde-profundo e
+`dourado` é o verde do escudo. Ver `docs/superpowers/specs/2026-11-22-configuracao-por-clube-design.md`.
+
 ## Identidade visual — já definida, não reinventar
 
 O sistema passou por um redesign visual completo e aprovado em 07/08/2026 (ver
