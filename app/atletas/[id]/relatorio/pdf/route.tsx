@@ -11,6 +11,7 @@ import { textoFiltroCompeticaoAtleta } from "@/lib/futebol/ficha-atleta";
 import { AtletaRelatorioDocument } from "@/lib/pdf/atleta-relatorio-document";
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtletaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 const TABELAS = {
   jogos: "jogos",
@@ -57,8 +58,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const periodoTexto = textoFiltroCompeticaoAtleta(competicaoIds, detalhePorCompeticao.map((g) => g.titulo));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const dadosPessoais = incluirDadosPessoais
     ? {
@@ -78,7 +79,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const buffer = await renderToBuffer(
     <AtletaRelatorioDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       fotoSrc={fotoUrl}
       nome={atleta.nome_completo}
       subtitulo={subtitulo}

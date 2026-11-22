@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TAREFA_CATEGORIAS } from "@/lib/validation/schemas";
 import { carregarAvisosCompeticoes } from "@/lib/futebol/competicao-avisos";
 import type { ChecklistJogoItemComJogoRow, TarefaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 const DIAS_PRAZO_CURTO = 10;
 
@@ -120,7 +121,7 @@ export default async function AvisosPage() {
                     <p className="font-medium text-neutral-800">{item.item}</p>
                     <p className="mt-0.5 text-sm text-neutral-500">
                       {item.jogo
-                        ? `${item.jogo.mandante ? "Juventus x " + item.jogo.adversario_nome : item.jogo.adversario_nome + " x Juventus"} · ${formatData(item.jogo.data_jogo)}`
+                        ? `${item.jogo.mandante ? `${clube.nomeCurto} x ` + item.jogo.adversario_nome : item.jogo.adversario_nome + ` x ${clube.nomeCurto}`} · ${formatData(item.jogo.data_jogo)}`
                         : "Jogo não encontrado"}
                     </p>
                   </div>

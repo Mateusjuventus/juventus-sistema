@@ -124,12 +124,12 @@ export interface TermoRetiradaPdfDados {
 }
 
 export function TermoRetiradaDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   termo,
   itens,
   total,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   termo: TermoRetiradaPdfDados;
   itens: TermoRetiradaPdfItem[];
   total: number;
@@ -158,9 +158,9 @@ export function TermoRetiradaDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <View style={styles.logoBox}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
         <View style={styles.tituloBar}>

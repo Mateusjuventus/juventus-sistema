@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ReciboIndividualDocument, type ReciboPdfItem } from "@/lib/pdf/recibo-document";
 import { funcaoCadastroStaff } from "@/lib/futebol/funcao-staff";
 import type { JogoRow, ReciboJogoRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Recibo de Pagamento é só pra Staff Operacional — o filtro `pessoa_tipo=staff` também protege
  * contra registros antigos de Comissão Técnica que possam ter ficado no banco de antes dessa
@@ -60,19 +61,19 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     };
   });
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <ReciboIndividualDocument
       jogo={jogo}
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       itens={itens}
       geradoEm={new Date()}
     />,
   );
 
-  const nomeArquivo = `recibos-juventus-x-${jogo.adversario_nome
+  const nomeArquivo = `recibos-${clube.slug}-x-${jogo.adversario_nome
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}-${jogo.data_jogo}.pdf`;
 

@@ -8,6 +8,7 @@ import { COMPETICAO_DOCUMENTOS_BUCKET, buildCompeticaoDocumentoPath } from "@/li
 import { CRITERIOS_PADRAO, ehCriterioValido } from "@/lib/futebol/competicao-desempate";
 import { baixarTextoSumulaPdf, parsearSumulaPdf, SumulaPdfError } from "@/lib/fpf/sumula-pdf";
 import { contarCartoesPorLado, montarResultadoImportado } from "@/lib/futebol/competicao-sumula-import";
+import { clube } from "@/lib/clube";
 
 /**
  * Server Actions do módulo de Competições (ver
@@ -425,7 +426,7 @@ export async function importarCartoesAdversarioPorLink(
     return { erro: `${mensagem} Você pode preencher os cartões à mão no campo ao lado.` };
   }
 
-  const cartoes = contarCartoesPorLado(dados.cartoes, "Juventus", adversario);
+  const cartoes = contarCartoesPorLado(dados.cartoes, clube.nomeCurto, adversario);
   const supabase = createClient();
   const { error } = await supabase
     .from("competicao_jogos")

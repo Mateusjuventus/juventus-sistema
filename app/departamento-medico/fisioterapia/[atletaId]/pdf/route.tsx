@@ -16,6 +16,7 @@ import type {
   FisioterapiaLesaoRow,
   FisioterapiaQueixaRow,
 } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Rota do PDF individual de Fisioterapia — mesmo molde de `.../dispensa/pdf/route.tsx`: busca os
  * dados, monta o buffer, devolve `application/pdf`. Nenhum arquivo é guardado — o PDF é sempre
@@ -55,12 +56,12 @@ export async function GET(_request: Request, { params }: { params: { atletaId: s
   const hojeStr = hojeBrasilia();
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <FisioterapiaAtletaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       fotoSrc={fotoUrl}
       atleta={{
         nome: atleta.nome_completo,

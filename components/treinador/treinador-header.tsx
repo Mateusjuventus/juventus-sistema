@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { JuventusCrest } from "@/components/juventus-crest";
+import { ClubeEscudo } from "@/components/clube-escudo";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { SinoNotificacoes, type NotificacaoResumo } from "@/components/sino-notificacoes";
 import { PushOptIn } from "@/components/push-opt-in";
 import { logout } from "@/app/actions";
 import { TreinadorTabs } from "./treinador-tabs";
+import { clube } from "@/lib/clube";
 
 /**
  * Cabeçalho compartilhado das 3 abas da Área do Treinador (ver mockup aprovado) — escudo, badges de
@@ -26,9 +27,9 @@ export function TreinadorHeader({
       <div className="mx-auto max-w-[1184px] px-4 py-5 sm:py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <JuventusCrest className="h-10 w-auto shrink-0" />
+            <ClubeEscudo sobre="escuro" className="h-10 w-auto shrink-0" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Juventus SAF · Futebol de Base</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/60">{clube.nomeInstitucional} · Futebol de Base</p>
               <h1 className="text-xl font-bold text-white sm:text-2xl">Área do Treinador</h1>
             </div>
           </div>

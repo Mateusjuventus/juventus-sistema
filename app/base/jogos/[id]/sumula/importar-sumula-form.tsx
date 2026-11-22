@@ -11,6 +11,7 @@ import {
 } from "./importar-actions";
 import { calcularMinutoAbsoluto } from "@/lib/futebol/estatisticas-atleta";
 import type { SumulaEventoTipo } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Espelha app/jogos/[id]/sumula/importar-sumula-form.tsx (Profissional) para o Futebol de Base —
  * ver docs/superpowers/specs/2026-10-03-importacao-sumula-base-design.md e docs/superpowers/specs/
@@ -244,7 +245,7 @@ export function ImportarSumulaFormBase({
 
           <div className="flex items-end gap-2">
             <div>
-              <label className="field-label">Placar sugerido — Juventus</label>
+              <label className="field-label">Placar sugerido — {clube.nomeCurto}</label>
               <input
                 type="number"
                 min={0}
@@ -268,7 +269,7 @@ export function ImportarSumulaFormBase({
 
           <div className="flex items-end gap-2">
             <div>
-              <label className="field-label">Pênaltis — Juventus</label>
+              <label className="field-label">Pênaltis — {clube.nomeCurto}</label>
               <input
                 type="number"
                 min={0}

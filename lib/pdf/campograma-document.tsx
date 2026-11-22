@@ -268,13 +268,13 @@ function TokenAtletaPdf({ atleta, escala }: { atleta: AtletaCampograma; escala: 
 }
 
 export function CampogramaDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   juventusWatermarkSrc,
   categoriaLabel,
   geradoEm,
   grupos,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   juventusWatermarkSrc: LogoSrc;
   categoriaLabel: string;
   geradoEm: Date;
@@ -302,9 +302,9 @@ export function CampogramaDocument({
           ) : null}
 
           <View style={styles.topo}>
-            {juventusLogoSrc ? (
+            {escudoClubeSrc ? (
               // eslint-disable-next-line jsx-a11y/alt-text
-              <Image style={styles.topoLogo} src={juventusLogoSrc as string} />
+              <Image style={styles.topoLogo} src={escudoClubeSrc as string} />
             ) : null}
             <View>
               <Text style={styles.topoTitulo}>Elenco — {categoriaLabel}</Text>

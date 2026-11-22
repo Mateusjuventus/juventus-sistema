@@ -42,7 +42,7 @@ export function LoginForm() {
           autoComplete="email"
           required
           className="block w-full rounded-md border border-linha px-3 py-2.5 text-base shadow-sm focus:border-proxisAzul focus:outline-none focus:ring-1 focus:ring-proxisAzul sm:py-2 sm:text-sm"
-          placeholder="voce@juventus.com.br"
+          placeholder="voce@email.com.br"
         />
       </div>
 

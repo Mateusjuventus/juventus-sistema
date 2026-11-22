@@ -1,6 +1,6 @@
 /**
  * Ícone do cartão "Futebol de Base" na Home. O Futebol Profissional já usa o brasão oficial do
- * Juventus (ver components/juventus-crest.tsx); o Futebol de Base ainda não tem identidade visual
+ * Juventus (ver components/clube-escudo.tsx); o Futebol de Base ainda não tem identidade visual
  * própria, então usa este ícone genérico até o módulo ser desenhado.
  */
 export function SproutIcon({ className }: { className?: string }) {

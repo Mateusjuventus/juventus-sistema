@@ -23,6 +23,8 @@ import {
   type RelatorioGeralProfissionalFatia,
 } from "@/lib/pdf/relatorio-geral-profissional-document";
 import type { AtletaContratoRow, AtletaRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
+import { temaClube } from "@/lib/theme";
 
 /** PDF da aba "Geral" de `/financeiro` (Profissional) — totalmente separado do PDF de Prestação de
  * Contas de jogos (`../pdf/route.tsx`), espelhando `/base/financeiro/pdf-geral`. Ver
@@ -68,8 +70,8 @@ export async function GET() {
 
   // Mesmas 2 cores (sem a 3ª fatia de despesas avulsas, que não entra aqui) — ver geral-view.tsx.
   const composicaoPdf: RelatorioGeralProfissionalFatia[] = [
-    { label: "Comissão Técnica", valor: custoComissao, cor: "#5C0A35" },
-    { label: "Atletas", valor: custoAtletas, cor: "#B98F1E" },
+    { label: "Comissão Técnica", valor: custoComissao, cor: temaClube.grena },
+    { label: "Atletas", valor: custoAtletas, cor: temaClube.dourado },
   ];
 
   const comissaoPdf: RelatorioGeralProfissionalComissao[] = comissao.map((c) => ({
@@ -99,12 +101,12 @@ export async function GET() {
   const bonusGatilhos = bonusGatilhosDoMes(gatilhosCumpridosComNome, hojeBrasilia());
   const bonusGatilhosPdf = bonusGatilhos.itens.map((item) => ({ nome: item.atletaNome, valor: item.valorBonus }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <RelatorioGeralProfissionalDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       custoComissao={custoComissao}
       custoAtletas={custoAtletas}

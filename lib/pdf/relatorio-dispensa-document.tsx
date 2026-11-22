@@ -162,13 +162,13 @@ export function montarAssinaturasDispensa(
 }
 
 export function RelatorioDispensaDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   fotoSrc,
   atleta,
   emitidoEm,
   assinaturas,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   fotoSrc: LogoSrc;
   atleta: RelatorioDispensaAtleta;
   emitidoEm: Date;
@@ -189,9 +189,9 @@ export function RelatorioDispensaDocument({
             <Text style={styles.subtituloTexto}>Desligamento de atleta</Text>
             <Text style={styles.subtituloTextoSub}>Departamento de Futebol de Base</Text>
           </View>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
 

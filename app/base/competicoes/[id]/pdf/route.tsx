@@ -10,6 +10,7 @@ import {
 import { resolverEquipes } from "@/lib/futebol/competicao-classificacao";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { carregarParaPdfBase } from "../pdf-shared";
+import { clube } from "@/lib/clube";
 
 const FASE_STATUS = { aguardando: "Aguardando", em_andamento: "Em andamento", encerrada: "Encerrada" } as const;
 
@@ -23,7 +24,7 @@ function formatData(data: string | null): string {
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const pdfData = await carregarParaPdfBase(params.id);
   if (!pdfData) return new NextResponse("Competição não encontrada.", { status: 404 });
-  const { carregada, juventusLogoSrc, subtitulo } = pdfData;
+  const { carregada, escudoClubeSrc, subtitulo } = pdfData;
   const { competicao, fases, gruposPorFase, equipesPorGrupo, classificacoesPorGrupo, nomesGrupos, vinculos, jogosById } =
     carregada;
 
@@ -65,7 +66,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       const grupo = v.grupo_id ? nomesGrupos.get(v.grupo_id) : undefined;
       const comPlacar = jogo.gols_pro !== null && jogo.gols_contra !== null;
       return {
-        confronto: jogo.mandante ? `Juventus x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x Juventus`,
+        confronto: jogo.mandante ? `${clube.nomeCurto} x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x ${clube.nomeCurto}`,
         data: jogo.data_jogo,
         faseGrupo: [fase, grupo].filter(Boolean).join(" · ") || "—",
         placar: comPlacar
@@ -78,7 +79,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const buffer = await renderToBuffer(
     <CompeticaoResumoDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       subtitulo={subtitulo}
       dados={dados}

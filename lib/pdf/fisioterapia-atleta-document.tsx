@@ -98,7 +98,7 @@ export interface FisioterapiaRelatorioAtleta {
 }
 
 export interface FisioterapiaAtletaConteudoProps {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   fotoSrc: LogoSrc;
   atleta: FisioterapiaRelatorioAtleta;
   historico: FisioterapiaRelatorioHistoricoItem[];
@@ -114,7 +114,7 @@ export interface FisioterapiaAtletaConteudoProps {
  * — ver `fisioterapia-relatorio-completo-document.tsx`), sem duplicar o JSX.
  */
 export function FisioterapiaAtletaConteudo({
-  juventusLogoSrc,
+  escudoClubeSrc,
   fotoSrc,
   atleta,
   historico,
@@ -139,9 +139,9 @@ export function FisioterapiaAtletaConteudo({
               {atleta.posicao ?? "—"} · Nasc. {formatDataBr(atleta.dataNascimento)}
             </Text>
           </View>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
 

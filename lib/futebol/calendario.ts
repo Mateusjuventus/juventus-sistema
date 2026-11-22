@@ -1,4 +1,6 @@
 import type { AtletaRow, EventoCalendarioCategoria, EventoCalendarioRow, JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
+import { temaClube } from "@/lib/theme";
 
 /** Categorias de evento manual do widget "Calendário" (`app/profissional/page.tsx`) — cor fixa por
  * categoria, conforme a spec do redesign visual. Jogo não entra aqui: é automático, vem de `jogos`
@@ -12,12 +14,12 @@ export interface CategoriaEventoInfo {
 export const CATEGORIAS_EVENTO: CategoriaEventoInfo[] = [
   { chave: "treino", label: "Treino", cor: "#1E7A4C" },
   { chave: "viagem", label: "Viagem", cor: "#2F6FA3" },
-  { chave: "reuniao", label: "Reunião", cor: "#B98F1E" },
+  { chave: "reuniao", label: "Reunião", cor: temaClube.dourado },
   { chave: "prazo", label: "Prazo administrativo", cor: "#B4232C" },
   { chave: "outro", label: "Outro", cor: "#8A8D91" },
 ];
 
-export const COR_CATEGORIA_JOGO = "#5C0A35";
+export const COR_CATEGORIA_JOGO = temaClube.grena;
 
 export function corDaCategoria(categoria: EventoCalendarioCategoria): string {
   return CATEGORIAS_EVENTO.find((c) => c.chave === categoria)?.cor ?? "#8A8D91";
@@ -28,7 +30,7 @@ export function labelDaCategoria(categoria: EventoCalendarioCategoria): string {
 }
 
 export function tituloJogo(jogo: JogoRow): string {
-  return jogo.mandante ? `Juventus x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x Juventus`;
+  return jogo.mandante ? `${clube.nomeCurto} x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x ${clube.nomeCurto}`;
 }
 
 /** Item unificado de calendário — um jogo ou um evento manual, no mesmo formato pra ordenar e

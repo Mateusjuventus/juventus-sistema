@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import type { ImportarSumulaBaseState } from "../../actions";
+import { clube } from "@/lib/clube";
 
 /**
  * Formulários de importação da súmula da FPF por link (aba Súmulas dos Grupos, Futebol de Base) —
@@ -94,7 +95,7 @@ export function ImportarResultadoFormBase({
       </div>
       <BotaoImportar label="Importar da súmula" pendenteLabel="Lendo o PDF..." />
       <p className="w-full text-[11px] text-neutral-500">
-        Mesmo leitor da aba Súmula do jogo do Juventus. Se o link falhar ou o nome das equipes não bater, use
+        Mesmo leitor da aba Súmula do jogo do {clube.nomeCurto}. Se o link falhar ou o nome das equipes não bater, use
         o lançamento manual abaixo.
       </p>
       <Retorno state={state} />

@@ -15,6 +15,7 @@ import { camposFichaComissao, camposFichaComissaoDaQueryString } from "@/lib/fut
 import { FichaComissaoDocument, type FichaComissaoSecao } from "@/lib/pdf/ficha-comissao-document";
 import { formatDataBr } from "@/lib/pdf/logistica-shared";
 import type { ComissaoTecnicaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 const TIPO_CONTRATO_LABEL: Record<string, string> = Object.fromEntries(
   COMISSAO_TECNICA_TIPO_CONTRATO_OPTIONS.map((o) => [o.value, o.label]),
@@ -56,8 +57,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const selecionados = camposFichaComissaoDaQueryString(searchParams, campos);
   const marcado = (chave: string) => selecionados.has(chave);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const categoriasLabel = pessoa.categorias
     .map((c) => CATEGORIAS_COMISSAO_TECNICA.find((o) => o.value === c)?.label ?? c)
@@ -145,7 +146,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const buffer = await renderToBuffer(
     <FichaComissaoDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       fotoSrc={fotoUrl}
       nome={pessoa.nome_completo}
       subtitulo={subtitulo}

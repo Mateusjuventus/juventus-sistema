@@ -4,6 +4,7 @@ import { podeVerAreaFinanceira } from "@/lib/auth/role";
 import { AreaFinanceiraHeader } from "@/components/area-financeira/area-financeira-header";
 import { categoriaBaseLabel, TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type { GastoJogoRow, JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Início da Área Financeira — ver docs/superpowers/specs/2026-10-22-area-financeira-design.md.
@@ -158,7 +159,7 @@ export default async function AreaFinanceiraPage() {
               <LinhaJogo
                 key={j.id}
                 href={`/area-financeira/jogos/${j.id}`}
-                titulo={`${j.mandante ? "Juventus" : j.adversario_nome} x ${j.mandante ? j.adversario_nome : "Juventus"}`}
+                titulo={`${j.mandante ? clube.nomeCurto : j.adversario_nome} x ${j.mandante ? j.adversario_nome : clube.nomeCurto}`}
                 subtitulo={`${j.competicao} · ${formatData(j.data_jogo)}`}
                 totais={totaisPorJogo.get(j.id) ?? { previsto: 0, efetuado: 0 }}
               />
@@ -175,7 +176,7 @@ export default async function AreaFinanceiraPage() {
               <LinhaJogo
                 key={j.id}
                 href={`/area-financeira/base/jogos/${j.id}`}
-                titulo={`${j.mandante ? "Juventus" : j.adversario_nome} x ${j.mandante ? j.adversario_nome : "Juventus"}`}
+                titulo={`${j.mandante ? clube.nomeCurto : j.adversario_nome} x ${j.mandante ? j.adversario_nome : clube.nomeCurto}`}
                 subtitulo={`${categoriaBaseLabel(j.categoria)} · ${j.competicao} · ${formatData(j.data_jogo)}`}
                 totais={totaisPorJogo.get(j.id) ?? { previsto: 0, efetuado: 0 }}
               />

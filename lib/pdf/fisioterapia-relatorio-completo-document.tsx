@@ -27,11 +27,11 @@ export interface FisioterapiaRelatorioCompletoAtleta {
 }
 
 export function FisioterapiaRelatorioCompletoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   atletas,
   emitidoEm,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   atletas: FisioterapiaRelatorioCompletoAtleta[];
   emitidoEm: Date;
 }) {
@@ -40,7 +40,7 @@ export function FisioterapiaRelatorioCompletoDocument({
       {atletas.map((item) => (
         <Page key={item.id} size="A4" style={sharedStyles.page}>
           <FisioterapiaAtletaConteudo
-            juventusLogoSrc={juventusLogoSrc}
+            escudoClubeSrc={escudoClubeSrc}
             fotoSrc={item.fotoSrc}
             atleta={item.atleta}
             historico={item.historico}

@@ -3,6 +3,7 @@ import { diasEntre, type ItemMural } from "@/lib/futebol/calendario";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { carregarCompeticao, type CompeticaoCarregada } from "@/lib/futebol/competicao-query";
 import type { CompeticaoRow } from "@/lib/supabase/types";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Alertas das competições pro Mural da Home (`app/profissional/page.tsx`) e pra tela de Avisos —
@@ -12,7 +13,7 @@ import type { CompeticaoRow } from "@/lib/supabase/types";
  */
 
 const COR_SUSPENSAO = "#B4232C";
-const COR_ATENCAO = "#B98F1E";
+const COR_ATENCAO = temaClube.dourado;
 
 /** Itens de Mural de UMA competição já carregada — separado de `carregarAvisosCompeticoes` pra
  * tela `/competicoes/[id]/alertas` reaproveitar sem nova consulta. */

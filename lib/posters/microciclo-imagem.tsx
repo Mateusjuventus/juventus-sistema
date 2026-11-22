@@ -3,6 +3,7 @@ import { CORES_POSTER } from "./estilo";
 import { CabecalhoExportacaoImg } from "./poster-imagem-shared";
 import { montarLinhaMicrociclo, type MicrocicloData, type MicrocicloAtividade } from "@/lib/programacao/microciclo-data";
 import { CORES_EXPORT } from "@/lib/programacao/cores-exportacao";
+import { clube } from "@/lib/clube";
 
 /**
  * Versão em imagem (JPG) do microciclo — mesmo redesenho de `lib/pdf/microciclo-document.tsx`
@@ -31,7 +32,7 @@ function CardJogo({ atividade }: { atividade: MicrocicloAtividade }) {
   if (!jogo) return null;
 
   const primeiro = jogo.mandante
-    ? { nome: "Juventus" }
+    ? { nome: clube.nomeCurto }
     : { src: jogo.adversarioLogoUrl, nome: jogo.adversario_nome };
 
   return (
@@ -56,7 +57,7 @@ function CardJogo({ atividade }: { atividade: MicrocicloAtividade }) {
           <div style={{ display: "flex", width: 22, height: 22 }} />
         )}
         <div style={{ display: "flex", fontSize: 13, fontWeight: 700, color: "#ffffff" }}>
-          {jogo.mandante ? "Juventus" : jogo.adversario_nome} × {jogo.mandante ? jogo.adversario_nome : "Juventus"}
+          {jogo.mandante ? clube.nomeCurto : jogo.adversario_nome} × {jogo.mandante ? jogo.adversario_nome : clube.nomeCurto}
         </div>
         {jogo.mandante && jogo.adversarioLogoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -106,7 +107,7 @@ export function microcicloImagemJsx(dados: MicrocicloData) {
       }}
     >
       <CabecalhoExportacaoImg
-        titulo={`CA Juventus SAF ${dados.categoriaLabel}`}
+        titulo={`${clube.nomeDocumento} ${dados.categoriaLabel}`}
         subtitulo={[montarLinhaMicrociclo(dados.microcicloTexto, dados.epoca), dados.periodoTexto]
           .filter(Boolean)
           .join(" · ")}

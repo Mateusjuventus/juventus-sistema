@@ -106,7 +106,7 @@ export interface DespesaAvulsaOrcamentoPdfCategoria {
  * docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md.
  */
 export function DespesasAvulsasOrcamentoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   categorias,
   totalGeral,
@@ -116,7 +116,7 @@ export function DespesasAvulsasOrcamentoDocument({
   subtitulo,
   jogosRelacionados,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   categorias: DespesaAvulsaOrcamentoPdfCategoria[];
   totalGeral: number;
@@ -139,9 +139,9 @@ export function DespesasAvulsasOrcamentoDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <DepartamentoEyebrow departamento={departamento} />
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Orçamento Previsto</Text>
         <Text style={styles.subtitulo}>{subtitulo ?? ""}</Text>

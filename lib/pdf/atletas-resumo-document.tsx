@@ -380,7 +380,7 @@ export function AtletasResumoDocument({
   atletas,
   contratoOptions,
   statusOptions,
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   mostrarCpf = true,
   mostrarContrato = true,
@@ -389,7 +389,7 @@ export function AtletasResumoDocument({
   atletas: AtletaResumoPdfItem[];
   contratoOptions: AtletaTipoContrato[];
   statusOptions: StatusOpcaoPdf[];
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   /** Espelha o checkbox "Mostrar no card" de `AtletasResumoFiltros` (pedido do Mateus em
    * 2026-09-10) — as rotas de export leem `camposOcultosDaQueryString` e passam aqui, pro PDF sair
@@ -422,9 +422,9 @@ export function AtletasResumoDocument({
           os cards (`calcularEscalaCardsAtletas`) — pedido do Mateus em 2026-09-10. */}
       <Page size="A4" orientation="landscape" style={styles.page}>
         <View style={styles.topo}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.topoLogo} src={juventusLogoSrc as string} />
+            <Image style={styles.topoLogo} src={escudoClubeSrc as string} />
           ) : null}
           <View>
             <Text style={styles.topoTitulo}>{titulo}</Text>

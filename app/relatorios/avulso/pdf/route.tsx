@@ -14,6 +14,7 @@ import {
 import { ATLETA_TIPO_CONTRATO_OPTIONS } from "@/lib/validation/schemas";
 import { ATLETA_STATUS_LABEL } from "@/lib/futebol/fisioterapia";
 import type { AtletaRow, ComissaoTecnicaRow, StaffOperacionalComFuncaoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 const PE_DOMINANTE_LABEL: Record<string, string> = {
   destro: "Destro",
@@ -196,12 +197,12 @@ export async function POST(request: Request) {
       categoria: null,
     }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <RelatorioAvulsoDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       titulo={titulo}
       descricao={descricao}
       infoJogo={infoJogo}

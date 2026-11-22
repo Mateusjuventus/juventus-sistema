@@ -15,6 +15,7 @@ import type {
   ConvocacaoRow,
   JogoRow,
 } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Convocação sob `/treinador` — mesma tela e mesma Server Action de `/base/jogos/[id]/convocacao`
@@ -84,11 +85,11 @@ export default async function TreinadorConvocacaoPage({ params }: { params: { id
         <div className="card mb-4 mt-3 flex flex-wrap items-center justify-between gap-3 p-4">
           <p className="text-sm text-neutral-600">
             <span className="font-semibold text-grena-escuro">
-              {jogo.mandante ? "Juventus" : jogo.adversario_nome}
+              {jogo.mandante ? clube.nomeCurto : jogo.adversario_nome}
             </span>{" "}
             x{" "}
             <span className="font-semibold text-grena-escuro">
-              {jogo.mandante ? jogo.adversario_nome : "Juventus"}
+              {jogo.mandante ? jogo.adversario_nome : clube.nomeCurto}
             </span>{" "}
             — {jogo.competicao}
             {jogo.rodada_fase ? ` · ${jogo.rodada_fase}` : ""}

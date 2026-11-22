@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import type { JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 function formatData(data: string): string {
   const [ano, mes, dia] = data.split("-");
@@ -99,8 +100,8 @@ export default async function JogosDashboardPage() {
                   <tr key={j.id}>
                     <td className="px-4 py-3">{formatData(j.data_jogo)}</td>
                     <td className="px-4 py-3 font-medium text-neutral-800">
-                      {j.mandante ? "Juventus" : j.adversario_nome} x{" "}
-                      {j.mandante ? j.adversario_nome : "Juventus"}
+                      {j.mandante ? clube.nomeCurto : j.adversario_nome} x{" "}
+                      {j.mandante ? j.adversario_nome : clube.nomeCurto}
                     </td>
                     <td className="px-4 py-3">{j.competicao}</td>
                     <td className="px-4 py-3 font-semibold">

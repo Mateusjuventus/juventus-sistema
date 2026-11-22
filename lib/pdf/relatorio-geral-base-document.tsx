@@ -185,7 +185,7 @@ export interface RelatorioGeralBaseBonusGatilho {
  * barras da tela (aqui como barras horizontais simples, já que o PDF não tem SVG).
  */
 export function RelatorioGeralBaseDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   custoMensalFixo,
   despesasTotal,
@@ -201,7 +201,7 @@ export function RelatorioGeralBaseDocument({
   assinatura2,
   podeVerSalario = true,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   custoMensalFixo: number;
   despesasTotal: number;
@@ -245,9 +245,9 @@ export function RelatorioGeralBaseDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <DepartamentoEyebrow departamento="base" />
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Gasto Geral da Base</Text>
 

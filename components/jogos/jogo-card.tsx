@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { JuventusCrestMark } from "@/components/juventus-crest";
+import { ClubeEscudoMark } from "@/components/clube-escudo";
 import type { JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 function formatData(data: string): string {
   const [ano, mes, dia] = data.split("-");
@@ -61,17 +62,17 @@ export function JogoCard({
   );
   const juventusLogo = (
     <div className="flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 bg-white p-1">
-      <JuventusCrestMark className="h-full w-full" />
+      <ClubeEscudoMark className="h-full w-full" />
     </div>
   );
   const [ladoEsquerdo, ladoDireito] = jogo.mandante
     ? [
-        { logo: juventusLogo, nome: "Juventus" },
+        { logo: juventusLogo, nome: clube.nomeCurto },
         { logo: adversarioLogo, nome: jogo.adversario_nome },
       ]
     : [
         { logo: adversarioLogo, nome: jogo.adversario_nome },
-        { logo: juventusLogo, nome: "Juventus" },
+        { logo: juventusLogo, nome: clube.nomeCurto },
       ];
 
   const temResultado = jogo.gols_pro !== null && jogo.gols_contra !== null;

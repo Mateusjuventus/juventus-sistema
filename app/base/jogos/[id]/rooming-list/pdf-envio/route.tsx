@@ -21,6 +21,7 @@ import type {
   RoomingListQuartoRow,
   StaffOperacionalRow,
 } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Espelha `app/jogos/[id]/rooming-list/pdf-envio/route.tsx` para o Futebol de Base. */
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -102,13 +103,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
     ocupantes: ocupantes.filter((o) => o.quarto_id === q.id).map(pessoaDe),
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <RoomingListEnvioDocument
       jogo={jogo}
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       adversarioLogoSrc={adversarioLogoUrl}
       hotelNome={roomingList.hotel_nome}
       hotelEndereco={roomingList.hotel_endereco}
@@ -119,7 +120,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     />,
   );
 
-  const nomeArquivo = `rooming-list-envio-juventus-x-${jogo.adversario_nome
+  const nomeArquivo = `rooming-list-envio-${clube.slug}-x-${jogo.adversario_nome
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}-${jogo.data_jogo}.pdf`;
 

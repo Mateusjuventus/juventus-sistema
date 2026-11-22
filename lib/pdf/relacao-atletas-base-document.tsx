@@ -234,13 +234,13 @@ function TabelaAtletas({
 }
 
 export function RelacaoAtletasBaseDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   escopoTexto,
   grupos,
   colunas,
   geradoEm,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   /** "Todas as Categorias" (as 7 selecionadas) ou a lista das categorias selecionadas, na ordem
    * canônica (ex.: "Sub-20, Sub-17") — vira o subtítulo. Pedido do Mateus: só a categoria aparece
    * aqui, sem o status (o status ainda filtra os atletas normalmente, só não é exibido). */
@@ -258,9 +258,9 @@ export function RelacaoAtletasBaseDocument({
     <Document>
       <Page size="A4" orientation={orientacao} style={sharedStyles.page}>
         <DepartamentoEyebrow departamento="base" />
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Relação de Atletas</Text>
         <Text style={styles.subtitulo}>{escopoTexto}</Text>

@@ -25,6 +25,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        // Títulos com a fonte de destaque do clube (Juventus: Inter; Maringá: Saira Condensed).
+        display: ["var(--font-display)", "var(--font-geist-sans)", "sans-serif"],
       },
     },
   },

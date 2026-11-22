@@ -119,7 +119,7 @@ export interface AtletaRelatorioDadosPessoais {
 }
 
 export function AtletaRelatorioDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   fotoSrc,
   nome,
   subtitulo,
@@ -129,7 +129,7 @@ export function AtletaRelatorioDocument({
   dadosPessoais,
   detalhePorCompeticao,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   fotoSrc: LogoSrc;
   nome: string;
   subtitulo: string;
@@ -151,9 +151,9 @@ export function AtletaRelatorioDocument({
           ) : (
             <View style={styles.fotoPlaceholder} />
           )}
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={sharedStyles.escudo} src={juventusLogoSrc as string} />
+            <Image style={sharedStyles.escudo} src={escudoClubeSrc as string} />
           ) : null}
           <View>
             <Text style={styles.nome}>{nome}</Text>

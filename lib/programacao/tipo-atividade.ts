@@ -1,4 +1,5 @@
 import type { ProgramacaoAtividadeTipo, ProgramacaoTurno } from "@/lib/supabase/types";
+import { temaClube } from "@/lib/theme";
 
 /** Mesma ordem/rótulo usados em `PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS` (lib/validation/schemas.ts),
  * mas cobrindo também 'jogo_oficial'/'jogo_treino' (que não aparecem no <select> de Nova Atividade,
@@ -65,7 +66,7 @@ const TIPO_COR_HEX: Record<ProgramacaoAtividadeTipo, { bg: string; text: string 
   academia: { bg: "#EDE9FE", text: "#5B21B6" },
   treinamento: { bg: "#FFEDD5", text: "#9A3412" },
   transporte: { bg: "#DBEAFE", text: "#1E40AF" },
-  jogo_oficial: { bg: "#5C0A35", text: "#FFFFFF" },
+  jogo_oficial: { bg: temaClube.grena, text: "#FFFFFF" },
   jogo_treino: { bg: "#D4D4D4", text: "#262626" },
   imprensa: { bg: "#FCE7F3", text: "#9D174D" },
   regenerativo: { bg: "#FEF9C3", text: "#854D0E" },

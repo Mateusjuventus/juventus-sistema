@@ -218,13 +218,13 @@ export interface ParecerFinalCandidato {
 }
 
 export function ParecerFinalDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   fotoSrc,
   candidato,
   assinaturas,
   emitidoEm,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   fotoSrc: LogoSrc;
   candidato: ParecerFinalCandidato;
   assinaturas: AssinaturaInfo[];
@@ -250,9 +250,9 @@ export function ParecerFinalDocument({
             <Text style={styles.subtituloTexto}>Avaliação</Text>
             <Text style={styles.subtituloTextoSub}>Departamento das Categorias de Base</Text>
           </View>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
 

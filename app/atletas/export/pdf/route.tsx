@@ -17,6 +17,7 @@ import {
 } from "@/lib/futebol/atletas-filtro";
 import { AtletasResumoDocument, type AtletaResumoPdfItem } from "@/lib/pdf/atletas-resumo-document";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 export const dynamic = "force-dynamic";
 
@@ -93,8 +94,8 @@ export async function GET(request: NextRequest) {
     status: a.status,
   }));
 
-  const juventusLogoSrc = {
-    data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
+  const escudoClubeSrc = {
+    data: readFileSync(path.join(process.cwd(), "public", clube.escudo.completo)),
     format: "png" as const,
   };
 
@@ -104,7 +105,7 @@ export async function GET(request: NextRequest) {
       atletas={itens}
       contratoOptions={[...CONTRATO_OPTIONS_PROFISSIONAL]}
       statusOptions={STATUS_OPTIONS}
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       mostrarCpf={!camposOcultos.has("cpf")}
       mostrarContrato={!camposOcultos.has("contrato")}

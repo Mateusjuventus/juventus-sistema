@@ -25,6 +25,7 @@ import { classificacaoAtletaLabel } from "@/lib/futebol/classificacao-atleta";
 import { ehCategoriaBaseValida, TODAS_CATEGORIAS_BASE, type CategoriaBase } from "@/lib/auth/categorias-base";
 import { ATLETA_BASE_TIPO_CONTRATO_OPTIONS, STAFF_CHAVE_PIX_TIPOS } from "@/lib/validation/schemas";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 const CHAVE_PIX_TIPO_LABEL: Record<string, string> = Object.fromEntries(
   STAFF_CHAVE_PIX_TIPOS.map((opcao) => [opcao.value, opcao.label]),
@@ -190,12 +191,12 @@ export async function POST(request: Request) {
 
   // `juventus-escudo.png` (com as estrelas) — pedido do Mateus, não a `-mark` (sem estrelas) que o
   // Avulso usa.
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <RelacaoAtletasBaseDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       escopoTexto={escopoTexto}
       grupos={grupos}
       colunas={colunas}

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { verificarAcessoCompeticaoBase } from "@/lib/auth/competicao-base-guard";
 import { jogosAJogar, JUVENTUS_NOME } from "@/lib/futebol/competicao-classificacao";
 import { hojeBrasilia } from "@/lib/data-brasil";
+import { clube } from "@/lib/clube";
 
 function ehJuventus(nome: string): boolean {
   return nome.trim().toLocaleLowerCase("pt-BR") === JUVENTUS_NOME.toLocaleLowerCase("pt-BR");
@@ -75,7 +76,7 @@ export default async function CompeticaoBaseAdversariosPage({ params }: { params
                     <p className="mt-0.5 text-2xl font-bold text-grena-escuro">{posicao + 1}º</p>
                     <p className="text-xs text-neutral-500">
                       {linha.pontos} pts em {linha.jogos} jogos
-                      {nossa && nossaPos !== -1 ? ` · Juventus: ${nossaPos + 1}º (${nossa.pontos} pts)` : ""}
+                      {nossa && nossaPos !== -1 ? ` · ${clube.nomeCurto}: ${nossaPos + 1}º (${nossa.pontos} pts)` : ""}
                     </p>
                   </div>
                   <div className="rounded-md border border-linha p-3">
@@ -146,7 +147,7 @@ export default async function CompeticaoBaseAdversariosPage({ params }: { params
                         <h4 className="text-sm font-bold uppercase tracking-wide text-neutral-600">{grupo.nome}</h4>
                         {nossoGrupo ? (
                           <span className="rounded-full bg-grena/10 px-2 py-0.5 text-[11px] font-semibold text-grena">
-                            grupo do Juventus
+                            grupo do {clube.nomeCurto}
                           </span>
                         ) : null}
                       </div>

@@ -32,6 +32,7 @@ import {
   ordenarClassificacao,
   type CriterioDesempate,
 } from "@/lib/futebol/competicao-desempate";
+import { clube } from "@/lib/clube";
 
 /**
  * Carrega TUDO de uma competição de uma vez (estrutura, jogos vinculados, disciplina derivada das
@@ -280,7 +281,7 @@ export async function carregarCompeticao(
       .map((e) => e.nome)
       .filter((n): n is string => n !== null);
     const vinculosDoGrupo = vinculos.filter((v) => v.grupo_id === g.id);
-    const temJuventus = nomesEquipes.some((n) => n.trim().toLocaleLowerCase("pt-BR") === "juventus");
+    const temJuventus = nomesEquipes.some((n) => n.trim().toLocaleLowerCase("pt-BR") === clube.nomeCurto.toLocaleLowerCase("pt-BR"));
     if (!temJuventus && vinculosDoGrupo.length > 0) nomesEquipes.push(JUVENTUS_NOME);
 
     const resultadosDoGrupo: ResultadoSimples[] = (resultadosPorGrupo.get(g.id) ?? []).map((r) => ({

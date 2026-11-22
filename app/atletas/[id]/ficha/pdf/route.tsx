@@ -47,6 +47,7 @@ import type {
   AtletaContratoRow,
   AtletaRow,
 } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 const MOTIVO_DESATIVACAO_LABEL: Record<string, string> = Object.fromEntries(
   MOTIVO_DESATIVACAO_ATLETA_OPTIONS.map((o) => [o.value, o.label]),
@@ -192,8 +193,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
   const subtitulo = `${atleta.posicao}${atleta.numero_camisa ? ` · Nº ${atleta.numero_camisa}` : ""}`;
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   // Valor efetivo de cada rubrica — a evolução salarial já aplicável na data de hoje, ou o valor
   // gravado no contrato quando não há nenhuma (mesmo cálculo da tela "Ver atleta").
@@ -313,7 +314,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const buffer = await renderToBuffer(
     <FichaAtletaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       fotoSrc={fotoUrl}
       nome={atleta.nome_completo}
       subtitulo={subtitulo}

@@ -225,12 +225,12 @@ function calcularDiagrama(
 }
 
 export function OrganogramaBaseDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   nos,
   linhasReportaPara,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   nos: OrganogramaBaseNoDocumento[];
   linhasReportaPara: { linha: string; reportaPara: string | null; posX: number | null; posY: number | null; posManual: boolean }[];
@@ -289,9 +289,9 @@ export function OrganogramaBaseDocument({
     <Document>
       <Page size={[larguraPagina, alturaPagina]} style={styles.page}>
         <View style={styles.headerRow}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+            <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
           ) : null}
           <Text style={styles.titulo}>Organograma (Funções)</Text>
         </View>

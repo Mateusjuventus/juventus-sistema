@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import type { DespesaAvulsaComCategoriaRow, GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export async function GET() {
       const previsto = gastosDoJogo.reduce((soma, g) => soma + g.valor_previsto, 0);
       const efetuado = gastosDoJogo.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);
       return {
-        Jogo: `${j.mandante ? "Juventus" : j.adversario_nome} x ${j.mandante ? j.adversario_nome : "Juventus"}`,
+        Jogo: `${j.mandante ? clube.nomeCurto : j.adversario_nome} x ${j.mandante ? j.adversario_nome : clube.nomeCurto}`,
         Competição: j.competicao,
         Data: formatData(j.data_jogo),
         Previsto: previsto,

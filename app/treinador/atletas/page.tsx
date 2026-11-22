@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasTreinador } from "@/lib/auth/role";
 import { TreinadorHeader } from "@/components/treinador/treinador-header";
-import { JuventusCrestMark } from "@/components/juventus-crest";
+import { ClubeEscudoMark } from "@/components/clube-escudo";
 import { logout } from "@/app/actions";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { buscarNotificacoes } from "@/lib/notificacoes/actions";
@@ -25,7 +25,7 @@ export default async function TreinadorAtletasPage() {
   if (categorias.length === 0) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-pagina px-4 py-10">
-        <JuventusCrestMark className="h-12 w-12" />
+        <ClubeEscudoMark className="h-12 w-12" />
         <p className="mt-4 max-w-sm text-center text-neutral-600">
           Você ainda não tem nenhuma categoria vinculada ao seu acesso. Fale com o responsável do
           Futebol de Base.

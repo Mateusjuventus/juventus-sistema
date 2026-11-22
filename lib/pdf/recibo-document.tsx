@@ -1,3 +1,4 @@
+import { clube } from "@/lib/clube";
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import type { JogoRow, StaffChavePixTipo } from "@/lib/supabase/types";
 import { formatCPF } from "@/lib/validation/cpf";
@@ -14,7 +15,7 @@ import {
 } from "./logistica-shared";
 
 /** Cidade onde o clube está sediado — usada na linha de local/data do recibo. */
-const JUVENTUS_CIDADE_ASSINATURA = "São Paulo – SP";
+const JUVENTUS_CIDADE_ASSINATURA = clube.cidadeAssinatura;
 
 const CHAVE_PIX_TIPO_LABEL: Record<StaffChavePixTipo, string> = {
   cpf: "CPF",
@@ -50,8 +51,8 @@ function formatValorNumero(valor: number | null): string {
 
 /** Monta o texto "de Competição - Rodada, entre Juventus e Adversário, realizado em data às horário" a partir do jogo cadastrado. */
 function textoJogo(jogo: JogoRow): string {
-  const ladoEsquerdo = jogo.mandante ? "Juventus" : jogo.adversario_nome;
-  const ladoDireito = jogo.mandante ? jogo.adversario_nome : "Juventus";
+  const ladoEsquerdo = jogo.mandante ? clube.nomeCurto : jogo.adversario_nome;
+  const ladoDireito = jogo.mandante ? jogo.adversario_nome : clube.nomeCurto;
   const competicaoTexto = `${jogo.competicao}${jogo.rodada_fase ? ` - ${jogo.rodada_fase}` : ""}`;
   const horarioTexto = jogo.horario ? `, às ${jogo.horario.slice(0, 5)}` : "";
   return `de ${competicaoTexto}, entre ${ladoEsquerdo} e ${ladoDireito}, realizado em ${formatDataBr(jogo.data_jogo)}${horarioTexto}`;
@@ -157,12 +158,12 @@ export interface ReciboPdfItem {
  */
 export function ReciboIndividualDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   itens,
   geradoEm,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   itens: ReciboPdfItem[];
   geradoEm: Date;
 }) {
@@ -170,9 +171,9 @@ export function ReciboIndividualDocument({
     <Document>
       {itens.map((item, i) => (
         <Page size="A4" style={sharedStyles.page} key={i}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+            <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
           ) : null}
           <Text style={styles.tituloRecibo}>Recibo</Text>
 
@@ -216,12 +217,12 @@ export function ReciboIndividualDocument({
  */
 export function ReciboConsolidadoDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   itens,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   itens: ReciboPdfItem[];
 }) {
@@ -233,7 +234,7 @@ export function ReciboConsolidadoDocument({
       <Page size="A4" orientation="landscape" style={sharedStyles.page}>
         <DocumentoHeader
           jogo={jogo}
-          juventusLogoSrc={juventusLogoSrc}
+          escudoClubeSrc={escudoClubeSrc}
           adversarioLogoSrc={adversarioLogoSrc}
           titulo="Recibo Consolidado de Pagamento"
         />

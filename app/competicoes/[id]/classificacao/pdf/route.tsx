@@ -9,13 +9,14 @@ import {
 import { jogosAJogar, resolverEquipes } from "@/lib/futebol/competicao-classificacao";
 import { CRITERIO_LABEL, normalizarCriterios } from "@/lib/futebol/competicao-desempate";
 import { carregarParaPdf } from "../../pdf-shared";
+import { clube } from "@/lib/clube";
 
 /** PDF da Classificação — tabelas por grupo e, pra grupos de fases futuras, as vagas projetadas
  * com o possível confronto de hoje (mesmo conteúdo da aba Classificação). */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const pdfData = await carregarParaPdf(params.id);
   if (!pdfData) return new NextResponse("Competição não encontrada.", { status: 404 });
-  const { carregada, juventusLogoSrc, subtitulo } = pdfData;
+  const { carregada, escudoClubeSrc, subtitulo } = pdfData;
   const { fases, gruposPorFase, equipesPorGrupo, classificacoesPorGrupo, nomesGrupos, competicao } = carregada;
 
   const grupos: CompeticaoClassificacaoPdfGrupo[] = [];
@@ -56,7 +57,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
             saldo: l.saldo,
             cartoesAmarelos: l.cartoesAmarelos,
             cartoesVermelhos: l.cartoesVermelhos,
-            juventus: l.equipe.trim().toLocaleLowerCase("pt-BR") === "juventus",
+            juventus: l.equipe.trim().toLocaleLowerCase("pt-BR") === clube.nomeCurto.toLocaleLowerCase("pt-BR"),
           })),
         });
       }
@@ -69,7 +70,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const buffer = await renderToBuffer(
     <CompeticaoClassificacaoDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       subtitulo={subtitulo}
       grupos={grupos}

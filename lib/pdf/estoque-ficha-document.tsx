@@ -170,12 +170,12 @@ const QTD_LINHAS_BRANCO = 10;
  * à mão na hora da entrega.
  */
 export function EstoqueFichaDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   ficha,
   itens,
   subtitulo,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   ficha: EstoqueFichaPdfData;
   itens: EstoqueFichaPdfItem[];
   /** Substitui o subtítulo padrão calculado por SUBTITULOS[ficha.categoria] — usado pelo Futebol de
@@ -191,9 +191,9 @@ export function EstoqueFichaDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <View style={styles.logoBox}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
         <View style={styles.tituloBar}>

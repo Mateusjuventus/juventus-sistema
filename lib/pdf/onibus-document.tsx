@@ -52,12 +52,12 @@ export interface OnibusPdfItem {
 
 export function OnibusDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   onibus,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   onibus: OnibusPdfItem[];
 }) {
@@ -66,7 +66,7 @@ export function OnibusDocument({
       <Page size="A4" style={sharedStyles.page}>
         <DocumentoHeader
           jogo={jogo}
-          juventusLogoSrc={juventusLogoSrc}
+          escudoClubeSrc={escudoClubeSrc}
           adversarioLogoSrc={adversarioLogoSrc}
           titulo="Lista de Passageiros do Ônibus"
         />

@@ -1,7 +1,8 @@
-import { JuventusCrestMark } from "@/components/juventus-crest";
+import { ClubeEscudoMark } from "@/components/clube-escudo";
 import type { JogoResumoAtividade } from "@/lib/programacao/queries";
 import { formatHorarioCurto, labelTipoAtividade } from "@/lib/programacao/tipo-atividade";
 import type { ProgramacaoAtividadeTipo } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 function formatDataCurta(dataIso: string): string {
   const [, mes, dia] = dataIso.split("-");
@@ -37,7 +38,7 @@ export function GameCard({
    * também a competição/rodada por extenso. */
   compacto?: boolean;
 }) {
-  const juventus = { url: null, nome: "Juventus" };
+  const juventus = { url: null, nome: clube.nomeCurto };
   const [ladoEsquerdo, ladoDireito] = jogo.mandante
     ? [juventus, { url: jogo.adversarioLogoUrl, nome: jogo.adversario_nome }]
     : [{ url: jogo.adversarioLogoUrl, nome: jogo.adversario_nome }, juventus];
@@ -52,7 +53,7 @@ export function GameCard({
       <div className={`flex items-center justify-center gap-2 ${compacto ? "mt-1" : "mt-2"}`}>
         {ladoEsquerdo === juventus ? (
           <div className={`flex ${tamanhoEscudo} shrink-0 items-center justify-center rounded-full border border-linha bg-white p-0.5`}>
-            <JuventusCrestMark className="h-full w-full" />
+            <ClubeEscudoMark className="h-full w-full" />
           </div>
         ) : (
           <Escudo url={ladoEsquerdo.url} nome={ladoEsquerdo.nome} tamanho={tamanhoEscudo} />
@@ -60,7 +61,7 @@ export function GameCard({
         <span className={`font-bold text-neutral-400 ${compacto ? "text-[10px]" : "text-sm"}`}>×</span>
         {ladoDireito === juventus ? (
           <div className={`flex ${tamanhoEscudo} shrink-0 items-center justify-center rounded-full border border-linha bg-white p-0.5`}>
-            <JuventusCrestMark className="h-full w-full" />
+            <ClubeEscudoMark className="h-full w-full" />
           </div>
         ) : (
           <Escudo url={ladoDireito.url} nome={ladoDireito.nome} tamanho={tamanhoEscudo} />

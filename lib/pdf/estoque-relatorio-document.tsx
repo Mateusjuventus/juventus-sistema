@@ -101,11 +101,11 @@ function formatTamanhos(tamanhos: Record<string, number>): string {
  * (Unidade — Mg — Descrição — Código — Total) em vez de seguir o layout fixo da ficha.
  */
 export function EstoqueRelatorioDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   dados,
   itens,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   dados: EstoqueRelatorioPdfData;
   itens: EstoqueRelatorioPdfItem[];
 }) {
@@ -118,9 +118,9 @@ export function EstoqueRelatorioDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <View style={styles.logoBox}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
         <View style={styles.tituloBar}>

@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, View, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import type { JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Cabeçalho compartilhado pelos documentos de Logística de Jogo (Rooming List, Ônibus,
@@ -14,12 +15,12 @@ import type { JogoRow } from "@/lib/supabase/types";
 // pula de linha em vez de ser cortada.
 Font.registerHyphenationCallback((word) => [word]);
 
-export const CORES = { grena: "#5C0A35", grenaEscuro: "#3F0724", dourado: "#C9A227" };
+export const CORES = { grena: clube.cores.grena, grenaEscuro: clube.cores.grenaEscuro, dourado: clube.cores.acentoDocumento };
 
 /** Identidade oficial do clube, usada no rodapé de todo documento e no texto do recibo. */
-export const JUVENTUS_RAZAO_SOCIAL = "Juventus Sociedade Anônima do Futebol";
-export const JUVENTUS_CNPJ = "63.634.319/0001-99";
-export const JUVENTUS_ENDERECO = "Rua Javari, 117 – Mooca, São Paulo – SP, 03112-100";
+export const JUVENTUS_RAZAO_SOCIAL = clube.razaoSocial;
+export const JUVENTUS_CNPJ = clube.cnpj;
+export const JUVENTUS_ENDERECO = clube.endereco;
 
 // Marca da Proxis usada na linha discreta de crédito do rodapé (ver docs/superpowers/specs/
 // 2026-10-04-rebranding-proxis-design.md) — chrome do software, não identidade do clube, por isso
@@ -185,21 +186,21 @@ export type LogoSrc = string | { data: Buffer; format: "png" | "jpg" } | null;
 
 export function DocumentoHeader({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   titulo,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   titulo: string;
 }) {
   const ladoEsquerdo = jogo.mandante
-    ? { logo: juventusLogoSrc, nome: "Juventus" }
+    ? { logo: escudoClubeSrc, nome: clube.nomeCurto }
     : { logo: adversarioLogoSrc, nome: jogo.adversario_nome };
   const ladoDireito = jogo.mandante
     ? { logo: adversarioLogoSrc, nome: jogo.adversario_nome }
-    : { logo: juventusLogoSrc, nome: "Juventus" };
+    : { logo: escudoClubeSrc, nome: clube.nomeCurto };
   const horario = jogo.horario ? jogo.horario.slice(0, 5) : null;
 
   return (

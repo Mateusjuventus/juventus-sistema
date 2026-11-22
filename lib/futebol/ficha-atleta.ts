@@ -1,3 +1,4 @@
+import { clube } from "@/lib/clube";
 /**
  * Ficha individual do atleta em PDF (Profissional e Base) — pedido do Mateus em 2026-10-22: "gerar
  * a ficha do atleta" com "a opção de eu selecionar quais dados que eu quero que apareça". Decisões
@@ -309,7 +310,7 @@ export function confrontoComPlacar(
   golsPro: number | null,
   golsContra: number | null,
 ): string {
-  const nossoNome = "Juventus";
+  const nossoNome = clube.nomeCurto;
   const timeA = mandante ? nossoNome : adversarioNome;
   const timeB = mandante ? adversarioNome : nossoNome;
   if (golsPro == null || golsContra == null) return `${timeA} x ${timeB}`;

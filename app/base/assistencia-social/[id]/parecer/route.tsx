@@ -10,6 +10,7 @@ import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import { ParecerSocialDocument, type ParecerSocialAssinatura } from "@/lib/pdf/parecer-social-document";
 import type { AssistenciaSocialAtendimentoRow, AtletaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Rota do PDF do Parecer Social — acesso já garantido pelo middleware (módulo
@@ -40,8 +41,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   ]);
   const atendimentos = (atendimentosData ?? []) as AssistenciaSocialAtendimentoRow[];
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const assinaturasSalvas = await resolverImagensAssinaturas(supabase, await buscarAssinaturas("parecer_social", atleta.id));
   const assinaturaSalva = assinaturasSalvas.find((a) => a.papel === "assistente_social");
@@ -56,7 +57,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const buffer = await renderToBuffer(
     <ParecerSocialDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       fotoSrc={fotoUrl}
       atleta={{
         nome: atleta.nome_completo,

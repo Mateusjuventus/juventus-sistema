@@ -98,7 +98,7 @@ export interface DespesaAvulsaRelatorioPdfCategoria {
  * docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md.
  */
 export function DespesasAvulsasRelatorioDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   categorias,
   totalGeral,
@@ -108,7 +108,7 @@ export function DespesasAvulsasRelatorioDocument({
   subtitulo,
   jogosRelacionados,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   categorias: DespesaAvulsaRelatorioPdfCategoria[];
   totalGeral: number;
@@ -127,9 +127,9 @@ export function DespesasAvulsasRelatorioDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <DepartamentoEyebrow departamento={departamento} />
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Relatório de Despesas</Text>
         <Text style={styles.subtitulo}>{subtitulo ?? ""}</Text>

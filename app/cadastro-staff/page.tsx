@@ -1,8 +1,9 @@
-import { JuventusCrest } from "@/components/juventus-crest";
+import { ClubeEscudo } from "@/components/clube-escudo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ConfiguracaoCadastroStaffRow, StaffFuncaoCatalogoRow } from "@/lib/supabase/types";
 import { StaffPublicoForm } from "./staff-publico-form";
 import { cadastrarStaffPublico } from "./actions";
+import { clube } from "@/lib/clube";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +33,8 @@ export default async function CadastroStaffPublicoPage() {
     <main className="min-h-screen bg-grena-escuro px-4 py-10">
       <div className="mx-auto w-full max-w-2xl">
         <div className="mb-6 flex flex-col items-center text-center">
-          <JuventusCrest className="h-24 w-auto drop-shadow-lg" />
-          <h1 className="mt-4 text-2xl font-bold text-white">Juventus - SAF</h1>
+          <ClubeEscudo sobre="escuro" className="h-24 w-auto drop-shadow-lg" />
+          <h1 className="mt-4 text-2xl font-bold text-white">{clube.nomeCabecalho}</h1>
           <p className="mt-1 text-sm text-white/70">Cadastro de Staff Operacional</p>
         </div>
 

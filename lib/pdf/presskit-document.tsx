@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { AtletaRow, JogoRow } from "@/lib/supabase/types";
 import { DocumentoFooter } from "./logistica-shared";
+import { clube } from "@/lib/clube";
+import { temaClube } from "@/lib/theme";
 
-const CORES = { grena: "#5C0A35", grenaEscuro: "#3F0724", dourado: "#C9A227" };
+const CORES = { grena: temaClube.grena, grenaEscuro: temaClube.grenaEscuro, dourado: temaClube.acentoDocumento };
 
 // Fonte cursiva usada pra destacar o número da camisa no cartão de cada jogador (arquivo enviado
 // pelo Mateus — "Amsterdam Signature Duo"). Registrada uma única vez, no carregamento do módulo.
@@ -16,7 +18,7 @@ Font.register({
 // Marca d'água do escudo, usada como fundo decorativo (bem clara) na página do presskit, pra dar
 // um pouco mais de identidade visual do clube ao documento.
 const escudoWatermarkSrc = {
-  data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
+  data: readFileSync(path.join(process.cwd(), "public", clube.escudo.completo)),
   format: "png" as const,
 };
 
@@ -269,7 +271,7 @@ function ColunaAtletas({
 
 export function PresskitDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   titulares,
   reservas,
@@ -277,7 +279,7 @@ export function PresskitDocument({
   comissaoNomes,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   titulares: AtletaPresskitItem[];
   reservas: AtletaPresskitItem[];
@@ -286,11 +288,11 @@ export function PresskitDocument({
 }) {
   // Regra: jogo em casa, Juventus primeiro (esquerda); jogo fora, Juventus depois do mandante (direita).
   const ladoEsquerdo = jogo.mandante
-    ? { logo: juventusLogoSrc, nome: "Juventus" }
+    ? { logo: escudoClubeSrc, nome: clube.nomeCurto }
     : { logo: adversarioLogoSrc, nome: jogo.adversario_nome };
   const ladoDireito = jogo.mandante
     ? { logo: adversarioLogoSrc, nome: jogo.adversario_nome }
-    : { logo: juventusLogoSrc, nome: "Juventus" };
+    : { logo: escudoClubeSrc, nome: clube.nomeCurto };
 
   const horario = jogo.horario ? jogo.horario.slice(0, 5) : null;
 

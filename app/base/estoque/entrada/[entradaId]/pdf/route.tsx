@@ -7,6 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { EstoqueEntradaDocument, type EstoqueEntradaPdfItem } from "@/lib/pdf/estoque-entrada-document";
 import type { EstoqueEntradaItemBaseRow, EstoqueEntradaBaseRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Espelha `app/estoque/[categoria]/entrada/[entradaId]/pdf/route.tsx` para o Futebol de Base —
  * reaproveita o mesmo `EstoqueEntradaDocument`, sempre com `categoria: "esportivo"` (única
@@ -33,12 +34,12 @@ export async function GET(_request: Request, { params }: { params: { entradaId: 
     quantidade: Number(item.quantidade),
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <EstoqueEntradaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       subtitulo="Departamento de Futebol de Base"
       entrada={{
         categoria: "esportivo",

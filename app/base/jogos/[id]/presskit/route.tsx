@@ -16,6 +16,7 @@ import type {
   ConvocacaoRow,
   ConvocacaoComissaoRow,
 } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Espelha `app/jogos/[id]/presskit/route.tsx` para o Futebol de Base. */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
@@ -85,13 +86,13 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     .map((c) => c.pessoa?.nome_completo)
     .filter((nome): nome is string => Boolean(nome));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <PresskitDocument
       jogo={jogo}
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       adversarioLogoSrc={adversarioLogoUrl}
       titulares={titulares}
       reservas={reservas}
@@ -100,7 +101,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     />,
   );
 
-  const nomeArquivo = `presskit-juventus-x-${jogo.adversario_nome
+  const nomeArquivo = `presskit-${clube.slug}-x-${jogo.adversario_nome
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}-${jogo.data_jogo}.pdf`;
 

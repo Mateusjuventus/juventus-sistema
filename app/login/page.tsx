@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ProxisLockupClaro, ProxisMarkClaro } from "@/components/proxis-brand";
 import { LoginForm } from "./login-form";
+import { clube } from "@/lib/clube";
 
 /**
  * Login é a porta de entrada do SOFTWARE (Proxis), antes de escolher o Juventus — por isso a
@@ -43,7 +44,7 @@ export default function LoginPage() {
           <ProxisLockupClaro className="drop-shadow-lg" />
           <p className="mt-7 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-proxisAzul">
             <span aria-hidden className="inline-block h-3.5 w-1.5 -skew-x-12 bg-proxisAzul" />
-            Operando para Clube Atlético Juventus
+            Operando para {clube.nomeCompleto}
           </p>
         </div>
 

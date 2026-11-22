@@ -1,4 +1,4 @@
-import { JuventusCrest } from "@/components/juventus-crest";
+import { ClubeEscudo } from "@/components/clube-escudo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildConfrontoTexto } from "@/lib/posters/jogo-texto";
 import { diaDaSemana, formatDataBr, formatHorario } from "@/lib/posters/relacionados-data";
@@ -17,6 +17,7 @@ import {
   type InscricaoDaPessoa,
   type PessoaOpcao,
 } from "@/components/vaga-publica-form";
+import { clube } from "@/lib/clube";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,8 @@ function Moldura({ children }: { children: React.ReactNode }) {
     <main className="min-h-screen bg-grena-escuro px-4 py-8">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-5 flex flex-col items-center text-center">
-          <JuventusCrest className="h-20 w-auto drop-shadow-lg" />
-          <h1 className="mt-3 text-xl font-bold text-white">Juventus - SAF</h1>
+          <ClubeEscudo sobre="escuro" className="h-20 w-auto drop-shadow-lg" />
+          <h1 className="mt-3 text-xl font-bold text-white">{clube.nomeCabecalho}</h1>
           <p className="mt-1 text-sm text-white/70">Vagas de trabalho no jogo — Futebol de Base</p>
         </div>
         <div className="card p-5 sm:p-6">{children}</div>

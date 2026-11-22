@@ -1,3 +1,4 @@
+import { clube } from "@/lib/clube";
 /**
  * Classificação de um grupo da competição (ver
  * docs/superpowers/specs/2026-08-10-competicoes-design.md).
@@ -13,7 +14,7 @@
  * Funções puras (sem Supabase), pra dar pra testar.
  */
 
-export const JUVENTUS_NOME = "Juventus";
+export const JUVENTUS_NOME = clube.nomeCurto;
 
 export interface ResultadoSimples {
   casa: string;

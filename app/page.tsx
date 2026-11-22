@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { JuventusCrest } from "@/components/juventus-crest";
+import { ClubeEscudo } from "@/components/clube-escudo";
 import { ProxisMark } from "@/components/proxis-brand";
 import { createClient } from "@/lib/supabase/server";
 import { getDepartamentosPermitidos } from "@/lib/auth/role";
+import { clube } from "@/lib/clube";
 
 /**
  * Primeira parada depois do login — hoje só decide pra onde mandar, nunca é uma tela de verdade pra
@@ -38,13 +39,13 @@ export default async function HomePage() {
           aria-hidden
           className="pointer-events-none absolute -right-32 -top-32 rotate-[18deg] opacity-[0.08] sm:-right-24 sm:-top-24"
         >
-          <JuventusCrest className="h-[26rem] w-auto sm:h-[34rem]" />
+          <ClubeEscudo sobre="escuro" className="h-[26rem] w-auto sm:h-[34rem]" />
         </div>
         <div
           aria-hidden
           className="pointer-events-none absolute -bottom-40 -left-32 rotate-[18deg] opacity-[0.06] sm:-bottom-32 sm:-left-24"
         >
-          <JuventusCrest className="h-[22rem] w-auto sm:h-[28rem]" />
+          <ClubeEscudo sobre="escuro" className="h-[22rem] w-auto sm:h-[28rem]" />
         </div>
         {/* Risquinhos diagonais do canto — mesmo recurso gráfico da capa dos informativos de
             viagem do Departamento, só que em dourado em vez do rosa do patrocinador. */}
@@ -54,14 +55,14 @@ export default async function HomePage() {
         </div>
 
         <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-dourado/50 bg-white p-2 shadow-lg">
-          <JuventusCrest className="h-full w-auto" />
+          <ClubeEscudo className="h-full w-auto" />
         </div>
         <p className="relative mt-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-dourado">
           <span aria-hidden className="inline-block h-3.5 w-1.5 -skew-x-12 bg-dourado" />
           Sistema de gestão
         </p>
         <h1 className="relative mt-1.5 text-center text-4xl font-black uppercase tracking-tight text-white sm:text-5xl">
-          Juventus - SAF
+          {clube.nomeCabecalho}
         </h1>
 
         <p className="card relative mt-6 max-w-md p-6 text-center text-sm text-neutral-500 shadow-xl">
@@ -69,7 +70,7 @@ export default async function HomePage() {
         </p>
 
         <p className="relative mt-8 text-center text-xs text-white/40">
-          © {new Date().getFullYear()} Clube Atlético Juventus SAF
+          © {new Date().getFullYear()} {clube.nomeOficial}
         </p>
 
         {/* Assinatura discreta da Proxis (software por trás do sistema) — canto inferior direito,

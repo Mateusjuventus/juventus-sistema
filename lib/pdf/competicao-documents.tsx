@@ -51,20 +51,20 @@ const styles = StyleSheet.create({
 });
 
 function Cabecalho({
-  juventusLogoSrc,
+  escudoClubeSrc,
   titulo,
   subtitulo,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   titulo: string;
   subtitulo: string;
 }) {
   return (
     <>
       <DepartamentoEyebrow departamento="profissional" />
-      {juventusLogoSrc ? (
+      {escudoClubeSrc ? (
         // eslint-disable-next-line jsx-a11y/alt-text
-        <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+        <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
       ) : null}
       <Text style={styles.titulo}>{titulo}</Text>
       <Text style={styles.subtitulo}>{subtitulo}</Text>
@@ -93,14 +93,14 @@ export interface CompeticaoResumoPdfJogo {
 }
 
 export function CompeticaoResumoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   subtitulo,
   dados,
   fases,
   jogos,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   subtitulo: string;
   dados: { label: string; valor: string }[];
@@ -110,7 +110,7 @@ export function CompeticaoResumoDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        <Cabecalho juventusLogoSrc={juventusLogoSrc} titulo="Resumo da Competição" subtitulo={subtitulo} />
+        <Cabecalho escudoClubeSrc={escudoClubeSrc} titulo="Resumo da Competição" subtitulo={subtitulo} />
 
         <View style={styles.secaoBox}>
           <Text style={styles.secaoTitulo}>Dados</Text>
@@ -194,13 +194,13 @@ export interface CompeticaoClassificacaoPdfGrupo {
 }
 
 export function CompeticaoClassificacaoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   subtitulo,
   grupos,
   criterios,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   subtitulo: string;
   grupos: CompeticaoClassificacaoPdfGrupo[];
@@ -212,7 +212,7 @@ export function CompeticaoClassificacaoDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        <Cabecalho juventusLogoSrc={juventusLogoSrc} titulo="Classificação" subtitulo={subtitulo} />
+        <Cabecalho escudoClubeSrc={escudoClubeSrc} titulo="Classificação" subtitulo={subtitulo} />
 
         {grupos.map((g) => (
           <View style={styles.secaoBox} key={`${g.faseNome}-${g.nome}`} wrap={false}>
@@ -287,12 +287,12 @@ export interface CompeticaoCartoesPdfLinha {
 }
 
 export function CompeticaoCartoesDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   subtitulo,
   linhas,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   subtitulo: string;
   linhas: CompeticaoCartoesPdfLinha[];
@@ -300,7 +300,7 @@ export function CompeticaoCartoesDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        <Cabecalho juventusLogoSrc={juventusLogoSrc} titulo="Controle de Cartões" subtitulo={subtitulo} />
+        <Cabecalho escudoClubeSrc={escudoClubeSrc} titulo="Controle de Cartões" subtitulo={subtitulo} />
 
         <View style={styles.linhaHeader}>
           <Text style={[styles.colNome, styles.headerCell]}>Atleta</Text>
@@ -340,12 +340,12 @@ export interface CompeticaoSuspensoesPdfLinha {
 }
 
 export function CompeticaoSuspensoesDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   subtitulo,
   linhas,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   subtitulo: string;
   linhas: CompeticaoSuspensoesPdfLinha[];
@@ -354,7 +354,7 @@ export function CompeticaoSuspensoesDocument({
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={sharedStyles.page}>
-        <Cabecalho juventusLogoSrc={juventusLogoSrc} titulo="Controle de Suspensões" subtitulo={subtitulo} />
+        <Cabecalho escudoClubeSrc={escudoClubeSrc} titulo="Controle de Suspensões" subtitulo={subtitulo} />
 
         <View style={styles.linhaHeader}>
           <Text style={[styles.colMedia, styles.headerCell]}>Atleta</Text>
@@ -397,12 +397,12 @@ export interface CompeticaoCondicaoPdfLinha {
 }
 
 export function CompeticaoCondicaoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   subtitulo,
   linhas,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   subtitulo: string;
   linhas: CompeticaoCondicaoPdfLinha[];
@@ -410,7 +410,7 @@ export function CompeticaoCondicaoDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        <Cabecalho juventusLogoSrc={juventusLogoSrc} titulo="Condição de Jogo" subtitulo={subtitulo} />
+        <Cabecalho escudoClubeSrc={escudoClubeSrc} titulo="Condição de Jogo" subtitulo={subtitulo} />
 
         <View style={styles.linhaHeader}>
           <Text style={[styles.colNome, styles.headerCell]}>Atleta</Text>
@@ -443,12 +443,12 @@ export interface CompeticaoInscritosPdfLinha {
 }
 
 export function CompeticaoInscritosDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   subtitulo,
   linhas,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   subtitulo: string;
   linhas: CompeticaoInscritosPdfLinha[];
@@ -456,7 +456,7 @@ export function CompeticaoInscritosDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        <Cabecalho juventusLogoSrc={juventusLogoSrc} titulo="Atletas Inscritos" subtitulo={subtitulo} />
+        <Cabecalho escudoClubeSrc={escudoClubeSrc} titulo="Atletas Inscritos" subtitulo={subtitulo} />
 
         <View style={styles.linhaHeader}>
           <Text style={[styles.colNome, styles.headerCell]}>Atleta</Text>

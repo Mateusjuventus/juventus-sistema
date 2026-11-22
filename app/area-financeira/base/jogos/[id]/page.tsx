@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { podeVerAreaFinanceira } from "@/lib/auth/role";
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 function formatMoeda(valor: number | null): string {
   if (valor === null) return "—";
@@ -147,8 +148,8 @@ export default async function AreaFinanceiraJogoBasePage({ params }: { params: {
         <div className="mb-4 mt-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="text-lg font-bold text-grena-escuro">
-              {jogo.mandante ? "Juventus" : jogo.adversario_nome} x{" "}
-              {jogo.mandante ? jogo.adversario_nome : "Juventus"}
+              {jogo.mandante ? clube.nomeCurto : jogo.adversario_nome} x{" "}
+              {jogo.mandante ? jogo.adversario_nome : clube.nomeCurto}
             </h1>
             <p className="text-sm text-neutral-500">
               {categoriaBaseLabel(jogo.categoria)} · {jogo.competicao} · {formatData(jogo.data_jogo)}

@@ -31,6 +31,8 @@ import type {
   ComissaoTecnicaRow,
   DespesaAvulsaBaseComCategoriaRow,
 } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
+import { temaClube } from "@/lib/theme";
 
 /** PDF da aba "Geral da Base" de `/base/financeiro` — totalmente separado do PDF de Prestação de
  * Contas de jogos (`../pdf/route.tsx`), ver docs/superpowers/specs/2026-08-19-financeiro-base-
@@ -87,8 +89,8 @@ export async function GET() {
   // (`geral-base-view.tsx`) — só o desenho em si muda entre os dois (ver comentário em
   // `caminhoFatiaDonut` no documento do PDF).
   const composicaoPdf: RelatorioGeralBaseFatia[] = [
-    { label: "Comissão Técnica", valor: custoComissao, cor: "#5C0A35" },
-    { label: "Atletas", valor: custoAtletas, cor: "#B98F1E" },
+    { label: "Comissão Técnica", valor: custoComissao, cor: temaClube.grena },
+    { label: "Atletas", valor: custoAtletas, cor: temaClube.dourado },
     { label: "Despesas avulsas", valor: despesasTotal, cor: "#a3a3a3" },
   ];
 
@@ -141,12 +143,12 @@ export async function GET() {
     efetuado: d.valor_efetuado !== null,
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <RelatorioGeralBaseDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       custoMensalFixo={custoMensalFixo}
       despesasTotal={despesasTotal}

@@ -1,3 +1,4 @@
+import { clube } from "@/lib/clube";
 import Link from "next/link";
 import {
   CATEGORIAS_EVENTO,
@@ -9,7 +10,7 @@ import {
 import { criarEventoCalendario, excluirEventoCalendario } from "./calendario-actions";
 import { CalendarioForm } from "./calendario-form";
 
-const JUVENTUS_LOGO_PATH = "/brand/juventus-escudo-mark.png";
+const JUVENTUS_LOGO_PATH = clube.escudo.mark;
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES = [
@@ -91,7 +92,7 @@ function DiaCelula({
         {visiveis.map((item, i) => {
           if (item.tipo === "jogo") {
             const logoAdversario = logoPorJogoId.get(item.jogo.id) ?? null;
-            const juventus = { nome: "Juventus", logo: JUVENTUS_LOGO_PATH };
+            const juventus = { nome: clube.nomeCurto, logo: JUVENTUS_LOGO_PATH };
             const adversario = { nome: item.jogo.adversario_nome, logo: logoAdversario };
             const [ladoEsquerdo, ladoDireito] = item.jogo.mandante ? [juventus, adversario] : [adversario, juventus];
             return (

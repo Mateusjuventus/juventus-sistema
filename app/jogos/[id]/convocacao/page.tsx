@@ -13,6 +13,7 @@ import type {
 } from "@/lib/supabase/types";
 import { ConvocacaoForm } from "./convocacao-form";
 import { saveConvocacao } from "./actions";
+import { clube } from "@/lib/clube";
 
 export default async function ConvocacaoPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -64,11 +65,11 @@ export default async function ConvocacaoPage({ params }: { params: { id: string 
       <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <p className="text-sm text-neutral-600">
           <span className="font-semibold text-grena-escuro">
-            {jogo.mandante ? "Juventus" : jogo.adversario_nome}
+            {jogo.mandante ? clube.nomeCurto : jogo.adversario_nome}
           </span>{" "}
           x{" "}
           <span className="font-semibold text-grena-escuro">
-            {jogo.mandante ? jogo.adversario_nome : "Juventus"}
+            {jogo.mandante ? jogo.adversario_nome : clube.nomeCurto}
           </span>{" "}
           — {jogo.competicao}
           {jogo.rodada_fase ? ` · ${jogo.rodada_fase}` : ""}

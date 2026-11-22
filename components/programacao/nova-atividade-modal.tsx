@@ -16,13 +16,14 @@ import {
 import { PROGRAMACAO_ATIVIDADE_TIPO_OPTIONS } from "@/lib/validation/schemas";
 import type { AtividadeComDetalhes, JogoResumoAtividade } from "@/lib/programacao/queries";
 import type { CategoriaProgramacao } from "@/lib/programacao/categoria-programacao";
+import { clube } from "@/lib/clube";
 
 const ESTADO_INICIAL: ProgramacaoFormState = {};
 
 function formatJogoOpcao(jogo: JogoResumoAtividade): string {
   const [, mes, dia] = jogo.data_jogo.split("-");
   const lado = jogo.mandante ? "casa" : "fora";
-  return `${dia}/${mes} — ${jogo.mandante ? "Juventus" : jogo.adversario_nome} × ${jogo.mandante ? jogo.adversario_nome : "Juventus"} (${lado})`;
+  return `${dia}/${mes} — ${jogo.mandante ? clube.nomeCurto : jogo.adversario_nome} × ${jogo.mandante ? jogo.adversario_nome : clube.nomeCurto} (${lado})`;
 }
 
 /** Formulário pra qualquer tipo que não seja Jogo Oficial/Jogo Treino. O tipo já foi escolhido no
@@ -85,7 +86,7 @@ function FormularioAtividadeGeral({
         name="local"
         defaultValue={defaultValues?.local}
         error={state.fieldErrors?.local}
-        placeholder="Ex.: CT Juventus, Sede Social, Rua Javari..."
+        placeholder="Ex.: centro de treinamento, sede, estádio..."
       />
       {state.error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p> : null}
       <div className="flex justify-end gap-2 pt-1">

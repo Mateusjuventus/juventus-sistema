@@ -21,7 +21,7 @@ const CONDICAO_ORDEM: Record<CondicaoJogoStatus, number> = { suspenso: 0, irregu
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const pdfData = await carregarParaPdf(params.id);
   if (!pdfData) return new NextResponse("Competição não encontrada.", { status: 404 });
-  const { carregada, juventusLogoSrc, subtitulo } = pdfData;
+  const { carregada, escudoClubeSrc, subtitulo } = pdfData;
   const { competicao, disciplina, inscricoes, atletasById, jogosOrdenados } = carregada;
 
   const hojeStr = hojeBrasilia();
@@ -84,7 +84,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const buffer = await renderToBuffer(
     <CompeticaoCondicaoDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       subtitulo={`${subtitulo} · ${jogo.confronto}`}
       linhas={linhas}

@@ -277,12 +277,12 @@ export function montarAssinaturasSolicitacao(
  * Departamento de Compras/Financeiro (conforme o tipo) e Aprovador.
  */
 export function SolicitacaoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   solicitacao,
   itens,
   assinaturas,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   solicitacao: SolicitacaoPdfData;
   itens: SolicitacaoPdfItem[];
   assinaturas: SolicitacaoAssinaturas;
@@ -342,9 +342,9 @@ export function SolicitacaoDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <View style={styles.logoBox}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
         <View style={styles.tituloBar}>

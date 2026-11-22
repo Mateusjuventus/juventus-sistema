@@ -1,4 +1,5 @@
 import { projetarEstados } from "@/lib/futebol/mapa-brasil";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Mapa esquemático do Brasil por estado (bolha por UF, ver `lib/futebol/mapa-brasil.ts` pro porquê
@@ -32,9 +33,9 @@ export function MapaBrasilUf({
                 cx={p.x}
                 cy={p.y}
                 r={raio}
-                fill={total === 0 ? "#E3E5E8" : "#5C0A35"}
+                fill={total === 0 ? "#E3E5E8" : temaClube.grena}
                 fillOpacity={total === 0 ? 1 : opacidade}
-                stroke={total > 0 ? "#3F0724" : "#C9CDD3"}
+                stroke={total > 0 ? temaClube.grenaEscuro : "#C9CDD3"}
                 strokeWidth={0.75}
               />
               {total > 0 ? (
@@ -44,7 +45,7 @@ export function MapaBrasilUf({
                   textAnchor="middle"
                   fontSize={8}
                   fontWeight={700}
-                  fill="#3F0724"
+                  fill={temaClube.grenaEscuro}
                 >
                   {total}
                 </text>

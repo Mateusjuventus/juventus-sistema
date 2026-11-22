@@ -2,6 +2,7 @@ import { Document, Page, Text, View, Image, StyleSheet, Svg, Path } from "@react
 import { CORES, DocumentoFooter, sharedStyles, type LogoSrc } from "./logistica-shared";
 import { confrontoComPlacar, dataHorarioJogo, resumoDetalheJogo } from "@/lib/futebol/ficha-atleta";
 import type { GrupoCompeticaoDetalhe } from "@/lib/futebol/estatisticas-atleta-query";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Ficha individual do atleta em PDF — cabeçalho (foto, nome, posição) + os campos marcados no modal
@@ -170,7 +171,7 @@ function caminhoFatiaDonut(
 
 // Mesmas cores do gráfico de Participação na tela (`DonutChart` em `app/.../dados-de-jogo/page.tsx`,
 // valores de `lib/theme.ts`) — Titular/Banco/Não Convocado.
-const CORES_PARTICIPACAO = { titular: "#5C0A35", banco: "#B98F1E", naoConvocado: "#B0B0B0" };
+const CORES_PARTICIPACAO = { titular: temaClube.grena, banco: temaClube.dourado, naoConvocado: "#B0B0B0" };
 
 export interface FichaAtletaDadosDeJogoStats {
   titular: number;
@@ -247,7 +248,7 @@ export interface FichaAtletaSecao {
 }
 
 export function FichaAtletaDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   fotoSrc,
   nome,
   subtitulo,
@@ -256,7 +257,7 @@ export function FichaAtletaDocument({
   anotacoes,
   historicoAtivo,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   fotoSrc: LogoSrc;
   nome: string;
   subtitulo: string;
@@ -283,9 +284,9 @@ export function FichaAtletaDocument({
           ) : (
             <View style={styles.fotoPlaceholder} />
           )}
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={sharedStyles.escudo} src={juventusLogoSrc as string} />
+            <Image style={sharedStyles.escudo} src={escudoClubeSrc as string} />
           ) : null}
           <View>
             <Text style={styles.tituloDocumento}>Ficha Individual do Atleta</Text>

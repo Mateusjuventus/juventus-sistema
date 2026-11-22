@@ -12,6 +12,7 @@ import {
   type VeiculoLiberacaoPdf,
 } from "@/lib/pdf/veiculos-liberacao-document";
 import type { VeiculoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Relação de Placas, gerada sob demanda a partir dos veículos escolhidos na tela
@@ -46,12 +47,12 @@ export async function GET(request: Request) {
     return valor === "" ? null : valor;
   };
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <VeiculosLiberacaoDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       emitidoEm={hojeBrasilia()}
       dados={{
         evento: texto("evento"),

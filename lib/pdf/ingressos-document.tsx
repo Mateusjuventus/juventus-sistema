@@ -50,13 +50,13 @@ export interface IngressosPdfSolicitacao {
 
 export function IngressosDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   cargas,
   solicitacoes,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   cargas: IngressosPdfCarga[];
   solicitacoes: IngressosPdfSolicitacao[];
@@ -71,7 +71,7 @@ export function IngressosDocument({
       <Page size="A4" style={sharedStyles.page}>
         <DocumentoHeader
           jogo={jogo}
-          juventusLogoSrc={juventusLogoSrc}
+          escudoClubeSrc={escudoClubeSrc}
           adversarioLogoSrc={adversarioLogoSrc}
           titulo="Carga de Ingressos"
         />

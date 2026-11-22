@@ -3,7 +3,7 @@
 import { useEffect, useState, type FocusEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { JuventusCrest } from "@/components/juventus-crest";
+import { ClubeEscudo } from "@/components/clube-escudo";
 import { HomeIcon, SwitchIcon, TargetIcon } from "@/components/department-icon";
 import {
   IconAlojamento,
@@ -31,6 +31,7 @@ import { PerfilMenuSidebar } from "@/components/perfil-menu";
 import { SinoNotificacoes, type NotificacaoResumo } from "@/components/sino-notificacoes";
 import { PushOptIn } from "@/components/push-opt-in";
 import { PRIORIDADE_MOBILE, type ModuloChave } from "@/lib/auth/modulos";
+import { clube } from "@/lib/clube";
 
 /** Chave de ícone que o item carrega — string simples, serializável na fronteira Server→Client
  * Component (ver comentário abaixo). "usuarios" não é um `ModuloChave` de verdade (ver
@@ -409,11 +410,11 @@ export function AppSidebar({
           <Link
             href="/"
             onClick={fechar}
-            title={compacto ? "Juventus - SAF" : undefined}
+            title={compacto ? clube.nomeCabecalho : undefined}
             className="flex items-center gap-2 text-[15px] font-bold tracking-wide"
           >
-            <JuventusCrest className="h-9 w-auto shrink-0" />
-            {!compacto ? <span>Juventus - SAF</span> : null}
+            <ClubeEscudo sobre="escuro" className="h-9 w-auto shrink-0" />
+            {!compacto ? <span className="font-display">{clube.nomeCabecalho}</span> : null}
           </Link>
         </div>
 

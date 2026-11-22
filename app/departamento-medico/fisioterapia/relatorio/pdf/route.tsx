@@ -16,6 +16,7 @@ import type {
   FisioterapiaLesaoRow,
   FisioterapiaQueixaRow,
 } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Rota do PDF do Relatório Geral (consolidado) de Fisioterapia — mesma agregação da tela
  * (`montarResumoGeralFisioterapia`), sem guardar arquivo (montado na hora). */
@@ -47,12 +48,12 @@ export async function GET() {
     hojeBrasilia(),
   );
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <FisioterapiaRelatorioGeralDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       historicoGeral={historicoGeral.map((h) => ({ titulo: h.titulo, resumo: h.resumo }))}
       linhas={linhas.map((l) => ({
         nome: l.nome,

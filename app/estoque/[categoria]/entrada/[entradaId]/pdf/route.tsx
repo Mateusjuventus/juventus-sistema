@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { parseCategoria } from "@/lib/estoque/categoria";
 import { EstoqueEntradaDocument, type EstoqueEntradaPdfItem } from "@/lib/pdf/estoque-entrada-document";
 import type { EstoqueEntradaItemRow, EstoqueEntradaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 export async function GET(
   _request: Request,
@@ -36,12 +37,12 @@ export async function GET(
     quantidade: Number(item.quantidade),
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <EstoqueEntradaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       entrada={{
         categoria,
         numero: entrada.numero,

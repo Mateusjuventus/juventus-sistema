@@ -10,6 +10,7 @@ import { diasAfastados, fisioterapiaTipoLabel } from "@/lib/futebol/fisioterapia
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { FisioterapiaAtletaDocument } from "@/lib/pdf/fisioterapia-atleta-document";
 import type { AtletaRow, FisioterapiaAtendimentoBaseRow, FisioterapiaLesaoBaseRow, FisioterapiaQueixaBaseRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Rota do PDF individual de Fisioterapia (Futebol de Base) — espelha `app/departamento-medico/
  * fisioterapia/[atletaId]/pdf/route.tsx` (Profissional), reaproveitando o mesmo
@@ -42,12 +43,12 @@ export async function GET(_request: Request, { params }: { params: { atletaId: s
   const hojeStr = hojeBrasilia();
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <FisioterapiaAtletaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       fotoSrc={fotoUrl}
       atleta={{
         nome: atleta.nome_completo,

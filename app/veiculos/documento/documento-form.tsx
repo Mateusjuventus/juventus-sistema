@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { descricaoVeiculo, formatPlaca, ordenarPorCondutor } from "@/lib/futebol/veiculo";
 import type { VeiculoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 export interface JogoOpcao {
   id: string;
@@ -45,7 +46,7 @@ export function DocumentoVeiculosForm({ veiculos, jogos }: { veiculos: VeiculoRo
   const escolherJogo = (jogoId: string) => {
     const jogo = jogos.find((j) => j.id === jogoId);
     if (!jogo) return;
-    setEvento(`${jogo.mandante ? "Juventus" : jogo.adversarioNome} x ${jogo.mandante ? jogo.adversarioNome : "Juventus"} — ${jogo.competicao}`);
+    setEvento(`${jogo.mandante ? clube.nomeCurto : jogo.adversarioNome} x ${jogo.mandante ? jogo.adversarioNome : clube.nomeCurto} — ${jogo.competicao}`);
     setData(jogo.dataJogo);
     // `horario` vem do banco como `time` ("15:00:00") — sem cortar os segundos o documento sairia
     // com "às 15:00:00", que ninguém escreve.
@@ -73,9 +74,9 @@ export function DocumentoVeiculosForm({ veiculos, jogos }: { veiculos: VeiculoRo
               <option value="">— escolher um jogo —</option>
               {jogos.map((j) => (
                 <option key={j.id} value={j.id}>
-                  {j.dataJogo.split("-").reverse().join("/")} · {j.mandante ? "Juventus x " : ""}
+                  {j.dataJogo.split("-").reverse().join("/")} · {j.mandante ? `${clube.nomeCurto} x ` : ""}
                   {j.adversarioNome}
-                  {j.mandante ? "" : " x Juventus"} · {j.competicao}
+                  {j.mandante ? "" : ` x ${clube.nomeCurto}`} · {j.competicao}
                 </option>
               ))}
             </select>
@@ -91,7 +92,7 @@ export function DocumentoVeiculosForm({ veiculos, jogos }: { veiculos: VeiculoRo
               id="evento"
               name="evento"
               className="field-input"
-              placeholder="Ex.: Oeste x Juventus — Copa Paulista"
+              placeholder={`Ex.: Adversário x ${clube.nomeCurto} — Campeonato`}
               value={evento}
               onChange={(e) => setEvento(e.target.value)}
             />

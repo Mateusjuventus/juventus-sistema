@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import { formatCPF } from "@/lib/validation/cpf";
 import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { clube } from "@/lib/clube";
 
 /**
  * PDF "avulso" (lista personalizada) — usado quando nenhum dos documentos fixos do sistema serve
@@ -339,7 +340,7 @@ function TabelaPessoas({
 }
 
 export function RelatorioAvulsoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   titulo,
   descricao,
   infoJogo,
@@ -348,7 +349,7 @@ export function RelatorioAvulsoDocument({
   staff,
   colunas,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   titulo: string;
   descricao: string | null;
   infoJogo: RelatorioAvulsoInfoJogo | null;
@@ -359,7 +360,7 @@ export function RelatorioAvulsoDocument({
 }) {
   const infoJogoTexto = infoJogo
     ? [
-        infoJogo.adversario ? `Juventus × ${infoJogo.adversario}` : null,
+        infoJogo.adversario ? `${clube.nomeCurto} × ${infoJogo.adversario}` : null,
         infoJogo.competicao || null,
         infoJogo.data ? formatDataBr(infoJogo.data) : null,
         infoJogo.horario || null,
@@ -375,9 +376,9 @@ export function RelatorioAvulsoDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <View style={styles.header}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.escudo} src={juventusLogoSrc as string} />
+            <Image style={styles.escudo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
         <Text style={styles.titulo}>{titulo}</Text>

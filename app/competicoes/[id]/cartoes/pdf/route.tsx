@@ -12,7 +12,7 @@ import { carregarParaPdf } from "../../pdf-shared";
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const pdfData = await carregarParaPdf(params.id);
   if (!pdfData) return new NextResponse("Competição não encontrada.", { status: 404 });
-  const { carregada, juventusLogoSrc, subtitulo } = pdfData;
+  const { carregada, escudoClubeSrc, subtitulo } = pdfData;
   const { competicao, vinculos, jogosOrdenados, eventosCartao, manuais, atletasById, fases, nomesGrupos } = carregada;
 
   const searchParams = new URL(request.url).searchParams;
@@ -88,7 +88,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const buffer = await renderToBuffer(
     <CompeticaoCartoesDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       subtitulo={filtroPartes.length ? `${subtitulo} · ${filtroPartes.join(" · ")}` : subtitulo}
       linhas={linhas}

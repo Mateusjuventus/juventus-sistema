@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 function formatData(data: string): string {
   const [ano, mes, dia] = data.split("-");
@@ -49,7 +50,7 @@ export function JogosRelacionadosField({
               className="h-4 w-4 rounded border-neutral-300 text-grena focus:ring-grena"
             />
             <span>
-              {j.mandante ? "Juventus" : j.adversario_nome} x {j.mandante ? j.adversario_nome : "Juventus"}{" "}
+              {j.mandante ? clube.nomeCurto : j.adversario_nome} x {j.mandante ? j.adversario_nome : clube.nomeCurto}{" "}
               <span className="text-neutral-400">— {formatData(j.data_jogo)}</span>
             </span>
           </label>

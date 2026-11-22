@@ -1,8 +1,9 @@
-import { JuventusCrest, JuventusCrestMark } from "@/components/juventus-crest";
+import { ClubeEscudo, ClubeEscudoMark } from "@/components/clube-escudo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ConfiguracaoInscricaoCaptacaoBaseRow } from "@/lib/supabase/types";
 import { InscricaoCaptacaoForm } from "./inscricao-form";
 import { inscreverCaptacao, verificarCandidatoExistente } from "./actions";
+import { clube } from "@/lib/clube";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,8 @@ export default async function InscricaoCaptacaoBasePage() {
           só a composição muda. */}
       <div className="bg-grena">
         <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 py-10 text-center sm:py-12">
-          <JuventusCrest className="h-20 w-auto drop-shadow-lg sm:h-24" />
-          <h1 className="mt-4 text-2xl font-bold text-white sm:text-3xl">Clube Atlético Juventus SAF</h1>
+          <ClubeEscudo sobre="escuro" className="h-20 w-auto drop-shadow-lg sm:h-24" />
+          <h1 className="mt-4 text-2xl font-bold text-white sm:text-3xl">{clube.nomeOficial}</h1>
           <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-dourado sm:text-sm">
             Departamento de Futebol de Base
           </p>
@@ -74,8 +75,8 @@ export default async function InscricaoCaptacaoBasePage() {
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-2 text-center">
-          <JuventusCrestMark className="h-8 w-auto opacity-50" />
-          <p className="text-xs text-neutral-400">Clube Atlético Juventus SAF — Futebol de Base</p>
+          <ClubeEscudoMark className="h-8 w-auto opacity-50" />
+          <p className="text-xs text-neutral-400">{clube.nomeOficial} — Futebol de Base</p>
         </div>
       </div>
     </main>

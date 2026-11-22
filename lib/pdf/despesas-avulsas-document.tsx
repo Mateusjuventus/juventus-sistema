@@ -101,7 +101,7 @@ export interface DespesaAvulsaPdfCategoria {
  * um jogo "dono") — cabeçalho genérico, mesmo padrão do relatório geral.
  */
 export function DespesasAvulsasDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   categorias,
   totalPrevisto,
@@ -110,7 +110,7 @@ export function DespesasAvulsasDocument({
   assinatura2,
   departamento,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   categorias: DespesaAvulsaPdfCategoria[];
   totalPrevisto: number;
@@ -125,9 +125,9 @@ export function DespesasAvulsasDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <DepartamentoEyebrow departamento={departamento} />
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Relatório de Despesas Avulsas</Text>
         <Text style={styles.subtitulo}>Despesas não ligadas a um jogo específico</Text>

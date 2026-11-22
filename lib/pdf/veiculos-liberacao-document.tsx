@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { CORES, DocumentoFooter, formatDataBr, sharedStyles, type LogoSrc } from "./logistica-shared";
+import { clube } from "@/lib/clube";
 
 /**
  * Relação de Placas — o documento que o clube manda antes de jogo fora pra portaria/segurança do
@@ -107,12 +108,12 @@ function linhasDoEvento(dados: VeiculosLiberacaoDados): { label: string; valor: 
 }
 
 export function VeiculosLiberacaoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   dados,
   veiculos,
   emitidoEm,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   dados: VeiculosLiberacaoDados;
   veiculos: VeiculoLiberacaoPdf[];
   /** Data de emissão no formato ISO (yyyy-mm-dd) — vem de fora pro documento ser determinístico. */
@@ -124,9 +125,9 @@ export function VeiculosLiberacaoDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <View style={styles.logoBox}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
         <View style={styles.tituloBar}>
@@ -188,7 +189,7 @@ export function VeiculosLiberacaoDocument({
         <View style={styles.assinaturaBox} wrap={false}>
           <View style={styles.assinaturaLinha} />
           <Text style={styles.assinaturaLabel}>{dados.responsavelNome || "Responsável pela delegação"}</Text>
-          <Text style={styles.assinaturaExtra}>{dados.responsavelFuncao || "Clube Atlético Juventus"}</Text>
+          <Text style={styles.assinaturaExtra}>{dados.responsavelFuncao || clube.nomeCompleto}</Text>
         </View>
 
         <DocumentoFooter />

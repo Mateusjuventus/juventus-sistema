@@ -115,7 +115,7 @@ export interface OrcamentoPdfFase {
  */
 export function OrcamentoDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   fases,
   totalGeral,
@@ -125,7 +125,7 @@ export function OrcamentoDocument({
   departamento,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   fases: OrcamentoPdfFase[];
   totalGeral: number;
@@ -140,7 +140,7 @@ export function OrcamentoDocument({
         <DepartamentoEyebrow departamento={departamento} />
         <DocumentoHeader
           jogo={jogo}
-          juventusLogoSrc={juventusLogoSrc}
+          escudoClubeSrc={escudoClubeSrc}
           adversarioLogoSrc={adversarioLogoSrc}
           titulo="Orçamento Previsto (Pré Jogo)"
         />

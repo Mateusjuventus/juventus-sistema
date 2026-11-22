@@ -2,6 +2,7 @@ import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildXlsxResponse } from "@/lib/xlsx-export";
 import type { JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     Data: formatData(j.data_jogo),
     Horário: formatHorario(j.horario),
     Local: j.local_estadio ?? "",
-    "Gols Juventus": j.gols_pro ?? "",
+    [`Gols ${clube.nomeCurto}`]: j.gols_pro ?? "",
     "Gols adversário": j.gols_contra ?? "",
     Resultado: formatResultado(j),
   }));

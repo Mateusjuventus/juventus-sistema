@@ -4,6 +4,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { createClient } from "@/lib/supabase/server";
 import type { DespesaAvulsaComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 import { deleteDespesaAvulsa } from "./actions";
+import { clube } from "@/lib/clube";
 
 function formatMoeda(valor: number | null): string {
   if (valor === null) return "—";
@@ -17,7 +18,7 @@ function formatData(data: string | null): string {
 }
 
 function confrontoResumo(jogo: JogoRow): string {
-  return jogo.mandante ? `Juventus x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x Juventus`;
+  return jogo.mandante ? `${clube.nomeCurto} x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x ${clube.nomeCurto}`;
 }
 
 /**

@@ -61,13 +61,13 @@ export interface FichaComissaoSecao {
 }
 
 export function FichaComissaoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   fotoSrc,
   nome,
   subtitulo,
   secoes,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   fotoSrc: LogoSrc;
   nome: string;
   subtitulo: string;
@@ -83,9 +83,9 @@ export function FichaComissaoDocument({
           ) : (
             <View style={styles.fotoPlaceholder} />
           )}
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={sharedStyles.escudo} src={juventusLogoSrc as string} />
+            <Image style={sharedStyles.escudo} src={escudoClubeSrc as string} />
           ) : null}
           <View>
             <Text style={styles.tituloDocumento}>Ficha Individual — Comissão Técnica/Diretoria</Text>

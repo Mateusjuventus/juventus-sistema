@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCarimbo } from "@/lib/pdf/logistica-shared";
 import { EstoqueRelatorioDocument, type EstoqueRelatorioPdfItem } from "@/lib/pdf/estoque-relatorio-document";
 import type { EstoqueItemBaseRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Espelha `app/estoque/[categoria]/relatorio/pdf/route.tsx` para o Futebol de Base. */
 export async function GET() {
@@ -21,12 +22,12 @@ export async function GET() {
     tamanhos: item.tamanhos ?? {},
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <EstoqueRelatorioDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       dados={{ categoria: "esportivo", geradoEm: formatCarimbo(new Date()) }}
       itens={itens}
     />,

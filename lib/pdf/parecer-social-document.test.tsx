@@ -15,7 +15,7 @@ describe("ParecerSocialDocument", () => {
   it("renderiza sem erro com histórico de atendimentos e assinatura já feita", async () => {
     const buffer = await renderToBuffer(
       <ParecerSocialDocument
-        juventusLogoSrc={null}
+        escudoClubeSrc={null}
         fotoSrc={null}
         atleta={{ nome: "João da Silva", dataNascimento: "2010-05-12", categoria: "Sub-15" }}
         atendimentos={[
@@ -37,7 +37,7 @@ describe("ParecerSocialDocument", () => {
   it("renderiza sem erro sem nenhum atendimento e sem assinatura (caso pendente)", async () => {
     const buffer = await renderToBuffer(
       <ParecerSocialDocument
-        juventusLogoSrc={null}
+        escudoClubeSrc={null}
         fotoSrc={null}
         atleta={{ nome: "João da Silva", dataNascimento: null, categoria: null }}
         atendimentos={[]}

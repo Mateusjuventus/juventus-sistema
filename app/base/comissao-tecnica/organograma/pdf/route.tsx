@@ -7,6 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { OrganogramaBaseDocument, type OrganogramaBaseNoDocumento } from "@/lib/pdf/organograma-base-document";
 import type { ComissaoTecnicaRow, OrganogramaBaseLinhaRow, OrganogramaBaseRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** PDF do Organograma da Base — mesma resolução de nome/cargo (pessoa vinculada > texto livre >
  * "???") da tela (`app/base/comissao-tecnica/organograma/page.tsx`), mesma logo usada nos outros
@@ -54,12 +55,12 @@ export async function GET() {
     posManual: l.pos_manual,
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <OrganogramaBaseDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       nos={nos}
       linhasReportaPara={linhasReportaPara}

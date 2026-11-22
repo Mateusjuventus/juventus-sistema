@@ -119,7 +119,7 @@ export interface RelatorioDespesasPdfFase {
  */
 export function RelatorioDespesasDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   fases,
   totalGeral,
@@ -129,7 +129,7 @@ export function RelatorioDespesasDocument({
   departamento,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   fases: RelatorioDespesasPdfFase[];
   totalGeral: number;
@@ -144,7 +144,7 @@ export function RelatorioDespesasDocument({
         <DepartamentoEyebrow departamento={departamento} />
         <DocumentoHeader
           jogo={jogo}
-          juventusLogoSrc={juventusLogoSrc}
+          escudoClubeSrc={escudoClubeSrc}
           adversarioLogoSrc={adversarioLogoSrc}
           titulo="Relatório de Despesas (Pós Jogo)"
         />

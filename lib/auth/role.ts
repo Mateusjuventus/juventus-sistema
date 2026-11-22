@@ -151,7 +151,10 @@ export async function getDepartamentosPermitidos(
   const perfil = await getPerfilPermissoes(supabase);
   if (!perfil) return [];
   if (perfil.role === "master") return TODOS_DEPARTAMENTOS;
-  return (perfil.departamentos_permitidos ?? TODOS_DEPARTAMENTOS) as DepartamentoChave[];
+  // Só departamentos que existem neste clube, mesmo que o perfil tenha outro salvo.
+  return ((perfil.departamentos_permitidos ?? TODOS_DEPARTAMENTOS) as DepartamentoChave[]).filter((d) =>
+    TODOS_DEPARTAMENTOS.includes(d),
+  );
 }
 
 /**

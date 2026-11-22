@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TermoRetiradaDocument } from "@/lib/pdf/termo-retirada-document";
 import { itensParaTotal, totalDoTermo } from "@/lib/futebol/termo-retirada";
 import type { TermoRetiradaItemRow, TermoRetiradaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** PDF do Termo de Responsabilidade — Retirada de Materiais, pronto pra imprimir e assinar. */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
@@ -21,12 +22,12 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const termo = termoData as TermoRetiradaRow;
   const itens = (itensData ?? []) as TermoRetiradaItemRow[];
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <TermoRetiradaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       termo={{
         numero: termo.numero,
         data: termo.data,

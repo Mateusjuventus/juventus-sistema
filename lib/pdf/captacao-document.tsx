@@ -72,12 +72,12 @@ export interface CaptacaoPdfLinha {
 }
 
 export function CaptacaoDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   emitidoEm,
   candidatos,
   filtrado,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   emitidoEm: string;
   candidatos: CaptacaoPdfLinha[];
   /** true quando a lista veio com busca/status/categoria/UF aplicados (ver
@@ -89,9 +89,9 @@ export function CaptacaoDocument({
     <Document>
       <Page size="A4" orientation="landscape" style={sharedStyles.page}>
         <View style={styles.headerRow}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
           <View style={styles.tituloBox}>
             <Text style={styles.tituloTexto}>Relação de Captação/Avaliação</Text>

@@ -1,3 +1,4 @@
+import { clube } from "@/lib/clube";
 /**
  * Categorias de idade do Futebol de Base (Sub20 a Sub11) — usadas pelos módulos que organizam
  * cadastros por categoria: Atletas, Comissão Técnica e Jogos (ver
@@ -35,19 +36,10 @@ export function categoriaBaseLabel(valor: string): string {
   return CATEGORIAS_BASE.find((c) => c.value === valor)?.label ?? valor;
 }
 
-/** Uma cor por categoria, do mais velho (Sub-20) ao mais novo (Sub-11) — tons do próprio `grena`
- * da identidade visual (ver `lib/theme.ts`), cada vez mais claros, nunca uma cor fora da paleta do
- * sistema. Usado nos gráficos de composição por categoria (ex.: Assistência Social, ver
+/** Uma cor por categoria, do mais velho (Sub-20) ao mais novo (Sub-11) — definida por clube em
+ * `lib/clube` (Juventus: degradê do grená; Maringá: cores fixas por categoria do padrão do clube). Usado nos gráficos de composição por categoria (ex.: Assistência Social, ver
  * docs/superpowers/specs/2026-10-05-assistencia-social-e-demandas-design.md). */
-export const CATEGORIA_BASE_COR: Record<CategoriaBase, string> = {
-  sub20: "#3F0724",
-  sub17: "#5C0A35",
-  sub15: "#732D52",
-  sub14: "#8B516F",
-  sub13: "#A2748C",
-  sub12: "#BA97A9",
-  sub11: "#D1BAC6",
-};
+export const CATEGORIA_BASE_COR: Record<CategoriaBase, string> = { ...clube.coresCategoriaBase };
 
 /**
  * Categorias da Comissão Técnica unificada (Profissional + Base) — ver
@@ -80,7 +72,7 @@ export function categoriaComissaoTecnicaLabel(valor: string): string {
  * o acento de destaque já usado no sistema, pra marcar visualmente o bloco "Profissional" como
  * algo diferente do degradê de idade da Base, sem introduzir uma cor nova fora da paleta. */
 export const CATEGORIA_COMISSAO_TECNICA_COR: Record<CategoriaComissaoTecnica, string> = {
-  profissional: "#B98F1E",
+  profissional: clube.cores.dourado,
   ...CATEGORIA_BASE_COR,
 };
 

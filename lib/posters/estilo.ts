@@ -1,3 +1,5 @@
+import { clube } from "@/lib/clube";
+import { temaClube } from "@/lib/theme";
 /**
  * Constantes visuais compartilhadas pelos 3 pôsteres (Relacionados, Concentração, Dia de Jogo) —
  * ver docs/superpowers/specs/2026-07-17-posters-relacionados-programacao-design.md. Usadas tanto
@@ -7,9 +9,9 @@
  */
 
 export const CORES_POSTER = {
-  grena: "#5C0A35",
-  grenaEscuro: "#3F0724",
-  dourado: "#C9A227",
+  grena: temaClube.grena,
+  grenaEscuro: temaClube.grenaEscuro,
+  dourado: temaClube.acentoDocumento,
   prata: "#B9B9B9",
   branco: "#FFFFFF",
   preto: "#1A1A1A",
@@ -47,5 +49,5 @@ export const HASHTAG_RODAPE = "#MOLEQUETRAVESSO";
  */
 export function nomeArquivoPoster(prefixo: string, adversario: string, dataJogo: string): string {
   const adversarioSlug = adversario.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  return `${prefixo}-juventus-x-${adversarioSlug}-${dataJogo}`;
+  return `${prefixo}-${clube.slug}-x-${adversarioSlug}-${dataJogo}`;
 }

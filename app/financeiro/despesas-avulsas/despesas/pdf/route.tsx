@@ -12,9 +12,10 @@ import {
   type DespesaAvulsaRelatorioPdfItem,
 } from "@/lib/pdf/despesas-avulsas-relatorio-document";
 import type { DespesaAvulsaComCategoriaRow, JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 function confrontoResumo(jogo: JogoRow): string {
-  const nome = jogo.mandante ? `Juventus x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x Juventus`;
+  const nome = jogo.mandante ? `${clube.nomeCurto} x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x ${clube.nomeCurto}`;
   const [ano, mes, dia] = jogo.data_jogo.split("-");
   return `${nome} (${dia}/${mes})`;
 }
@@ -29,7 +30,7 @@ async function resolverSubtitulo(
     const { data } = await supabase.from("jogos").select("*").eq("id", jogoId).maybeSingle();
     if (data) {
       const jogo = data as JogoRow;
-      const confronto = jogo.mandante ? `Juventus x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x Juventus`;
+      const confronto = jogo.mandante ? `${clube.nomeCurto} x ${jogo.adversario_nome}` : `${jogo.adversario_nome} x ${clube.nomeCurto}`;
       const [ano, mes, dia] = jogo.data_jogo.split("-");
       return `${confronto} · ${jogo.competicao} · ${dia}/${mes}/${ano}`;
     }
@@ -105,12 +106,12 @@ export async function GET(request: Request) {
     .map(([nome, despesasDaCategoria]) => ({ nome, despesas: despesasDaCategoria }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <DespesasAvulsasRelatorioDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       categorias={categorias}
       totalGeral={totalGeral}

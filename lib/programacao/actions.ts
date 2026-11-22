@@ -14,6 +14,7 @@ import {
 import type { CategoriaProgramacao } from "./categoria-programacao";
 import { turnoDoHorarioInicio } from "./tipo-atividade";
 import { buscarDia } from "./queries";
+import { clube } from "@/lib/clube";
 
 /**
  * Server Actions da Programação Semanal (ver
@@ -95,7 +96,7 @@ export async function criarAtividade(
     horario_inicio: data.horarioInicio,
     horario_termino: data.horarioTermino ?? null,
     // Mesmo fallback do mockup aprovado: quando o Local fica em branco, assume o CT do clube.
-    local: data.local ?? "CT Juventus",
+    local: data.local ?? clube.localPadrao,
     created_by: user?.id ?? null,
   });
   if (error) return { error: `Não foi possível criar a atividade: ${error.message}` };
@@ -208,7 +209,7 @@ export async function atualizarAtividade(
       tipo: data.tipo,
       horario_inicio: data.horarioInicio,
       horario_termino: data.horarioTermino ?? null,
-      local: data.local ?? "CT Juventus",
+      local: data.local ?? clube.localPadrao,
     })
     .eq("id", data.id);
   if (error) return { error: `Não foi possível salvar as alterações: ${error.message}` };

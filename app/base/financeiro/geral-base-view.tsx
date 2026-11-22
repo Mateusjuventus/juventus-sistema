@@ -22,6 +22,7 @@ import type {
   DespesaAvulsaBaseComCategoriaRow,
 } from "@/lib/supabase/types";
 import { deleteDespesaBase } from "./despesas/actions";
+import { temaClube } from "@/lib/theme";
 
 function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -127,8 +128,8 @@ export async function GeralBaseView() {
   // inventado só pro gráfico. `grenaEscuro` fica de fora de propósito: é reservado só pra texto
   // pequeno, não pra preenchimento de área (ver CLAUDE.md).
   const composicao: FatiaComposicao[] = [
-    { label: "Comissão Técnica", valor: custoComissao, cor: "#5C0A35" },
-    { label: "Atletas", valor: custoAtletas, cor: "#B98F1E" },
+    { label: "Comissão Técnica", valor: custoComissao, cor: temaClube.grena },
+    { label: "Atletas", valor: custoAtletas, cor: temaClube.dourado },
     { label: "Despesas avulsas", valor: despesasTotal, cor: "#a3a3a3" },
   ];
 

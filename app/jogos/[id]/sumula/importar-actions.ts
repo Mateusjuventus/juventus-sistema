@@ -1,4 +1,5 @@
 "use server";
+import { clube } from "@/lib/clube";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -38,7 +39,7 @@ import type { AtletaRow, SumulaEventoTipo, SumulaTempo } from "@/lib/supabase/ty
  * `sumula_eventos`), já que esses jogadores não existem no nosso cadastro.
  */
 
-const NOME_JUVENTUS_PARCIAL = "juventus";
+const NOME_JUVENTUS_PARCIAL = clube.nomeBuscaFederacao;
 
 function ehLadoJuventus(equipe: string): boolean {
   return equipe.toLowerCase().includes(NOME_JUVENTUS_PARCIAL);

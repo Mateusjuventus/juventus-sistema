@@ -10,6 +10,7 @@ import {
   type PreviaImportacaoSumula,
 } from "./importar-actions";
 import type { SumulaEventoTipo } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 export interface AtletaOpcao {
   id: string;
@@ -213,7 +214,7 @@ export function ImportarSumulaForm({
 
           <div className="flex items-end gap-2">
             <div>
-              <label className="field-label">Placar sugerido — Juventus</label>
+              <label className="field-label">Placar sugerido — {clube.nomeCurto}</label>
               <input
                 type="number"
                 min={0}

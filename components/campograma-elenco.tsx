@@ -20,6 +20,7 @@ import {
 } from "@/app/base/atletas/campograma/actions";
 import { ModalShell } from "@/components/programacao/modal";
 import type { AtletaPosicao } from "@/lib/supabase/types";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Campograma: o elenco de uma categoria, separado por posição (9 linhas, uma por posição específica
@@ -200,7 +201,7 @@ function GraficoPosicoes({ grupos }: { grupos: GrupoCampograma }) {
             );
           })}
 
-          <polygon points={poligonoDados} fill="#5C0A35" fillOpacity={0.25} stroke="#5C0A35" strokeWidth={1.5} />
+          <polygon points={poligonoDados} fill={temaClube.grena} fillOpacity={0.25} stroke={temaClube.grena} strokeWidth={1.5} />
         </svg>
       </div>
 

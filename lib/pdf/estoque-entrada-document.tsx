@@ -124,12 +124,12 @@ export interface EstoqueEntradaPdfData {
  * ninguém precisa assinar recebendo material de volta pro próprio estoque do clube.
  */
 export function EstoqueEntradaDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   entrada,
   itens,
   subtitulo,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   entrada: EstoqueEntradaPdfData;
   itens: EstoqueEntradaPdfItem[];
   /** Substitui o subtítulo padrão calculado por SUBTITULOS[entrada.categoria] — usado pelo Futebol
@@ -142,9 +142,9 @@ export function EstoqueEntradaDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <View style={styles.logoBox}>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
         <View style={styles.tituloBar}>

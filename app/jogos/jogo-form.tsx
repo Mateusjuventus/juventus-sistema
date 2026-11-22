@@ -5,6 +5,7 @@ import { FieldGroup, FormSection, TextField } from "@/components/fields";
 import { PhotoField } from "@/components/photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import type { JogoFormState } from "./actions";
+import { clube } from "@/lib/clube";
 
 const initialState: JogoFormState = {};
 
@@ -108,7 +109,7 @@ export function JogoForm({
       <FormSection title="Resultado (preencha depois do jogo)">
         <FieldGroup>
           <TextField
-            label="Gols Juventus"
+            label={`Gols ${clube.nomeCurto}`}
             name="golsPro"
             type="number"
             min={0}

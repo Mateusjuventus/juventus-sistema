@@ -3,6 +3,7 @@ import path from "node:path";
 import React from "react";
 import { Font, Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { CORES_POSTER, HASHTAG_RODAPE } from "@/lib/posters/estilo";
+import { clube } from "@/lib/clube";
 
 // Mesma correção de hifenização do restante dos PDFs (ver lib/pdf/logistica-shared.tsx) — sem
 // isso, o react-pdf quebra palavra em português em lugar errado.
@@ -13,8 +14,8 @@ Font.register({
   src: path.join(process.cwd(), "public/fonts/anton.ttf"),
 });
 
-const juventusEscudoSrc = {
-  data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
+const escudoClubeSrcPoster = {
+  data: readFileSync(path.join(process.cwd(), "public", clube.escudo.completo)),
   format: "png" as const,
 };
 
@@ -257,8 +258,8 @@ export function PosterCabecalho({
   /** Concentração e Dia de Jogo não mostram o nome da competição no cabeçalho (ver referência). */
   mostrarCompeticao?: boolean;
 }) {
-  const primeiro = mandante ? juventusEscudoSrc : (adversarioLogoSrc as any);
-  const segundo = mandante ? (adversarioLogoSrc as any) : juventusEscudoSrc;
+  const primeiro = mandante ? escudoClubeSrcPoster : (adversarioLogoSrc as any);
+  const segundo = mandante ? (adversarioLogoSrc as any) : escudoClubeSrcPoster;
 
   return (
     <>
@@ -384,8 +385,8 @@ export function PosterCabecalhoLateral({
   mandante: boolean;
   adversarioLogoSrc: LogoSrc;
 }) {
-  const primeiro = mandante ? juventusEscudoSrc : (adversarioLogoSrc as any);
-  const segundo = mandante ? (adversarioLogoSrc as any) : juventusEscudoSrc;
+  const primeiro = mandante ? escudoClubeSrcPoster : (adversarioLogoSrc as any);
+  const segundo = mandante ? (adversarioLogoSrc as any) : escudoClubeSrcPoster;
 
   return (
     <>

@@ -18,6 +18,7 @@ import { DadosJogoForm } from "./dados-jogo-form";
 import { EventoForm, type ConvocadoOption } from "./evento-form";
 import { ImportarSumulaForm } from "./importar-sumula-form";
 import { adicionarEvento, removerEvento, salvarDadosJogo } from "./actions";
+import { clube } from "@/lib/clube";
 
 function paraOpcao(atleta: AtletaRow): ConvocadoOption {
   return {
@@ -221,8 +222,8 @@ export default async function SumulaPage({ params }: { params: { id: string } })
   const eventosPrimeiro = eventos.filter((e) => e.tempo === "primeiro");
   const eventosSegundo = eventos.filter((e) => e.tempo === "segundo");
 
-  const nomeMandante = jogo.mandante ? "Juventus" : jogo.adversario_nome;
-  const nomeVisitante = jogo.mandante ? jogo.adversario_nome : "Juventus";
+  const nomeMandante = jogo.mandante ? clube.nomeCurto : jogo.adversario_nome;
+  const nomeVisitante = jogo.mandante ? jogo.adversario_nome : clube.nomeCurto;
 
   // Profissional sempre joga no formato padrão (2 tempos de 45min — não tem a particularidade por
   // categoria/competição que o Base tem, ver docs/superpowers/specs/2026-10-21-competicoes-

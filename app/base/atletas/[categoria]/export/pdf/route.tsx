@@ -19,6 +19,7 @@ import {
 } from "@/lib/futebol/atletas-filtro";
 import { AtletasResumoDocument, type AtletaResumoPdfItem } from "@/lib/pdf/atletas-resumo-document";
 import type { AtletaRow, AtletaStatus } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 // Mesmos rótulos "Apto"/"Transição"/"Depto. Médico"/"Dispensado" de `app/base/atletas/[categoria]/
 // page.tsx` (ver item 7 do ajuste de 2026-09-10 e a unificação de Atletas de 28/10/2026, que tirou
@@ -96,8 +97,8 @@ export async function GET(request: NextRequest, { params }: { params: { categori
     status: a.status,
   }));
 
-  const juventusLogoSrc = {
-    data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
+  const escudoClubeSrc = {
+    data: readFileSync(path.join(process.cwd(), "public", clube.escudo.completo)),
     format: "png" as const,
   };
 
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest, { params }: { params: { categori
       atletas={itens}
       contratoOptions={[...CONTRATO_OPTIONS_BASE]}
       statusOptions={STATUS_OPTIONS}
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       mostrarCpf={!camposOcultos.has("cpf")}
       mostrarContrato={!camposOcultos.has("contrato")}

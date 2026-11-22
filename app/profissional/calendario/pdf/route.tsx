@@ -10,6 +10,7 @@ import { CalendarioDocument, type CalendarioPdfItem } from "@/lib/pdf/calendario
 import { agruparPorDia, corDaCategoria, gradeDoMes, limitesDoMes, montarItensCalendario } from "@/lib/futebol/calendario";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import type { EventoCalendarioRow, JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 const MESES = [
   "Janeiro",
@@ -102,12 +103,12 @@ export async function GET(request: Request) {
 
   const grade = gradeDoMes(ano, mes);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <CalendarioDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       mesLabel={`${MESES[mes - 1]} de ${ano}`}
       geradoEm={new Date()}
       hojeStr={hojeStr}

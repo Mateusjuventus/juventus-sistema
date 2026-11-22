@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { CORES, DocumentoFooter, sharedStyles, type LogoSrc } from "./logistica-shared";
 import { CATEGORIAS_EVENTO, COR_CATEGORIA_JOGO, type DiaGrade } from "@/lib/futebol/calendario";
+import { clube } from "@/lib/clube";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -108,8 +109,8 @@ function EscudoMini({ src, nome }: { src: LogoSrc; nome: string }) {
   return <Image style={styles.escudoMini} src={src as string} />;
 }
 
-function ItemJogo({ item, juventusLogoSrc }: { item: CalendarioPdfItemJogo; juventusLogoSrc: LogoSrc }) {
-  const juventus = { src: juventusLogoSrc, nome: "Juventus" };
+function ItemJogo({ item, escudoClubeSrc }: { item: CalendarioPdfItemJogo; escudoClubeSrc: LogoSrc }) {
+  const juventus = { src: escudoClubeSrc, nome: clube.nomeCurto };
   const adversario = { src: item.adversarioLogoSrc, nome: item.adversarioNome };
   const [esquerda, direita] = item.mandante ? [juventus, adversario] : [adversario, juventus];
   return (
@@ -134,12 +135,12 @@ function DiaCelula({
   dia,
   itens,
   hojeStr,
-  juventusLogoSrc,
+  escudoClubeSrc,
 }: {
   dia: DiaGrade;
   itens: CalendarioPdfItem[];
   hojeStr: string;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
 }) {
   const numeroDia = Number(dia.data.slice(8, 10));
   const ehHoje = dia.data === hojeStr;
@@ -158,7 +159,7 @@ function DiaCelula({
       <Text style={numeroStyle}>{numeroDia}</Text>
       {visiveis.map((item, i) =>
         item.tipo === "jogo" ? (
-          <ItemJogo key={i} item={item} juventusLogoSrc={juventusLogoSrc} />
+          <ItemJogo key={i} item={item} escudoClubeSrc={escudoClubeSrc} />
         ) : (
           <ItemEvento key={i} item={item} />
         ),
@@ -181,14 +182,14 @@ function DiaCelula({
  * 552pt — cabe com folga, sem precisar quebrar página.
  */
 export function CalendarioDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   mesLabel,
   geradoEm,
   hojeStr,
   grade,
   itensPorDia,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   mesLabel: string;
   geradoEm: Date;
   hojeStr: string;
@@ -201,9 +202,9 @@ export function CalendarioDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Calendário — {mesLabel}</Text>
         <Text style={styles.subtitulo}>Jogos e eventos do mês</Text>
@@ -224,7 +225,7 @@ export function CalendarioDocument({
                 dia={dia}
                 itens={itensPorDia[dia.data] ?? []}
                 hojeStr={hojeStr}
-                juventusLogoSrc={juventusLogoSrc}
+                escudoClubeSrc={escudoClubeSrc}
               />
             ))}
           </View>

@@ -4,6 +4,7 @@ import { moduloDaRota, TODOS_MODULOS } from "@/lib/auth/modulos";
 import { moduloBaseDaRota, TODOS_MODULOS_BASE } from "@/lib/auth/modulos-base";
 import { TODOS_DEPARTAMENTOS } from "@/lib/auth/departamentos";
 import { TODAS_ESTOQUE_CATEGORIAS } from "@/lib/auth/estoque-categorias";
+import { clube } from "@/lib/clube";
 
 // "/cadastro-staff" e "/cadastro-staff-base" são os links públicos de autocadastro de Staff
 // Operacional (Profissional e Futebol de Base, respectivamente — a pessoa preenche sem fazer
@@ -200,6 +201,15 @@ export async function updateSession(request: NextRequest) {
   const estoqueCategoriaMatch =
     modulo?.chave === "estoque" ? pathname.match(/^\/estoque\/([^/]+)/) : null;
   const estoqueCategoria = estoqueCategoriaMatch ? estoqueCategoriaMatch[1] : null;
+
+  // Clube sem Futebol Profissional (ver lib/clube): as rotas exclusivas dele não existem para
+  // ninguém, nem para o master. Rotas compartilhadas com a base (modulo && moduloBase) seguem.
+  if (user && !clube.modulos.profissional && (isHubProfissional || (modulo && !moduloBase))) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/base";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
+  }
 
   if (user && (modulo || moduloBase || isHubProfissional || isHubBase)) {
     const role = roleDoUsuario;

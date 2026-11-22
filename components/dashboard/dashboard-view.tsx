@@ -21,6 +21,8 @@ import type {
   ProximoJogo,
   SolicitacaoPendente,
 } from "@/lib/dashboard/queries";
+import { clube } from "@/lib/clube";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Dashboard/Painel principal — Home de `/profissional` e `/base` desde 14/11/2026 (ver
@@ -59,13 +61,13 @@ import type {
  * (cor do próprio módulo, mesma var `cor` de sempre) só pra identificar o bloco mais rápido.
  */
 
-const COR_JOGOS = "#5C0A35";
-const COR_CONTRATOS = "#B98F1E";
+const COR_JOGOS = temaClube.grena;
+const COR_CONTRATOS = temaClube.dourado;
 const COR_ANIVERSARIO = "#2F6FA3";
 const COR_ALERTAS = "#B4232C";
 const COR_DM = "#1E7A4C";
 const COR_SOLICITACOES = "#8A8D91";
-const COR_PROGRAMACAO = "#5C0A35";
+const COR_PROGRAMACAO = temaClube.grena;
 
 /** Paleta de urgência/prazo — validada com `scripts/validate_palette.js` da skill `dataviz`
  * (todos os checks OK em modo claro: separação CVD ≥ ΔE 15 entre as 3 cores pra visão normal, sem
@@ -99,7 +101,7 @@ function formatDataCurta(dataIso: string): string {
  * "Profissional"/"Base" junto da cor, nunca cor isolada. */
 function BadgeDepartamento({ departamento }: { departamento?: DepartamentoDashboard }) {
   if (!departamento) return null;
-  const cor = departamento === "profissional" ? "#5C0A35" : "#B98F1E";
+  const cor = departamento === "profissional" ? temaClube.grena : temaClube.dourado;
   return (
     <span
       className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
@@ -506,7 +508,7 @@ export function DashboardView({
               jogosView.itens.map((j) => (
                 <LinhaItem key={j.id}>
                   <span className="min-w-0 truncate text-neutral-700">
-                    {j.mandante ? `Juventus x ${j.adversario_nome}` : `${j.adversario_nome} x Juventus`}
+                    {j.mandante ? `${clube.nomeCurto} x ${j.adversario_nome}` : `${j.adversario_nome} x ${clube.nomeCurto}`}
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     <BadgeDepartamento departamento={j.departamento} />

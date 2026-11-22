@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { clube } from "@/lib/clube";
 
 /**
  * Sem isto o celular renderiza a página como se a tela tivesse 980px e depois encolhe tudo — o
@@ -17,7 +18,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Proxis — Gestão Esportiva",
-  description: "Central de cadastros e operação esportiva — Proxis, operando para o Clube Atlético Juventus",
+  description: `Central de cadastros e operação esportiva — Proxis, operando para o ${clube.nomeCompleto}`,
   // Deixa o sistema "instalável" (Adicionar à Tela de Início) — pré-requisito pra push funcionar no
   // iPhone (ver docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-design.md).
   manifest: "/manifest.json",
@@ -26,7 +27,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html
+      lang="pt-BR"
+      data-clube={clube.id}
+      style={
+        {
+          "--font-geist-sans": clube.fonte.texto,
+          "--font-display": clube.fonte.display,
+        } as React.CSSProperties
+      }
+    >
       <body className="min-h-screen bg-pagina antialiased">{children}</body>
     </html>
   );

@@ -58,12 +58,12 @@ export interface FisioterapiaRelatorioHistoricoItem {
 }
 
 export function FisioterapiaRelatorioGeralDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   historicoGeral,
   linhas,
   geradoEm,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   historicoGeral: FisioterapiaRelatorioHistoricoItem[];
   linhas: FisioterapiaRelatorioGeralLinha[];
   geradoEm: Date;
@@ -71,9 +71,9 @@ export function FisioterapiaRelatorioGeralDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Relatório Geral de Fisioterapia</Text>
         <Text style={styles.subtitulo}>Futebol Profissional</Text>

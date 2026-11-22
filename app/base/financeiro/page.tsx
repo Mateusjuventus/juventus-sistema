@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 import { TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import { GeralBaseView } from "./geral-base-view";
+import { clube } from "@/lib/clube";
 
 function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -160,8 +161,8 @@ async function JogosView() {
             >
               <div>
                 <p className="font-medium text-neutral-800">
-                  {jogo.mandante ? "Juventus" : jogo.adversario_nome} x{" "}
-                  {jogo.mandante ? jogo.adversario_nome : "Juventus"}
+                  {jogo.mandante ? clube.nomeCurto : jogo.adversario_nome} x{" "}
+                  {jogo.mandante ? jogo.adversario_nome : clube.nomeCurto}
                 </p>
                 <p className="text-sm text-neutral-500">
                   {jogo.competicao} · {formatData(jogo.data_jogo)}

@@ -9,6 +9,7 @@ import { EnderecoFields } from "@/components/endereco-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
 import type { InscricaoCaptacaoState, VerificacaoCaptacaoState } from "./actions";
+import { clube } from "@/lib/clube";
 
 const initialState: InscricaoCaptacaoState = {};
 const initialVerificacaoState: VerificacaoCaptacaoState = { verificado: false };
@@ -483,8 +484,7 @@ export function InscricaoCaptacaoForm({
         <div className="space-y-3 rounded-md bg-cinzaPagina p-4 text-sm text-neutral-700">
           <p>
             Este documento estabelece as normas a serem cumpridas para a participação do Atleta no
-            processo de avaliação, realizado gratuitamente pelo JUVENTUS SOCIEDADE ANONIMA DO
-            FUTEBOL.
+            processo de avaliação, realizado gratuitamente pelo {clube.razaoSocial.toLocaleUpperCase("pt-BR")}.
           </p>
           <p>
             <strong>1º</strong> — O RESPONSÁVEL e/ou ATLETA declaram ter pleno conhecimento de que a
@@ -504,7 +504,7 @@ export function InscricaoCaptacaoForm({
             período de avaliação.
           </p>
           <p>
-            <strong>4º</strong> — O RESPONSÁVEL e/ou ATLETA declaram estar ciente que o JUVENTUS
+            <strong>4º</strong> — O RESPONSÁVEL e/ou ATLETA declaram estar ciente que o {clube.nomeCurto.toLocaleUpperCase("pt-BR")}
             SOCIEDADE ANONIMA DO FUTEBOL não assume qualquer compromisso de aprovação ou contratação,
             além de não resolver problemas de extravio de documentos, materiais e utensílios
             particulares do Atleta.
@@ -516,8 +516,7 @@ export function InscricaoCaptacaoForm({
           </p>
           <p>
             E por estar de acordo com todos os itens acima estabelecidos, o RESPONSÁVEL LEGAL
-            autoriza a participação do ATLETA no processo de seleção do JUVENTUS SOCIEDADE ANONIMA DO
-            FUTEBOL.
+            autoriza a participação do ATLETA no processo de seleção do {clube.razaoSocial.toLocaleUpperCase("pt-BR")}.
           </p>
         </div>
 

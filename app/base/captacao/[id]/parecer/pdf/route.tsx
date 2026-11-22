@@ -10,6 +10,7 @@ import { ParecerFinalDocument, montarAssinaturasParecer } from "@/lib/pdf/parece
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { AssinaturaCaptacao, CaptacaoBaseRow, ConfiguracaoParecerCaptacaoBaseRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Rota do PDF do Parecer Final de Avaliação (ver docs/superpowers/specs/
@@ -37,12 +38,12 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const assinaturasComImagem = await resolverImagensAssinaturas(supabase, assinaturasSalvas);
   const assinaturas = montarAssinaturasParecer(configAssinaturas, assinaturasComImagem);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <ParecerFinalDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       fotoSrc={fotoUrl}
       candidato={{
         nome: candidato.nome_completo,

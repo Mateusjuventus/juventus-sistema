@@ -11,6 +11,7 @@ import { RelatorioDispensaDocument, montarAssinaturasDispensa } from "@/lib/pdf/
 import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import type { AtletaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Rota do PDF do Relatório de Dispensa, do lado do Treinador — não pode reaproveitar
@@ -33,15 +34,15 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 
   const fotoUrl = await getSignedPhotoUrl(supabase, atleta.foto_path);
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const assinaturasSalvas = await resolverImagensAssinaturas(supabase, await buscarAssinaturas("dispensa_base", atleta.id));
   const assinaturas = montarAssinaturasDispensa(assinaturasSalvas);
 
   const buffer = await renderToBuffer(
     <RelatorioDispensaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       fotoSrc={fotoUrl}
       assinaturas={assinaturas}
       atleta={{

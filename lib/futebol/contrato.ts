@@ -3,6 +3,7 @@
 import { RUBRICA_CONTRATO_LABEL } from "../validation/schemas";
 import type { AtletaContratoEvolucaoSalarialRow, RubricaContrato } from "../supabase/types";
 import { diasEntre } from "./calendario";
+import { clube } from "@/lib/clube";
 
 /**
  * Extensões do Contrato do Atleta (contagem de dias restantes, evolução salarial, selo de status)
@@ -155,7 +156,7 @@ export function direitosEconomicos(contrato: {
 }): ParteDireitoEconomico[] {
   const partes: ParteDireitoEconomico[] = [];
   if (contrato.direito_economico_juventus_pct) {
-    partes.push({ nome: "Juventus", pct: contrato.direito_economico_juventus_pct });
+    partes.push({ nome: clube.nomeCurto, pct: contrato.direito_economico_juventus_pct });
   }
   if (contrato.direito_economico_atleta_pct) {
     partes.push({ nome: "Atleta", pct: contrato.direito_economico_atleta_pct });

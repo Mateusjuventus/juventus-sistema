@@ -144,7 +144,7 @@ function TabelaQuartos({
 
 export function RoomingListEnvioDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   hotelNome,
   hotelEndereco,
@@ -154,7 +154,7 @@ export function RoomingListEnvioDocument({
   ordemAtletas,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   hotelNome: string | null;
   hotelEndereco: string | null;
@@ -181,7 +181,7 @@ export function RoomingListEnvioDocument({
       <Page size="A4" style={sharedStyles.page}>
         <DocumentoHeader
           jogo={jogo}
-          juventusLogoSrc={juventusLogoSrc}
+          escudoClubeSrc={escudoClubeSrc}
           adversarioLogoSrc={adversarioLogoSrc}
           titulo="Rooming List"
         />

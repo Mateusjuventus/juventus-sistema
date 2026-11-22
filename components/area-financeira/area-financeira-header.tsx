@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { JuventusCrest } from "@/components/juventus-crest";
+import { ClubeEscudo } from "@/components/clube-escudo";
 import { logout } from "@/app/actions";
+import { clube } from "@/lib/clube";
 
 /**
  * Cabeçalho da Área Financeira — espelha `components/treinador/treinador-header.tsx`, bem mais
@@ -14,9 +15,9 @@ export function AreaFinanceiraHeader() {
       <div className="mx-auto max-w-[1184px] px-4 py-5 sm:py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <JuventusCrest className="h-10 w-auto shrink-0" />
+            <ClubeEscudo sobre="escuro" className="h-10 w-auto shrink-0" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Juventus SAF</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/60">{clube.nomeInstitucional}</p>
               <h1 className="text-xl font-bold text-white sm:text-2xl">Área Financeira</h1>
             </div>
           </div>

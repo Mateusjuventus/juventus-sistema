@@ -93,7 +93,7 @@ export interface RelatorioPdfDespesaAvulsa {
  * "Por Jogo" (ver docs/superpowers/specs/2026-08-08-despesas-avulsas-design.md).
  */
 export function RelatorioFinanceiroDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   totalPrevisto,
   totalEfetuado,
@@ -104,7 +104,7 @@ export function RelatorioFinanceiroDocument({
   assinatura2,
   departamento,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   totalPrevisto: number;
   totalEfetuado: number;
@@ -121,9 +121,9 @@ export function RelatorioFinanceiroDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <DepartamentoEyebrow departamento={departamento} />
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Relatório de Prestação de Contas</Text>
         <Text style={styles.subtitulo}>Resumo geral de todos os jogos</Text>

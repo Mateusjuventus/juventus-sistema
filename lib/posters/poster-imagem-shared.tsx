@@ -8,6 +8,7 @@ import {
   HASHTAG_RODAPE,
   POSTER_IMAGEM_LARGURA,
 } from "./estilo";
+import { clube } from "@/lib/clube";
 
 /**
  * Blocos compartilhados pelos 3 pôsteres na versão IMAGEM (JPG), gerada com o `ImageResponse` do
@@ -17,13 +18,13 @@ import {
  * as mesmas cores/medidas de `lib/posters/estilo.ts`.
  */
 
-let juventusEscudoDataUri: string | null = null;
-export function getJuventusEscudoDataUri(): string {
-  if (!juventusEscudoDataUri) {
-    const buf = readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png"));
-    juventusEscudoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
+let escudoClubeDataUri: string | null = null;
+export function getEscudoClubeDataUri(): string {
+  if (!escudoClubeDataUri) {
+    const buf = readFileSync(path.join(process.cwd(), "public", clube.escudo.completo));
+    escudoClubeDataUri = `data:image/png;base64,${buf.toString("base64")}`;
   }
-  return juventusEscudoDataUri;
+  return escudoClubeDataUri;
 }
 
 export function getAntonFontBuffer(): Buffer {
@@ -42,7 +43,7 @@ export function PosterCabecalhoImg({
   /** Concentração e Dia de Jogo não mostram o nome da competição no cabeçalho (ver referência). */
   mostrarCompeticao?: boolean;
 }) {
-  const juventus = getJuventusEscudoDataUri();
+  const juventus = getEscudoClubeDataUri();
   const primeiro = mandante ? juventus : adversarioLogoUrl;
   const segundo = mandante ? adversarioLogoUrl : juventus;
 
@@ -103,7 +104,7 @@ export function CabecalhoExportacaoImg({
   titulo: string;
   subtitulo?: string | null;
 }) {
-  const juventus = getJuventusEscudoDataUri();
+  const juventus = getEscudoClubeDataUri();
   return (
     <div
       style={{
@@ -393,7 +394,7 @@ export function PosterCabecalhoLateralImg({
   mandante: boolean;
   adversarioLogoUrl: string | null;
 }) {
-  const juventus = getJuventusEscudoDataUri();
+  const juventus = getEscudoClubeDataUri();
   const primeiro = mandante ? juventus : adversarioLogoUrl;
   const segundo = mandante ? adversarioLogoUrl : juventus;
 

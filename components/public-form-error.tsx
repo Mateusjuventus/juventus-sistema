@@ -1,6 +1,7 @@
 "use client";
 
-import { JuventusCrest } from "@/components/juventus-crest";
+import { ClubeEscudo } from "@/components/clube-escudo";
+import { clube } from "@/lib/clube";
 
 /**
  * Tela de erro amigável pros links públicos sem login (Ficha de Cadastro de Atleta, Inscrição de
@@ -29,8 +30,8 @@ export function PublicFormError({
     <main className={`flex min-h-screen items-center justify-center bg-grena-escuro px-4 ${padding}`}>
       <div className={`mx-auto w-full ${maxWidth}`}>
         <div className="mb-6 flex flex-col items-center text-center">
-          <JuventusCrest className={crestClassName} />
-          <h1 className="mt-4 text-2xl font-bold text-white">Juventus - SAF</h1>
+          <ClubeEscudo sobre="escuro" className={crestClassName} />
+          <h1 className="mt-4 text-2xl font-bold text-white">{clube.nomeCabecalho}</h1>
         </div>
 
         <div className="card p-6 text-center sm:p-8">

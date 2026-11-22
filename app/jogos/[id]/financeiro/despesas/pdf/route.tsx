@@ -12,6 +12,7 @@ import {
   type RelatorioDespesasPdfCategoria,
   type RelatorioDespesasPdfFase,
 } from "@/lib/pdf/relatorio-despesas-document";
+import { clube } from "@/lib/clube";
 
 const ORDEM_FASES: FaseGasto[] = ["pre_jogo", "pos_jogo", null];
 import { getAssinaturasFinanceiro, montarAssinaturasFinanceiroComDigital } from "@/lib/pdf/assinaturas";
@@ -61,13 +62,13 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }));
   const totalGeral = gastos.reduce((soma, g) => soma + (g.valor_efetuado as number), 0);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <RelatorioDespesasDocument
       jogo={jogo}
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       adversarioLogoSrc={adversarioLogoUrl}
       fases={fases}
       totalGeral={totalGeral}
@@ -78,7 +79,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     />,
   );
 
-  const nomeArquivo = `relatorio-despesas-juventus-x-${jogo.adversario_nome
+  const nomeArquivo = `relatorio-despesas-${clube.slug}-x-${jogo.adversario_nome
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}-${jogo.data_jogo}.pdf`;
 

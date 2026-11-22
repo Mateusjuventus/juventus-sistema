@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { clube } from "@/lib/clube";
 
 /**
  * Sino de notificações (ver docs/superpowers/specs/2026-08-28-assinatura-digital-notificacoes-
@@ -36,7 +37,7 @@ export async function criarNotificacao(params: {
   // se a pessoa não tiver aceitado push ainda (o mais comum) ou se o envio falhar por qualquer
   // motivo (inscrição expirada etc.) — ver lib/push/enviar.ts.
   const { enviarPushParaUsuario } = await import("@/lib/push/enviar");
-  await enviarPushParaUsuario(params.usuarioId, { titulo: "Juventus SAF", corpo: params.mensagem, link: params.link });
+  await enviarPushParaUsuario(params.usuarioId, { titulo: clube.nomeInstitucional, corpo: params.mensagem, link: params.link });
 }
 
 /**

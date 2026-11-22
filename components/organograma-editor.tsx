@@ -22,6 +22,7 @@ import {
   type OrganogramaNo,
 } from "@/lib/futebol/organograma";
 import { DeleteButton } from "@/components/delete-button";
+import { temaClube } from "@/lib/theme";
 
 export interface OrganogramaNoFormState {
   error?: string;
@@ -1013,7 +1014,7 @@ export function OrganogramaEditor({
                 const de = tela({ x: s.x1, y: s.y1 });
                 const para = tela({ x: s.x2, y: s.y2 });
                 return (
-                  <line key={s.key} x1={de.x} y1={de.y} x2={para.x} y2={para.y} stroke="#B98F1E" strokeWidth={1.5} />
+                  <line key={s.key} x1={de.x} y1={de.y} x2={para.x} y2={para.y} stroke={temaClube.dourado} strokeWidth={1.5} />
                 );
               })}
             </svg>

@@ -1,4 +1,5 @@
 "use server";
+import { clube } from "@/lib/clube";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -30,7 +31,7 @@ import type { AtletaRow, CompeticaoBaseRow, CompeticaoJogoBaseRow, SumulaEventoT
  * queries, então mantemos cada arquivo independente (padrão já usado no resto do módulo de Jogos).
  */
 
-const NOME_JUVENTUS_PARCIAL = "juventus";
+const NOME_JUVENTUS_PARCIAL = clube.nomeBuscaFederacao;
 
 function ehLadoJuventus(equipe: string): boolean {
   return equipe.toLowerCase().includes(NOME_JUVENTUS_PARCIAL);

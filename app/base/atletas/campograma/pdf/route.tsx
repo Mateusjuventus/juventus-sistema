@@ -10,6 +10,7 @@ import { agruparPorPosicaoEspecifica, type AtletaCampograma } from "@/lib/futebo
 import { CampogramaDocument } from "@/lib/pdf/campograma-document";
 import { categoriaBaseLabel, ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
 import type { AtletaRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * PDF do Campograma — mesma consulta da tela (`app/base/atletas/campograma/page.tsx`), servindo o
@@ -58,18 +59,18 @@ export async function GET(request: Request) {
 
   const grupos = agruparPorPosicaoEspecifica(paraCampograma);
 
-  const juventusLogoSrc = {
-    data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
+  const escudoClubeSrc = {
+    data: readFileSync(path.join(process.cwd(), "public", clube.escudo.completo)),
     format: "png" as const,
   };
   const juventusWatermarkSrc = {
-    data: readFileSync(path.join(process.cwd(), "public/brand/juventus-escudo.png")),
+    data: readFileSync(path.join(process.cwd(), "public", clube.escudo.completo)),
     format: "png" as const,
   };
 
   const buffer = await renderToBuffer(
     <CampogramaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       juventusWatermarkSrc={juventusWatermarkSrc}
       categoriaLabel={categoriaBaseLabel(categoria)}
       geradoEm={new Date()}

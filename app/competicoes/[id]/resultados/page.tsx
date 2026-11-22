@@ -13,6 +13,7 @@ import {
   importarResultadoPorLink,
   lancarResultadoExterno,
 } from "../../actions";
+import { clube } from "@/lib/clube";
 
 function formatData(data: string | null): string {
   if (!data) return "—";
@@ -62,7 +63,7 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
       </div>
       <p className="mt-1 text-sm text-neutral-500">
         Lance aqui os resultados dos jogos entre os outros clubes de cada grupo (com a súmula anexada, se
-        quiser) — é daqui que a classificação contabiliza os pontos. Os jogos do Juventus entram sozinhos
+        quiser) — é daqui que a classificação contabiliza os pontos. Os jogos do {clube.nomeCurto} entram sozinhos
         pelo placar do módulo de Jogos.
       </p>
 
@@ -88,7 +89,7 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
                   const equipesFixas = (equipesPorGrupo.get(grupo.id) ?? [])
                     .map((e) => e.nome)
                     .filter((n): n is string => n !== null)
-                    .filter((n) => n.trim().toLocaleLowerCase("pt-BR") !== "juventus");
+                    .filter((n) => n.trim().toLocaleLowerCase("pt-BR") !== clube.nomeCurto.toLocaleLowerCase("pt-BR"));
 
                   return (
                     <div key={grupo.id} className="card p-4">
@@ -108,7 +109,7 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
                                 <span className="font-medium text-grena">
                                   {confrontoComData(jogo)}
                                   <span className="ml-2 rounded-full bg-grena/10 px-2 py-0.5 text-[11px] font-semibold">
-                                    jogo do Juventus
+                                    jogo do {clube.nomeCurto}
                                   </span>
                                 </span>
                                 <span className={comPlacar ? "font-semibold" : "text-neutral-400"}>
@@ -131,7 +132,7 @@ export default async function CompeticaoResultadosPage({ params }: { params: { i
                               >
                                 <input type="hidden" name="vinculoId" value={v.id} />
                                 <span>
-                                  Juventus: 🟨 {nossosAmarelos} · 🟥 {nossosVermelhos}{" "}
+                                  {clube.nomeCurto}: 🟨 {nossosAmarelos} · 🟥 {nossosVermelhos}{" "}
                                   <span className="text-neutral-400">(da súmula)</span>
                                 </span>
                                 <span className="text-neutral-300">|</span>

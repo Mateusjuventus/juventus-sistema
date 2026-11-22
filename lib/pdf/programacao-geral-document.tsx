@@ -4,6 +4,8 @@ import type { LogoSrc } from "./logistica-shared";
 import { CabecalhoExportacaoBanner, CORES_EXPORT } from "./programacao-export-shared";
 import type { MicrocicloAtividade } from "@/lib/programacao/microciclo-data";
 import type { ProgramacaoGeralData, ProgramacaoGeralCategoria } from "@/lib/programacao/programacao-geral-data";
+import { clube } from "@/lib/clube";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Programação Geral — todas as 7 categorias compiladas num único documento PDF de página única (ver
@@ -149,7 +151,7 @@ const jogoBoxStyle = {
   borderRadius: 2,
   padding: 2,
   marginBottom: 2,
-  backgroundColor: "#5C0A35",
+  backgroundColor: temaClube.grena,
   flexShrink: 0,
   minHeight: 16,
   alignItems: "center" as const,
@@ -176,10 +178,10 @@ function truncarNomeAtividade(nome: string): string {
 
 function CelulaAtividades({
   atividades,
-  juventusLogoSrc,
+  escudoClubeSrc,
 }: {
   atividades: MicrocicloAtividade[];
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
 }) {
   if (atividades.length === 0) {
     return (
@@ -197,11 +199,11 @@ function CelulaAtividades({
         if (atividade.jogo) {
           const jogo = atividade.jogo;
           const primeiro = jogo.mandante
-            ? { src: juventusLogoSrc, nome: "Juventus" }
+            ? { src: escudoClubeSrc, nome: clube.nomeCurto }
             : { src: jogo.adversarioLogoUrl, nome: jogo.adversario_nome };
           const segundo = jogo.mandante
             ? { src: jogo.adversarioLogoUrl, nome: jogo.adversario_nome }
-            : { src: juventusLogoSrc, nome: "Juventus" };
+            : { src: escudoClubeSrc, nome: clube.nomeCurto };
           return (
             <View key={atividade.id} style={jogoBoxStyle}>
               <View style={jogoStyles.escudosRow}>
@@ -239,10 +241,10 @@ function CelulaAtividades({
 
 export function ProgramacaoGeralDocument({
   dados,
-  juventusLogoSrc,
+  escudoClubeSrc,
 }: {
   dados: ProgramacaoGeralData;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
 }) {
   const alturaPagina = calcularAlturaProgramacaoGeral(dados.categorias);
 
@@ -250,7 +252,7 @@ export function ProgramacaoGeralDocument({
     <Document>
       <Page size={[LARGURA_PAGINA_GERAL, alturaPagina]} style={styles.page}>
         <CabecalhoExportacaoBanner
-          juventusLogoSrc={juventusLogoSrc}
+          escudoClubeSrc={escudoClubeSrc}
           titulo={`Programação Semanal — ${dados.periodoTexto}`}
         />
 
@@ -288,7 +290,7 @@ export function ProgramacaoGeralDocument({
                         <CelulaAtividades
                           key={dia.data}
                           atividades={dia.atividadesPorTurno.manha}
-                          juventusLogoSrc={juventusLogoSrc}
+                          escudoClubeSrc={escudoClubeSrc}
                         />
                       ))}
                     </View>
@@ -313,7 +315,7 @@ export function ProgramacaoGeralDocument({
                         <CelulaAtividades
                           key={dia.data}
                           atividades={[...dia.atividadesPorTurno.tarde, ...dia.atividadesPorTurno.noite]}
-                          juventusLogoSrc={juventusLogoSrc}
+                          escudoClubeSrc={escudoClubeSrc}
                         />
                       ))}
                     </View>

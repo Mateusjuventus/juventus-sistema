@@ -1,5 +1,6 @@
 import type { ProgramacaoAtividadeTipo } from "@/lib/supabase/types";
 import { corHexAtividade } from "./tipo-atividade";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Paleta de cores da EXPORTAÇÃO da Programação Semanal (PDF/JPG por categoria e Programação Geral —
@@ -25,7 +26,7 @@ import { corHexAtividade } from "./tipo-atividade";
  */
 
 export const CORES_EXPORT = {
-  cabecalho: "#5C0A35",
+  cabecalho: temaClube.grena,
   folgaBg: "#f5f5f5",
   folgaText: "#a3a3a3",
 };

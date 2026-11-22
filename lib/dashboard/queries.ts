@@ -19,6 +19,7 @@ import type {
   SolicitacaoRow,
   TermoRetiradaRow,
 } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Consultas do Dashboard novo (ver docs/superpowers/specs/2026-11-14-dashboard-principal-design.md
@@ -417,7 +418,7 @@ export async function buscarProgramacaoDeHoje(
         (a): ProgramacaoHojeItem => ({
           id: a.id,
           horarioInicio: a.horario_inicio,
-          nome: a.jogo ? `${a.jogo.mandante ? "Juventus x " : ""}${a.jogo.adversario_nome}${a.jogo.mandante ? "" : " x Juventus"}` : a.nome,
+          nome: a.jogo ? `${a.jogo.mandante ? `${clube.nomeCurto} x ` : ""}${a.jogo.adversario_nome}${a.jogo.mandante ? "" : ` x ${clube.nomeCurto}`}` : a.nome,
           categoriaLabel: categoriaProgramacaoLabel(categoria),
         }),
       );

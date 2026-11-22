@@ -9,6 +9,7 @@ import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { verificarAcessoJogoBase } from "@/lib/auth/jogos-base-guard";
 import { OrcamentoDocument, type OrcamentoPdfCategoria, type OrcamentoPdfFase } from "@/lib/pdf/orcamento-document";
 import type { FaseGasto } from "@/lib/pdf/relatorio-despesas-document";
+import { clube } from "@/lib/clube";
 
 const ORDEM_FASES: FaseGasto[] = ["pre_jogo", "pos_jogo", null];
 import { getAssinaturasFinanceiroBase, montarAssinaturasFinanceiroComDigital } from "@/lib/pdf/assinaturas";
@@ -56,13 +57,13 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }));
   const totalGeral = gastos.reduce((soma, g) => soma + g.valor_previsto, 0);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <OrcamentoDocument
       jogo={jogo}
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       adversarioLogoSrc={adversarioLogoUrl}
       fases={fases}
       totalGeral={totalGeral}
@@ -73,7 +74,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     />,
   );
 
-  const nomeArquivo = `orcamento-previsto-juventus-x-${jogo.adversario_nome
+  const nomeArquivo = `orcamento-previsto-${clube.slug}-x-${jogo.adversario_nome
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}-${jogo.data_jogo}.pdf`;
 

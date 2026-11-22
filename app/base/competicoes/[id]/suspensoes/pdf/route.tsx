@@ -17,7 +17,7 @@ function formatData(data: string): string {
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const pdfData = await carregarParaPdfBase(params.id);
   if (!pdfData) return new NextResponse("Competição não encontrada.", { status: 404 });
-  const { carregada, juventusLogoSrc, subtitulo } = pdfData;
+  const { carregada, escudoClubeSrc, subtitulo } = pdfData;
   const { competicao, disciplina, atletasById, jogosOrdenados } = carregada;
 
   const confrontoPorJogo = new Map(jogosOrdenados.map((j) => [j.jogoId, j.confronto]));
@@ -50,7 +50,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const buffer = await renderToBuffer(
     <CompeticaoSuspensoesDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       subtitulo={subtitulo}
       linhas={linhas}

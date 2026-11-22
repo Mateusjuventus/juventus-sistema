@@ -6,6 +6,7 @@ import { FieldGroup, FormSection, SelectField, TextField } from "@/components/fi
 import { CurrencyField } from "@/components/currency-field";
 import { SubmitButton } from "@/components/submit-button";
 import { dataFimFormacao } from "@/lib/futebol/contrato";
+import { clube } from "@/lib/clube";
 
 export interface ContratoFormState {
   error?: string;
@@ -165,7 +166,7 @@ export function ContratoForm({
       <FormSection title="Direitos econômicos">
         <FieldGroup>
           <TextField
-            label="Juventus (%)"
+            label={`${clube.nomeCurto} (%)`}
             name="direitoEconomicoJuventusPct"
             type="number"
             min={0}

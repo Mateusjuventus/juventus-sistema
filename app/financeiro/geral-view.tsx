@@ -11,6 +11,7 @@ import { buscarGatilhosCumpridos } from "@/lib/futebol/gatilho-contrato-query";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { DonutComposicao, type FatiaComposicao } from "@/components/charts/donut-composicao";
 import type { AtletaContratoRow, AtletaRow, ComissaoTecnicaRow } from "@/lib/supabase/types";
+import { temaClube } from "@/lib/theme";
 
 function formatMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -75,8 +76,8 @@ export async function GeralProfissionalView() {
   // As mesmas 2 cores da marca usadas na Base pra Comissão/Atletas (ver geral-base-view.tsx) — sem
   // a 3ª fatia de despesas avulsas, que não entra aqui.
   const composicao: FatiaComposicao[] = [
-    { label: "Comissão Técnica", valor: custoComissao, cor: "#5C0A35" },
-    { label: "Atletas", valor: custoAtletas, cor: "#B98F1E" },
+    { label: "Comissão Técnica", valor: custoComissao, cor: temaClube.grena },
+    { label: "Atletas", valor: custoAtletas, cor: temaClube.dourado },
   ];
 
   if (!podeVerSalario) {

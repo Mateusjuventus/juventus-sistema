@@ -131,14 +131,14 @@ export interface ParecerSocialAssinatura {
 }
 
 export function ParecerSocialDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   fotoSrc,
   atleta,
   atendimentos,
   emitidoEm,
   assinatura,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   fotoSrc: LogoSrc;
   atleta: ParecerSocialAtleta;
   atendimentos: ParecerSocialAtendimento[];
@@ -169,9 +169,9 @@ export function ParecerSocialDocument({
             <Text style={styles.subtituloTexto}>Acompanhamento da Assistência Social</Text>
             <Text style={styles.subtituloTextoSub}>Departamento de Futebol de Base</Text>
           </View>
-          {juventusLogoSrc ? (
+          {escudoClubeSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.logo} src={juventusLogoSrc as string} />
+            <Image style={styles.logo} src={escudoClubeSrc as string} />
           ) : null}
         </View>
 

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { verificarAcessoCompeticaoBase } from "@/lib/auth/competicao-base-guard";
 import { jogosAJogar, resolverEquipes } from "@/lib/futebol/competicao-classificacao";
 import { CRITERIO_LABEL } from "@/lib/futebol/competicao-desempate";
+import { clube } from "@/lib/clube";
 
 /**
  * Classificação por grupo + possíveis confrontos das próximas fases — espelha
@@ -40,7 +41,7 @@ export default async function CompeticaoBaseClassificacaoPage({ params }: { para
         </a>
       </div>
       <p className="mt-1 text-sm text-neutral-500">
-        Os jogos do Juventus entram sozinhos (pelo placar preenchido no cadastro do jogo); os resultados dos
+        Os jogos do {clube.nomeCurto} entram sozinhos (pelo placar preenchido no cadastro do jogo); os resultados dos
         outros clubes são lançados na aba Súmulas dos Grupos.
       </p>
 
@@ -90,7 +91,7 @@ export default async function CompeticaoBaseClassificacaoPage({ params }: { para
                                 {r.projecao ? (
                                   <span
                                     className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                      r.projecao.trim().toLocaleLowerCase("pt-BR") === "juventus"
+                                      r.projecao.trim().toLocaleLowerCase("pt-BR") === clube.nomeCurto.toLocaleLowerCase("pt-BR")
                                         ? "bg-grena/10 text-grena"
                                         : "bg-dourado/10 text-dourado"
                                     }`}
@@ -134,7 +135,7 @@ export default async function CompeticaoBaseClassificacaoPage({ params }: { para
                           </thead>
                           <tbody className="divide-y divide-neutral-100">
                             {classificacao.map((linha, i) => {
-                              const ehJuventus = linha.equipe.trim().toLocaleLowerCase("pt-BR") === "juventus";
+                              const ehJuventus = linha.equipe.trim().toLocaleLowerCase("pt-BR") === clube.nomeCurto.toLocaleLowerCase("pt-BR");
                               const indefinida = (indefinidasPorGrupo.get(grupo.id) ?? new Set()).has(linha.equipe);
                               return (
                                 <tr key={linha.equipe} className={ehJuventus ? "bg-dourado/5" : undefined}>

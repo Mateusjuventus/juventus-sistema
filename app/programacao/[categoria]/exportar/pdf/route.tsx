@@ -11,6 +11,7 @@ import { inicioDaSemana } from "@/lib/programacao/semana";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { ehCategoriaProgramacaoValida } from "@/lib/programacao/categoria-programacao";
 import { MicrocicloDocument } from "@/lib/pdf/microciclo-document";
+import { clube } from "@/lib/clube";
 
 /**
  * Exportação do microciclo em PDF — acessível por quem já pode ver a Programação daquela categoria
@@ -40,10 +41,10 @@ export async function GET(request: Request, { params }: { params: { categoria: s
 
   const dados = await buscarMicrocicloData(supabase, params.categoria, inicioSemana);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
-  const buffer = await renderToBuffer(<MicrocicloDocument dados={dados} juventusLogoSrc={juventusLogoSrc} />);
+  const buffer = await renderToBuffer(<MicrocicloDocument dados={dados} escudoClubeSrc={escudoClubeSrc} />);
 
   const nomeArquivo = `microciclo-${dados.categoria}-${inicioSemana}.pdf`;
 

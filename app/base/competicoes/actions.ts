@@ -9,6 +9,7 @@ import { CRITERIOS_PADRAO, ehCriterioValido } from "@/lib/futebol/competicao-des
 import { baixarTextoSumulaPdf, parsearSumulaPdf, SumulaPdfError } from "@/lib/fpf/sumula-pdf";
 import { contarCartoesPorLado, montarResultadoImportado } from "@/lib/futebol/competicao-sumula-import";
 import { ehCategoriaBaseValida } from "@/lib/auth/categorias-base";
+import { clube } from "@/lib/clube";
 
 /**
  * Server Actions do módulo de Competições do Futebol de Base — espelha `app/competicoes/actions.ts`
@@ -421,7 +422,7 @@ export async function importarCartoesAdversarioPorLinkBase(
     return { erro: `${mensagem} Você pode preencher os cartões à mão no campo ao lado.` };
   }
 
-  const cartoes = contarCartoesPorLado(dados.cartoes, "Juventus", adversario);
+  const cartoes = contarCartoesPorLado(dados.cartoes, clube.nomeCurto, adversario);
   const supabase = createClient();
   const { error } = await supabase
     .from("competicao_jogos_base")

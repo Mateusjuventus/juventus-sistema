@@ -13,6 +13,7 @@ import {
   type CategoriaBase,
 } from "@/lib/auth/categorias-base";
 import type { JogoBaseFormState } from "./actions";
+import { clube } from "@/lib/clube";
 
 const initialState: JogoBaseFormState = {};
 
@@ -191,7 +192,7 @@ export function JogoBaseForm({
       <FormSection title="Resultado (preencha depois do jogo)">
         <FieldGroup>
           <TextField
-            label="Gols Juventus"
+            label={`Gols ${clube.nomeCurto}`}
             name="golsPro"
             type="number"
             min={0}

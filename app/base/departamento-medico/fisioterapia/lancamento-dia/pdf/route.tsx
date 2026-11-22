@@ -11,6 +11,7 @@ import { nomeExibido } from "@/lib/futebol/nome-atleta";
 import { CATEGORIAS_BASE, categoriaBaseLabel, type CategoriaBase } from "@/lib/auth/categorias-base";
 import { FisioterapiaRelatorioDiaDocument, type FisioterapiaRelatorioDiaItem } from "@/lib/pdf/fisioterapia-relatorio-dia-document";
 import type { AtletaRow, FisioterapiaAtendimentoBaseRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Rota do PDF do Relatório Diário (Base) — espelha a rota do Profissional, com agrupamento por
  * categoria (ordem de `CATEGORIAS_BASE`) e restrito às categorias que o usuário logado pode ver
@@ -59,12 +60,12 @@ export async function GET(request: Request) {
     .sort((a, b) => a.categoriaOrdem - b.categoriaOrdem || a.nome.localeCompare(b.nome, "pt-BR"))
     .map(({ categoriaOrdem, ...resto }) => resto);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <FisioterapiaRelatorioDiaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       departamentoLabel="Futebol de Base"
       data={data}
       itens={itens}

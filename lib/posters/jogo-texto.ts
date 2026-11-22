@@ -1,4 +1,5 @@
 import type { JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * Textos derivados do jogo, reaproveitados por mais de um pôster — ex: "PALMEIRAS X JUVENTUS"
@@ -7,7 +8,7 @@ import type { JogoRow } from "@/lib/supabase/types";
  * primeiro; jogo fora, adversário primeiro.
  */
 export function buildConfrontoTexto(jogo: Pick<JogoRow, "mandante" | "adversario_nome">): string {
-  const primeiro = jogo.mandante ? "JUVENTUS" : jogo.adversario_nome.toUpperCase();
-  const segundo = jogo.mandante ? jogo.adversario_nome.toUpperCase() : "JUVENTUS";
+  const primeiro = jogo.mandante ? clube.nomeCurto.toLocaleUpperCase("pt-BR") : jogo.adversario_nome.toUpperCase();
+  const segundo = jogo.mandante ? jogo.adversario_nome.toUpperCase() : clube.nomeCurto.toLocaleUpperCase("pt-BR");
   return `${primeiro} X ${segundo}`;
 }

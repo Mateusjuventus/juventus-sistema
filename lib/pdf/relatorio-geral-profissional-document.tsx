@@ -128,7 +128,7 @@ export interface RelatorioGeralProfissionalBonusGatilho {
  * contrato-design.md.
  */
 export function RelatorioGeralProfissionalDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   geradoEm,
   custoComissao,
   custoAtletas,
@@ -141,7 +141,7 @@ export function RelatorioGeralProfissionalDocument({
   assinatura1,
   assinatura2,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   geradoEm: Date;
   custoComissao: number;
   custoAtletas: number;
@@ -175,9 +175,9 @@ export function RelatorioGeralProfissionalDocument({
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <DepartamentoEyebrow departamento="profissional" />
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Custo com Comissão Técnica e Atletas</Text>
 

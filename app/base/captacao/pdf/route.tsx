@@ -10,6 +10,7 @@ import { categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import { captacaoStatusLabel } from "@/lib/futebol/captacao";
 import { CaptacaoDocument, type CaptacaoPdfLinha } from "@/lib/pdf/captacao-document";
 import type { CaptacaoBaseRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /**
  * PDF (paisagem) da Relação de Captação/Avaliação — a mesma lista da tela `/base/captacao`, com os
@@ -54,12 +55,12 @@ export async function GET(request: Request) {
     status: captacaoStatusLabel(c.status),
   }));
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <CaptacaoDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       emitidoEm={hojeBrasilia()}
       candidatos={linhas}
       filtrado={filtrado}

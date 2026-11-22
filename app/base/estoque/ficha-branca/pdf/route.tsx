@@ -5,15 +5,16 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { EstoqueFichaDocument } from "@/lib/pdf/estoque-ficha-document";
+import { clube } from "@/lib/clube";
 
 /** Espelha `app/estoque/[categoria]/ficha-branca/pdf/route.tsx` para o Futebol de Base. */
 export async function GET() {
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <EstoqueFichaDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       subtitulo="Departamento de Futebol de Base"
       ficha={{
         categoria: "esportivo",

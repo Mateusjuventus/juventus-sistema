@@ -14,7 +14,7 @@
  *   branco). Gerado porque o navy do traço original é quase idêntico ao fundo do Login
  *   (`proxisNavy`) e por isso ficava ilegível ali — ver `ProxisMarkClaro` abaixo.
  *
- * Espelha `components/juventus-crest.tsx` — o Juventus continua sendo a identidade principal do
+ * Espelha `components/clube-escudo.tsx` — o Juventus continua sendo a identidade principal do
  * sistema por trás do login (escolha de departamento, sidebar, Treinador, PDFs): isto aqui é só a
  * marca do software, que só assume o centro do palco na própria porta de entrada.
  *

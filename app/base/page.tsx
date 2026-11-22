@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { JuventusCrest } from "@/components/juventus-crest";
+import { ClubeEscudo } from "@/components/clube-escudo";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoriasProgramacao } from "@/lib/programacao/permissoes";
 import { getDepartamentosPermitidos } from "@/lib/auth/role";
@@ -29,7 +29,7 @@ export default async function BasePage() {
     return (
       <AppShell departamento="futebol_base" breadcrumb="Início">
         <div className="mt-2 flex flex-col items-center gap-2 text-center">
-          <JuventusCrest className="h-14 w-auto" />
+          <ClubeEscudo className="h-14 w-auto" />
           <h1 className="text-3xl font-bold text-grena-escuro">Futebol de Base</h1>
         </div>
         <div className="card mx-auto mt-6 max-w-md p-8 text-center text-neutral-500">
@@ -46,7 +46,7 @@ export default async function BasePage() {
   return (
     <AppShell departamento="futebol_base" breadcrumb="Início">
       <div className="mt-2 flex flex-col items-center gap-2 text-center">
-        <JuventusCrest className="h-14 w-auto" />
+        <ClubeEscudo className="h-14 w-auto" />
         <h1 className="text-3xl font-bold text-grena-escuro">Futebol de Base</h1>
       </div>
 

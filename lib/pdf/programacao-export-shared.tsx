@@ -48,20 +48,20 @@ const bannerStyles = StyleSheet.create({
  * página, não só no espaço que sobra depois do escudo.
  */
 export function CabecalhoExportacaoBanner({
-  juventusLogoSrc,
+  escudoClubeSrc,
   titulo,
   subtitulo,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   titulo: string;
   subtitulo?: string | null;
 }) {
   return (
     <View style={bannerStyles.faixa}>
       <View style={bannerStyles.escudoCol}>
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={bannerStyles.escudo} src={juventusLogoSrc as string} />
+          <Image style={bannerStyles.escudo} src={escudoClubeSrc as string} />
         ) : null}
       </View>
       <View style={bannerStyles.tituloCol}>

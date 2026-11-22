@@ -4,6 +4,7 @@ import { buildXlsxResponse } from "@/lib/xlsx-export";
 import { getCategoriasBasePermitidas } from "@/lib/auth/role";
 import { ehCategoriaBaseValida, categoriaBaseLabel } from "@/lib/auth/categorias-base";
 import type { JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
     Data: formatData(j.data_jogo),
     Horário: formatHorario(j.horario),
     Local: j.local_estadio ?? "",
-    "Gols Juventus": j.gols_pro ?? "",
+    [`Gols ${clube.nomeCurto}`]: j.gols_pro ?? "",
     "Gols adversário": j.gols_contra ?? "",
     Resultado: formatResultado(j),
   }));

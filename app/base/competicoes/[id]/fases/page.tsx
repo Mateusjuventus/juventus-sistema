@@ -18,6 +18,7 @@ import {
   excluirFaseBase,
   excluirGrupoBase,
 } from "../../actions";
+import { clube } from "@/lib/clube";
 
 const FASE_STATUS_LABEL: Record<CompeticaoFaseStatus, string> = {
   aguardando: "Aguardando",
@@ -173,7 +174,7 @@ export default async function CompeticaoBaseFasesPage({ params }: { params: { id
                         <ul className="divide-y divide-neutral-100 px-3 py-1">
                           {equipes.map((equipe, i) => {
                             const resolvida = resolvidas[i];
-                            const ehJuventus = resolvida.rotulo.trim().toLocaleLowerCase("pt-BR") === "juventus";
+                            const ehJuventus = resolvida.rotulo.trim().toLocaleLowerCase("pt-BR") === clube.nomeCurto.toLocaleLowerCase("pt-BR");
                             return (
                               <li key={equipe.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
                                 <span className={ehJuventus ? "font-bold text-grena" : "text-neutral-700"}>

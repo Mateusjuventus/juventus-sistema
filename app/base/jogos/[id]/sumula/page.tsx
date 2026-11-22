@@ -25,6 +25,7 @@ import { DadosJogoFormBase } from "./dados-jogo-form-base";
 import { EventoFormBase, type ConvocadoOption } from "./evento-form-base";
 import { ImportarSumulaFormBase } from "./importar-sumula-form";
 import { adicionarEventoBase, removerEventoBase, salvarDadosJogoBase } from "./actions";
+import { clube } from "@/lib/clube";
 
 /** Espelha `app/jogos/[id]/sumula/page.tsx` para o Futebol de Base — atletas filtrados pela mesma
  * categoria do jogo, igual à Convocação (Base). */
@@ -264,8 +265,8 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
   const eventosSegundo = eventos.filter((e) => e.tempo === "segundo");
   const eventosTerceiro = eventos.filter((e) => e.tempo === "terceiro");
 
-  const nomeMandante = jogo.mandante ? "Juventus" : jogo.adversario_nome;
-  const nomeVisitante = jogo.mandante ? jogo.adversario_nome : "Juventus";
+  const nomeMandante = jogo.mandante ? clube.nomeCurto : jogo.adversario_nome;
+  const nomeVisitante = jogo.mandante ? jogo.adversario_nome : clube.nomeCurto;
 
   // Avisos de formato de partida (elenco mínimo, minutos mínimos por atleta, substituição fora da
   // regra do tempo) — só quando o jogo está vinculado a uma competição com essas regras
@@ -357,6 +358,8 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
         </div>
       ) : null}
 
+      {/* Leitor da súmula da Federação Paulista: só nos clubes com o módulo "fpf" (ver lib/clube). */}
+      {clube.modulos.fpf ? (
       <div className="mt-4">
         <ImportarSumulaFormBase
           jogoId={jogo.id}
@@ -365,6 +368,7 @@ export default async function SumulaBasePage({ params }: { params: { id: string 
           atletasElenco={atletas.map((a) => ({ id: a.id, nome: nomeAtletaEvento(a) }))}
         />
       </div>
+      ) : null}
 
       <section className="card mt-4 p-4">
         <h2 className="text-lg font-bold text-grena-escuro">Escalação (referência)</h2>

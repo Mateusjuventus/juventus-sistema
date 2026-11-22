@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 import { IngressosDocument } from "@/lib/pdf/ingressos-document";
 import type { IngressoCargaRow, IngressoSolicitacaoRow, JogoRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -36,13 +37,13 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     );
   }
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <IngressosDocument
       jogo={jogo}
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       adversarioLogoSrc={adversarioLogoUrl}
       cargas={cargas.map((c) => ({ data: c.data, quantidade: c.quantidade, observacoes: c.observacoes }))}
       solicitacoes={solicitacoes.map((s) => ({
@@ -53,7 +54,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     />,
   );
 
-  const nomeArquivo = `carga-ingressos-juventus-x-${jogo.adversario_nome
+  const nomeArquivo = `carga-ingressos-${clube.slug}-x-${jogo.adversario_nome
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}-${jogo.data_jogo}.pdf`;
 

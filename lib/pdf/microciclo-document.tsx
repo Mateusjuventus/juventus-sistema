@@ -9,6 +9,8 @@ import {
   type MicrocicloAtividade,
 } from "@/lib/programacao/microciclo-data";
 import type { ProgramacaoTurno } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Exportação em PDF do microciclo (ver docs/superpowers/specs/2026-09-02-programacao-copiar-dia-
@@ -146,7 +148,7 @@ const jogoBoxStyle = {
   borderRadius: 2,
   padding: 3,
   marginBottom: 3,
-  backgroundColor: "#5C0A35",
+  backgroundColor: temaClube.grena,
 };
 const jogoStyles = StyleSheet.create({
   tag: { fontSize: 6, fontWeight: 700, color: "#F2D48B", textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" },
@@ -158,16 +160,16 @@ const jogoStyles = StyleSheet.create({
   detalhe: { fontSize: 6.5, color: "#e5d4dd", marginTop: 1, textAlign: "center" },
 });
 
-function CardJogo({ atividade, juventusLogoSrc }: { atividade: MicrocicloAtividade; juventusLogoSrc: LogoSrc }) {
+function CardJogo({ atividade, escudoClubeSrc }: { atividade: MicrocicloAtividade; escudoClubeSrc: LogoSrc }) {
   const jogo = atividade.jogo;
   if (!jogo) return null;
 
   const primeiro = jogo.mandante
-    ? { src: juventusLogoSrc, nome: "Juventus" }
+    ? { src: escudoClubeSrc, nome: clube.nomeCurto }
     : { src: jogo.adversarioLogoUrl, nome: jogo.adversario_nome };
   const segundo = jogo.mandante
     ? { src: jogo.adversarioLogoUrl, nome: jogo.adversario_nome }
-    : { src: juventusLogoSrc, nome: "Juventus" };
+    : { src: escudoClubeSrc, nome: clube.nomeCurto };
 
   return (
     <View style={jogoBoxStyle}>
@@ -188,7 +190,7 @@ function CardJogo({ atividade, juventusLogoSrc }: { atividade: MicrocicloAtivida
         )}
       </View>
       <Text style={jogoStyles.texto}>
-        {jogo.mandante ? "Juventus" : jogo.adversario_nome} × {jogo.mandante ? jogo.adversario_nome : "Juventus"}
+        {jogo.mandante ? clube.nomeCurto : jogo.adversario_nome} × {jogo.mandante ? jogo.adversario_nome : clube.nomeCurto}
       </Text>
       <Text style={jogoStyles.detalhe}>
         {atividade.horarioInicio}
@@ -213,10 +215,10 @@ function BlocoAtividade({ atividade }: { atividade: MicrocicloAtividade }) {
 
 export function MicrocicloDocument({
   dados,
-  juventusLogoSrc,
+  escudoClubeSrc,
 }: {
   dados: MicrocicloData;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
 }) {
   // Uma altura só por período pra semana inteira (não uma por dia/coluna) — é o que faz a faixa de
   // divisão Manhã/Tarde cair na mesma linha em todas as 7 colunas. Ver comentário de
@@ -228,8 +230,8 @@ export function MicrocicloDocument({
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         <CabecalhoExportacaoBanner
-          juventusLogoSrc={juventusLogoSrc}
-          titulo={`CA Juventus SAF ${dados.categoriaLabel}`}
+          escudoClubeSrc={escudoClubeSrc}
+          titulo={`${clube.nomeDocumento} ${dados.categoriaLabel}`}
           subtitulo={[montarLinhaMicrociclo(dados.microcicloTexto, dados.epoca), dados.periodoTexto]
             .filter(Boolean)
             .join(" · ")}
@@ -275,7 +277,7 @@ export function MicrocicloDocument({
                         ) : (
                           dia.atividadesPorTurno.manha.map((atividade) =>
                             atividade.jogo ? (
-                              <CardJogo key={atividade.id} atividade={atividade} juventusLogoSrc={juventusLogoSrc} />
+                              <CardJogo key={atividade.id} atividade={atividade} escudoClubeSrc={escudoClubeSrc} />
                             ) : (
                               <BlocoAtividade key={atividade.id} atividade={atividade} />
                             ),
@@ -299,7 +301,7 @@ export function MicrocicloDocument({
                         ) : (
                           atividadesTarde.map((atividade) =>
                             atividade.jogo ? (
-                              <CardJogo key={atividade.id} atividade={atividade} juventusLogoSrc={juventusLogoSrc} />
+                              <CardJogo key={atividade.id} atividade={atividade} escudoClubeSrc={escudoClubeSrc} />
                             ) : (
                               <BlocoAtividade key={atividade.id} atividade={atividade} />
                             ),

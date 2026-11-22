@@ -14,4 +14,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "."),
     },
   },
+  // Os testes existentes usam o Juventus como clube de referência ("Juventus x Osasco"…). Fixar o
+  // clube aqui deixa o resultado igual em qualquer máquina, mesmo com NEXT_PUBLIC_CLUBE=maringa no
+  // ambiente (ver lib/clube e lib/clube/clube.test.ts, que cobre os dois clubes).
+  test: {
+    env: { NEXT_PUBLIC_CLUBE: "juventus" },
+  },
 });

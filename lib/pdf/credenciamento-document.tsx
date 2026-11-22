@@ -21,12 +21,12 @@ export interface CredenciamentoPdfItem {
 
 export function CredenciamentoDocument({
   jogo,
-  juventusLogoSrc,
+  escudoClubeSrc,
   adversarioLogoSrc,
   itens,
 }: {
   jogo: JogoRow;
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   adversarioLogoSrc: LogoSrc;
   itens: CredenciamentoPdfItem[];
 }) {
@@ -37,7 +37,7 @@ export function CredenciamentoDocument({
       <Page size="A4" style={sharedStyles.page}>
         <DocumentoHeader
           jogo={jogo}
-          juventusLogoSrc={juventusLogoSrc}
+          escudoClubeSrc={escudoClubeSrc}
           adversarioLogoSrc={adversarioLogoSrc}
           titulo="Credenciamento por Zona"
         />

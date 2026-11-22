@@ -11,6 +11,7 @@ import { buscarProgramacaoGeralData } from "@/lib/programacao/programacao-geral-
 import { inicioDaSemana } from "@/lib/programacao/semana";
 import { hojeBrasilia } from "@/lib/data-brasil";
 import { ProgramacaoGeralDocument } from "@/lib/pdf/programacao-geral-document";
+import { clube } from "@/lib/clube";
 
 /**
  * Exportação da Programação Geral em PDF (ver docs/superpowers/specs/2026-09-02-programacao-copiar-
@@ -34,10 +35,10 @@ export async function GET(request: Request) {
 
   const dados = await buscarProgramacaoGeralData(supabase, inicioSemana);
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
-  const buffer = await renderToBuffer(<ProgramacaoGeralDocument dados={dados} juventusLogoSrc={juventusLogoSrc} />);
+  const buffer = await renderToBuffer(<ProgramacaoGeralDocument dados={dados} escudoClubeSrc={escudoClubeSrc} />);
 
   const nomeArquivo = `programacao-geral-${inicioSemana}.pdf`;
 

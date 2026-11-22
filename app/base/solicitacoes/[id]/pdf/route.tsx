@@ -11,6 +11,7 @@ import { SolicitacaoDocument, montarAssinaturasSolicitacao, type SolicitacaoPdfI
 import { buscarAssinaturas, resolverImagensAssinaturas } from "@/lib/assinaturas/actions";
 import { papelDepartamentoSolicitacao } from "@/lib/assinaturas/config";
 import type { SolicitacaoItemBaseRow, SolicitacaoBaseRow } from "@/lib/supabase/types";
+import { clube } from "@/lib/clube";
 
 /** Espelha `app/solicitacoes/[id]/pdf/route.tsx` para o Futebol de Base. */
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -68,8 +69,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
     ? TIPO_CONTA_BANCARIA.find((t) => t.value === s.tipo_conta)?.label ?? null
     : null;
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
   const assinaturas = montarAssinaturasSolicitacao(
     await resolverImagensAssinaturas(supabase, assinaturasSalvas),
     papelDepartamentoSolicitacao(s.tipo),
@@ -77,7 +78,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const buffer = await renderToBuffer(
     <SolicitacaoDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       solicitacao={{
         tipo: s.tipo,
         dataSolicitacao: s.data_solicitacao,

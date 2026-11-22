@@ -79,12 +79,12 @@ const styles = StyleSheet.create({
 });
 
 export function FisioterapiaRelatorioDiaDocument({
-  juventusLogoSrc,
+  escudoClubeSrc,
   departamentoLabel,
   data,
   itens,
 }: {
-  juventusLogoSrc: LogoSrc;
+  escudoClubeSrc: LogoSrc;
   departamentoLabel: string;
   data: string;
   itens: FisioterapiaRelatorioDiaItem[];
@@ -92,9 +92,9 @@ export function FisioterapiaRelatorioDiaDocument({
   return (
     <Document>
       <Page size="A4" style={sharedStyles.page}>
-        {juventusLogoSrc ? (
+        {escudoClubeSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image style={styles.headerLogo} src={juventusLogoSrc as string} />
+          <Image style={styles.headerLogo} src={escudoClubeSrc as string} />
         ) : null}
         <Text style={styles.titulo}>Relatório Diário da Fisioterapia</Text>
         <Text style={styles.subtitulo}>{departamentoLabel}</Text>

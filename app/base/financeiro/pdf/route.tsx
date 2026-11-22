@@ -13,6 +13,7 @@ import {
 } from "@/lib/pdf/relatorio-financeiro-document";
 import type { GastoJogoComCategoriaRow, JogoRow } from "@/lib/supabase/types";
 import { TODAS_CATEGORIAS_BASE } from "@/lib/auth/categorias-base";
+import { clube } from "@/lib/clube";
 
 /** Espelha `app/financeiro/pdf/route.tsx` para o Futebol de Base. */
 export async function GET() {
@@ -64,7 +65,7 @@ export async function GET() {
       const previsto = gastosDoJogo.reduce((soma, g) => soma + g.valor_previsto, 0);
       const efetuado = gastosDoJogo.reduce((soma, g) => soma + (g.valor_efetuado ?? 0), 0);
       return {
-        confronto: j.mandante ? `Juventus x ${j.adversario_nome}` : `${j.adversario_nome} x Juventus`,
+        confronto: j.mandante ? `${clube.nomeCurto} x ${j.adversario_nome}` : `${j.adversario_nome} x ${clube.nomeCurto}`,
         competicao: j.competicao,
         data: j.data_jogo,
         previsto,
@@ -72,12 +73,12 @@ export async function GET() {
       };
     });
 
-  const juventusLogoPath = path.join(process.cwd(), "public/brand/juventus-escudo.png");
-  const juventusLogoSrc = { data: readFileSync(juventusLogoPath), format: "png" as const };
+  const escudoClubePath = path.join(process.cwd(), "public", clube.escudo.completo);
+  const escudoClubeSrc = { data: readFileSync(escudoClubePath), format: "png" as const };
 
   const buffer = await renderToBuffer(
     <RelatorioFinanceiroDocument
-      juventusLogoSrc={juventusLogoSrc}
+      escudoClubeSrc={escudoClubeSrc}
       geradoEm={new Date()}
       totalPrevisto={totalPrevisto}
       totalEfetuado={totalEfetuado}

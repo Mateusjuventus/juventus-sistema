@@ -1,5 +1,6 @@
 import { diasEntre, type ItemMural } from "@/lib/futebol/calendario";
 import type { CompeticaoBaseCarregada } from "@/lib/futebol/competicao-query-base";
+import { temaClube } from "@/lib/theme";
 
 /**
  * Espelha `avisosDaCompeticao` de `lib/futebol/competicao-avisos.ts` (Profissional) para o
@@ -12,7 +13,7 @@ import type { CompeticaoBaseCarregada } from "@/lib/futebol/competicao-query-bas
  */
 
 const COR_SUSPENSAO = "#B4232C";
-const COR_ATENCAO = "#B98F1E";
+const COR_ATENCAO = temaClube.dourado;
 
 /** Itens de alerta de UMA competição da Base já carregada — usado pela aba Alertas e pela Visão
  * geral (lista reduzida). */
