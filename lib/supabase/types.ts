@@ -326,6 +326,25 @@ export interface AtletaContratoEvolucaoSalarialRow {
   created_at: string;
 }
 
+/** "incluir": atleta que não bateria no critério automático, mas deve aparecer mesmo assim.
+ * "excluir": o oposto — atleta que bateria, mas foi removido manualmente. Ver
+ * `AtletaRelacaoFormacaoProfissionalExcecaoRow` abaixo. */
+export type AtletaRelacaoFormacaoProfissionalExcecaoTipo = "incluir" | "excluir";
+
+/** Exceção manual persistente da Relação de Atletas (Formação e Profissional) pro Financeiro/
+ * Controladoria (ver docs/superpowers/specs/2026-11-26-relacao-formacao-profissional-design.md e
+ * 0169_atleta_relacao_formacao_profissional_excecoes.sql) — a lista em si nunca é salva, só é
+ * recalculada na hora (critério automático + estas exceções); um atleta só tem uma por vez
+ * (`unique (atleta_id)` no banco, upsert nas actions). */
+export interface AtletaRelacaoFormacaoProfissionalExcecaoRow {
+  id: string;
+  atleta_id: string;
+  tipo: AtletaRelacaoFormacaoProfissionalExcecaoTipo;
+  criado_por_perfil_id: string | null;
+  criado_por_nome: string | null;
+  created_at: string;
+}
+
 /** Métrica de um Gatilho (bônus por meta de desempenho) — ver `AtletaContratoGatilhoRow` abaixo.
  * As 4 primeiras (`pct_*`) são percentuais sobre o total de jogos do universo filtrado; as 2
  * últimas (`total_*`) são contagem absoluta. */

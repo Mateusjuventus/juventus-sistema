@@ -23,16 +23,33 @@ de imagem, bonificação, auxílio moradia, outros), direitos econômicos em %, 
 agendada, e histórico automático de contratos anteriores (um "vigente" por vez). Este módulo novo
 não precisa desse dado do zero — só precisa ler e apresentar.
 
+Desde a Unificação de Atletas (28/10/2026, ver `0150_unificacao_atletas.sql`), existe uma única
+tabela `atletas` pra Profissional e Base (distinguidos pela coluna `categoria`: `"profissional"` ou
+uma das 7 categorias de Base — Sub-20 a Sub-11), e um único `atleta_contratos` (o antigo
+`atletas_base`/`atleta_base_contratos` ficou renomeado `_old`, só como backup, sem uso). Este módulo
+lê das tabelas unificadas, filtrando por `categoria`, exatamente como `app/base/relatorios/avulso/
+page.tsx` já faz hoje (`supabase.from("atletas").select(...).neq("categoria", "profissional")`).
+
 ## Decisões
 
 - **Destinatário:** Financeiro e controladoria (interno/externo ao clube) — não é uma exigência de
   federação (FPF/CBF), é um controle financeiro do próprio Juventus. Isso significa que não há um
   formato fixo imposto por terceiros: o formato e os campos são os que o Mateus definir aqui.
 - **Escopo de atletas:** só Futebol de Base, categorias Sub-20 pra baixo (toda `TODAS_CATEGORIAS_BASE`
-  — Sub-20 a Sub-11). Futebol Profissional (equipe principal) fica de fora deste módulo.
-- **Tipos de contrato incluídos:** Formação e Profissional (Definitivo + Empréstimo). Amador e
-  Iniciação ficam de fora — não têm remuneração relevante pro Financeiro acompanhar.
-- **Status:** atletas Dispensados ficam fora do cálculo automático.
+  — Sub-20 a Sub-11, ou seja `atletas.categoria <> 'profissional'`). Futebol Profissional (equipe
+  principal) fica de fora deste módulo.
+- **Tipos de contrato incluídos:** Formação e Profissional (Definitivo + Empréstimo), lidos do
+  contrato **vigente** (`atleta_contratos.vigente = true`) de cada atleta. Amador e Iniciação ficam
+  de fora — não têm remuneração relevante pro Financeiro acompanhar.
+- **Status/ativo:** atletas com `status = 'dispensado'` (Relatório de Dispensa formal) ficam fora do
+  cálculo automático — pedido explícito do Mateus. Na mesma linha, atletas com `ativo = false`
+  (desativados por qualquer outro motivo — venda, fim de contrato, etc., ver `0160_atletas_
+  desativacao_transicao_pagamento.sql`) também ficam fora do automático: é o mesmo campo que já
+  tira um atleta de "listas/exportações por padrão" em todo o resto do sistema (Staff Operacional,
+  Veículos, Hotéis, e o próprio Relatório Avulso), então manter esse padrão aqui evita que alguém
+  que já saiu do clube continue aparecendo na relação do Financeiro por engano. Os dois casos entram
+  no mesmo balde de "fora do automático" — se algum precisar aparecer mesmo assim (ex.: pendência de
+  pagamento de rescisão), a exceção manual "sempre incluir" resolve.
 - **Mecanismo de inclusão/remoção:** automático por padrão (critério acima), com exceções manuais
   que persistem mês a mês (Abordagem B das 3 propostas — ver seção "Mecanismo de exceções"
   abaixo). Decisão explícita do Mateus: nem 100% automático (sem conseguir tirar ninguém), nem
@@ -56,7 +73,7 @@ atleta:
 ```sql
 create table public.atleta_relacao_formacao_profissional_excecoes (
   id uuid primary key default gen_random_uuid(),
-  atleta_id uuid not null references public.atletas_base(id) on delete cascade,
+  atleta_id uuid not null references public.atletas(id) on delete cascade,
   tipo text not null check (tipo in ('incluir', 'excluir')),
   criado_por_perfil_id uuid references public.perfis(id) on delete set null,
   criado_por_nome text,
@@ -79,9 +96,9 @@ notify pgrst, 'reload schema';
 
 Segue o mesmo padrão de RLS/grant das demais tabelas novas do sistema (`atleta_contratos`,
 `atleta_contrato_evolucao_salarial`) — acesso liberado pra qualquer usuário autenticado, sem
-política mais granular (igual ao resto do banco hoje). `atleta_id` referencia `atletas_base`
-porque o escopo deste módulo é só Futebol de Base (Sub-20 pra baixo) — não faz sentido apontar pra
-`atletas` (Profissional).
+política mais granular (igual ao resto do banco hoje). `atleta_id` referencia `atletas` (a tabela
+única pós-unificação, não existe mais `atletas_base` em uso) — o escopo deste módulo (só Base) é
+garantido pelo filtro de `categoria` na hora de montar a lista, não por uma tabela separada.
 
 - `unique (atleta_id)`: um atleta só pode ter UMA exceção ativa por vez (ou "sempre incluir", ou
   "sempre excluir" — nunca os dois). Criar uma exceção nova pro mesmo atleta substitui a anterior

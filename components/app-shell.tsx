@@ -96,6 +96,15 @@ export async function AppShell({
       // estivesse navegando pela Base precisava voltar pro Profissional só pra achar essa tela.
       if (master) {
         navItems.push({ href: "/usuarios", label: "Usuários", icone: "usuarios" });
+        // Relação de Atletas (Formação e Profissional) pro Financeiro/Controladoria — só master, mesma
+        // lógica de "Usuários" acima (não é um ModuloChave liberável por checkbox). Ver
+        // docs/superpowers/specs/2026-11-26-relacao-formacao-profissional-design.md. Reaproveita o
+        // ícone de "relatorios_avulso" (já existe e já está mapeado) em vez de criar um novo.
+        navItems.push({
+          href: "/base/relatorios/formacao-profissional",
+          label: "Relação Formação/Profissional",
+          icone: "relatorios_avulso",
+        });
       }
       if (departamentosPermitidos.includes("futebol_profissional")) {
         outroDepartamento = { href: "/profissional", label: "Futebol Profissional" };
