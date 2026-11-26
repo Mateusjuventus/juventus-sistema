@@ -74,14 +74,14 @@ describe("avisosFormatoPartidaBase", () => {
   });
 
   it("gol/cartão não disparam aviso de substituição, mesmo em tempo restrito", () => {
-    const avisos = avisosFormatoPartidaBase(
-      REGRAS_SUB11,
-      [],
-      [
-        { tipo: "gol", tempo: "primeiro" },
-        { tipo: "cartao_amarelo", tempo: "segundo" },
-      ],
-    );
+    // Elenco cheio (18, no mínimo exigido) e minutagem no mínimo exigido (17) pra nenhum dos dois
+    // outros tipos de aviso (elenco/minutos) disparar aqui — este teste é só sobre eventos de
+    // gol/cartão não contarem como substituição, não sobre os demais avisos.
+    const atletas = Array.from({ length: 18 }, (_, i) => atleta(`Atleta ${i}`, 17));
+    const avisos = avisosFormatoPartidaBase(REGRAS_SUB11, atletas, [
+      { tipo: "gol", tempo: "primeiro" },
+      { tipo: "cartao_amarelo", tempo: "segundo" },
+    ]);
     expect(avisos).toEqual([]);
   });
 });

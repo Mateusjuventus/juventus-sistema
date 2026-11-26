@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AtletaContratoEvolucaoSalarialRow } from "@/lib/supabase/types";
 import {
-  atletaTemDadosPagamento,
   contratoTemRemuneracaoFormal,
   contratoVazio,
   diasRestantesContrato,
@@ -189,20 +188,6 @@ describe("contratoTemRemuneracaoFormal", () => {
   });
 });
 
-describe("atletaTemDadosPagamento", () => {
-  it("true pra Definitivo, Formação e Empréstimo", () => {
-    expect(atletaTemDadosPagamento("definitivo")).toBe(true);
-    expect(atletaTemDadosPagamento("formacao")).toBe(true);
-    expect(atletaTemDadosPagamento("emprestimo")).toBe(true);
-  });
-
-  it("false pra Amador e Iniciação", () => {
-    expect(atletaTemDadosPagamento("amador")).toBe(false);
-    expect(atletaTemDadosPagamento("iniciacao")).toBe(false);
-  });
-
-  it("false quando não há contrato nenhum ainda", () => {
-    expect(atletaTemDadosPagamento(null)).toBe(false);
-    expect(atletaTemDadosPagamento(undefined)).toBe(false);
-  });
-});
+// Teste de `atletaTemDadosPagamento` removido — a própria função saiu em 17/11/2026 (ver o
+// comentário em `./contrato.ts`, logo acima de `contratoTemRemuneracaoFormal`); este bloco só
+// tinha ficado pra trás, testando uma função que não existe mais.

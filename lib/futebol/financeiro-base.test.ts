@@ -20,7 +20,26 @@ function comissao(overrides: Partial<ComissaoTecnicaRow> & Pick<ComissaoTecnicaR
     apelido: null,
     tipo_contrato: null,
     data_inicio: null,
+    data_fim: null,
     valor_salario: null,
+    ativo: true,
+    cep: null,
+    logradouro: null,
+    numero: null,
+    complemento: null,
+    bairro: null,
+    cidade: null,
+    uf: null,
+    setor: null,
+    chave_pix_tipo: null,
+    chave_pix: null,
+    banco: null,
+    agencia: null,
+    conta: null,
+    empresa_nome: null,
+    empresa_cnpj: null,
+    empresa_chave_pix_tipo: null,
+    empresa_chave_pix: null,
     created_by: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
@@ -106,9 +125,20 @@ describe("calcularGeralBase — Comissão Técnica já unificada (Profissional +
   it("soma atletas e despesas normalmente, sem nenhuma Comissão Técnica cadastrada", () => {
     const resumo = calcularGeralBase(
       [],
-      [atleta({ id: "a1", categoria: "sub11", valor_ajuda_custo: 300 })],
+      [atleta({ id: "a1", categoria: "sub11" })],
       [],
-      [],
+      [
+        {
+          id: "ct1",
+          atleta_id: "a1",
+          vigente: true,
+          salario_ctps: 300,
+          direito_imagem: 0,
+          bonificacao: 0,
+          auxilio_moradia: 0,
+          outros: 0,
+        } as never,
+      ],
     );
     expect(resumo.custoAtletas).toBe(300);
     expect(resumo.totalGeral).toBe(300);
@@ -133,9 +163,9 @@ describe("custoAtletaBase / mapaContratoVigentePorAtleta", () => {
     expect(custo).toBe(1200);
   });
 
-  it("cai no valor_ajuda_custo quando não há contrato vigente", () => {
+  it("zero quando não há contrato vigente (sem fallback em valor_ajuda_custo desde 17/11/2026)", () => {
     const custo = custoAtletaBase(atleta({ id: "a1", categoria: "sub11", valor_ajuda_custo: 80 }), new Map());
-    expect(custo).toBe(80);
+    expect(custo).toBe(0);
   });
 });
 
